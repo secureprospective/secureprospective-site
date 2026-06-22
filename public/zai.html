@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureProspective — z.ai version</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --silver-base: #E5E4E2;
+      --blue-brand: #0033A0;
+      --gold-identity: #D4AF37;
+      --yellow-accent: #FFD700;
+      --ink: #222222;
+      --white: #FFFFFF;
+      --font-display: 'Inter', system-ui, sans-serif;
+      --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 16px;
+      --space-4: 24px;
+      --space-5: 32px;
+      --space-6: 48px;
+      --space-7: 64px;
+      --space-8: 96px;
+      --container-max: 1200px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--silver-base); }
+
+    body {
+      background: var(--silver-base);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--space-4); }
+
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      line-height: 1.0;
+    }
+
+    /* --- NAV: Terminal Header --- */
+    .nav {
+      background: var(--silver-base);
+      border-bottom: 2px solid var(--ink);
+      padding: var(--space-3) 0;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: 0 var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .logo::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      background: var(--blue-brand);
+      display: inline-block;
+    }
+    .nav nav { display: flex; gap: var(--space-5); }
+    .nav nav a {
+      font-family: var(--font-body);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: color 120ms ease-out;
+    }
+    .nav nav a:hover { color: var(--blue-brand); }
+
+    .nav-status {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink);
+      border: 1px solid var(--ink);
+      padding: 4px 8px;
+    }
+
+    /* --- HERO: Architectural Vault View --- */
+    .hero {
+      background: var(--silver-base);
+      border-bottom: 2px solid var(--ink);
+      padding: var(--space-8) 0;
+      position: relative;
+    }
+    .hero-meta {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0.6;
+      padding-bottom: var(--space-6);
+      border-bottom: 1px solid var(--ink);
+      margin-bottom: var(--space-6);
+      display: flex;
+      justify-content: space-between;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: var(--space-7);
+      align-items: flex-end;
+    }
+    .hero-content { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
+    .hero h1 {
+      font-size: 88px;
+      line-height: 0.9;
+      max-width: 100%;
+    }
+    .sub-headline {
+      font-size: 20px;
+      max-width: 560px;
+      line-height: 1.4;
+      color: var(--ink);
+      margin-top: var(--space-3);
+    }
+    .button {
+      background: var(--yellow-accent);
+      color: var(--ink);
+      padding: 14px 28px;
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+      display: inline-block;
+      margin-top: var(--space-4);
+      transition: background 120ms ease-out, transform 120ms ease-out;
+    }
+    .button:hover { background: var(--gold-identity); transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+
+    /* Hero Visual: Vault Frame & Brand Symbol */
+    .hero-visual {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      max-width: 400px;
+      margin-left: auto;
+      border: 2px solid var(--ink);
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .corner {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--ink);
+      background: var(--silver-base);
+      z-index: 2;
+    }
+    .corner.tl { top: -12px; left: -12px; }
+    .corner.tr { top: -12px; right: -12px; }
+    .corner.bl { bottom: -12px; left: -12px; }
+    .corner.br { bottom: -12px; right: -12px; }
+
+    .brand-symbol {
+      width: 70%;
+      height: 70%;
+    }
+    .frame-caption {
+      position: absolute;
+      bottom: -32px;
+      right: 0;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    /* --- METHOD: Transit Elevation --- */
+    .method-preview {
+      background: var(--blue-brand);
+      color: var(--white);
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding: var(--space-7) 0;
+      position: relative;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .section-header {
+      margin-bottom: var(--space-7);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: var(--space-3);
+    }
+    .section-label {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      color: var(--white);
+    }
+    .section-sub {
+      font-family: var(--font-body);
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    .movements {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+    }
+    .movement {
+      position: relative;
+      padding-top: 60px;
+    }
+    .movement::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 32px;
+      width: calc(100% - 32px);
+      height: 2px;
+      background: rgba(255, 255, 255, 0.4);
+      z-index: 0;
+    }
+    .movement:last-child::before { display: none; }
+
+    .movement-node {
+      width: 40px;
+      height: 40px;
+      background: var(--blue-brand);
+      border: 2px solid var(--white);
+      color: var(--white);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .movement-data {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: var(--space-2);
+      display: block;
+    }
+    .movement-name {
+      font-family: var(--font-display);
+      font-size: 28px;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: var(--space-2);
+      letter-spacing: -0.02em;
+    }
+    .movement-desc {
+      font-size: 14px;
+      color: var(--white);
+      opacity: 0.9;
+      border-left: 2px solid var(--white);
+      padding-left: var(--space-2);
+    }
+
+    /* --- PROOF: Audit Ledger --- */
+    .proof-teasers {
+      background: var(--silver-base);
+      border-bottom: 2px solid var(--ink);
+      padding: var(--space-7) 0;
+    }
+    .proof-teasers .section-label { color: var(--ink); }
+    .proof-teasers .section-header { border-bottom: 1px solid var(--ink); }
+
+    .teasers {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-5);
+    }
+    .teaser {
+      background: var(--white);
+      border: 2px solid var(--ink);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .teaser-tab {
+      position: absolute;
+      top: -2px;
+      left: 24px;
+      background: var(--ink);
+      color: var(--white);
+      padding: 4px 12px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .teaser-body {
+      padding: var(--space-5);
+      padding-top: var(--space-6);
+      border-left: 8px solid var(--gold-identity);
+      flex-grow: 1;
+    }
+    .teaser-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      text-transform: uppercase;
+      margin-bottom: var(--space-3);
+      letter-spacing: -0.02em;
+    }
+    .teaser-row {
+      display: flex;
+      border-bottom: 1px solid var(--silver-base);
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .row-label {
+      font-family: var(--font-body);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      width: 100px;
+      color: var(--ink);
+      opacity: 0.6;
+    }
+    .teaser-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: var(--space-3);
+    }
+    .teaser-footer {
+      background: var(--silver-base);
+      border-top: 1px solid var(--ink);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .verified-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--blue-brand);
+    }
+    .verified-mark svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* --- FOOTER --- */
+    footer {
+      background: var(--ink);
+      color: var(--white);
+      padding: var(--space-5) 0;
+    }
+    .footer-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: 0 var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-family: var(--font-body);
+      font-weight: 500;
+    }
+    .footer-tagline {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 56px; }
+      .hero-visual { max-width: 280px; margin-left: 0; margin-top: var(--space-5); }
+      .movements { grid-template-columns: 1fr; gap: var(--space-6); }
+      .movement::before { display: none; }
+      .teasers { grid-template-columns: 1fr; }
+      .nav nav { display: none; }
+      .footer-inner { flex-direction: column; gap: var(--space-3); text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <div class="logo">Secure Prospective</div>
+      <nav>
+        <a href="/the-method">The Method</a>
+        <a href="/the-work">The Work</a>
+        <a href="/services">Services</a>
+        <a href="/the-operator">The Operator</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <div class="nav-status">[ Sys: Active ]</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-meta">
+          <span>Est. 2026 // Secure_Prospective</span>
+          <span>Compliance: Tier-1</span>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-content">
+            <h1>Make AI native.<br />Drop the prefix.</h1>
+            <p class="sub-headline">
+              We make businesses AI-native — diagnose the bottleneck, position the tool,
+              shape the output for ownership.
+            </p>
+            <a href="/the-method" class="button">See the method &rarr;</a>
+          </div>
+
+          <div class="hero-visual">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+
+            <svg class="brand-symbol" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#D4AF37" stroke-width="2" />
+              <circle cx="50" cy="50" r="38" fill="none" stroke="#222222" stroke-width="1" stroke-dasharray="2 4" />
+              <path d="M 50 10 L 55 20 L 50 15 L 45 20 Z" fill="#D4AF37" />
+              <path d="M 90 50 L 80 55 L 85 50 L 80 45 Z" fill="#D4AF37" />
+              <path d="M 50 90 L 45 80 L 50 85 L 55 80 Z" fill="#D4AF37" />
+              <path d="M 10 50 L 20 45 L 15 50 L 20 55 Z" fill="#D4AF37" />
+              <rect x="25" y="25" width="50" height="50" fill="none" stroke="#222222" stroke-width="2" />
+              <line x1="50" y1="25" x2="50" y2="75" stroke="#222222" stroke-width="1" />
+              <line x1="25" y1="50" x2="75" y2="50" stroke="#222222" stroke-width="1" />
+              <circle cx="50" cy="50" r="4" fill="#0033A0" />
+            </svg>
+
+            <div class="frame-caption">FIG. 01 // IDENTITY_MARK</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="method-preview">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">The Method</div>
+          <div class="section-sub">Operational Sequence // 4 Movements</div>
+        </div>
+        <div class="movements">
+          <div class="movement">
+            <div class="movement-node">01</div>
+            <span class="movement-data">Phase: Audit</span>
+            <div class="movement-name">Diagnose</div>
+            <div class="movement-desc">Find the bottleneck.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">02</div>
+            <span class="movement-data">Phase: Align</span>
+            <div class="movement-name">Position</div>
+            <div class="movement-desc">Set the tool up for success.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">03</div>
+            <span class="movement-data">Phase: Build</span>
+            <div class="movement-name">Shape</div>
+            <div class="movement-desc">Structure output for ownership.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">04</div>
+            <span class="movement-data">Phase: Deploy</span>
+            <div class="movement-name">Transform</div>
+            <div class="movement-desc">Move from bolted-on to native.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-teasers">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">Proof</div>
+          <div class="section-sub">Verified Records // Data Audit</div>
+        </div>
+        <div class="teasers">
+          <article class="teaser">
+            <div class="teaser-tab">DATA_RECORD // 001</div>
+            <div class="teaser-body">
+              <div class="teaser-title">TFM — Client #1</div>
+              <div class="teaser-row"><span class="row-label">Sector</span> <span>Nonprofit</span></div>
+              <div class="teaser-row"><span class="row-label">Scope</span> <span>Infrastructure, Brand, Live Site</span></div>
+              <div class="teaser-desc">
+                Faith-backed digital freedom nonprofit. Built the digital infrastructure,
+                brand system, and live site.
+              </div>
+            </div>
+            <div class="teaser-footer">
+              <span>Status: Complete</span>
+              <div class="verified-mark">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 6 L5 9 L10 3" />
+                </svg>
+                VERIFIED
+              </div>
+            </div>
+          </article>
+
+          <article class="teaser">
+            <div class="teaser-tab">DATA_RECORD // 002</div>
+            <div class="teaser-body">
+              <div class="teaser-title">The IMO, distilled</div>
+              <div class="teaser-row"><span class="row-label">Sector</span> <span>Internal R&D</span></div>
+              <div class="teaser-row"><span class="row-label">Scope</span> <span>Process Optimization, AI Integration</span></div>
+              <div class="teaser-desc">
+                We ran an IMO. We knew what was broken. We applied the method to our own
+                business first.
+              </div>
+            </div>
+            <div class="teaser-footer">
+              <span>Status: Live</span>
+              <div class="verified-mark">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 6 L5 9 L10 3" />
+                </svg>
+                VERIFIED
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div>&copy; 2026 SecureProspective</div>
+      <div class="footer-tagline">Business must adapt or suffer the inevitable.</div>
+    </div>
+  </footer>
+
+</body>
+</html>

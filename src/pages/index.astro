@@ -1,17 +1,330 @@
 ---
-
+import Layout from '../layouts/Layout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout>
+  <header class="nav">
+    <div class="nav-inner">
+      <div class="logo">SECURE PROSPECTIVE</div>
+      <nav>
+        <a href="/the-method">The Method</a>
+        <a href="/the-work">The Work</a>
+        <a href="/services">Services</a>
+        <a href="/the-operator">The Operator</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Make AI native.<br />Drop the prefix.</h1>
+        <p class="sub-headline">
+          We make businesses AI-native — diagnose the bottleneck, position the tool,
+          shape the output for ownership.
+        </p>
+        <a href="/the-method" class="button">See the method &rarr;</a>
+      </div>
+    </section>
+
+    <section class="method-preview">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">The Method</div>
+        </div>
+        <div class="movements">
+          <div class="movement">
+            <div class="movement-node">01</div>
+            <div class="movement-name">Diagnose</div>
+            <div class="movement-desc">Find the bottleneck.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">02</div>
+            <div class="movement-name">Position</div>
+            <div class="movement-desc">Set the tool up for success.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">03</div>
+            <div class="movement-name">Shape</div>
+            <div class="movement-desc">Structure output for ownership.</div>
+          </div>
+          <div class="movement">
+            <div class="movement-node">04</div>
+            <div class="movement-name">Transform</div>
+            <div class="movement-desc">Move from bolted-on to native.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-teasers">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">Proof</div>
+        </div>
+        <div class="teasers">
+          <article class="teaser">
+            <div class="teaser-meta">DATA_RECORD // 001</div>
+            <div class="teaser-title">TFM — Client #1</div>
+            <div class="teaser-desc">
+              Faith-backed digital freedom nonprofit. Built the digital infrastructure,
+              brand system, and live site.
+            </div>
+          </article>
+          <article class="teaser">
+            <div class="teaser-meta">DATA_RECORD // 002</div>
+            <div class="teaser-title">The IMO, distilled</div>
+            <div class="teaser-desc">
+              We ran an IMO. We knew what was broken. We applied the method to our own
+              business first.
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div>&copy; 2026 SecureProspective</div>
+      <div class="footer-tagline">Business must adapt or suffer the inevitable.</div>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  .container {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+  }
+
+  /* Nav — Primal font, sticky, hard ink rule beneath */
+  .nav {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-3) 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .nav nav {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .nav nav a {
+    font-family: var(--font-display);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color 120ms ease-out;
+  }
+  .nav nav a:hover {
+    color: var(--blue-brand);
+  }
+
+  /* Hero — silver/platinum canvas, hard ink rule beneath */
+  .hero {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-8) 0;
+  }
+  .hero .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: flex-start;
+  }
+  .hero h1 {
+    font-size: var(--text-display);
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    max-width: 900px;
+  }
+  .sub-headline {
+    font-size: var(--text-body-lg);
+    max-width: 720px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  /* Button — yellow as solid UI surface (warning/guidance light) */
+  .button {
+    background: var(--yellow-accent);
+    color: var(--ink);
+    padding: var(--space-3) var(--space-5);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-body);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    border-radius: var(--radius-button);
+    display: inline-block;
+    margin-top: var(--space-3);
+    transition: background 120ms ease-out;
+  }
+  .button:hover {
+    background: var(--gold-identity);
+  }
+
+  /* Method preview — compressed vertical, hard ink rules top + bottom */
+  .method-preview {
+    background: var(--blue-brand);
+    color: var(--ink-inverted);
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-6) 0;
+  }
+
+  /* Section header — strengthened: Primal 20px + letter-spacing + underline */
+  .section-header {
+    margin-bottom: var(--space-5);
+  }
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding-bottom: var(--space-2);
+    display: inline-block;
+  }
+  .method-preview .section-label {
+    color: var(--white);
+    border-bottom: 1px solid var(--white);
+  }
+  .proof-teasers .section-label {
+    color: var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  /* Movements with transit-map connecting line + node markers */
+  .movements {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+  }
+  .movements::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 16px;
+    right: calc(75% + 16px);
+    height: 2px;
+    background: rgba(255, 255, 255, 0.5);
+    z-index: 0;
+  }
+  .movement {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .movement-node {
+    width: 32px;
+    height: 32px;
+    background: var(--blue-brand);
+    border: 2px solid var(--white);
+    color: var(--white);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-3);
+  }
+  .movement-name {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    text-transform: uppercase;
+    color: var(--white);
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.01em;
+  }
+  .movement-desc {
+    font-size: var(--text-body);
+    color: var(--white);
+    opacity: 0.85;
+  }
+
+  /* Proof teasers — ledger-framed data records */
+  .proof-teasers {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-7) 0;
+  }
+  .teasers {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+  .teaser {
+    background: var(--white);
+    padding: var(--space-5);
+    border: 1px solid var(--ink);
+  }
+  .teaser-meta {
+    font-family: var(--font-display);
+    font-size: 11px;
+    color: var(--ink);
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-3);
+  }
+  .teaser-title {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    text-transform: uppercase;
+    margin-bottom: var(--space-3);
+    letter-spacing: -0.01em;
+  }
+  .teaser-desc {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Footer */
+  footer {
+    background: var(--ink);
+    color: var(--ink-inverted);
+    padding: var(--space-5) 0;
+  }
+  .footer-inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-caption);
+    letter-spacing: 0.05em;
+  }
+  .footer-tagline {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+</style>

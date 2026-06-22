@@ -1,0 +1,39 @@
+:root {
+  /* Color tokens — multi-hue system */
+  --silver-base: #E5E4E2;
+  --blue-brand: #0033A0;
+  --gold-identity: #D4AF37;
+  --yellow-accent: #FFD700;
+  --ink: #222222;
+  --white: #FFFFFF;
+  --ink-inverted: #FFFFFF;
+
+  /* Typography */
+  --font-display: 'Primal', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+
+  /* Type scale */
+  --text-display: 72px;
+  --text-h1: 48px;
+  --text-h2: 36px;
+  --text-h3: 24px;
+  --text-body-lg: 20px;
+  --text-body: 16px;
+  --text-caption: 14px;
+
+  /* Spacing — 8px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+
+  /* Layout */
+  --container-max: 1200px;
+  --gutter: 24px;
+  --radius-default: 0px;
+  --radius-button: 2px;
+}

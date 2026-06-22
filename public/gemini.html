@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureProspective — Gemini version</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --platinum: #E5E4E2;
+      --blue: #0033A0;
+      --gold: #D4AF37;
+      --yellow: #FFD700;
+      --ink: #222222;
+      --white: #FFFFFF;
+      --font-display: 'Inter', system-ui, sans-serif;
+      --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 16px;
+      --space-4: 24px;
+      --space-5: 32px;
+      --space-6: 48px;
+      --space-7: 64px;
+      --space-8: 96px;
+      --container-max: 1300px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--platinum); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .uppercase-display {
+      font-family: var(--font-display);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+    }
+
+    .section-boundary { border-bottom: 2px solid var(--ink); position: relative; }
+    .grid-container {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+    }
+
+    .rail {
+      border-right: 2px solid var(--ink);
+      padding: var(--space-5) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .rail-label {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: var(--space-1);
+      display: inline-block;
+    }
+    .rail-meta {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      opacity: 0.5;
+    }
+
+    .main-content { padding: var(--space-6) var(--space-5); }
+
+    .nav { background: var(--platinum); border-bottom: 2px solid var(--ink); position: sticky; top: 0; z-index: 100; }
+    .nav-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; align-items: stretch; height: 64px; }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 0 var(--space-4);
+      border-right: 2px solid var(--ink);
+    }
+    .nav-logo-text { font-family: var(--font-display); font-weight: 900; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .nav-links { display: flex; align-items: center; }
+    .nav-links a {
+      font-family: var(--font-display);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 var(--space-4);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-left: 2px solid var(--ink);
+      transition: background 120ms step-end, color 120ms step-end;
+    }
+    .nav-links a:hover { background: var(--blue); color: var(--white); }
+
+    .hero-grid { display: grid; grid-template-columns: 1fr 400px; min-height: 520px; }
+    .hero-left { padding: var(--space-7) var(--space-5) var(--space-7) 0; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4); }
+    .hero-right {
+      border-left: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--white);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-left h1 { font-size: 76px; color: var(--ink); }
+    .sub-headline { font-size: 22px; max-width: 680px; line-height: 1.4; color: var(--ink); font-weight: 500; }
+
+    .button {
+      background: var(--yellow);
+      color: var(--ink);
+      padding: var(--space-3) var(--space-5);
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+      display: inline-block;
+      align-self: flex-start;
+      margin-top: var(--space-2);
+      transition: background 120ms step-end, transform 120ms step-end;
+    }
+    .button:hover { background: var(--gold); transform: translate(2px, -2px); }
+
+    .vault-matrix-bg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr);
+      opacity: 0.07; pointer-events: none;
+    }
+    .matrix-box { border: 1px solid var(--white); }
+
+    .brand-symbol-wrapper {
+      display: flex; justify-content: center; align-items: center; flex-grow: 1; margin: var(--space-5) 0;
+    }
+    .brand-symbol-svg { width: 180px; height: 180px; transform: rotate(0deg); animation: dynamicTicker 12s linear infinite; }
+    .brand-symbol-svg .arrow-ring { fill: none; stroke: var(--gold); stroke-width: 8; stroke-dasharray: 40 15; }
+    .brand-symbol-svg .crosshair { stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
+    .brand-symbol-svg .center-core { fill: var(--gold); }
+
+    .vault-telemetry { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; display: flex; flex-direction: column; gap: var(--space-1); }
+    .telemetry-row { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 2px; }
+
+    .method-section { background: var(--blue); color: var(--white); }
+    .method-section .rail { border-right: 2px solid var(--white); background: rgba(255,255,255,0.03); }
+    .method-section .rail-label { color: var(--white); border-bottom: 2px solid var(--white); }
+    .method-section .rail-meta { color: var(--white); }
+
+    .transit-grid-engine { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; background: var(--white); border: 2px solid var(--white); margin-top: var(--space-4); }
+    .transit-node { background: var(--blue); padding: var(--space-4); position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px; }
+
+    .track-line { position: absolute; top: var(--space-5); left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.2); z-index: 1; }
+    .track-line-filled { position: absolute; top: var(--space-5); left: 0; width: 100%; height: 4px; background: var(--gold); z-index: 2; }
+    .transit-node:first-child .track-line-filled { left: var(--space-4); width: calc(100% - var(--space-4)); }
+    .transit-node:last-child .track-line-filled { width: var(--space-4); }
+
+    .node-identifier {
+      width: 36px; height: 36px; background: var(--blue); border: 3px solid var(--gold); color: var(--white);
+      font-family: var(--font-display); font-weight: 900; font-size: 14px; display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 3; margin-bottom: var(--space-5);
+    }
+    .node-title { font-size: 28px; margin-bottom: var(--space-2); color: var(--white); letter-spacing: -0.01em; }
+    .node-desc { font-size: 15px; color: rgba(255, 255, 255, 0.85); margin-bottom: var(--space-4); flex-grow: 1; }
+
+    .node-matrix-metrics { border-top: 1px solid rgba(255,255,255,0.2); padding-top: var(--space-2); font-family: var(--font-display); font-size: 10px; letter-spacing: 0.05em; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); }
+    .metric-tag { opacity: 0.6; }
+    .metric-val { text-align: right; font-weight: 900; color: var(--gold); }
+
+    .proof-section { background: var(--platinum); }
+    .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+
+    .dossier-card { background: var(--white); border: 2px solid var(--ink); position: relative; display: flex; flex-direction: column; }
+    .dossier-card.accented { border-color: var(--blue); }
+
+    .dossier-header { background: var(--ink); color: var(--white); padding: var(--space-2) var(--space-3); display: flex; justify-content: space-between; align-items: center; }
+    .dossier-card.accented .dossier-header { background: var(--blue); }
+    .dossier-meta { font-family: var(--font-display); font-weight: 900; font-size: 11px; letter-spacing: 0.1em; }
+    .dossier-status { width: 8px; height: 8px; background: var(--yellow); }
+    .dossier-card.accented .dossier-status { background: var(--gold); }
+
+    .dossier-body { padding: var(--space-4); flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .dossier-title { font-size: 26px; margin-bottom: var(--space-2); color: var(--ink); letter-spacing: -0.01em; }
+    .dossier-desc { font-size: 15px; color: #444444; margin-bottom: var(--space-4); }
+
+    .dossier-ledger { border-top: 2px solid var(--ink); padding-top: var(--space-3); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .ledger-entry { border: 1px solid var(--platinum); padding: var(--space-2); background: rgba(0,0,0,0.01); }
+    .ledger-label { font-family: var(--font-display); font-size: 10px; color: #777777; text-transform: uppercase; letter-spacing: 0.05em; }
+    .ledger-value { font-family: var(--font-display); font-weight: 900; font-size: 16px; color: var(--ink); margin-top: var(--space-1); text-transform: uppercase; }
+
+    .footer { background: var(--ink); color: var(--white); border-top: 4px solid var(--gold); }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 240px 1fr; }
+    .footer-brand-rail { padding: var(--space-4); border-right: 1px solid rgba(255,255,255,0.1); font-family: var(--font-display); font-weight: 900; font-size: 11px; letter-spacing: 0.05em; opacity: 0.5; }
+    .footer-main { padding: var(--space-4) var(--space-5); display: flex; justify-content: space-between; align-items: center; }
+    .footer-copyright { font-size: 14px; opacity: 0.8; }
+    .footer-tagline { font-family: var(--font-display); font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--platinum); }
+
+    @keyframes dynamicTicker {
+      0% { transform: rotate(0deg); }
+      23% { transform: rotate(0deg); }
+      25% { transform: rotate(90deg); }
+      48% { transform: rotate(90deg); }
+      50% { transform: rotate(180deg); }
+      73% { transform: rotate(180deg); }
+      75% { transform: rotate(270deg); }
+      98% { transform: rotate(270deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-text">SecureProspective</div>
+      </div>
+      <nav class="nav-links">
+        <a href="/the-method">The Method</a>
+        <a href="/the-work">The Work</a>
+        <a href="/services">Services</a>
+        <a href="/the-operator">The Operator</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="section-boundary">
+      <div class="grid-container">
+        <div class="rail">
+          <div class="rail-label">System Launch</div>
+          <div class="rail-meta">REF_SYS // 00_HERO</div>
+        </div>
+        <div class="main-content" style="padding: 0 var(--space-5) 0 0;">
+          <div class="hero-grid">
+            <div class="hero-left">
+              <h1 class="uppercase-display">Make AI native.<br />Drop the prefix.</h1>
+              <p class="sub-headline">
+                We make businesses AI-native — diagnose the bottleneck, position the tool, shape the output for ownership.
+              </p>
+              <a href="/the-method" class="button">See the method &rarr;</a>
+            </div>
+
+            <div class="hero-right">
+              <div class="vault-matrix-bg">
+                <div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div>
+                <div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div>
+                <div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div>
+                <div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div><div class="matrix-box"></div>
+              </div>
+
+              <div class="rail-meta" style="opacity: 0.4;">SECURE_PROSPECTIVE // BRAND_SYMBOL</div>
+
+              <div class="brand-symbol-wrapper">
+                <svg class="brand-symbol-svg" viewBox="0 0 100 100">
+                  <line class="crosshair" x1="50" y1="0" x2="50" y2="100" />
+                  <line class="crosshair" x1="0" y1="50" x2="100" y2="50" />
+                  <circle class="arrow-ring" cx="50" cy="50" r="35" />
+                  <polygon points="50,8 58,18 42,18" fill="var(--gold)" transform="rotate(45 50 50)" />
+                  <polygon points="50,8 58,18 42,18" fill="var(--gold)" transform="rotate(225 50 50)" />
+                  <circle class="center-core" cx="50" cy="50" r="5" />
+                </svg>
+              </div>
+
+              <div class="vault-telemetry">
+                <div class="telemetry-row"><span>STATUS:</span><span style="color:var(--yellow);">OPERATIONAL</span></div>
+                <div class="telemetry-row"><span>MODEL:</span><span>AI-NATIVE_V4</span></div>
+                <div class="telemetry-row"><span>OWNERSHIP:</span><span>100% SECURED</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-boundary method-section">
+      <div class="grid-container">
+        <div class="rail">
+          <div class="rail-label">The Method</div>
+          <div class="rail-meta">STRATEGY // 01_FOUR_MOVEMENTS</div>
+        </div>
+        <div class="main-content">
+          <div class="transit-grid-engine">
+
+            <div class="transit-node">
+              <div class="track-line"></div>
+              <div class="track-line-filled"></div>
+              <div class="node-identifier">01</div>
+              <div>
+                <h3 class="uppercase-display node-title">Diagnose</h3>
+                <p class="node-desc">Find the bottleneck.</p>
+              </div>
+              <div class="node-matrix-metrics">
+                <div class="metric-tag">IN:</div><div class="metric-val">DECOUPLING</div>
+                <div class="metric-tag">OUT:</div><div class="metric-val">ALIGNMENT</div>
+              </div>
+            </div>
+
+            <div class="transit-node">
+              <div class="track-line"></div>
+              <div class="track-line-filled"></div>
+              <div class="node-identifier">02</div>
+              <div>
+                <h3 class="uppercase-display node-title">Position</h3>
+                <p class="node-desc">Set the tool up for success.</p>
+              </div>
+              <div class="node-matrix-metrics">
+                <div class="metric-tag">IN:</div><div class="metric-val">ISOLATION</div>
+                <div class="metric-tag">OUT:</div><div class="metric-val">INTEGRITY</div>
+              </div>
+            </div>
+
+            <div class="transit-node">
+              <div class="track-line"></div>
+              <div class="track-line-filled"></div>
+              <div class="node-identifier">03</div>
+              <div>
+                <h3 class="uppercase-display node-title">Shape</h3>
+                <p class="node-desc">Structure output for ownership.</p>
+              </div>
+              <div class="node-matrix-metrics">
+                <div class="metric-tag">IN:</div><div class="metric-val">DATA_CORE</div>
+                <div class="metric-tag">OUT:</div><div class="metric-val">AUTONOMY</div>
+              </div>
+            </div>
+
+            <div class="transit-node">
+              <div class="track-line"></div>
+              <div class="track-line-filled"></div>
+              <div class="node-identifier">04</div>
+              <div>
+                <h3 class="uppercase-display node-title">Transform</h3>
+                <p class="node-desc">Move from bolted-on to native.</p>
+              </div>
+              <div class="node-matrix-metrics">
+                <div class="metric-tag">IN:</div><div class="metric-val">PREFIX</div>
+                <div class="metric-tag">OUT:</div><div class="metric-val">NATIVE</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-boundary proof-section">
+      <div class="grid-container">
+        <div class="rail">
+          <div class="rail-label">Proof</div>
+          <div class="rail-meta">RECORDS // 02_LEDGER</div>
+        </div>
+        <div class="main-content">
+          <div class="proof-grid">
+
+            <article class="dossier-card accented">
+              <div class="dossier-header">
+                <span class="dossier-meta">DATA_RECORD // 001</span>
+                <div class="dossier-status"></div>
+              </div>
+              <div class="dossier-body">
+                <div>
+                  <h3 class="uppercase-display dossier-title">TFM — Client #1</h3>
+                  <p class="dossier-desc">
+                    Faith-backed digital freedom nonprofit. Built the digital infrastructure, brand system, and live site.
+                  </p>
+                </div>
+                <div class="dossier-ledger">
+                  <div class="ledger-entry">
+                    <div class="ledger-label">Infrastructure</div>
+                    <div class="ledger-value">100% Native</div>
+                  </div>
+                  <div class="ledger-entry">
+                    <div class="ledger-label">Risk Rating</div>
+                    <div class="ledger-value" style="color:var(--blue);">Zero_Loss</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="dossier-card">
+              <div class="dossier-header">
+                <span class="dossier-meta">DATA_RECORD // 002</span>
+                <div class="dossier-status"></div>
+              </div>
+              <div class="dossier-body">
+                <div>
+                  <h3 class="uppercase-display dossier-title">The IMO, distilled</h3>
+                  <p class="dossier-desc">
+                    We ran an IMO. We knew what was broken. We applied the method to our own business first.
+                  </p>
+                </div>
+                <div class="dossier-ledger">
+                  <div class="ledger-entry">
+                    <div class="ledger-label">Testing Grounds</div>
+                    <div class="ledger-value">Internal</div>
+                  </div>
+                  <div class="ledger-entry">
+                    <div class="ledger-label">Validation</div>
+                    <div class="ledger-value">Verified</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand-rail">
+        SECUREPROSPECTIVE
+      </div>
+      <div class="footer-main">
+        <div class="footer-copyright">&copy; 2026 SecureProspective</div>
+        <div class="footer-tagline">Business must adapt or suffer the inevitable.</div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

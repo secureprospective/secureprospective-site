@@ -1,0 +1,7 @@
+@font-face {
+  font-family: 'Primal';
+  src: url('/fonts/Primal.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
