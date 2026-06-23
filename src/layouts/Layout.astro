@@ -1,6 +1,8 @@
 ---
 import '../styles/tokens.css';
 import '../styles/fonts.css';
+
+const { title = 'SecureProspective — Make AI native. Drop the prefix.' } = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -8,7 +10,14 @@ import '../styles/fonts.css';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SecureProspective — Make AI native. Drop the prefix.</title>
+    <meta
+      name="description"
+      content="SecureProspective — technical business consulting. We make businesses AI-native: diagnose the bottleneck, position the tool, shape the output for ownership."
+    />
+    <title>{title}</title>
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
   </head>
   <body>
     <slot />
@@ -42,4 +51,123 @@ import '../styles/fonts.css';
     color: var(--ink);
     line-height: 1.1;
   }
+
+  a {
+    color: inherit;
+  }
+
+  /* Shared component classes (not atomic utilities) */
+  .container {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+  }
+
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    display: inline-block;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid currentColor;
+    margin-bottom: var(--space-5);
+  }
+
+  .btn {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: var(--text-body);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-button);
+    text-decoration: none;
+    cursor: pointer;
+    border: 2px solid transparent;
+    background: var(--yellow-accent);
+    color: var(--ink);
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .btn:hover {
+    background: var(--gold-identity);
+  }
+  .btn--ink {
+    background: var(--ink);
+    color: var(--ink-inverted);
+    border-color: var(--ink);
+  }
+  .btn--ink:hover {
+    background: var(--blue-brand);
+    border-color: var(--blue-brand);
+  }
+
+  /* Motion pre-states — applied only when JS is active so no-JS shows content normally */
+  .js .reveal-word {
+    display: inline-block;
+    transform: translateY(12px);
+  }
+  .js .animate-in {
+    transform: translateY(8px);
+  }
+  .js .animate-item {
+    transform: translateY(8px);
+  }
 </style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion) {
+    gsap.set('.reveal-word, .animate-in, .animate-item', { y: 0, clearProps: 'transform' });
+  } else {
+    // 1. Hero word-by-word reveal on load (200ms each, 80ms stagger, no fade)
+    const words = gsap.utils.toArray('.reveal-word');
+    if (words.length) {
+      gsap.to(words, {
+        y: 0,
+        duration: 0.2,
+        ease: 'none',
+        stagger: 0.08,
+      });
+    }
+
+    // 2. Standalone scroll slide-ins
+    gsap.utils.toArray('.animate-in').forEach((el) => {
+      gsap.to(el, {
+        y: 0,
+        duration: 0.2,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 90%',
+          toggleActions: 'play none none none',
+        },
+      });
+    });
+
+    // 3. Staggered groups (nodes, cards, steps, metrics)
+    gsap.utils.toArray('.animate-group').forEach((group) => {
+      const items = group.querySelectorAll('.animate-item');
+      if (!items.length) return;
+      gsap.to(items, {
+        y: 0,
+        duration: 0.2,
+        ease: 'none',
+        stagger: 0.1,
+        scrollTrigger: {
+          trigger: group,
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        },
+      });
+    });
+  }
+</script>
