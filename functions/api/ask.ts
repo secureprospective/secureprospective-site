@@ -78,6 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: auth,
       body: JSON.stringify({ query: q }),
     });
+    if (!r.ok) return json({ error: "Retrieval failed." }, 502);
     const data: any = await r.json();
     for (const c of data?.result?.chunks ?? []) {
       let t = c.text ?? c.content;
@@ -112,6 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ],
       }),
     });
+    if (!r.ok) return json({ error: "Generation failed." }, 502);
     const data: any = await r.json();
     const res = data?.result ?? {};
     // gemma-4-26b returns OpenAI-style choices; fall back to .response just in case.
