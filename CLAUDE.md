@@ -116,7 +116,7 @@ Business, Creative
 - **Output directory:** *(none — not yet configured)*
 - **Uses Functions:** No | **Compatibility date:** 2026-03-18
 
-⚠️ **Pages is serving a manually-deployed placeholder, not the GitHub repo.** To connect: link `secureprospective/secureprospective-site` in the Pages dashboard, set build command = `npm run build`, output directory = `dist`.
+✅ **Pipeline connected 2026-06-23** via a NEW git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20), live at `secureprospective-site.pages.dev`. The old direct-upload `webpage` project still serves the domain until main has real content; then cut the custom domains over to `secureprospective-site` and delete `webpage`. (Note: the original `webpage` project below is the legacy placeholder, kept only until cutover.)
 
 ### Tunnels
 
@@ -145,16 +145,17 @@ Business, Creative
   - 3 design comparison views: `/` (bird draft), `/zai.html` (z.ai winner), `/gemini.html` (Gemini winner)
   - Project docs: `docs/DESIGN_SYSTEM.md` (locked spec), `docs/OPERATOR_DRAFT.md` (bio copy v1), `docs/PROMPT_TEMPLATES.md` (z.ai prompt templates)
   - Build clean on CT105. Branch on GitHub. NOT merged to main.
-- Cloudflare: domain live, Pages **not yet connected** to GitHub repo.
+- Cloudflare: domain live (still on old `webpage` placeholder). **Git pipeline LIVE 2026-06-23** via new project `secureprospective-site` — auto-deploys `main` → `secureprospective-site.pages.dev` (verified by curl, HTTP 200, bare scaffold). Domain cutover deferred until main has real content.
 
 ---
 
 ## Open Items
 
 - [x] Cloudflare dashboard inventory — complete (2026-06-22)
-- [ ] Connect Pages project `webpage` to `secureprospective/secureprospective-site` GitHub repo; set build = `npm run build`, output = `dist`
-- [ ] Upgrade SSL/TLS from Full → Full (Strict) after Pages is connected
-- [ ] Clean up stale `Home` tunnel DNS records (jellyfin, nextcloud, seerr) — tunnel down since 2026-03-22
+- [x] Connect Pages to GitHub — **DONE 2026-06-23.** NEW git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20), live + verified at `secureprospective-site.pages.dev`. The old `webpage` project was direct-upload and can't be converted, so a new project was made; `webpage` still serves the domain.
+- [ ] **Domain cutover — DEFERRED until main has a real homepage.** main is currently the bare Astro scaffold. When ready: add `secureprospective.com` + `www` custom domains to `secureprospective-site`, then delete the old `webpage` project. Do NOT cut over to the bare scaffold.
+- [ ] Upgrade SSL/TLS Full → Full (Strict) — after the domain cutover (Pages issues a valid cert)
+- [x] Clean up stale `Home` tunnel DNS records (jellyfin, nextcloud, seerr) — **DONE 2026-06-23**, deleted + confirmed via dig. The dead `Home` tunnel object itself still exists; delete whenever.
 - [ ] Christopher picks winning elements from 3 design views → integrate into Astro
 - [ ] Calibrate silver hex against actual Silver Logo PNG (accept #E5E4E2 or refine)
 - [ ] Self-host IBM Plex Sans (currently system fallback)
