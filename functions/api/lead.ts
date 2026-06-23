@@ -1,9 +1,10 @@
 // Pages Function: POST /api/lead
 // Captures a visitor lead (name + email) before the chat unlocks.
-// Stored in the D1 binding LEADS_DB so Christopher has someone to contact back.
+// Stored as one JSON object per lead in the R2 binding LEADS so Christopher
+// has someone to contact back. (R2 chosen over D1: uses existing token scope.)
 
 interface Env {
-  LEADS_DB: D1Database;
+  LEADS: R2Bucket;
 }
 
 const ALLOWED_HOSTS = new Set([
@@ -29,7 +30,6 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Conservative, permissive-enough email shape check.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -51,19 +51,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return json({ error: "A valid email is required." }, 400);
   }
 
-  const cleanName = name.trim().slice(0, 120);
-  const cleanEmail = email.trim().slice(0, 200);
-  const ip = request.headers.get("CF-Connecting-IP") ?? "";
-  const ua = (request.headers.get("User-Agent") ?? "").slice(0, 300);
+  const now = new Date().toISOString();
+  const lead = {
+    name: name.trim().slice(0, 120),
+    email: email.trim().slice(0, 200),
+    created_at: now,
+    ip: request.headers.get("CF-Connecting-IP") ?? "",
+    user_agent: (request.headers.get("User-Agent") ?? "").slice(0, 300),
+  };
+
+  // Sortable key: timestamp first, short random suffix to avoid collisions.
+  const key = `leads/${now}-${Math.random().toString(36).slice(2, 8)}.json`;
 
   try {
-    await env.LEADS_DB.prepare(
-      "INSERT INTO leads (name, email, ip, user_agent) VALUES (?, ?, ?, ?)"
-    )
-      .bind(cleanName, cleanEmail, ip, ua)
-      .run();
+    await env.LEADS.put(key, JSON.stringify(lead, null, 2), {
+      httpMetadata: { contentType: "application/json" },
+    });
   } catch {
-    // Don't block the visitor from chatting if the write hiccups; just report.
     return json({ error: "Could not save details. Please try again." }, 502);
   }
 
