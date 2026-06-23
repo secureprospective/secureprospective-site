@@ -149,6 +149,10 @@
   .cw-btn:hover { background: var(--gold-identity, #D4AF37); }
   .cw-btn:disabled { opacity: 0.6; cursor: default; }
 
+  /* hidden must win over the display rules below (class display: flex would
+     otherwise override the [hidden] user-agent rule, leaving both visible) */
+  #cw-gate[hidden], #cw-chat[hidden] { display: none !important; }
+
   /* Chat */
   .cw-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .cw-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
