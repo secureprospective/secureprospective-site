@@ -1,0 +1,138 @@
+---
+const raw = Astro.url.pathname;
+const path = raw.endsWith('/') && raw.length > 1 ? raw.slice(0, -1) : raw;
+
+const links = [
+  { href: '/the-method', label: 'The Method' },
+  { href: '/the-work', label: 'The Work' },
+  { href: '/services', label: 'Services' },
+  { href: '/the-operator', label: 'The Operator' },
+  { href: '/contact', label: 'Contact' },
+];
+const isActive = (href: string) => path === href;
+---
+
+<header class="nav">
+  <div class="nav-inner container">
+    <a href="/" class="logo">SECURE PROSPECTIVE</a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" tabindex="-1" />
+    <label for="nav-toggle" class="nav-burger" aria-label="Toggle navigation menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </label>
+
+    <nav class="nav-links" aria-label="Primary">
+      {
+        links.map((l) => (
+          <a href={l.href} class:list={['nav-link', { active: isActive(l.href) }]}>
+            {l.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    line-height: 1;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  .nav-link {
+    font-family: var(--font-display);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color 120ms ease-out;
+  }
+  .nav-link:hover,
+  .nav-link.active {
+    color: var(--blue-brand);
+  }
+
+  .nav-toggle {
+    display: none;
+  }
+  .nav-burger {
+    display: none;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+  }
+  .nav-burger .bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--ink);
+  }
+
+  @media (max-width: 767px) {
+    .nav-burger {
+      display: flex;
+    }
+
+    .nav-links {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--silver-base);
+      border-bottom: 2px solid var(--ink);
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 200ms linear;
+    }
+
+    .nav-link {
+      padding: var(--space-3) var(--space-4);
+      width: 100%;
+      border-top: 1px solid rgba(34, 34, 34, 0.15);
+      font-size: var(--text-caption);
+    }
+    .nav-link:first-child {
+      border-top: none;
+    }
+
+    .nav-toggle:checked ~ .nav-links {
+      max-height: 360px;
+    }
+  }
+</style>

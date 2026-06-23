@@ -1,248 +1,179 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 ---
 
-<Layout>
-  <header class="nav">
-    <div class="nav-inner">
-      <div class="logo">SECURE PROSPECTIVE</div>
-      <nav>
-        <a href="/the-method">The Method</a>
-        <a href="/the-work">The Work</a>
-        <a href="/services">Services</a>
-        <a href="/the-operator">The Operator</a>
-        <a href="/contact">Contact</a>
-      </nav>
-    </div>
-  </header>
+<Layout title="SecureProspective — Make AI native. Drop the prefix.">
+  <Nav />
 
   <main>
+    {/* ───────────────────────── HERO ───────────────────────── */}
     <section class="hero">
-      <div class="container">
-        <h1>Make AI native.<br />Drop the prefix.</h1>
-        <p class="sub-headline">
+      <div class="container hero-inner">
+        <h1 class="hero-title">
+          <span class="reveal-word">Make</span> <span class="reveal-word">AI</span>
+          <span class="reveal-word">native.</span><br />
+          <span class="reveal-word">Drop</span> <span class="reveal-word">the</span>
+          <span class="reveal-word">prefix.</span>
+        </h1>
+        <p class="hero-sub">
           We make businesses AI-native — diagnose the bottleneck, position the tool,
           shape the output for ownership.
         </p>
-        <a href="/the-method" class="button">See the method &rarr;</a>
+        <a href="/the-method" class="btn">See the method &rarr;</a>
       </div>
     </section>
 
+    {/* ───────────────────── METHOD PREVIEW ───────────────────── */}
     <section class="method-preview">
       <div class="container">
-        <div class="section-header">
-          <div class="section-label">The Method</div>
-        </div>
-        <div class="movements">
-          <div class="movement">
-            <div class="movement-node">01</div>
-            <div class="movement-name">Diagnose</div>
-            <div class="movement-desc">Find the bottleneck.</div>
+        <div class="eyebrow eyebrow--white">The Method</div>
+
+        <div class="transit-map animate-group">
+          <div class="transit-node animate-item">
+            <div class="node-marker">01</div>
+            <div class="node-name">Diagnose</div>
+            <div class="node-desc">Find what's actually broken.</div>
           </div>
-          <div class="movement">
-            <div class="movement-node">02</div>
-            <div class="movement-name">Position</div>
-            <div class="movement-desc">Set the tool up for success.</div>
+          <div class="transit-node animate-item">
+            <div class="node-marker">02</div>
+            <div class="node-name">Position</div>
+            <div class="node-desc">Set the tool up for success.</div>
           </div>
-          <div class="movement">
-            <div class="movement-node">03</div>
-            <div class="movement-name">Shape</div>
-            <div class="movement-desc">Structure output for ownership.</div>
+          <div class="transit-node animate-item">
+            <div class="node-marker">03</div>
+            <div class="node-name">Shape</div>
+            <div class="node-desc">Structure output for ownership.</div>
           </div>
-          <div class="movement">
-            <div class="movement-node">04</div>
-            <div class="movement-name">Transform</div>
-            <div class="movement-desc">Move from bolted-on to native.</div>
+          <div class="transit-node animate-item">
+            <div class="node-marker">04</div>
+            <div class="node-name">Transform</div>
+            <div class="node-desc">AI-native. Prefix dropped.</div>
           </div>
         </div>
       </div>
     </section>
 
+    {/* ───────────────────── PROOF TEASERS ───────────────────── */}
     <section class="proof-teasers">
       <div class="container">
-        <div class="section-header">
-          <div class="section-label">Proof</div>
-        </div>
-        <div class="teasers">
-          <article class="teaser">
+        <div class="eyebrow">The Work</div>
+
+        <div class="teasers animate-group">
+          <article class="teaser animate-item">
             <div class="teaser-meta">DATA_RECORD // 001</div>
-            <div class="teaser-title">TFM — Client #1</div>
-            <div class="teaser-desc">
-              Faith-backed digital freedom nonprofit. Built the digital infrastructure,
-              brand system, and live site.
-            </div>
+            <h3 class="teaser-title">TFM — Client #1</h3>
+            <p class="teaser-desc">
+              Tech Freedom Ministries — faith-backed digital freedom nonprofit. Built the
+              digital infrastructure, brand system, and live site. The method's first
+              external application.
+            </p>
           </article>
-          <article class="teaser">
+          <article class="teaser animate-item">
             <div class="teaser-meta">DATA_RECORD // 002</div>
-            <div class="teaser-title">The IMO, distilled</div>
-            <div class="teaser-desc">
+            <h3 class="teaser-title">The IMO</h3>
+            <p class="teaser-desc">
               We ran an IMO. We knew what was broken. We applied the method to our own
-              business first.
-            </div>
+              business first. ~$110M in annuity production. ~$18M/yr current volume.
+            </p>
           </article>
         </div>
+      </div>
+    </section>
+
+    {/* ───────────────────── OPERATOR TEASER ───────────────────── */}
+    <section class="operator-teaser">
+      <div class="container operator-inner animate-in">
+        <p class="operator-quote">
+          Three careers. One spine. Built it before consulting it.
+        </p>
+        <p class="operator-sub">
+          Fifteen years electrical. Twenty-six years technology. Insurance, annuity, and
+          IMO leadership. The four-movement method wasn't invented in a deck.
+        </p>
+        <a href="/the-operator" class="btn">Meet the operator &rarr;</a>
+      </div>
+    </section>
+
+    {/* ───────────────────── LOOP-CLOSER ───────────────────── */}
+    <section class="loop-closer">
+      <div class="container loop-inner animate-in">
+        <p class="loop-line">What's native today gets re-diagnosed tomorrow.</p>
+        <p class="loop-sub">
+          The loop doesn't end — your business just stops being the bottleneck.
+        </p>
+        <a href="/contact" class="btn">Start with a conversation &rarr;</a>
       </div>
     </section>
   </main>
 
-  <footer>
-    <div class="footer-inner">
-      <div>&copy; 2026 SecureProspective</div>
-      <div class="footer-tagline">Business must adapt or suffer the inevitable.</div>
-    </div>
-  </footer>
+  <Footer />
 </Layout>
 
 <style>
-  .container {
-    max-width: var(--container-max);
-    margin: 0 auto;
-    padding: 0 var(--space-4);
-  }
-
-  /* Nav — Primal font, sticky, hard ink rule beneath */
-  .nav {
-    background: var(--silver-base);
-    border-bottom: 2px solid var(--ink);
-    padding: var(--space-3) 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .nav-inner {
-    max-width: var(--container-max);
-    margin: 0 auto;
-    padding: 0 var(--space-4);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .logo {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: var(--text-caption);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-  .nav nav {
-    display: flex;
-    gap: var(--space-4);
-  }
-  .nav nav a {
-    font-family: var(--font-display);
-    color: var(--ink);
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    transition: color 120ms ease-out;
-  }
-  .nav nav a:hover {
-    color: var(--blue-brand);
-  }
-
-  /* Hero — silver/platinum canvas, hard ink rule beneath */
+  /* ── Hero ── */
   .hero {
     background: var(--silver-base);
     border-bottom: 2px solid var(--ink);
     padding: var(--space-8) 0;
   }
-  .hero .container {
+  .hero-inner {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
     align-items: flex-start;
   }
-  .hero h1 {
+  .hero-title {
     font-size: var(--text-display);
-    line-height: 1.0;
+    line-height: 1;
     letter-spacing: -0.02em;
     max-width: 900px;
   }
-  .sub-headline {
+  .hero-sub {
     font-size: var(--text-body-lg);
-    max-width: 720px;
+    max-width: 680px;
     line-height: 1.5;
     color: var(--ink);
   }
 
-  /* Button — yellow as solid UI surface (warning/guidance light) */
-  .button {
-    background: var(--yellow-accent);
-    color: var(--ink);
-    padding: var(--space-3) var(--space-5);
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: var(--text-body);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-decoration: none;
-    border-radius: var(--radius-button);
-    display: inline-block;
-    margin-top: var(--space-3);
-    transition: background 120ms ease-out;
-  }
-  .button:hover {
-    background: var(--gold-identity);
-  }
-
-  /* Method preview — compressed vertical, hard ink rules top + bottom */
+  /* ── Method preview (transit map) ── */
   .method-preview {
     background: var(--blue-brand);
     color: var(--ink-inverted);
     border-top: 2px solid var(--ink);
     border-bottom: 2px solid var(--ink);
-    padding: var(--space-6) 0;
+    padding: var(--space-7) 0;
   }
-
-  /* Section header — strengthened: Primal 20px + letter-spacing + underline */
-  .section-header {
-    margin-bottom: var(--space-5);
-  }
-  .section-label {
-    font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    padding-bottom: var(--space-2);
-    display: inline-block;
-  }
-  .method-preview .section-label {
+  .eyebrow--white {
     color: var(--white);
-    border-bottom: 1px solid var(--white);
-  }
-  .proof-teasers .section-label {
-    color: var(--ink);
-    border-bottom: 1px solid var(--ink);
   }
 
-  /* Movements with transit-map connecting line + node markers */
-  .movements {
+  .transit-map {
     position: relative;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--space-4);
   }
-  .movements::before {
+  /* horizontal connector — desktop */
+  .transit-map::before {
     content: '';
     position: absolute;
     top: 15px;
     left: 16px;
-    right: calc(75% + 16px);
+    right: 16px;
     height: 2px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--white);
     z-index: 0;
   }
-  .movement {
+  .transit-node {
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
-  .movement-node {
+  .node-marker {
     width: 32px;
     height: 32px;
     background: var(--blue-brand);
@@ -256,7 +187,7 @@ import Layout from '../layouts/Layout.astro';
     justify-content: center;
     margin-bottom: var(--space-3);
   }
-  .movement-name {
+  .node-name {
     font-family: var(--font-display);
     font-size: var(--text-h3);
     text-transform: uppercase;
@@ -264,13 +195,13 @@ import Layout from '../layouts/Layout.astro';
     margin-bottom: var(--space-2);
     letter-spacing: -0.01em;
   }
-  .movement-desc {
+  .node-desc {
     font-size: var(--text-body);
     color: var(--white);
     opacity: 0.85;
   }
 
-  /* Proof teasers — ledger-framed data records */
+  /* ── Proof teasers ── */
   .proof-teasers {
     background: var(--silver-base);
     border-bottom: 2px solid var(--ink);
@@ -285,6 +216,10 @@ import Layout from '../layouts/Layout.astro';
     background: var(--white);
     padding: var(--space-5);
     border: 1px solid var(--ink);
+    transition: border-color 120ms ease-out;
+  }
+  .teaser:hover {
+    border-color: var(--blue-brand);
   }
   .teaser-meta {
     font-family: var(--font-display);
@@ -303,28 +238,84 @@ import Layout from '../layouts/Layout.astro';
     letter-spacing: -0.01em;
   }
   .teaser-desc {
-    font-size: 14px;
+    font-size: var(--text-caption);
     line-height: 1.6;
   }
 
-  /* Footer */
-  footer {
+  /* ── Operator teaser ── */
+  .operator-teaser {
     background: var(--ink);
     color: var(--ink-inverted);
-    padding: var(--space-5) 0;
+    padding: var(--space-7) 0;
   }
-  .footer-inner {
-    max-width: var(--container-max);
-    margin: 0 auto;
-    padding: 0 var(--space-4);
+  .operator-inner {
     display: flex;
-    justify-content: space-between;
-    font-size: var(--text-caption);
-    letter-spacing: 0.05em;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
   }
-  .footer-tagline {
+  .operator-quote {
     font-family: var(--font-display);
+    font-size: var(--text-h1);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    color: var(--white);
+    line-height: 1.1;
+    max-width: 1000px;
+  }
+  .operator-sub {
+    font-size: var(--text-body-lg);
+    color: var(--white);
+    opacity: 0.85;
+    max-width: 820px;
+  }
+
+  /* ── Loop-closer ── */
+  .loop-closer {
+    background: var(--blue-brand);
+    padding: var(--space-6) 0;
+  }
+  .loop-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+  .loop-line {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    text-transform: uppercase;
+    color: var(--white);
+  }
+  .loop-sub {
+    font-size: var(--text-body);
+    color: var(--white);
+    opacity: 0.85;
+    margin-bottom: var(--space-3);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 767px) {
+    .hero-title {
+      font-size: 48px;
+    }
+    .operator-quote {
+      font-size: var(--text-h2);
+    }
+    .transit-map {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+    }
+    /* vertical connector on mobile */
+    .transit-map::before {
+      top: 16px;
+      left: 15px;
+      right: auto;
+      width: 2px;
+      bottom: 16px;
+      height: auto;
+    }
+    .teasers {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

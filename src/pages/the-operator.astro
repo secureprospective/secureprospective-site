@@ -1,0 +1,413 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="The Operator — Christopher Campbell — SecureProspective">
+  <Nav />
+
+  <main>
+    {/* ───────────────────────── PAGE HERO ───────────────────────── */}
+    <section class="page-hero">
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <div class="eyebrow">The Operator</div>
+          <h1 class="page-title">
+            <span class="reveal-word">Christopher</span>
+            <span class="reveal-word">Campbell</span>
+          </h1>
+          <p class="hero-sub">
+            Business must adapt or suffer the inevitable. I built SecureProspective to make
+            the adaptation deliberate.
+          </p>
+        </div>
+
+        {/* CSS-drawn portrait placeholder */}
+        <div class="portrait" aria-hidden="true">
+          <span>PORTRAIT</span>
+        </div>
+      </div>
+    </section>
+
+    {/* ───────────────────── THREE CAREERS ───────────────────── */}
+    <section class="careers">
+      <div class="container">
+        <div class="section-label animate-in">Three careers. One spine.</div>
+
+        <div class="careers-grid animate-group">
+          <div class="career animate-item">
+            <div class="career-name">Technology</div>
+            <div class="career-role career-role--gold">The Passion</div>
+            <p class="career-body">
+              It taught me to look forward — to see the future state before it arrives and
+              build toward it. Started at MCI WorldCom in 1999, age 19. Field deployments
+              for Bank of America, USDA wide-area network, Cisco infrastructure. Twenty-six
+              years in technology. This is the Transform movement of the method: not
+              AI-powered, but AI-native. Prefix dropped.
+            </p>
+          </div>
+
+          <div class="career animate-item">
+            <div class="career-name">Construction</div>
+            <div class="career-role career-role--gold">The Objective Truth</div>
+            <p class="career-body">
+              Fifteen years of electrical work. Commercial, residential, military bases.
+              Low-voltage. Fire-alarm systems. Voltage is or is not present. Code is right
+              or wrong. There is no spin in electrical work — only what is safe and what
+              kills. This taught me Diagnose: find what is actually broken before touching
+              anything. Most consulting de-emphasizes this step. I emphasize it.
+            </p>
+          </div>
+
+          <div class="career animate-item">
+            <div class="career-name">Insurance</div>
+            <div class="career-role career-role--gold">The Responsibility</div>
+            <p class="career-body">
+              Life, annuity, running an IMO. Stewardship for clients' long-term outcomes.
+              ~$110M in annuity production assisted over six years. ~$18M/yr current volume.
+              Eight active agents. Licensed: TX Life/Health/Annuity 3096607. Federal benefits
+              specialist: FERS, CSRS, TSP, FEHB, LEO/ATC/researcher variations. This taught
+              me Position and Shape: set up systems that last, structure every output so the
+              person who owns it can actually own it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ───────────────────── METHOD ORIGIN ───────────────────── */}
+    <section class="origin">
+      <div class="container origin-inner animate-in">
+        <p class="origin-quote">
+          The four-movement method was not invented in a consulting deck.
+        </p>
+        <p class="origin-sub">
+          It was distilled from three careers that each taught one part of it. One movement
+          per career. Thirty years of evidence.
+        </p>
+      </div>
+    </section>
+
+    {/* ───────────────────── PROOF ───────────────────── */}
+    <section class="proof">
+      <div class="container">
+        <h2 class="block-title animate-in">Proof</h2>
+
+        <div class="proof-grid animate-group">
+          <a class="proof-item animate-item" href="/the-work#tfm">
+            <div class="proof-label">TFM</div>
+            <p class="proof-desc">
+              Tech Freedom Ministries is the first external client. Full Astro site, brand
+              system, digital infrastructure. Method applied end to end.
+            </p>
+            <span class="proof-link">View record 001 &rarr;</span>
+          </a>
+          <a class="proof-item animate-item" href="/the-work#imo-distilled">
+            <div class="proof-label">The IMO</div>
+            <p class="proof-desc">
+              The second proof is internal. We ran one. We knew what was broken. We applied
+              the method to our own business first.
+            </p>
+            <span class="proof-link">View record 002 &rarr;</span>
+          </a>
+        </div>
+
+        <a href="/the-work" class="btn animate-in">See the full work &rarr;</a>
+      </div>
+    </section>
+
+    {/* ───────────────────── FAITH NOTE ───────────────────── */}
+    <section class="faith-note">
+      <div class="container">
+        <p class="faith-text animate-in">
+          Faith is part of who I am. It is why TFM exists as a client. SecureProspective is
+          the consulting practice — built for businesses of any kind, faith-aligned or not.
+          The method works the same either way.
+        </p>
+      </div>
+    </section>
+
+    {/* ───────────────────── CHATBOT TEASER ───────────────────── */}
+    <section class="chatbot">
+      <div class="container chatbot-inner animate-in">
+        <h3 class="chatbot-title">Want the full background?</h3>
+        <p class="chatbot-body">
+          A chatbot is coming — hosted directly on this site, grounded in the full career
+          record. It will answer anything you would ask of a resume: dates, metrics,
+          specifics. Interrogation-proof depth on demand.
+        </p>
+        <span class="badge">Coming Soon</span>
+      </div>
+    </section>
+
+    {/* ───────────────────── CTA ───────────────────── */}
+    <section class="cta">
+      <div class="container cta-inner animate-in">
+        <p class="cta-line">Ready to work together?</p>
+        <a href="/contact" class="btn">Get in touch &rarr;</a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .page-hero {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-7) 0;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-6);
+    align-items: center;
+  }
+  .hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: flex-start;
+  }
+  .page-title {
+    font-size: var(--text-h1);
+    line-height: 1.05;
+  }
+  .hero-sub {
+    font-size: var(--text-body-lg);
+    max-width: 640px;
+    line-height: 1.5;
+  }
+
+  /* ── Portrait placeholder ── */
+  .portrait {
+    width: 220px;
+    aspect-ratio: 3 / 4;
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .portrait span {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--ink-inverted);
+    opacity: 0.5;
+  }
+
+  /* ── Three careers ── */
+  .careers {
+    background: var(--white);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-7) 0;
+  }
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin-bottom: var(--space-5);
+  }
+  .careers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+  }
+  .career {
+    border-top: 2px solid var(--ink);
+    padding-top: var(--space-3);
+  }
+  .career-name {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    text-transform: uppercase;
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.01em;
+  }
+  .career-role {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: var(--space-3);
+  }
+  .career-role--gold {
+    color: var(--gold-identity);
+  }
+  .career-body {
+    font-size: var(--text-body);
+    line-height: 1.7;
+  }
+
+  /* ── Method origin ── */
+  .origin {
+    background: var(--blue-brand);
+    color: var(--ink-inverted);
+    padding: var(--space-6) 0;
+  }
+  .origin-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+    text-align: center;
+  }
+  .origin-quote {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    text-transform: uppercase;
+    color: var(--white);
+    line-height: 1.15;
+    max-width: 900px;
+  }
+  .origin-sub {
+    font-size: var(--text-body-lg);
+    color: var(--white);
+    opacity: 0.85;
+    max-width: 720px;
+  }
+
+  /* ── Proof ── */
+  .proof {
+    background: var(--silver-base);
+    padding: var(--space-7) 0;
+    border-bottom: 2px solid var(--ink);
+  }
+  .block-title {
+    font-size: var(--text-h2);
+    margin-bottom: var(--space-5);
+  }
+  .proof-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .proof-item {
+    background: var(--white);
+    border: 1px solid var(--ink);
+    padding: var(--space-5);
+    text-decoration: none;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    transition: border-color 120ms ease-out;
+  }
+  .proof-item:hover {
+    border-color: var(--blue-brand);
+  }
+  .proof-label {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .proof-desc {
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+  .proof-link {
+    font-family: var(--font-display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--blue-brand);
+    margin-top: var(--space-2);
+  }
+
+  /* ── Faith note ── */
+  .faith-note {
+    background: var(--white);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: var(--space-5) 0;
+  }
+  .faith-text {
+    font-size: var(--text-caption);
+    line-height: 1.7;
+    opacity: 0.7;
+    max-width: 820px;
+  }
+
+  /* ── Chatbot teaser ── */
+  .chatbot {
+    background: var(--silver-base);
+    padding: var(--space-6) 0;
+  }
+  .chatbot-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+  .chatbot-title {
+    font-size: var(--text-h3);
+  }
+  .chatbot-body {
+    font-size: var(--text-body);
+    max-width: 700px;
+    line-height: 1.6;
+    margin-bottom: var(--space-2);
+  }
+  .badge {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--yellow-accent);
+    color: var(--ink);
+    padding: 4px 12px;
+  }
+
+  /* ── CTA ── */
+  .cta {
+    background: var(--ink);
+    color: var(--ink-inverted);
+    padding: var(--space-6) 0;
+  }
+  .cta-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+    text-align: center;
+  }
+  .cta-line {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .careers-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 767px) {
+    .page-title {
+      font-size: var(--text-h2);
+    }
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+    .portrait {
+      width: 160px;
+    }
+    .origin-quote {
+      font-size: var(--text-h3);
+    }
+    .proof-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

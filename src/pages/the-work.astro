@@ -1,0 +1,333 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="The Work — SecureProspective">
+  <Nav />
+
+  <main>
+    {/* ───────────────────────── PAGE HERO ───────────────────────── */}
+    <section class="page-hero">
+      <div class="container hero-inner">
+        <div class="eyebrow">The Work</div>
+        <h1 class="page-title">
+          <span class="reveal-word">The</span>
+          <span class="reveal-word">method,</span>
+          <span class="reveal-word">applied.</span>
+        </h1>
+        <p class="hero-sub">
+          Two clients. Both real. One external. One internal. The internal one came first —
+          because we would not sell a method we had not lived.
+        </p>
+      </div>
+    </section>
+
+    {/* ───────────────────── CASE STUDY 001 — TFM ───────────────────── */}
+    <section id="tfm" class="record record--white">
+      <div class="container">
+        <div class="record-meta animate-in">DATA_RECORD // 001</div>
+        <div class="record-head animate-in">
+          <h2 class="record-client">Tech Freedom Ministries</h2>
+          <span class="tag tag--yellow">First Client — Consulting</span>
+        </div>
+        <p class="record-body animate-in">
+          A faith-backed digital freedom nonprofit. The mission: equip believers to move
+          off Big Tech infrastructure — sovereign, self-hosted, privacy-first. The brief:
+          build the digital infrastructure, brand system, and live site from nothing. The
+          method was applied in sequence: diagnose the tech dependency, position the
+          sovereign tools, shape the brand and content system so the organization could
+          own it, transform the digital presence into one that matched the mission.
+        </p>
+
+        {/* Metrics + ledger visual */}
+        <div class="record-detail animate-in">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Deliverable</div>
+              <div class="metric-value">
+                Full Astro + React website, live at techfreedomministries.org
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Method</div>
+              <div class="metric-value">
+                Diagnose &rarr; Position &rarr; Shape &rarr; Transform (full cycle)
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Status</div>
+              <div class="metric-value">Active client, in build-out</div>
+            </div>
+          </div>
+
+          {/* CSS-drawn ledger column */}
+          <div class="ledger" aria-hidden="true">
+            <div class="ledger-head">LEDGER // 001</div>
+            <div class="ledger-row"><span>DIAGNOSE</span><span>OK</span></div>
+            <div class="ledger-row"><span>POSITION</span><span>OK</span></div>
+            <div class="ledger-row"><span>SHAPE</span><span>OK</span></div>
+            <div class="ledger-row"><span>TRANSFORM</span><span>OK</span></div>
+            <div class="ledger-row ledger-row--total"><span>CYCLE</span><span>CLOSED</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ───────────────────── CASE STUDY 002 — THE IMO ───────────────────── */}
+    <section id="imo-distilled" class="record record--silver">
+      <div class="container">
+        <div class="record-meta animate-in">DATA_RECORD // 002</div>
+        <div class="record-head animate-in">
+          <h2 class="record-client">SecureProspective IMO</h2>
+          <span class="tag tag--blue">Internal — Proof of Method</span>
+        </div>
+        <p class="record-body animate-in">
+          We ran one. An independent marketing organization: annuity and life insurance
+          wholesale, agent development, case design. ~8 active agents. ~$18M/yr in annuity
+          volume assisted. ~$110M in total annuity production over six years. We knew what
+          was broken in the industry — the black boxes, the compliance theater, the tools
+          bolted on top of legacy processes. So we applied the method to our own operation
+          first. The consulting practice did not exist until the internal proof existed.
+        </p>
+
+        <div class="metrics metrics--four animate-in">
+          <div class="metric">
+            <div class="metric-label">Agents Supported</div>
+            <div class="metric-value">8 active producers</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Annual Volume</div>
+            <div class="metric-value">~$18M annuity</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Total Production Assisted</div>
+            <div class="metric-value">~$110M over 6 years</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Licenses</div>
+            <div class="metric-value">TX Life/Health/Annuity 3096607 · NPN 18986809</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ───────────────────── FUTURE SLOT ───────────────────── */}
+    <section class="future-slot">
+      <div class="container future-inner animate-in">
+        <div class="record-meta record-meta--white">DATA_RECORD // 003</div>
+        <h2 class="future-client">Next Client</h2>
+        <p class="future-sub">
+          The method scales. The next application is being scoped.
+        </p>
+        <a href="/contact" class="btn">Get in touch &rarr;</a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .page-hero {
+    background: var(--silver-base);
+    border-bottom: 2px solid var(--ink);
+    padding: var(--space-7) 0;
+  }
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: flex-start;
+  }
+  .page-title {
+    font-size: var(--text-h1);
+    line-height: 1.05;
+    max-width: 900px;
+  }
+  .hero-sub {
+    font-size: var(--text-body-lg);
+    max-width: 720px;
+    line-height: 1.5;
+  }
+
+  /* ── Records ── */
+  .record {
+    padding: var(--space-7) 0;
+    border-bottom: 2px solid var(--ink);
+  }
+  .record--white {
+    background: var(--white);
+    border-top: 2px solid var(--ink);
+  }
+  .record--silver {
+    background: var(--silver-base);
+  }
+
+  .record-meta {
+    font-family: var(--font-display);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.5;
+    margin-bottom: var(--space-4);
+  }
+  .record-meta--white {
+    color: var(--white);
+    opacity: 0.4;
+  }
+
+  .record-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+  }
+  .record-client {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+
+  .tag {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 12px;
+  }
+  .tag--yellow {
+    background: var(--yellow-accent);
+    color: var(--ink);
+  }
+  .tag--blue {
+    background: var(--blue-brand);
+    color: var(--white);
+  }
+
+  .record-body {
+    font-size: var(--text-body);
+    line-height: 1.7;
+    max-width: 820px;
+    margin-bottom: var(--space-6);
+  }
+
+  /* ── Metrics ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+  .metrics--four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .metric {
+    border-top: 2px solid var(--ink);
+    padding-top: var(--space-3);
+  }
+  .metric-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    margin-bottom: var(--space-2);
+  }
+  .metric-value {
+    font-size: var(--text-body);
+    line-height: 1.4;
+  }
+
+  /* ── Record detail (metrics + ledger side by side) ── */
+  .record-detail {
+    display: grid;
+    grid-template-columns: 1.4fr 0.6fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .ledger {
+    border: 2px solid var(--ink);
+    background: var(--silver-base);
+    padding: var(--space-3);
+  }
+  .ledger-head {
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: var(--space-2);
+  }
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.2);
+  }
+  .ledger-row:last-child {
+    border-bottom: none;
+  }
+  .ledger-row--total {
+    border-top: 2px solid var(--ink);
+    margin-top: 4px;
+    padding-top: 10px;
+  }
+
+  /* ── Future slot ── */
+  .future-slot {
+    background: var(--ink);
+    color: var(--ink-inverted);
+    padding: var(--space-7) 0;
+  }
+  .future-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+  .future-client {
+    font-family: var(--font-display);
+    font-size: var(--text-h1);
+    text-transform: uppercase;
+    color: var(--white);
+    opacity: 0.3;
+    line-height: 1.1;
+  }
+  .future-sub {
+    font-size: var(--text-body);
+    color: var(--white);
+    opacity: 0.6;
+    max-width: 560px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .record-detail {
+      grid-template-columns: 1fr;
+    }
+    .metrics--four {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 767px) {
+    .page-title,
+    .future-client {
+      font-size: var(--text-h2);
+    }
+    .metrics,
+    .metrics--four {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

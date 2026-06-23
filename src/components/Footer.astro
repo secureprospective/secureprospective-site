@@ -1,0 +1,87 @@
+---
+const year = new Date().getFullYear();
+
+const links = [
+  { href: '/the-method', label: 'The Method' },
+  { href: '/the-work', label: 'The Work' },
+  { href: '/services', label: 'Services' },
+  { href: '/the-operator', label: 'The Operator' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<footer class="footer">
+  <div class="footer-inner container">
+    <div class="footer-links">
+      {
+        links.map((l) => (
+          <a href={l.href} class="footer-link">{l.label}</a>
+        ))
+      }
+    </div>
+
+    <div class="footer-rule"></div>
+
+    <div class="footer-base">
+      <div class="footer-copy">&copy; {year} SecureProspective</div>
+      <div class="footer-tagline">Business must adapt or suffer the inevitable.</div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--ink);
+    color: var(--ink-inverted);
+    padding: var(--space-5) 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .footer-link {
+    font-family: var(--font-display);
+    color: var(--ink-inverted);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+    transition: color 120ms ease-out, opacity 120ms ease-out;
+  }
+  .footer-link:hover {
+    color: var(--yellow-accent);
+    opacity: 1;
+  }
+
+  .footer-rule {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .footer-base {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    font-size: var(--text-caption);
+    letter-spacing: 0.05em;
+  }
+
+  .footer-tagline {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+</style>
