@@ -116,7 +116,11 @@ Business, Creative
 - **Output directory:** *(none — not yet configured)*
 - **Uses Functions:** No | **Compatibility date:** 2026-03-18
 
-✅ **Pipeline connected 2026-06-23** via a NEW git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20), live at `secureprospective-site.pages.dev`. The old direct-upload `webpage` project still serves the domain until main has real content; then cut the custom domains over to `secureprospective-site` and delete `webpage`. (Note: the original `webpage` project below is the legacy placeholder, kept only until cutover.)
+✅ **Pipeline connected 2026-06-23** via a git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20).
+
+✅ **DOMAIN CUTOVER COMPLETE 2026-06-23 (evening).** `secureprospective.com` + `www` now serve `secureprospective-site` (live with the real 6-page site + chatbot). Custom domains detached from old `webpage` project and attached to `secureprospective-site`; DNS CNAMEs repointed apex+www → `secureprospective-site.pages.dev` (proxied) via the Cloudflare AI assistant (token lacked Zone:DNS:Edit). Domain status label was `pending` at close but serving valid HTTPS 200. **Old `webpage` project KEPT as fallback — delete whenever confident.**
+
+**Pages project bindings (production + preview):** `CF_API_TOKEN` (secret, for the chatbot Function), `NODE_VERSION=20`, `LEADS` → R2 bucket `ccwork-leads`. **Uses Functions: YES.**
 
 ### Tunnels
 
@@ -130,7 +134,7 @@ Business, Creative
 ### Other
 
 - **Page Rules / Transform Rules / Cache Rules / Worker Routes / Firewall / Access:** None
-- **SSL/TLS mode:** `Full` *(upgrade to Full Strict after connecting Pages — Pages issues a valid cert)*
+- **SSL/TLS mode:** `Full` *(NOW upgradeable to Full (Strict) — domain cut over to Pages, which issues a valid cert. Needs Zone scope / dashboard. OPEN.)*
 - **Plan:** Free | **Zone:** Active
 - **Nameservers:** `connie.ns.cloudflare.com`, `lamar.ns.cloudflare.com`
 
@@ -138,14 +142,35 @@ Business, Creative
 
 ## Current Build State
 
-- **Phase 0 COMPLETE** — scaffold committed to main (commit `2ea6ec5`), brand assets in `grafix/`.
-- **Branch `session/secureprospective-draft-v1` IN PROGRESS (built solo on bird, 2026-06-22):**
-  - Rough draft Home page: sticky nav, hero, blue method preview (transit-map connecting line + square node markers), ledger-framed proof teasers, dark footer
-  - Design system: `src/styles/tokens.css` + `src/styles/fonts.css` (Primal @font-face) + `src/layouts/Layout.astro`
-  - 3 design comparison views: `/` (bird draft), `/zai.html` (z.ai winner), `/gemini.html` (Gemini winner)
-  - Project docs: `docs/DESIGN_SYSTEM.md` (locked spec), `docs/OPERATOR_DRAFT.md` (bio copy v1), `docs/PROMPT_TEMPLATES.md` (z.ai prompt templates)
-  - Build clean on CT105. Branch on GitHub. NOT merged to main.
-- Cloudflare: domain live (still on old `webpage` placeholder). **Git pipeline LIVE 2026-06-23** via new project `secureprospective-site` — auto-deploys `main` → `secureprospective-site.pages.dev` (verified by curl, HTTP 200, bare scaffold). Domain cutover deferred until main has real content.
+**🚀 LIVE IN PRODUCTION on `secureprospective.com` (2026-06-23 evening).** Full 6-page site + lead-gated interactive-resume chatbot, merged to `main`, deployed, domain cut over.
+
+- **Phase 0 COMPLETE** — scaffold (commit `2ea6ec5`), brand assets in `grafix/`.
+- **Full site built (bird, 2026-06-22→23) + MERGED TO MAIN (`efaefae`):**
+  - Home + 5 IA pages: The Method, The Work, Services, The Operator, Contact (`src/pages/*.astro`, ~2070 lines)
+  - Shared `Nav.astro` + `Footer.astro`; design system `tokens.css`/`fonts.css`; GSAP scroll motion
+  - Design system: `docs/DESIGN_SYSTEM.md` (locked); sharp 2px corners, silver/blue/gold/yellow, Primal display
+  - Builds clean on CT105 + bird.
+- **Interactive-resume chatbot LIVE** (see section below). `/api/ask` (grounded RAG) + `/api/lead` (R2 capture), lead-gated widget on every page via `Layout.astro`.
+- **Cloudflare:** git pipeline + domain cutover both DONE. Production = `secureprospective.com` / `secureprospective-site.pages.dev`.
+- **Branch `session/secureprospective-draft-v1`** = source of all the above; `main` fast-forwarded to it. Helper `scripts/list-leads.sh` on branch (one commit ahead of the deployed `efaefae`).
+
+### Interactive-Resume Chatbot (the CCwork build, shipped here)
+
+Lead-gated public chatbot answering questions ABOUT Christopher in the third person,
+grounded in the CCwork profile-cast corpus. **Full Cloudflare runbook + every gotcha:
+knowledge-vault `02_wiki/cloudflare.md`.**
+
+- **Backend:** R2 `ccwork-profile-cast` (10 public docs) → AI Search `ccwork-resume`
+  (embedding `@cf/qwen/qwen3-embedding-0.6b`, generation `@cf/google/gemma-4-26b-a4b-it`,
+  namespace `default`, chunk 1024/overlap 10, max 5, threshold 0.4). 10/10 indexed, 33 vectors.
+- **`functions/api/ask.ts`** — two-step retrieve→generate via REST (proven path, not the
+  binding), strict third-person + deterministic refusal, origin-locked, token server-side.
+  Passed adversarial grounding test (refuses even on tangential chunks).
+- **`functions/api/lead.ts`** — name/email → one JSON object per lead in R2 `ccwork-leads`.
+- **`src/components/ChatWidget.astro`** — bottom-right launcher, **hard gate** (name+email)
+  before chat unlocks, then `/api/ask`. Vanilla JS, design-system styled.
+- **Leads:** `./scripts/list-leads.sh` (token via env or `/root/.cf_token`).
+- **Model is a knob:** swap generation model in AI Search; Claude via AI Gateway on standby.
 
 ---
 
@@ -153,19 +178,23 @@ Business, Creative
 
 - [x] Cloudflare dashboard inventory — complete (2026-06-22)
 - [x] Connect Pages to GitHub — **DONE 2026-06-23.** NEW git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20), live + verified at `secureprospective-site.pages.dev`. The old `webpage` project was direct-upload and can't be converted, so a new project was made; `webpage` still serves the domain.
-- [ ] **Domain cutover — DEFERRED until main has a real homepage.** main is currently the bare Astro scaffold. When ready: add `secureprospective.com` + `www` custom domains to `secureprospective-site`, then delete the old `webpage` project. Do NOT cut over to the bare scaffold.
-- [ ] Upgrade SSL/TLS Full → Full (Strict) — after the domain cutover (Pages issues a valid cert)
+- [x] **Domain cutover — DONE 2026-06-23 evening.** `secureprospective.com` + `www` attached to `secureprospective-site`, DNS repointed. Old `webpage` project KEPT as fallback (delete whenever confident).
+- [ ] **Upgrade SSL/TLS Full → Full (Strict)** — now that domain is on Pages (valid cert). Needs Zone:DNS scope / dashboard / Cloudflare AI. HARDENING.
+- [ ] **Least-privilege token for the chatbot Function** — `CF_API_TOKEN` is currently the broad account token; swap for one scoped to AI Search Run + Workers AI Run only. HARDENING.
+- [ ] **Delete old `webpage` Pages project** — once confident in the cutover.
+- [ ] Retrieval tuning: `match_threshold 0.4` refuses vague phrasings ("what licenses" vs "what insurance licenses") — lower if more lenience wanted.
 - [x] Clean up stale `Home` tunnel DNS records (jellyfin, nextcloud, seerr) — **DONE 2026-06-23**, deleted + confirmed via dig. The dead `Home` tunnel object itself still exists; delete whenever.
 - [ ] Christopher picks winning elements from 3 design views → integrate into Astro
 - [ ] Calibrate silver hex against actual Silver Logo PNG (accept #E5E4E2 or refine)
 - [ ] Self-host IBM Plex Sans (currently system fallback)
 - [ ] Integrate real brand symbol SVG (currently text lockup in nav)
-- [ ] Build remaining 5 pages: The Method, The Work, Services, The Operator, Contact
+- [x] Build remaining 5 pages — DONE (bird, merged `efaefae`)
 - [ ] Verify CTA scroll collision bug Gemini flagged (Playwright check on bird)
 - [ ] Fix bird's `website.md` agent file: line 21 incorrectly says TFM uses Tailwind — correct to "Astro + React + CSS custom properties (tokens.css)"
+- [ ] Design polish pass on the live 6 pages (Christopher reviewed + approved the chatbot UX; broader page-design review still open)
 
 ---
 
 ## Next Branch
 
-`session/secureprospective-design-review` — Christopher picks winning elements from 3-way comparison → bird integrates into Astro structure
+`session/secureprospective-hardening` — SSL Full(Strict), least-privilege Function token, delete old `webpage` project; then a design-polish pass on the live pages. (Cloudflare knowledge captured in vault `02_wiki/cloudflare.md`.)
