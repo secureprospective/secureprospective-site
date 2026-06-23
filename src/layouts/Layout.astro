@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 import '../styles/fonts.css';
+import ChatWidget from '../components/ChatWidget.astro';
 
 const { title = 'SecureProspective — Make AI native. Drop the prefix.' } = Astro.props;
 ---
@@ -21,6 +22,7 @@ const { title = 'SecureProspective — Make AI native. Drop the prefix.' } = Ast
   </head>
   <body>
     <slot />
+    <ChatWidget />
   </body>
 </html>
 

@@ -1,0 +1,284 @@
+---
+// Floating lead-gated chat widget (bottom-right).
+// Gate: name + email -> POST /api/lead -> unlock chat -> POST /api/ask.
+// Sharp-edged, blue/ink/yellow, snappy 120-160ms motion per the design system.
+---
+
+<div id="cw-root" data-open="false">
+  <!-- Launcher -->
+  <button id="cw-launcher" type="button" aria-label="Ask about Christopher" aria-expanded="false">
+    <span class="cw-launcher-dot" aria-hidden="true"></span>
+    Ask about Christopher
+  </button>
+
+  <!-- Panel -->
+  <section id="cw-panel" role="dialog" aria-label="Ask about Christopher" aria-hidden="true">
+    <header class="cw-head">
+      <span class="cw-title">Ask about Christopher</span>
+      <button id="cw-close" type="button" class="cw-close" aria-label="Close">&times;</button>
+    </header>
+
+    <!-- Gate -->
+    <form id="cw-gate" class="cw-gate">
+      <p class="cw-gate-intro">Ask anything about Christopher's background. Drop your name and email to start.</p>
+      <label class="cw-label">Name
+        <input id="cw-name" name="name" type="text" autocomplete="name" required maxlength="120" />
+      </label>
+      <label class="cw-label">Email
+        <input id="cw-email" name="email" type="email" autocomplete="email" required maxlength="200" />
+      </label>
+      <p id="cw-gate-error" class="cw-error" role="alert" hidden></p>
+      <button id="cw-start" type="submit" class="cw-btn">Start chat</button>
+      <p class="cw-fineprint">No spam. Christopher may follow up directly.</p>
+    </form>
+
+    <!-- Chat -->
+    <div id="cw-chat" class="cw-chat" hidden>
+      <div id="cw-log" class="cw-log" aria-live="polite"></div>
+      <form id="cw-form" class="cw-inputbar">
+        <input id="cw-q" type="text" placeholder="Type a question…" autocomplete="off" maxlength="500" required />
+        <button id="cw-send" type="submit" class="cw-send" aria-label="Send">→</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<style>
+  #cw-root {
+    --cw-blue: var(--blue-brand, #0033A0);
+    --cw-ink: var(--ink, #222);
+    --cw-yellow: var(--yellow-accent, #FFD700);
+    --cw-silver: var(--silver-base, #E5E4E2);
+    --cw-white: var(--white, #fff);
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    font-family: var(--font-body, system-ui, sans-serif);
+  }
+
+  /* Launcher */
+  #cw-launcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cw-ink);
+    color: var(--cw-white);
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 14px;
+    padding: 12px 18px;
+    border: 2px solid var(--cw-ink);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 140ms ease-out, color 140ms ease-out, border-color 140ms ease-out;
+  }
+  #cw-launcher:hover { background: var(--cw-blue); border-color: var(--cw-blue); }
+  .cw-launcher-dot {
+    width: 8px; height: 8px; background: var(--cw-yellow); display: inline-block;
+  }
+
+  /* Panel */
+  #cw-panel {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 360px;
+    max-width: calc(100vw - 48px);
+    height: 520px;
+    max-height: calc(100vh - 48px);
+    background: var(--cw-white);
+    border: 2px solid var(--cw-ink);
+    border-radius: 2px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 rgba(0, 51, 160, 0.18);
+  }
+  #cw-root[data-open="true"] #cw-panel { display: flex; }
+  #cw-root[data-open="true"] #cw-launcher { display: none; }
+
+  .cw-head {
+    background: var(--cw-blue);
+    color: var(--cw-white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+  .cw-title {
+    font-family: var(--font-display, system-ui, sans-serif);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .cw-close {
+    background: none; border: none; color: var(--cw-white);
+    font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+  }
+  .cw-close:hover { color: var(--cw-yellow); }
+
+  /* Gate */
+  .cw-gate { padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .cw-gate-intro { font-size: 14px; color: var(--cw-ink); line-height: 1.5; }
+  .cw-label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--cw-ink);
+  }
+  .cw-label input {
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 15px; padding: 9px 10px;
+    border: 2px solid var(--cw-ink); border-radius: 2px; background: var(--cw-white);
+  }
+  .cw-label input:focus { outline: none; border-color: var(--cw-blue); }
+  .cw-fineprint { font-size: 11px; color: #666; }
+  .cw-error { font-size: 13px; color: #b00020; font-weight: 600; }
+
+  .cw-btn, .cw-send {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    background: var(--cw-yellow); color: var(--cw-ink);
+    border: 2px solid var(--cw-ink); border-radius: 2px; cursor: pointer;
+    transition: background 140ms ease-out;
+  }
+  .cw-btn { padding: 11px 14px; font-size: 14px; }
+  .cw-btn:hover { background: var(--gold-identity, #D4AF37); }
+  .cw-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* Chat */
+  .cw-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .cw-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .cw-msg { font-size: 14px; line-height: 1.5; padding: 9px 11px; border-radius: 2px; max-width: 85%; white-space: pre-wrap; }
+  .cw-msg--user { align-self: flex-end; background: var(--cw-ink); color: var(--cw-white); }
+  .cw-msg--bot { align-self: flex-start; background: var(--cw-silver); color: var(--cw-ink); }
+  .cw-msg--bot.cw-typing { font-style: italic; color: #555; }
+
+  .cw-inputbar { display: flex; border-top: 2px solid var(--cw-ink); }
+  .cw-inputbar input {
+    flex: 1; border: none; padding: 12px; font-size: 15px;
+    font-family: var(--font-body, system-ui, sans-serif);
+  }
+  .cw-inputbar input:focus { outline: none; }
+  .cw-send { padding: 0 16px; font-size: 18px; border: none; border-left: 2px solid var(--cw-ink); }
+  .cw-send:hover { background: var(--gold-identity, #D4AF37); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #cw-launcher, .cw-btn, .cw-send { transition: none; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.getElementById('cw-root');
+    if (!root) return;
+    var launcher = document.getElementById('cw-launcher');
+    var panel = document.getElementById('cw-panel');
+    var closeBtn = document.getElementById('cw-close');
+    var gate = document.getElementById('cw-gate');
+    var chat = document.getElementById('cw-chat');
+    var gateErr = document.getElementById('cw-gate-error');
+    var startBtn = document.getElementById('cw-start');
+    var nameEl = document.getElementById('cw-name');
+    var emailEl = document.getElementById('cw-email');
+    var form = document.getElementById('cw-form');
+    var qEl = document.getElementById('cw-q');
+    var log = document.getElementById('cw-log');
+
+    var captured = sessionStorage.getItem('cw_lead') === '1';
+
+    function open() {
+      root.setAttribute('data-open', 'true');
+      launcher.setAttribute('aria-expanded', 'true');
+      panel.setAttribute('aria-hidden', 'false');
+      if (captured) { showChat(); qEl.focus(); }
+      else { nameEl.focus(); }
+    }
+    function close() {
+      root.setAttribute('data-open', 'false');
+      launcher.setAttribute('aria-expanded', 'false');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+    function showChat() {
+      gate.hidden = true;
+      chat.hidden = false;
+      if (!log.dataset.greeted) {
+        addMsg('bot', "Ask me anything about Christopher's construction, technology, or insurance background.");
+        log.dataset.greeted = '1';
+      }
+    }
+    function addMsg(who, text) {
+      var d = document.createElement('div');
+      d.className = 'cw-msg cw-msg--' + who;
+      d.textContent = text;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      return d;
+    }
+
+    launcher.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+
+    gate.addEventListener('submit', function (e) {
+      e.preventDefault();
+      gateErr.hidden = true;
+      var name = nameEl.value.trim();
+      var email = emailEl.value.trim();
+      if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        gateErr.textContent = 'Please enter your name and a valid email.';
+        gateErr.hidden = false;
+        return;
+      }
+      startBtn.disabled = true;
+      startBtn.textContent = 'Starting…';
+      fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email }),
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.j && res.j.error ? res.j.error : 'Something went wrong.');
+          sessionStorage.setItem('cw_lead', '1');
+          captured = true;
+          showChat();
+          qEl.focus();
+        })
+        .catch(function (err) {
+          gateErr.textContent = err.message || 'Something went wrong.';
+          gateErr.hidden = false;
+        })
+        .finally(function () {
+          startBtn.disabled = false;
+          startBtn.textContent = 'Start chat';
+        });
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = qEl.value.trim();
+      if (!q) return;
+      addMsg('user', q);
+      qEl.value = '';
+      var typing = addMsg('bot', '…');
+      typing.classList.add('cw-typing');
+      fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          typing.remove();
+          addMsg('bot', j.answer || "I don't have that information about Christopher.");
+        })
+        .catch(function () {
+          typing.remove();
+          addMsg('bot', 'Sorry — something went wrong. Please try again.');
+        });
+    });
+  })();
+</script>
