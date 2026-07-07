@@ -99,7 +99,7 @@ Business, Creative
 
 | Name | Type | Content | Proxied | TTL |
 |---|---|---|---|---|
-| `secureprospective.com` | CNAME | `webpage-c6h.pages.dev` | ✅ | Auto |
+| `secureprospective.com` | CNAME | `secureprospective-site.pages.dev` | ✅ | Auto |
 | `www.secureprospective.com` | CNAME | `secureprospective.com` | ✅ | Auto |
 | `_domainconnect` | CNAME | `_domainconnect.gd.domaincontrol.com` | ✅ | Auto |
 | `jellyfin` | CNAME | `773073cd-b07b-4acf-a066-3d1be4c198aa.cfargotunnel.com` | ✅ | Auto |
@@ -110,17 +110,17 @@ Business, Creative
 
 ### Hosting — Cloudflare Pages
 
-- **Project name:** `webpage` (pages.dev: `webpage-c6h.pages.dev`)
+- **Project name:** `secureprospective-site` (pages.dev: `secureprospective-site.pages.dev`)
 - **Production branch:** `main`
-- **Build command:** *(none — not yet connected to GitHub repo)*
-- **Output directory:** *(none — not yet configured)*
-- **Uses Functions:** No | **Compatibility date:** 2026-03-18
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- **Uses Functions:** Yes | **Node version:** 20
 
 ✅ **Pipeline connected 2026-06-23** via a git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20).
 
-✅ **DOMAIN CUTOVER COMPLETE 2026-06-23 (evening).** `secureprospective.com` + `www` now serve `secureprospective-site` (live with the real 6-page site + chatbot). Custom domains detached from old `webpage` project and attached to `secureprospective-site`; DNS CNAMEs repointed apex+www → `secureprospective-site.pages.dev` (proxied) via the Cloudflare AI assistant (token lacked Zone:DNS:Edit). Domain status label was `pending` at close but serving valid HTTPS 200. **Old `webpage` project KEPT as fallback — delete whenever confident.**
+✅ **DOMAIN CUTOVER COMPLETE 2026-06-23 (evening), reconfirmed live 2026-06-26.** `secureprospective.com` + `www` serve `secureprospective-site` (live with the real 6-page site + chatbot). DNS CNAMEs repointed apex+www → `secureprospective-site.pages.dev` (proxied). **Old `webpage` project DELETED 2026-07-04** — verified 0 custom domains attached (via CF dashboard AI assistant) before deletion.
 
-**Pages project bindings (production + preview):** `CF_API_TOKEN` (secret, for the chatbot Function), `NODE_VERSION=20`, `LEADS` → R2 bucket `ccwork-leads`. **Uses Functions: YES.**
+**Pages project bindings (production + preview):** `CF_API_TOKEN` (secret, for the chatbot Function — **edited 2026-07-04** from broad account token to `AI Search: Read` + `Workers AI: Read` + `Workers R2 Storage: Edit`; still account-wide on R2, not bucket-scoped to `ccwork-leads` — revisit if tighter scoping wanted), `NODE_VERSION=20`, `LEADS` → R2 bucket `ccwork-leads`. **Uses Functions: YES.**
 
 ### Tunnels
 
@@ -134,7 +134,7 @@ Business, Creative
 ### Other
 
 - **Page Rules / Transform Rules / Cache Rules / Worker Routes / Firewall / Access:** None
-- **SSL/TLS mode:** `Full` *(NOW upgradeable to Full (Strict) — domain cut over to Pages, which issues a valid cert. Needs Zone scope / dashboard. OPEN.)*
+- **SSL/TLS mode:** `Full (Strict)` — upgraded 2026-07-04
 - **Plan:** Free | **Zone:** Active
 - **Nameservers:** `connie.ns.cloudflare.com`, `lamar.ns.cloudflare.com`
 
@@ -142,7 +142,7 @@ Business, Creative
 
 ## Current Build State
 
-**🚀 LIVE IN PRODUCTION on `secureprospective.com` (2026-06-23 evening).** Full 6-page site + lead-gated interactive-resume chatbot, merged to `main`, deployed, domain cut over.
+**🚀 LIVE IN PRODUCTION on `secureprospective.com` (2026-06-23 evening).** Full 6-page site + lead-gated interactive-resume chatbot, merged to `main`, deployed, domain cut over. **Hardening pass DONE 2026-07-04** (SSL Full Strict, least-privilege chatbot token, old `webpage` project deleted).
 
 - **Phase 0 COMPLETE** — scaffold (commit `2ea6ec5`), brand assets in `grafix/`.
 - **Full site built (bird, 2026-06-22→23) + MERGED TO MAIN (`efaefae`):**
@@ -174,14 +174,22 @@ knowledge-vault `02_wiki/cloudflare.md`.**
 
 ---
 
+## Hermes Inbox (docs/from-hermes/)
+
+Standing convention (started 2026-07-07): Christopher uses Hermes on the go to drop ideas/builds/notes for later work here. When he says "pull it/them over" (or similar), fetch the named folder from Hermes (`ssh -i /root/.ssh/hermes hermes@192.168.1.222`) via `scp -r`, land it under `docs/from-hermes/<name>/`, verify file counts match, then delete the source on Hermes. Do not build from these unprompted — they're staging, not committed scope.
+
+- **`docs/from-hermes/CT105/`** — pulled 2026-07-07, deleted from Hermes after transfer (10 files). Original "AI-first business ecosystem" planning blueprint (Python/Neo4j/Docker stack). **Promoted to real scope 2026-07-07** — see `docs/ai-ecosystem/ARCHITECTURE.md` for the Cloudflare-native rebuild + scaffold brief being handed to GLM 5.2 on bird. Keep the raw Hermes docs here for reference (esp. the Knowledge Graph and MCP Server component specs, which have real detail worth mining).
+
+---
+
 ## Open Items
 
 - [x] Cloudflare dashboard inventory — complete (2026-06-22)
 - [x] Connect Pages to GitHub — **DONE 2026-06-23.** NEW git-connected project `secureprospective-site` (main / `npm run build` / `dist` / NODE_VERSION=20), live + verified at `secureprospective-site.pages.dev`. The old `webpage` project was direct-upload and can't be converted, so a new project was made; `webpage` still serves the domain.
-- [x] **Domain cutover — DONE 2026-06-23 evening.** `secureprospective.com` + `www` attached to `secureprospective-site`, DNS repointed. Old `webpage` project KEPT as fallback (delete whenever confident).
-- [ ] **Upgrade SSL/TLS Full → Full (Strict)** — now that domain is on Pages (valid cert). Needs Zone:DNS scope / dashboard / Cloudflare AI. HARDENING.
-- [ ] **Least-privilege token for the chatbot Function** — `CF_API_TOKEN` is currently the broad account token; swap for one scoped to AI Search Run + Workers AI Run only. HARDENING.
-- [ ] **Delete old `webpage` Pages project** — once confident in the cutover.
+- [x] **Domain cutover — DONE 2026-06-23 evening.** `secureprospective.com` + `www` attached to `secureprospective-site`, DNS repointed. Reconfirmed live 2026-06-26.
+- [x] **Upgrade SSL/TLS Full → Full (Strict)** — DONE 2026-07-04.
+- [x] **Least-privilege token for the chatbot Function** — DONE 2026-07-04. `CF_API_TOKEN` edited in place (`super-band-f10c`) to `AI Search: Read` + `Workers AI: Read` + `Workers R2 Storage: Edit`. Note: R2 scope is still account-wide, not bucket-scoped to `ccwork-leads` — the account-level token editor doesn't offer per-bucket scoping (that's only in R2's own "Manage API tokens" UI). Revisit later if tighter scoping wanted.
+- [x] **Delete old `webpage` Pages project** — DONE 2026-07-04. Verified 0 custom domains attached first (via CF dashboard AI assistant), then deleted.
 - [ ] Retrieval tuning: `match_threshold 0.4` refuses vague phrasings ("what licenses" vs "what insurance licenses") — lower if more lenience wanted.
 - [x] Clean up stale `Home` tunnel DNS records (jellyfin, nextcloud, seerr) — **DONE 2026-06-23**, deleted + confirmed via dig. The dead `Home` tunnel object itself still exists; delete whenever.
 - [ ] Christopher picks winning elements from 3 design views → integrate into Astro
@@ -197,4 +205,4 @@ knowledge-vault `02_wiki/cloudflare.md`.**
 
 ## Next Branch
 
-`session/secureprospective-hardening` — SSL Full(Strict), least-privilege Function token, delete old `webpage` project; then a design-polish pass on the live pages. (Cloudflare knowledge captured in vault `02_wiki/cloudflare.md`.)
+Hardening complete — no branch was needed (all Cloudflare dashboard work, no code changes). Next: a design-polish pass on the live pages (`session/secureprospective-design-polish` when Christopher's ready), or fold in with CCwork lead-gen automation once target role/skill set is declared. (Cloudflare knowledge captured in vault `02_wiki/cloudflare.md`.)
