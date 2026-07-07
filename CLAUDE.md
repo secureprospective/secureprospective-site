@@ -200,9 +200,10 @@ Standing convention (started 2026-07-07): Christopher uses Hermes on the go to d
 - [ ] Verify CTA scroll collision bug Gemini flagged (Playwright check on bird)
 - [ ] Fix bird's `website.md` agent file: line 21 incorrectly says TFM uses Tailwind — correct to "Astro + React + CSS custom properties (tokens.css)"
 - [ ] Design polish pass on the live 6 pages (Christopher reviewed + approved the chatbot UX; broader page-design review still open)
+- [ ] **AI-ecosystem wireframe scaffold** — queued on bird, branch `session/ai-ecosystem-scaffold`, codeword **"prove it"**. Not started as of 2026-07-07 (branch created, no code written). Full spec: `docs/ai-ecosystem/ARCHITECTURE.md`. GLM 5.2/OpenCode config on bird verified live; bird's `bird-operating.md` has the codeword + a formal session-close skill that keeps `foundation/memory/ai_ecosystem_scaffold_task.md` current so resumes pick up real progress, not the static brief.
 
 ---
 
 ## Next Branch
 
-Hardening complete — no branch was needed (all Cloudflare dashboard work, no code changes). Next: a design-polish pass on the live pages (`session/secureprospective-design-polish` when Christopher's ready), or fold in with CCwork lead-gen automation once target role/skill set is declared. (Cloudflare knowledge captured in vault `02_wiki/cloudflare.md`.)
+**`session/ai-ecosystem-scaffold`** (on bird) — GLM 5.2 scaffolds the 10-component AI-native wireframe per `docs/ai-ecosystem/ARCHITECTURE.md` §5 priority order (catalog → knowledge graph → vector search → MCP server → agent first). CT105 reviews/merges when Christopher returns with the branch — check against ARCHITECTURE.md §6 handoff notes before merging (no real secrets/deploys should exist in the branch). Design-polish pass and CCwork lead-gen automation remain open but deprioritized behind this.
