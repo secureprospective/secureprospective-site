@@ -206,7 +206,21 @@ Standing convention (started 2026-07-07): Christopher uses Hermes on the go to d
 
 ## Next Branch
 
-AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24 — see Open Items above. Next up: either the real-Cloudflare-wiring phase for the ecosystem scaffold (full handoff below), or the deprioritized design-polish pass on the live pages (`session/secureprospective-design-polish`) / CCwork lead-gen automation, Christopher's call.
+**AI-ecosystem wiring phase IN PROGRESS on `session/ai-ecosystem-wiring` (2026-07-24, not pushed to main).** See "Wiring Phase Progress" below for exact state. Next up when resuming: set up Cloudflare Access (team domain + AUD tag) so the MCP server + knowledge-graph write endpoints can go live, or continue with steps 5+ (agent/composer wiring) on read-only pieces in the meantime.
+
+## Wiring Phase Progress (2026-07-24, branch `session/ai-ecosystem-wiring`)
+
+**Step 1 — D1 database: DONE + verified live.** Created `secureprospective-ecosystem` (id `76a9973f-eef6-4d37-acd3-92e378e04151`), migration applied (`entities`+`relationships` tables), bound as `ECOSYSTEM_DB` on both Pages environments via the Cloudflare dashboard AI assistant (relayed through `/root/paste.md` — my API token lacks Pages scope by design, kept narrow on purpose). Verified independently via a throwaway probe Function on a preview deploy (not just trusting the assistant's self-report) — confirmed real, then removed.
+
+**Step 2 — Vector search: DEFERRED (Christopher's call).** No real business content (FAQs/services prose) exists yet to index, and reusing the existing `ccwork-resume` AI Search instance would wrongly blend Christopher's personal resume corpus with SP's business content. The D1 knowledge graph (structured FAQ/service entities) covers P0 Q&A without it. Revisit once there's real unstructured content worth indexing semantically.
+
+**Step 3 — HTTP layer:**
+- `functions/api/ecosystem/catalog.ts` — **DONE, pushed (`d666023`), verified live** on the preview deploy (`GET /api/ecosystem/catalog[?business=]`). Read-only, no bindings/secrets, safe with no auth.
+- `functions/api/ecosystem/knowledge-graph.ts` + `functions/api/ecosystem/mcp/router.ts` — **built, committed locally only (`cbaeddf`), NOT pushed.** Both verified end-to-end against a local D1 copy via `wrangler pages dev` (seeded real entities, exercised every route, confirmed the MCP tool chain genuinely works — pricing_lookup/service_catalog/etc. return real graph-traversal results). Auth fails closed on both (401 with or without a JWT) because no Cloudflare Access application exists on this account yet ("Access: None" in the Cloudflare Configuration section above) — there's no real `AccessJwtValidator` to check against. **Do not push/merge these two files until Access is configured** — that's step 4, deliberately not done yet.
+- MCP router uses the local `McpServer` class directly, not the Cloudflare Agents SDK (`agents` package) — installing that dependency needs Christopher's explicit sign-off first (LEAD #5 from the original scaffold). Swapping in the real SDK later doesn't change the underlying `McpServer.listTools()`/`dispatch()` contract this file relies on.
+- Vector search in the MCP router uses a `NullVectorSearchBackend` (always returns `[]`) per the step 2 deferral — tools still work via the graph keyword-search path.
+
+**Remaining steps (4 and onward) unchanged from the original handoff below** — resume there once Access is set up. Full history/rationale: memory `project_ai_ecosystem_wireframe`.
 
 ---
 
