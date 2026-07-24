@@ -1,0 +1,44 @@
+{
+  "businessId": "techfreedomministries",
+  "version": "2026-07-20",
+  "notes": "Initial benchmark fixture. TFM is minimally spec'd in the catalog (LEAD #2: placeholder contact email pending). Queries skew discovery/brand-probe because TFM's market category is still being defined. Refresh once TFM's positioning is locked.",
+  "queries": [
+    { "id": "tfm-001", "category": "direct-intent", "query": "Christian tech ministries" },
+    { "id": "tfm-002", "category": "direct-intent", "query": "Faith-based AI consulting" },
+    { "id": "tfm-003", "category": "direct-intent", "query": "AI ministries for churches" },
+    { "id": "tfm-004", "category": "direct-intent", "query": "Christian AI consultants" },
+    { "id": "tfm-005", "category": "direct-intent", "query": "Tech ministry consulting firms" },
+
+    { "id": "tfm-006", "category": "discovery", "query": "What is a tech ministry" },
+    { "id": "tfm-007", "category": "discovery", "query": "How can churches use AI" },
+    { "id": "tfm-008", "category": "discovery", "query": "Faith-based AI strategy" },
+    { "id": "tfm-009", "category": "discovery", "query": "Christian approach to artificial intelligence" },
+    { "id": "tfm-010", "category": "discovery", "query": "Technology freedom ministries" },
+    { "id": "tfm-011", "category": "discovery", "query": "AI and the church" },
+    { "id": "tfm-012", "category": "discovery", "query": "Should ministries use AI tools" },
+    { "id": "tfm-013", "category": "discovery", "query": "Biblical view of artificial intelligence" },
+    { "id": "tfm-014", "category": "discovery", "query": "Christian AI ethics consulting" },
+    { "id": "tfm-015", "category": "discovery", "query": "Tech freedom for Christian organizations" },
+
+    { "id": "tfm-016", "category": "comparative", "query": "Christian AI consulting vs secular AI consulting" },
+    { "id": "tfm-017", "category": "comparative", "query": "Faith-based AI firms vs mainstream consultancies" },
+    { "id": "tfm-018", "category": "comparative", "query": "Should churches hire AI consultants" },
+    { "id": "tfm-019", "category": "comparative", "query": "Tech ministry vs IT ministry" },
+    { "id": "tfm-020", "category": "comparative", "query": "AI strategy for ministries vs businesses" },
+
+    { "id": "tfm-021", "category": "vertical-specific", "query": "AI for churches" },
+    { "id": "tfm-022", "category": "vertical-specific", "query": "AI for Christian non-profits" },
+    { "id": "tfm-023", "category": "vertical-specific", "query": "Church technology consulting" },
+    { "id": "tfm-024", "category": "vertical-specific", "query": "Faith-based non-profit AI roadmap" },
+    { "id": "tfm-025", "category": "vertical-specific", "query": "Ministry AI strategy" },
+    { "id": "tfm-026", "category": "vertical-specific", "query": "Christian organization technology plan" },
+    { "id": "tfm-027", "category": "vertical-specific", "query": "AI for small ministries" },
+    { "id": "tfm-028", "category": "vertical-specific", "query": "Church AI policy consulting" },
+
+    { "id": "tfm-029", "category": "brand-probe", "query": "Tech Freedom Ministries" },
+    { "id": "tfm-030", "category": "brand-probe", "query": "techfreedomministries.org" },
+    { "id": "tfm-031", "category": "brand-probe", "query": "Tech Freedom Ministry AI" },
+    { "id": "tfm-032", "category": "brand-probe", "query": "TFM ministry technology" },
+    { "id": "tfm-033", "category": "brand-probe", "query": "Tech Freedom Ministries consulting" }
+  ]
+}

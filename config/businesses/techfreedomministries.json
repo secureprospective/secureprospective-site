@@ -1,0 +1,12 @@
+{
+  "id": "techfreedomministries",
+  "name": "Tech Freedom Ministries",
+  "category": "ministry",
+  "voice": "positive/hopeful/scripture-forward",
+  "serviceAreaRadius": null,
+  "contact": {
+    "email": "techfreedomministries@gmail.com",
+    "website": "https://techfreedomministries.org"
+  },
+  "domain": "techfreedomministries.org"
+}

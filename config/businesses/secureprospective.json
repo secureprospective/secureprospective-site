@@ -1,0 +1,17 @@
+{
+  "id": "secureprospective",
+  "name": "SecureProspective",
+  "category": "technical_consulting",
+  "voice": "no fear/surveillance framing; confident, direct, ledger/vault mood",
+  "serviceAreaRadius": null,
+  "contact": {
+    "email": "secureprospective@gmail.com",
+    "website": "https://secureprospective.com"
+  },
+  "domain": "secureprospective.com",
+  "tagline": "Make AI native. Drop the prefix.",
+  "method": {
+    "movements": ["Diagnose", "Position", "Shape", "Transform"],
+    "loopCloser": "What's native today gets re-diagnosed tomorrow. The loop doesn't end — your business just stops being the bottleneck."
+  }
+}

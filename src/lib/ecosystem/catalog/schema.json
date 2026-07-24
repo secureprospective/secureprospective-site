@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://secureprospective.com/docs/ai-ecosystem/catalog.schema.json",
+  "title": "BusinessConfig",
+  "description": "Per-business plug-in config for the AI-ecosystem wireframe. Canonical contract; the TypeScript mirror lives at src/lib/ecosystem/catalog/types.ts. Spec: docs/ai-ecosystem/ARCHITECTURE.md §9.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "category", "voice", "serviceAreaRadius", "contact"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Slug identifier used as the loader key. Lowercase, no spaces."
+    },
+    "name": { "type": "string", "minLength": 1, "description": "Display name." },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Business category — drives downstream entity-type choices."
+    },
+    "voice": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Brand voice constraints the agent must obey. Free-text directive."
+    },
+    "serviceAreaRadius": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Miles, or null for no geographic constraint (national/remote)."
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "website": { "type": "string", "format": "uri" }
+      }
+    },
+    "domain": { "type": "string", "description": "Canonical public domain." },
+    "tagline": { "type": "string", "description": "Short positioning line." },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["movements"],
+      "properties": {
+        "movements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "loopCloser": { "type": "string" }
+      }
+    }
+  }
+}
