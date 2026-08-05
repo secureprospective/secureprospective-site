@@ -23,3 +23,9 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 .dev.vars
+
+# Impeccable live-mode runtime state (local machine paths, ephemeral session logs)
+.impeccable/live/roots.json
+.impeccable/live/sessions/
+.impeccable/live/accept-receipts/
+.impeccable/live/pending-manual-edits.json

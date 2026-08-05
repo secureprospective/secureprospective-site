@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import MethodWidget from '../components/MethodWidget.astro';
 ---
 
 <Layout title="SecureProspective: Make AI native. Drop the prefix.">
@@ -11,54 +12,26 @@ import Footer from '../components/Footer.astro';
     {/* ───────────────────────── HERO ───────────────────────── */}
     <section class="hero">
       <div class="container hero-inner">
+
         <h1 class="hero-title">
           <span class="reveal-word">Make</span> <span class="reveal-word">AI</span>
           <span class="reveal-word">native.</span><br />
           <span class="reveal-word">Drop</span> <span class="reveal-word">the</span>
-          <span class="reveal-word">prefix.</span>
+          <span class="reveal-word prefix-chip">prefix.</span>
         </h1>
+
         <p class="hero-sub">
           We make businesses AI-native: diagnose the bottleneck, position the tool,
           shape the output for ownership.
         </p>
-        <a href="/the-method" class="btn btn--ink">See the method &rarr;</a>
-      </div>
-    </section>
-
-    {/* ───────────────────── METHOD PREVIEW ───────────────────── */}
-    <section class="method-preview">
-      <div class="container">
-        <div class="eyebrow eyebrow--white">The Method</div>
-
-        <div class="transit-map animate-group">
-          <div class="transit-node animate-item">
-            <div class="node-marker">01</div>
-            <div class="node-name">Diagnose</div>
-            <div class="node-desc">Find what's actually broken.</div>
-          </div>
-          <div class="transit-node animate-item">
-            <div class="node-marker">02</div>
-            <div class="node-name">Position</div>
-            <div class="node-desc">Set the tool up for success.</div>
-          </div>
-          <div class="transit-node animate-item">
-            <div class="node-marker">03</div>
-            <div class="node-name">Shape</div>
-            <div class="node-desc">Structure output for ownership.</div>
-          </div>
-          <div class="transit-node animate-item">
-            <div class="node-marker">04</div>
-            <div class="node-name">Transform</div>
-            <div class="node-desc">AI-native. Prefix dropped.</div>
-          </div>
-        </div>
+        <a href="/the-method" id="see-method-btn" class="btn btn--ink">See the method &rarr;</a>
       </div>
     </section>
 
     {/* ───────────────────── PROOF TEASERS ───────────────────── */}
     <section class="proof-teasers">
       <div class="container">
-        <div class="eyebrow">The Work</div>
+        <div class="eyebrow eyebrow--white">The Work</div>
 
         <div class="teasers animate-group">
           <article class="teaser animate-item">
@@ -111,6 +84,7 @@ import Footer from '../components/Footer.astro';
   </main>
 
   <Footer />
+  <MethodWidget />
 </Layout>
 
 <style>
@@ -132,6 +106,10 @@ import Footer from '../components/Footer.astro';
     letter-spacing: -0.02em;
     max-width: 900px;
   }
+  .hero-title .prefix-chip {
+    background: var(--yellow-accent);
+    padding: 0 8px;
+  }
   .hero-sub {
     font-size: var(--text-body-lg);
     max-width: 680px;
@@ -139,75 +117,14 @@ import Footer from '../components/Footer.astro';
     color: var(--ink);
   }
 
-  /* ── Method preview (transit map) ── */
-  .method-preview {
+  /* ── Proof teasers ── */
+  .proof-teasers {
     background: var(--blue-brand);
-    color: var(--ink-inverted);
-    border-top: 2px solid var(--ink);
     border-bottom: 2px solid var(--ink);
     padding: var(--space-7) 0;
   }
   .eyebrow--white {
     color: var(--white);
-  }
-
-  .transit-map {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
-  }
-  /* horizontal connector - desktop */
-  .transit-map::before {
-    content: '';
-    position: absolute;
-    top: 15px;
-    left: 16px;
-    right: 16px;
-    height: 2px;
-    background: var(--white);
-    z-index: 0;
-  }
-  .transit-node {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .node-marker {
-    width: 32px;
-    height: 32px;
-    background: var(--blue-brand);
-    border: 2px solid var(--white);
-    color: var(--white);
-    font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: var(--space-3);
-  }
-  .node-name {
-    font-family: var(--font-display);
-    font-size: var(--text-h3);
-    text-transform: uppercase;
-    color: var(--white);
-    margin-bottom: var(--space-2);
-    letter-spacing: -0.01em;
-  }
-  .node-desc {
-    font-size: var(--text-body);
-    color: var(--white);
-    opacity: 0.85;
-  }
-
-  /* ── Proof teasers ── */
-  .proof-teasers {
-    background: var(--silver-base);
-    border-bottom: 2px solid var(--ink);
-    padding: var(--space-7) 0;
   }
   .teasers {
     display: grid;
@@ -218,12 +135,14 @@ import Footer from '../components/Footer.astro';
     background: var(--white);
     padding: var(--space-5);
     border: 1px solid var(--ink);
-    box-shadow: 6px 6px 0 rgba(0, 51, 160, 0.18);
+    /* ink offset, not the usual brand-blue: this card sits on a blue-brand
+       section, and a blue shadow disappears against a blue backdrop */
+    box-shadow: 6px 6px 0 rgba(34, 34, 34, 0.35);
     transition: border-color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
   }
   .teaser:hover {
-    border-color: var(--blue-brand);
-    box-shadow: 8px 8px 0 rgba(0, 51, 160, 0.24);
+    border-color: var(--yellow-accent);
+    box-shadow: 8px 8px 0 rgba(34, 34, 34, 0.45);
     transform: translate(-2px, -2px);
   }
   .teaser-meta {
@@ -305,19 +224,6 @@ import Footer from '../components/Footer.astro';
     }
     .operator-quote {
       font-size: var(--text-h2);
-    }
-    .transit-map {
-      grid-template-columns: 1fr;
-      gap: var(--space-5);
-    }
-    /* vertical connector on mobile */
-    .transit-map::before {
-      top: 16px;
-      left: 15px;
-      right: auto;
-      width: 2px;
-      bottom: 16px;
-      height: auto;
     }
     .teasers {
       grid-template-columns: 1fr;

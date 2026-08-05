@@ -1,0 +1,201 @@
+---
+// "The Method" card, opened by the hero's "See the method" button
+// (#see-method-btn in index.astro), not a standalone launcher. Same card
+// aesthetics as ChatWidget.astro: ink/blue/white, hard-edge card-lift
+// shadow, 120-160ms motion.
+---
+
+<div id="mw-root" data-open="false">
+  <section id="mw-panel" role="dialog" aria-label="The Method" aria-hidden="true">
+    <header class="mw-head">
+      <span class="mw-title">The Method</span>
+      <button id="mw-close" type="button" class="mw-close" aria-label="Close">&times;</button>
+    </header>
+
+    <div class="mw-body">
+      <ol class="mw-steps">
+        <li class="mw-step">
+          <span class="mw-step-marker">01</span>
+          <span class="mw-step-name">Diagnose</span>
+          <span class="mw-step-desc">Find what's actually broken.</span>
+        </li>
+        <li class="mw-step">
+          <span class="mw-step-marker">02</span>
+          <span class="mw-step-name">Position</span>
+          <span class="mw-step-desc">Set the tool up for success.</span>
+        </li>
+        <li class="mw-step">
+          <span class="mw-step-marker">03</span>
+          <span class="mw-step-name">Shape</span>
+          <span class="mw-step-desc">Structure output for ownership.</span>
+        </li>
+        <li class="mw-step">
+          <span class="mw-step-marker">04</span>
+          <span class="mw-step-name">Transform</span>
+          <span class="mw-step-desc">AI-native. Prefix dropped.</span>
+        </li>
+      </ol>
+
+      <a href="/the-method" class="mw-continue">Continue to The Method &rarr;</a>
+    </div>
+  </section>
+</div>
+
+<style>
+  #mw-root {
+    --mw-blue: var(--blue-brand, #0033A0);
+    --mw-ink: var(--ink, #222);
+    --mw-yellow: var(--yellow-accent, #FFD700);
+    --mw-white: var(--white, #fff);
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    z-index: 9998;
+    font-family: var(--font-body, system-ui, sans-serif);
+  }
+
+  /* Panel */
+  #mw-panel {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 360px;
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 48px);
+    background: var(--mw-white);
+    border: 2px solid var(--mw-ink);
+    border-radius: 2px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 rgba(0, 51, 160, 0.18);
+  }
+  #mw-root[data-open="true"] #mw-panel { display: flex; }
+
+  .mw-head {
+    background: var(--mw-blue);
+    color: var(--mw-white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+  .mw-title {
+    font-family: var(--font-display, system-ui, sans-serif);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .mw-close {
+    background: none; border: none; color: var(--mw-white);
+    font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+  }
+  .mw-close:hover { color: var(--mw-yellow); }
+
+  .mw-body {
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .mw-steps {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mw-step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    column-gap: 10px;
+    row-gap: 2px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.15);
+  }
+  .mw-step:last-child { border-bottom: none; padding-bottom: 0; }
+  .mw-step-marker {
+    grid-row: 1 / 3;
+    width: 28px;
+    height: 28px;
+    background: var(--mw-blue);
+    color: var(--mw-white);
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mw-step-name {
+    font-family: var(--font-display, system-ui, sans-serif);
+    text-transform: uppercase;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--mw-ink);
+  }
+  .mw-step-desc {
+    font-size: 13px;
+    color: var(--mw-ink);
+    opacity: 0.75;
+    line-height: 1.4;
+  }
+
+  .mw-continue {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 14px;
+    text-align: center;
+    text-decoration: none;
+    background: var(--mw-yellow);
+    color: var(--mw-ink);
+    border: 2px solid var(--mw-ink);
+    border-radius: 2px;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: background 140ms ease-out;
+  }
+  .mw-continue:hover { background: var(--gold-identity, #D4AF37); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mw-continue { transition: none; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.getElementById('mw-root');
+    if (!root) return;
+    var panel = document.getElementById('mw-panel');
+    var closeBtn = document.getElementById('mw-close');
+    var trigger = document.getElementById('see-method-btn');
+
+    function open() {
+      root.setAttribute('data-open', 'true');
+      panel.setAttribute('aria-hidden', 'false');
+      if (trigger) trigger.setAttribute('aria-expanded', 'true');
+    }
+    function close() {
+      root.setAttribute('data-open', 'false');
+      panel.setAttribute('aria-hidden', 'true');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    if (trigger) {
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.addEventListener('click', function (e) {
+        e.preventDefault();
+        open();
+      });
+    }
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && root.getAttribute('data-open') === 'true') close();
+    });
+  })();
+</script>
