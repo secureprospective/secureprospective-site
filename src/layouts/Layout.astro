@@ -105,6 +105,15 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
     background: var(--blue-brand);
     border-color: var(--blue-brand);
   }
+  .btn--outline {
+    background: transparent;
+    color: var(--white);
+    border-color: var(--white);
+  }
+  .btn--outline:hover {
+    background: var(--white);
+    color: var(--ink);
+  }
 
   /* Motion pre-states - applied only when JS is active so no-JS shows content normally */
   .js .reveal-word {

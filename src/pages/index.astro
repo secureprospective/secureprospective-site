@@ -218,10 +218,13 @@ import Footer from '../components/Footer.astro';
     background: var(--white);
     padding: var(--space-5);
     border: 1px solid var(--ink);
-    transition: border-color 120ms ease-out;
+    box-shadow: 6px 6px 0 rgba(0, 51, 160, 0.18);
+    transition: border-color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
   }
   .teaser:hover {
     border-color: var(--blue-brand);
+    box-shadow: 8px 8px 0 rgba(0, 51, 160, 0.24);
+    transform: translate(-2px, -2px);
   }
   .teaser-meta {
     font-family: var(--font-display);
@@ -269,19 +272,6 @@ import Footer from '../components/Footer.astro';
     color: var(--white);
     opacity: 0.85;
     max-width: 820px;
-  }
-
-  /* Secondary CTA on a dark surface: the ink fill button reads invisible on
-     this section's ink background, so this section gets an outline treatment
-     instead of the shared .btn--ink fill. */
-  .operator-teaser .btn--outline {
-    background: transparent;
-    color: var(--white);
-    border-color: var(--white);
-  }
-  .operator-teaser .btn--outline:hover {
-    background: var(--white);
-    color: var(--ink);
   }
 
   /* ── Loop-closer ── */
