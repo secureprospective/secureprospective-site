@@ -50,7 +50,7 @@ const isActive = (href: string) => path === href;
       burger.setAttribute('aria-expanded', String(isOpen));
     });
 
-    navLinks.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && navLinks.classList.contains('is-open')) {
         navLinks.classList.remove('is-open');
         burger.setAttribute('aria-expanded', 'false');
