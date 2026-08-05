@@ -106,7 +106,7 @@ Density: comfortable. Container padding 16-24px, gutter 24-32px.
 |---|---|---|
 | Border radius (default) | **0px** — sharp corners | Sample + TFM CLAUDE.md |
 | Border radius (buttons/badges) | **2px** | TFM CLAUDE.md |
-| Shadow depth | **None** — flat only | Sample read |
+| Shadow depth | **Hard offset only** — `6px 6px 0`, zero blur (Card-Lift rule); reserved for elements that should read as raised, not routine UI | Revised 2026-08-05, see DESIGN.md |
 | Border weight | **1px hairline** for separators; otherwise none | Sample read |
 | Container backgrounds | Flat solid colors from palette; no multi-hue gradients | Sample + multi-hue rule |
 
@@ -151,7 +151,7 @@ Density: comfortable. Container padding 16-24px, gutter 24-32px.
 - NO organic curves (the brand symbol is the only circle allowed)
 - NO pastel colors (only the locked palette)
 - NO script or serif typography (geometric sans only)
-- NO drop shadows (flat only)
+- NO soft/blurred drop shadows — hard offset only (Card-Lift rule, `6px 6px 0`, zero blur), used sparingly for raised moments *(revised 2026-08-05 — the earlier blanket "no shadows at all" wasn't grounded in anything real, corrected once we started using it more)*
 - NO rounded pill containers (sharp corners, 2px max on buttons)
 - NO full-bleed background photography (editorial layout only)
 - NO multi-hue gradient backgrounds (single-hue brand blocks only)

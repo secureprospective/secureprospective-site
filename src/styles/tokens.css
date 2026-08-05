@@ -1,5 +1,5 @@
 :root {
-  /* Color tokens — multi-hue system */
+  /* Color tokens - multi-hue system */
   --silver-base: #E5E4E2;
   --blue-brand: #0033A0;
   --gold-identity: #D4AF37;
@@ -21,7 +21,7 @@
   --text-body: 16px;
   --text-caption: 14px;
 
-  /* Spacing — 8px base */
+  /* Spacing - 8px base */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;

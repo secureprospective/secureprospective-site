@@ -51,7 +51,7 @@ Bird never runs `wrangler deploy` or `wrangler pages deploy`. CT105 owns the mer
 
 **The four-movement method (brand IP / differentiator):**
 Diagnose → Position → Shape → Transform
-Loop-closer: *"What's native today gets re-diagnosed tomorrow. The loop doesn't end — your business just stops being the bottleneck."*
+Loop-closer: *"What's native today gets re-diagnosed tomorrow. The loop doesn't end. Your business just stops being the bottleneck."* *(em dash removed 2026-08-05, see Content Rules below)*
 
 **TFM relationship:** TFM is SP's **first client** (not a sister project). Proof-of-work for the consulting practice.
 
@@ -59,7 +59,7 @@ Loop-closer: *"What's native today gets re-diagnosed tomorrow. The loop doesn't 
 
 **Hero copy (locked):**
 - H2: *"Make AI native. Drop the prefix."*
-- S1: *"We make businesses AI-native — diagnose the bottleneck, position the tool, shape the output for ownership."*
+- S1: *"We make businesses AI-native: diagnose the bottleneck, position the tool, shape the output for ownership."* *(em dash removed 2026-08-05, see Content Rules below)*
 
 **IA (6-section, thesis-first — Option C):** Home / The Method / The Work / Services / The Operator / Contact
 
@@ -82,6 +82,10 @@ Loop-closer: *"What's native today gets re-diagnosed tomorrow. The loop doesn't 
 **Anti-list:** no organic curves, no pastels, no script/serif type, no shadows, no rounded pills, no full-bleed photography, no multi-hue gradients, no glassmorphism, no bouncy easings, no Tailwind, no font CDNs.
 
 **Mood anchor:** corporate badge × transit signage × financial ledger × storm shelter × vault.
+
+### Content Rules (locked 2026-08-05)
+
+**ZERO em dashes in anything a visitor reads.** All site copy and all page titles, no exceptions. Part of being AI-native is writing like it, not shipping the tell-tale AI-slop punctuation habit. Use a period, a colon, or a comma instead, and restructure the sentence if a straight swap reads awkwardly. The rule also binds the brand-voice sections of this file and PRODUCT.md/DESIGN.md (locked hero copy, brand spine, mood anchor, anti-list): those define the voice, so they hold themselves to it. It does not require scrubbing routine operational/infra prose elsewhere in these docs (changelog bullets, Cloudflare notes, build-state logs) — that's project record-keeping, not brand voice.
 
 ---
 
@@ -144,6 +148,26 @@ Business, Creative
 
 **🚀 LIVE IN PRODUCTION on `secureprospective.com` (2026-06-23 evening).** Full 6-page site + lead-gated interactive-resume chatbot, merged to `main`, deployed, domain cut over. **Hardening pass DONE 2026-07-04** (SSL Full Strict, least-privilege chatbot token, old `webpage` project deleted).
 
+**Impeccable design pass, session 2026-08-05, IN PROGRESS on `session/impeccable-experiment` (uncommitted at session close, see below).** Installed the Impeccable design-critique skill (project-scoped, `.claude/skills/impeccable/`), wrote `PRODUCT.md` + `DESIGN.md` (North Star: "The Property Card System"), ran `/impeccable critique` twice.
+
+Done and verified this session:
+- **Harden:** mobile nav rebuilt with a real `<button aria-expanded aria-controls>` (was an inert checkbox/label hack), Escape-to-close, focus return.
+- **Clarify (CTA hierarchy):** the three homepage CTAs now carry distinct visual weight — only "Start with a conversation" (the real conversion goal) keeps the primary Ticker Yellow `.btn`; "See the method" uses `.btn--ink`; "Meet the operator" uses a new `.btn--outline` (needed because the operator section's dark `.operator-teaser` background would swallow an ink fill).
+- **Critique re-run:** P0 count went 2 → 0, score 21 → 26/32 (Good band). Two P1s open: `.btn--outline` is undocumented page-scoped debt, and the Card-Lift signature shadow appears on zero homepage content sections (the proof teasers are the obvious first target — literally card-shaped, currently plain).
+- **IMO case study reframed (honesty fix):** the ~$110M/six-year IMO track record predates AI-native entirely; copy across `index.astro`, `the-work.astro`, `the-operator.astro` now says so explicitly instead of implying the method was already proven there before the consulting offer existed. Also swapped "We ran an IMO" → "We operated inside an IMO" everywhere. Correction logged in `PRODUCT.md` under Evidence on Hand so it doesn't drift back.
+- **The Work hero rewritten** for the same honesty reason: "One internal, and it's happening right now. We do not sell a method we are not running ourselves, live." (was implying a completed internal proof).
+- **New locked content rule: ZERO em dashes** in anything a visitor reads (site copy, page titles) and in the brand-voice sections of `CLAUDE.md`/`PRODUCT.md`/`DESIGN.md` (locked hero copy, brand spine, mood anchor, anti-list) — does not require scrubbing routine operational/infra prose elsewhere in these docs. All 39 em dashes found in `src/pages/`, `src/components/`, `src/layouts/`, `src/styles/` were rewritten (not mechanically swapped) and reverified at zero.
+- **ChatWidget renamed** "Ask about Christopher" → "Ask SecureProspective" per Christopher's direction that it become a general assistant over time — see the Chatbot section below for what is and isn't actually changed yet.
+- **Playwright MCP added** (`.mcp.json`, project-scoped, headless Chromium installed at `/root/.cache/ms-playwright/`) so future critiques get real browser evidence instead of source-only review. **Not yet connected** — shows "Pending approval" (`claude mcp list`); Christopher is doing a full CT105 reboot to clear it, approve on next launch (or try `/mcp` inside a session first).
+
+Open P1s/P2s from the critique, not yet started:
+- [P1] Apply the Card-Lift shadow to the proof teasers (`.teaser` in `index.astro`) — the system's signature move currently appears nowhere in homepage content.
+- [P1] Document `.btn--outline` in `DESIGN.md`/`design.json`/`Layout.astro` as a named reusable rule (dark-section secondary CTA), not a page-scoped one-off.
+- [P2] No above-the-fold signal for the IMO-agent audience (PRODUCT.md names two co-equal users, hero only speaks to the consulting one).
+- [P2] `.node-marker` (13px) / `.teaser-meta` (11px) sit below the documented type ramp — likely intentional, currently uncodified.
+
+**Background sub-agent infra bug observed this session (2026-08-05):** dispatching Assessment A/B for critique as background sub-agents produced zero tool_results across 20+ Bash calls each (verified via raw transcript inspection) — not a stall, a silent execution failure. Both critiques this session were run single-context (⚠️ DEGRADED banner) as a result. Not yet confirmed whether this is session-specific or a recurring CT105 issue — worth testing fresh after the reboot before assuming it's fixed.
+
 - **Phase 0 COMPLETE** — scaffold (commit `2ea6ec5`), brand assets in `grafix/`.
 - **Full site built (bird, 2026-06-22→23) + MERGED TO MAIN (`efaefae`):**
   - Home + 5 IA pages: The Method, The Work, Services, The Operator, Contact (`src/pages/*.astro`, ~2070 lines)
@@ -159,6 +183,15 @@ Business, Creative
 Lead-gated public chatbot answering questions ABOUT Christopher in the third person,
 grounded in the CCwork profile-cast corpus. **Full Cloudflare runbook + every gotcha:
 knowledge-vault `02_wiki/cloudflare.md`.**
+
+**Widget renamed 2026-08-05:** launcher/panel copy is now "Ask SecureProspective" (was
+"Ask about Christopher") — Christopher wants this to become a general SecureProspective
+assistant, not an operator-only bot. Renamed the widget only; the backend
+(`functions/api/ask.ts`) is still grounded exclusively in the operator profile-cast corpus
+(bio, career, licenses), not company-wide content (services, pricing, the method). A
+visitor asking about services under the new name will still get a refusal. Expanding the
+actual knowledge corpus (new R2 docs, AI Search reindex, refusal-prompt update) is a
+separate, not-yet-scoped backend task — do not assume it's done because the label changed.
 
 - **Backend:** R2 `ccwork-profile-cast` (10 public docs) → AI Search `ccwork-resume`
   (embedding `@cf/qwen/qwen3-embedding-0.6b`, generation `@cf/google/gemma-4-26b-a4b-it`,
@@ -206,7 +239,14 @@ Standing convention (started 2026-07-07): Christopher uses Hermes on the go to d
 
 ## Next Branch
 
-AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24 — see Open Items above. Next up: either the real-Cloudflare-wiring phase for the ecosystem scaffold (full handoff below), or the deprioritized design-polish pass on the live pages (`session/secureprospective-design-polish`) / CCwork lead-gen automation, Christopher's call.
+**Active: `session/impeccable-experiment`, uncommitted at this session's close pending Christopher's CT105 reboot.** Do not discard — commit first thing next session (build was verified clean, `npm run build` passes, 6 pages). Pick up in this order once Playwright MCP is confirmed connected (`claude mcp list` or `/mcp`):
+1. Card-Lift on the proof teasers (P1).
+2. Document `.btn--outline` (P1).
+3. Re-run `/impeccable critique` with real Playwright browser evidence (not source-only) to confirm the P1 fixes and get the visual-overlay pass this project hasn't had yet.
+4. The two P2s (audience signal, micro-text sizing), Christopher's call on order.
+5. Separately, and only if Christopher explicitly scopes it: the CCwork backend expansion (general-assistant knowledge corpus) flagged above — do not start this unprompted, it's a real Cloudflare-touching project (new R2 docs, AI Search reindex), not a copy tweak.
+
+AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24 — see Open Items above; the real-Cloudflare-wiring phase for that scaffold is still parked behind the design work.
 
 ---
 

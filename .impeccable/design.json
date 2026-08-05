@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T00:00:00Z",
+  "title": "Design System: SecureProspective",
+  "extensions": {
+    "colorMeta": {
+      "yellow-accent": { "role": "primary", "displayName": "Ticker Yellow", "canonical": "#FFD700" },
+      "blue-brand": { "role": "secondary", "displayName": "Deep Compliance Blue", "canonical": "#0033A0" },
+      "gold-identity": { "role": "tertiary", "displayName": "Vault Gold", "canonical": "#D4AF37" },
+      "silver-base": { "role": "neutral", "displayName": "Dead-Matte Platinum", "canonical": "#E5E4E2" },
+      "ink": { "role": "neutral", "displayName": "Ledger Ink", "canonical": "#222222" },
+      "white": { "role": "neutral", "displayName": "Clean Room White", "canonical": "#FFFFFF" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline, one per page." },
+      "headline": { "displayName": "Headline", "purpose": "Page title." },
+      "title": { "displayName": "Title", "purpose": "Section / card subheading." },
+      "body": { "displayName": "Body", "purpose": "Body copy, sentence case." },
+      "label": { "displayName": "Label", "purpose": "Captions, eyebrows, metadata." }
+    },
+    "shadows": [
+      { "name": "card-lift", "value": "6px 6px 0 rgba(0, 51, 160, 0.18)", "purpose": "Hard offset, zero blur — reads as a card physically lifted off the table. Reserved for elements that should feel raised, not routine buttons." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "ease-out", "purpose": "Default hover/focus transition, 120ms." },
+      { "name": "ease-scroll", "value": "linear", "purpose": "Scroll-triggered reveals and section transitions, 200ms." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "768px" },
+      { "name": "tablet", "value": "1199px" },
+      { "name": "desktop", "value": "1200px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main CTA — Ticker Yellow, uppercase Primal label.",
+      "html": "<button class=\"ds-btn-primary\">BOOK A CONSULT</button>",
+      "css": ".ds-btn-primary { display: inline-block; font-family: 'Primal', system-ui, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 16px; padding: 16px 32px; border-radius: 2px; border: 2px solid transparent; background: #FFD700; color: #222222; cursor: pointer; transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { background: #D4AF37; } .ds-btn-primary:focus-visible { outline: 2px solid #0033A0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ink Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Secondary CTA — solid ink background, blue on hover.",
+      "html": "<button class=\"ds-btn-ink\">LEARN MORE</button>",
+      "css": ".ds-btn-ink { display: inline-block; font-family: 'Primal', system-ui, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 16px; padding: 16px 32px; border-radius: 2px; border: 2px solid #222222; background: #222222; color: #FFFFFF; cursor: pointer; transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out; } .ds-btn-ink:hover, .ds-btn-ink:focus-visible { background: #0033A0; border-color: #0033A0; }"
+    },
+    {
+      "name": "Property Card",
+      "kind": "card",
+      "refersTo": "card-lift",
+      "description": "Flat card container with the optional hard-offset lift shadow for raised moments.",
+      "html": "<div class=\"ds-card ds-card--lift\"><span class=\"ds-card-eyebrow\">SERVICE</span><h3 class=\"ds-card-title\">DIAGNOSE</h3></div>",
+      "css": ".ds-card { background: #E5E4E2; border: 1px solid rgba(34,34,34,0.15); border-radius: 0; padding: 24px; } .ds-card--lift { box-shadow: 6px 6px 0 rgba(0, 51, 160, 0.18); } .ds-card-eyebrow { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: #0033A0; } .ds-card-title { font-family: 'Primal', system-ui, sans-serif; font-weight: 600; font-size: 24px; text-transform: uppercase; color: #222222; margin-top: 8px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Property Card System",
+    "overview": "The site reads as a set of board-game property/deed cards laid across a table: flat solid-color blocks, sharp near-zero corners, hairline dividers, uppercase geometric display type stamped like a card title bar. Each section behaves like its own card — bounded, self-contained, legible at a glance — rather than a continuous scrolling page of soft SaaS panels. The palette (silver, brand blue, vault gold, ticker yellow) plays the role of a fixed deck of card colors, not an infinite gradient space. Underneath the card-game surface sits the locked mood anchor: corporate badge × transit signage × financial ledger × storm shelter × vault. Cool, austere, accountable, protective — never warm, never opulent, never approachable-soft.",
+    "keyCharacteristics": [
+      "Flat solid color blocks per section, like distinct card faces",
+      "Sharp corners (0px default), 2px only on buttons/badges",
+      "Uppercase geometric display type (Primal) as the card title bar voice",
+      "Fast/snappy motion — constant small ticker-like updates, not slow reveals",
+      "A fixed, small palette used consistently rather than a broad gradient system"
+    ],
+    "rules": [
+      { "name": "The Fixed Deck Rule", "body": "No color exists outside the six-token set. A new UI need is solved by recombining these roles, never by introducing a new hue.", "section": "colors" },
+      { "name": "The Stamped Title Rule", "body": "Primal appears only in display/title/button contexts, always uppercase, never in body copy. IBM Plex Sans never appears in display roles.", "section": "typography" },
+      { "name": "The Card-Lift Rule", "body": "Shadows are always a hard flat offset, never a soft blur. A blurred shadow reads as generic SaaS depth; an offset shadow reads as a card on a table.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep every new color inside the six-token Fixed Deck.",
+      "Do use hard offset shadows (zero blur) when depth is needed.",
+      "Do keep display type uppercase and geometric; keep body type sentence-case.",
+      "Do keep motion fast (120–200ms) and linear/ease-out."
+    ],
+    "donts": [
+      "Don't use organic curves, pastels, script/serif type, rounded-pill containers, full-bleed photography, multi-hue gradients, glassmorphism, or bouncy easings.",
+      "Don't use a soft/blurred drop shadow.",
+      "Don't reach for Tailwind or a font CDN."
+    ]
+  }
+}

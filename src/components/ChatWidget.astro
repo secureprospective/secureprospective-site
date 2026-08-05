@@ -6,21 +6,21 @@
 
 <div id="cw-root" data-open="false">
   <!-- Launcher -->
-  <button id="cw-launcher" type="button" aria-label="Ask about Christopher" aria-expanded="false">
+  <button id="cw-launcher" type="button" aria-label="Ask SecureProspective" aria-expanded="false">
     <span class="cw-launcher-dot" aria-hidden="true"></span>
-    Ask about Christopher
+    Ask SecureProspective
   </button>
 
   <!-- Panel -->
-  <section id="cw-panel" role="dialog" aria-label="Ask about Christopher" aria-hidden="true">
+  <section id="cw-panel" role="dialog" aria-label="Ask SecureProspective" aria-hidden="true">
     <header class="cw-head">
-      <span class="cw-title">Ask about Christopher</span>
+      <span class="cw-title">Ask SecureProspective</span>
       <button id="cw-close" type="button" class="cw-close" aria-label="Close">&times;</button>
     </header>
 
     <!-- Gate -->
     <form id="cw-gate" class="cw-gate">
-      <p class="cw-gate-intro">Ask anything about Christopher's background. Drop your name and email to start.</p>
+      <p class="cw-gate-intro">Ask about Christopher's background. Drop your name and email to start.</p>
       <label class="cw-label">Name
         <input id="cw-name" name="name" type="text" autocomplete="name" required maxlength="120" />
       </label>
@@ -281,7 +281,7 @@
         })
         .catch(function () {
           typing.remove();
-          addMsg('bot', 'Sorry — something went wrong. Please try again.');
+          addMsg('bot', 'Sorry, something went wrong. Please try again.');
         });
     });
   })();

@@ -16,14 +16,19 @@ const isActive = (href: string) => path === href;
   <div class="nav-inner container">
     <a href="/" class="logo">SECURE PROSPECTIVE</a>
 
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" tabindex="-1" />
-    <label for="nav-toggle" class="nav-burger" aria-label="Toggle navigation menu">
+    <button
+      type="button"
+      class="nav-burger"
+      aria-label="Toggle navigation menu"
+      aria-expanded="false"
+      aria-controls="primary-nav"
+    >
       <span class="bar"></span>
       <span class="bar"></span>
       <span class="bar"></span>
-    </label>
+    </button>
 
-    <nav class="nav-links" aria-label="Primary">
+    <nav id="primary-nav" class="nav-links" aria-label="Primary">
       {
         links.map((l) => (
           <a href={l.href} class:list={['nav-link', { active: isActive(l.href) }]}>
@@ -34,6 +39,26 @@ const isActive = (href: string) => path === href;
     </nav>
   </div>
 </header>
+
+<script>
+  const burger = document.querySelector<HTMLButtonElement>('.nav-burger');
+  const navLinks = document.getElementById('primary-nav');
+
+  if (burger && navLinks) {
+    burger.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('is-open');
+      burger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    navLinks.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && navLinks.classList.contains('is-open')) {
+        navLinks.classList.remove('is-open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.focus();
+      }
+    });
+  }
+</script>
 
 <style>
   .nav {
@@ -84,15 +109,18 @@ const isActive = (href: string) => path === href;
     color: var(--blue-brand);
   }
 
-  .nav-toggle {
-    display: none;
-  }
   .nav-burger {
     display: none;
     cursor: pointer;
     flex-direction: column;
     gap: 4px;
     padding: 6px;
+    background: none;
+    border: none;
+  }
+  .nav-burger:focus-visible {
+    outline: 2px solid var(--blue-brand);
+    outline-offset: 2px;
   }
   .nav-burger .bar {
     display: block;
@@ -131,7 +159,7 @@ const isActive = (href: string) => path === href;
       border-top: none;
     }
 
-    .nav-toggle:checked ~ .nav-links {
+    .nav-links.is-open {
       max-height: 360px;
     }
   }
