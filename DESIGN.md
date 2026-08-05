@@ -121,6 +121,11 @@ A small, fixed deck of colors: each one plays a specific card-face role, not a b
 ### Named Rules
 **The Fixed Deck Rule.** No color exists outside this six-token set. A new UI need is solved by recombining these roles, never by introducing a new hue.
 
+### Micro-UI Text Grays
+- **Fineprint Gray** (#666 / `#666`): small-print or helper text in micro-UI surfaces (e.g. the chatbot widget's privacy fineprint line), read at reduced size and intentionally quieter than ledger ink.
+- **Error Red** (#b00020 / `#b00020`): destructive or error-status text in micro-UI surfaces, held apart from the decorative brand deck so failures read as system states, not brand moments.
+- **Typing-Indicator Gray** (#555 / `#555`): the muted italic text of a transient state (e.g. the chatbot's typing indicator), distinguishing "in progress" from committed user/bot messages.
+
 ## Typography
 
 **Display Font:** Primal (with system-ui, sans-serif fallback)
