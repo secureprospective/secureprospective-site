@@ -133,10 +133,10 @@ import MethodWidget from '../components/MethodWidget.astro';
     display: block;
     transform: translateY(110%);
     letter-spacing: 0.06em;
-    animation: hero-title-reveal 550ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: hero-title-reveal 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .hero-title .line-mask:nth-child(2) .line-inner {
-    animation-delay: 90ms;
+    animation-delay: 60ms;
   }
   @keyframes hero-title-reveal {
     to {
@@ -273,8 +273,8 @@ import MethodWidget from '../components/MethodWidget.astro';
 </style>
 
 <script>
-  // Hero background: procedural honeycomb grid with a traveling brightness wave
-  // and occasional bright "arc" cells, evoking a faint electrical pulse.
+  // Hero background: procedural ticker-tape scan, rows of scrolling dashes
+  // with a brightness pulse traveling through, evoking a stock-ticker readout.
   //
   // With View Transitions this page's JS module is loaded (and cached) once but
   // the DOM <main> is fully replaced on every navigation, so the IIFE-at-load
@@ -288,7 +288,6 @@ import MethodWidget from '../components/MethodWidget.astro';
     var raf = null;
     var running = false;
     var t = 0;
-    var speed = 2;
     var io = null;
     var canvas = null;
 
@@ -301,39 +300,36 @@ import MethodWidget from '../components/MethodWidget.astro';
       canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
     }
 
+    var blue = '0, 51, 160';
+    var yellow = '255, 215, 0';
+
+    // Ticker scan: rows of short dashes scrolling horizontally in alternating
+    // directions, with a brightness pulse traveling through, evoking a
+    // stock-ticker readout rather than a generic tech hex-grid.
     function draw(ctx) {
       var w = ctx.canvas.width, h = ctx.canvas.height;
       if (!w || !h) return;
       ctx.clearRect(0, 0, w, h);
-      var r = 40 * devicePixelRatio;
-      var hexW = r * Math.sqrt(3);
-      var hexH = r * 2;
-      var rowH = hexH * 0.75;
-      var cols = Math.ceil(w / hexW) + 2;
-      var rows = Math.ceil(h / rowH) + 2;
-      var blue = '0, 51, 160';
-      var yellow = '255, 215, 0';
+      var rowH = 28 * devicePixelRatio;
+      var rows = Math.ceil(h / rowH) + 1;
+      var dashW = 10 * devicePixelRatio;
+      var gap = 8 * devicePixelRatio;
+      var unit = dashW + gap;
 
-      for (var row = -1; row < rows; row++) {
-        for (var col = -1; col < cols; col++) {
-          var x = col * hexW + (row % 2 !== 0 ? hexW / 2 : 0);
-          var y = row * rowH;
-          var wave = Math.sin((x / w) * Math.PI * 2 * 1.5 - t * speed) * 0.5 + 0.5;
-          var brightness = 0.12 + wave * 0.35;
-          ctx.beginPath();
-          for (var i = 0; i < 6; i++) {
-            var angle = (Math.PI / 180) * (60 * i - 30);
-            var px = x + r * Math.cos(angle);
-            var py = y + r * Math.sin(angle);
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          var isArc = wave > 0.92;
-          ctx.strokeStyle = isArc
-            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.4).toFixed(2) + ')'
+      for (var row = 0; row <= rows; row++) {
+        var y = row * rowH + rowH / 2;
+        var dir = row % 2 === 0 ? 1 : -1;
+        var offset = ((t * 40 * devicePixelRatio * dir) % unit + unit) % unit;
+        var rowPhase = (row * 0.37) % (Math.PI * 2);
+        for (var x = -unit; x < w + unit; x += unit) {
+          var dx = x - offset;
+          var wave = Math.sin((dx / w) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
+          var isArc = wave > 0.88;
+          var brightness = 0.1 + wave * 0.3;
+          ctx.fillStyle = isArc
+            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
             : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
-          ctx.lineWidth = isArc ? 2 * devicePixelRatio : 1 * devicePixelRatio;
-          ctx.stroke();
+          ctx.fillRect(dx, y - 1 * devicePixelRatio, dashW, 2 * devicePixelRatio);
         }
       }
       t += 0.012;

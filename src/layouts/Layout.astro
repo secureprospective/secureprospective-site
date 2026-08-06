@@ -263,3 +263,119 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
 
   document.addEventListener('astro:page-load', initMotion);
 </script>
+
+<script>
+  // Secondary page-hero background: a grid of vault safety-deposit-box cells
+  // that "clear" gold in a diagonal wave. Restrained echo of the homepage's
+  // ticker-scan hero motif, present only on pages with a
+  // [data-page-hero-fx] canvas (Method/Work/Services/Operator; not Home,
+  // not Contact, whose clean-room white hero deliberately stays untouched).
+  //
+  // Same astro:page-load boot / astro:before-swap teardown lifecycle as the
+  // homepage canvas, so a running loop never keeps drawing into a detached
+  // canvas after navigating away.
+  (function () {
+    var raf = null;
+    var running = false;
+    var t = 0;
+    var speed = 2;
+    var io = null;
+    var canvas = null;
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function resize() {
+      if (!canvas) return;
+      var rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
+      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
+    }
+
+    var blue = '0, 51, 160';
+    var yellow = '255, 215, 0';
+
+    function draw(ctx) {
+      var w = ctx.canvas.width, h = ctx.canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      var cell = 48 * devicePixelRatio;
+      var cols = Math.ceil(w / cell) + 1;
+      var rows = Math.ceil(h / cell) + 1;
+
+      for (var row = 0; row < rows; row++) {
+        for (var col = 0; col < cols; col++) {
+          var x = col * cell;
+          var y = row * cell;
+          var diag = (col + row) * 0.35;
+          var wave = Math.sin(diag - t * speed) * 0.5 + 0.5;
+          var brightness = 0.08 + wave * 0.3;
+          var isArc = wave > 0.9;
+
+          ctx.strokeStyle = 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.lineWidth = 1 * devicePixelRatio;
+          ctx.strokeRect(x + 2, y + 2, cell - 4, cell - 4);
+
+          if (isArc) {
+            ctx.fillStyle = 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.35).toFixed(2) + ')';
+            ctx.fillRect(x + 6, y + 6, cell - 12, cell - 12);
+          }
+        }
+      }
+      t += 0.012;
+    }
+
+    function loop() {
+      if (!running) return;
+      var local = document.querySelector('[data-page-hero-fx]');
+      var ctx = local && local.getContext('2d');
+      if (!ctx) { running = false; return; }
+      draw(ctx);
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+    }
+
+    function teardown() {
+      stop();
+      if (io) { io.disconnect(); io = null; }
+      canvas = null;
+    }
+
+    function boot() {
+      var node = document.querySelector('[data-page-hero-fx]');
+      if (!node || node.dataset.fxBooted === 'true') return;
+
+      canvas = node;
+      node.dataset.fxBooted = 'true';
+
+      var ctx = canvas.getContext('2d');
+      if (!ctx) { canvas = null; return; }
+
+      function start() {
+        if (running) return;
+        resize();
+        running = true;
+        if (reduceMotion) { draw(ctx); running = false; return; }
+        loop();
+      }
+
+      io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && canvas.offsetWidth > 0) start();
+          else stop();
+        });
+      }, { threshold: 0.05 });
+      io.observe(canvas);
+
+      window.addEventListener('resize', function () { if (running) resize(); });
+
+      if (canvas.offsetWidth > 0) start();
+    }
+
+    document.addEventListener('astro:page-load', boot);
+    document.addEventListener('astro:before-swap', teardown);
+  })();
+</script>

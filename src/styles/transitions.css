@@ -27,7 +27,7 @@
      Faster than the entrance, per the system rule: exits beat entrances. */
   ::view-transition-old(page-card) {
     animation-name: card-lift-out;
-    animation-duration: 320ms;
+    animation-duration: 200ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
   }
@@ -35,7 +35,7 @@
   /* Incoming: settle in from below, shadow fades out as it lands. */
   ::view-transition-new(page-card) {
     animation-name: card-lift-in;
-    animation-duration: 420ms;
+    animation-duration: 260ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
   }
