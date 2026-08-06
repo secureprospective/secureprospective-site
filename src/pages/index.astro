@@ -8,7 +8,7 @@ import MethodWidget from '../components/MethodWidget.astro';
 <Layout title="SecureProspective: Make AI native. Drop the prefix.">
   <Nav />
 
-  <main>
+  <main transition:name="page-card">
     {/* ───────────────────────── HERO ───────────────────────── */}
     <section class="hero">
       <div class="hero-fx" aria-hidden="true">
@@ -275,25 +275,34 @@ import MethodWidget from '../components/MethodWidget.astro';
 <script>
   // Hero background: procedural honeycomb grid with a traveling brightness wave
   // and occasional bright "arc" cells, evoking a faint electrical pulse.
+  //
+  // With View Transitions this page's JS module is loaded (and cached) once but
+  // the DOM <main> is fully replaced on every navigation, so the IIFE-at-load
+  // pattern from before can no longer rely on the canvas existing when the
+  // module first evaluates. Instead we:
+  //   - boot() on `astro:page-load` (fires after every navigation AND the first
+  //     document load), guarded so a fresh canvas node is only wired once, and
+  //   - tear down (cancel rAF, disconnect observers) on `astro:before-swap`, so
+  //     a running animation loop never keeps drawing into a detached canvas.
   (function () {
-    var canvas = document.getElementById('hero-fx-canvas');
-    if (!canvas) return;
-
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var ctx = canvas.getContext('2d');
     var raf = null;
     var running = false;
     var t = 0;
     var speed = 2;
+    var io = null;
+    var canvas = null;
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function resize() {
+      if (!canvas) return;
       var rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
       canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
     }
 
-    function draw() {
-      var w = canvas.width, h = canvas.height;
+    function draw(ctx) {
+      var w = ctx.canvas.width, h = ctx.canvas.height;
       if (!w || !h) return;
       ctx.clearRect(0, 0, w, h);
       var r = 40 * devicePixelRatio;
@@ -332,35 +341,60 @@ import MethodWidget from '../components/MethodWidget.astro';
 
     function loop() {
       if (!running) return;
-      draw();
+      var local = document.getElementById('hero-fx-canvas');
+      var ctx = local && local.getContext('2d');
+      if (!ctx) { running = false; return; }
+      draw(ctx);
       raf = requestAnimationFrame(loop);
-    }
-
-    function start() {
-      if (running) return;
-      resize();
-      running = true;
-      if (reduceMotion) { draw(); running = false; return; }
-      loop();
     }
 
     function stop() {
       running = false;
-      if (raf) cancelAnimationFrame(raf);
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
     }
 
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting && canvas.offsetWidth > 0) start();
-        else stop();
-      });
-    }, { threshold: 0.05 });
-    io.observe(canvas);
+    function teardown() {
+      stop();
+      if (io) { io.disconnect(); io = null; }
+      canvas = null;
+    }
 
-    window.addEventListener('resize', function () {
-      if (running) resize();
-    });
+    function boot() {
+      // Fresh canvas node each time home mounts; boot each one exactly once.
+      var node = document.getElementById('hero-fx-canvas');
+      if (!node || node.dataset.fxBooted === 'true') return;
 
-    if (canvas.offsetWidth > 0) start();
+      canvas = node;
+      node.dataset.fxBooted = 'true';
+
+      var ctx = canvas.getContext('2d');
+      if (!ctx) { canvas = null; return; }
+
+      function start() {
+        if (running) return;
+        resize();
+        running = true;
+        if (reduceMotion) { draw(ctx); running = false; return; }
+        loop();
+      }
+
+      io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && canvas.offsetWidth > 0) start();
+          else stop();
+        });
+      }, { threshold: 0.05 });
+      io.observe(canvas);
+
+      window.addEventListener('resize', function () { if (running) resize(); });
+
+      if (canvas.offsetWidth > 0) start();
+    }
+
+    // Boot on every page load, including the first one.
+    document.addEventListener('astro:page-load', boot);
+    // Stop the loop before the DOM main is swapped away so we never keep
+    // drawing into a detached canvas.
+    document.addEventListener('astro:before-swap', teardown);
   })();
 </script>
