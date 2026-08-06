@@ -179,16 +179,19 @@
       root.setAttribute('data-open', 'true');
       panel.setAttribute('aria-hidden', 'false');
       if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      closeBtn.focus();
     }
     function close() {
       root.setAttribute('data-open', 'false');
       panel.setAttribute('aria-hidden', 'true');
       if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      if (trigger) trigger.focus();
     }
 
     if (trigger) {
       trigger.setAttribute('aria-expanded', 'false');
       trigger.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.button !== 0) return;
         e.preventDefault();
         open();
       });

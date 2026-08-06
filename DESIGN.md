@@ -165,7 +165,7 @@ Sharp corners by default (0px radius): the card-stock edge. Buttons and badges g
 
 ### Buttons
 - **Shape:** sharp with a minimal edge (2px radius)
-- **Primary (`.btn`):** Ticker Yellow background, Ledger Ink text, 16px/32px padding, uppercase Primal label. This is the *only* button that signals the primary conversion action on a page (e.g. "book a consult"). Never apply it to more than one CTA per section, or the hierarchy collapses.
+- **Primary (`.btn`):** Ticker Yellow background, Ledger Ink text, 16px/32px padding, uppercase Primal label. This is the *only* button that signals the primary conversion action on a page — the actual "book a consult" ask, always the page's loop-closer/contact CTA. Earlier funnel CTAs that route interest deeper into the site (e.g. the hero's "See the method") use `.btn--ink` instead, so only one Ticker Yellow button appears per page.
 - **Primary hover:** shifts to Vault Gold
 - **Ink variant (`.btn--ink`):** Ledger Ink background, white text, 2px Ledger Ink border. Secondary CTA, use on light/silver-base sections only, an ink fill on an ink background is invisible.
 - **Ink variant hover:** shifts to Deep Compliance Blue (background + border)
