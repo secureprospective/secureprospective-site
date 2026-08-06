@@ -16,10 +16,8 @@ import MethodWidget from '../components/MethodWidget.astro';
       </div>
       <div class="container hero-inner">
         <h1 class="hero-title">
-          <span class="reveal-word">Make</span> <span class="reveal-word">AI</span>
-          <span class="reveal-word">native.</span><br />
-          <span class="reveal-word">Drop</span> <span class="reveal-word">the</span>
-          <span class="reveal-word prefix-chip">prefix.</span>
+          <span class="line-mask"><span class="line-inner">Make AI native.</span></span>
+          <span class="line-mask"><span class="line-inner">Drop the <span class="prefix-chip">prefix.</span></span></span>
         </h1>
         <p class="hero-sub">
           We make businesses AI-native: diagnose the bottleneck, position the tool,
@@ -126,6 +124,32 @@ import MethodWidget from '../components/MethodWidget.astro';
   .hero-title .prefix-chip {
     background: var(--yellow-accent);
     padding: 0 8px;
+  }
+  .hero-title .line-mask {
+    display: block;
+    overflow: hidden;
+  }
+  .hero-title .line-inner {
+    display: block;
+    transform: translateY(110%);
+    letter-spacing: 0.06em;
+    animation: hero-title-reveal 550ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-title .line-mask:nth-child(2) .line-inner {
+    animation-delay: 90ms;
+  }
+  @keyframes hero-title-reveal {
+    to {
+      transform: translateY(0);
+      letter-spacing: -0.02em;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-title .line-inner {
+      animation: none;
+      transform: translateY(0);
+      letter-spacing: -0.02em;
+    }
   }
   .hero-sub {
     font-size: var(--text-body-lg);

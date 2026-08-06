@@ -10,6 +10,7 @@ import Footer from '../components/Footer.astro';
   <main>
     {/* ───────────────────────── PAGE HERO ───────────────────────── */}
     <section class="page-hero">
+      <div class="page-hero-fx" aria-hidden="true"></div>
       <div class="container hero-inner">
         <div class="eyebrow">Services</div>
         <h1 class="page-title">
@@ -185,11 +186,37 @@ import Footer from '../components/Footer.astro';
 
 <style>
   .page-hero {
+    position: relative;
+    overflow: hidden;
     background: var(--silver-base);
     border-bottom: 2px solid var(--ink);
     padding: var(--space-7) 0;
   }
+  .page-hero-fx {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image:
+      linear-gradient(30deg, var(--blue-brand) 12%, transparent 12.5%, transparent 87%, var(--blue-brand) 87.5%, var(--blue-brand)),
+      linear-gradient(150deg, var(--blue-brand) 12%, transparent 12.5%, transparent 87%, var(--blue-brand) 87.5%, var(--blue-brand)),
+      linear-gradient(30deg, var(--blue-brand) 12%, transparent 12.5%, transparent 87%, var(--blue-brand) 87.5%, var(--blue-brand)),
+      linear-gradient(150deg, var(--blue-brand) 12%, transparent 12.5%, transparent 87%, var(--blue-brand) 87.5%, var(--blue-brand));
+    background-size: 24px 42px;
+    background-position: 0 0, 0 0, 12px 21px, 12px 21px;
+    animation: page-hero-fx-drift 40s linear infinite;
+  }
+  @keyframes page-hero-fx-drift {
+    from { background-position: 0 0, 0 0, 12px 21px, 12px 21px; }
+    to { background-position: 24px 42px, 24px 42px, 36px 63px, 36px 63px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-hero-fx { animation: none; }
+  }
   .hero-inner {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
