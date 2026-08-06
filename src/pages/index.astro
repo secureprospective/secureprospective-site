@@ -11,15 +11,16 @@ import MethodWidget from '../components/MethodWidget.astro';
   <main>
     {/* ───────────────────────── HERO ───────────────────────── */}
     <section class="hero">
+      <div class="hero-fx" aria-hidden="true">
+        <canvas id="hero-fx-canvas" data-hero-fx></canvas>
+      </div>
       <div class="container hero-inner">
-
         <h1 class="hero-title">
           <span class="reveal-word">Make</span> <span class="reveal-word">AI</span>
           <span class="reveal-word">native.</span><br />
           <span class="reveal-word">Drop</span> <span class="reveal-word">the</span>
           <span class="reveal-word prefix-chip">prefix.</span>
         </h1>
-
         <p class="hero-sub">
           We make businesses AI-native: diagnose the bottleneck, position the tool,
           shape the output for ownership.
@@ -90,11 +91,27 @@ import MethodWidget from '../components/MethodWidget.astro';
 <style>
   /* ── Hero ── */
   .hero {
+    position: relative;
+    overflow: hidden;
     background: var(--silver-base);
     border-bottom: 2px solid var(--ink);
     padding: var(--space-8) 0;
   }
+  .hero-fx {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.3;
+  }
+  .hero-fx canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
   .hero-inner {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
@@ -230,3 +247,96 @@ import MethodWidget from '../components/MethodWidget.astro';
     }
   }
 </style>
+
+<script>
+  // Hero background: procedural honeycomb grid with a traveling brightness wave
+  // and occasional bright "arc" cells, evoking a faint electrical pulse.
+  (function () {
+    var canvas = document.getElementById('hero-fx-canvas');
+    if (!canvas) return;
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ctx = canvas.getContext('2d');
+    var raf = null;
+    var running = false;
+    var t = 0;
+    var speed = 2;
+
+    function resize() {
+      var rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
+      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
+    }
+
+    function draw() {
+      var w = canvas.width, h = canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      var r = 40 * devicePixelRatio;
+      var hexW = r * Math.sqrt(3);
+      var hexH = r * 2;
+      var rowH = hexH * 0.75;
+      var cols = Math.ceil(w / hexW) + 2;
+      var rows = Math.ceil(h / rowH) + 2;
+      var blue = '0, 51, 160';
+      var yellow = '255, 215, 0';
+
+      for (var row = -1; row < rows; row++) {
+        for (var col = -1; col < cols; col++) {
+          var x = col * hexW + (row % 2 !== 0 ? hexW / 2 : 0);
+          var y = row * rowH;
+          var wave = Math.sin((x / w) * Math.PI * 2 * 1.5 - t * speed) * 0.5 + 0.5;
+          var brightness = 0.12 + wave * 0.35;
+          ctx.beginPath();
+          for (var i = 0; i < 6; i++) {
+            var angle = (Math.PI / 180) * (60 * i - 30);
+            var px = x + r * Math.cos(angle);
+            var py = y + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          var isArc = wave > 0.92;
+          ctx.strokeStyle = isArc
+            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.4).toFixed(2) + ')'
+            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.lineWidth = isArc ? 2 * devicePixelRatio : 1 * devicePixelRatio;
+          ctx.stroke();
+        }
+      }
+      t += 0.012;
+    }
+
+    function loop() {
+      if (!running) return;
+      draw();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function start() {
+      if (running) return;
+      resize();
+      running = true;
+      if (reduceMotion) { draw(); running = false; return; }
+      loop();
+    }
+
+    function stop() {
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
+    }
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting && canvas.offsetWidth > 0) start();
+        else stop();
+      });
+    }, { threshold: 0.05 });
+    io.observe(canvas);
+
+    window.addEventListener('resize', function () {
+      if (running) resize();
+    });
+
+    if (canvas.offsetWidth > 0) start();
+  })();
+</script>
