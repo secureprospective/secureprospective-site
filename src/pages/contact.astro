@@ -225,3 +225,12 @@ import Footer from '../components/Footer.astro';
     }
   }
 </style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('.contact-form');
+  const submitBtn = form?.querySelector<HTMLButtonElement>('.submit');
+  form?.addEventListener('submit', () => {
+    if (!submitBtn || submitBtn.classList.contains('is-loading')) return;
+    submitBtn.classList.add('is-loading');
+  });
+</script>

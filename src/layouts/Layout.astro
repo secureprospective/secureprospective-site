@@ -84,6 +84,7 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
 
   .btn {
     display: inline-block;
+    position: relative;
     font-family: var(--font-display);
     font-weight: 700;
     text-transform: uppercase;
@@ -96,10 +97,26 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
     border: 2px solid transparent;
     background: var(--yellow-accent);
     color: var(--ink);
-    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out,
+      transform 60ms ease-out;
   }
   .btn:hover {
     background: var(--gold-identity);
+  }
+  .btn:active {
+    transform: translateY(1px);
+    transition-duration: 60ms;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
   }
   .btn--ink {
     background: var(--ink);
@@ -118,6 +135,46 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
   .btn--outline:hover {
     background: var(--white);
     color: var(--ink);
+  }
+  .btn--ink:focus-visible,
+  .btn--outline:focus-visible {
+    outline-color: var(--yellow-accent);
+  }
+
+  /* Loading state: label hides, a small ring spins in its place. Toggle
+     `.is-loading` from JS on submit; button stays disabled-in-behavior via
+     pointer-events, but keeps its layout width so nothing jumps. */
+  .btn.is-loading {
+    color: transparent;
+    pointer-events: none;
+    cursor: wait;
+  }
+  .btn.is-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--ink);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: btn-spin 600ms linear infinite;
+  }
+  .btn--ink.is-loading::after,
+  .btn--outline.is-loading::after {
+    border-color: var(--ink-inverted);
+    border-top-color: transparent;
+  }
+  @keyframes btn-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn.is-loading::after {
+      animation: none;
+    }
   }
 
   /* Motion pre-states - applied only when JS is active so no-JS shows content normally */
