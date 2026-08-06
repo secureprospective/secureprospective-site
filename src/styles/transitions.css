@@ -1,0 +1,76 @@
+/* ==========================================================================
+   Page transitions as "Card-Lift" (prototype)
+   Wired via Astro View Transitions (<ViewTransitions /> in Layout.astro).
+
+   Model: the whole page is a stack of cards. On navigation the current
+   <main> (the "card", named `page-card` on every page) is lifted off the
+   stack with the system's Card-Lift shadow appearing as it leaves, and the
+   next page's <main> settles in from below, losing the shadow as it lands.
+
+   Nav and footer are named `app-nav` / `app-footer` and are given
+   animation: none, so they read as a fixed frame: content still swaps
+   (active nav-link updates) but nothing re-animates or flickers.
+
+   The ONLY shadow this system ever uses is hard-edged Card-Lift
+   (zero blur). Directional motion is gated behind
+   prefers-reduced-motion: no-preference; reduced-motion users get Astro's
+   plain fallback (instant content swap) instead.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The card group itself: exponential ease-out everywhere. */
+  ::view-transition-group(page-card) {
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Outgoing: lift up and away, shadow appears as the card leaves the stack.
+     Faster than the entrance, per the system rule: exits beat entrances. */
+  ::view-transition-old(page-card) {
+    animation-name: card-lift-out;
+    animation-duration: 320ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+
+  /* Incoming: settle in from below, shadow fades out as it lands. */
+  ::view-transition-new(page-card) {
+    animation-name: card-lift-in;
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+
+  /* Nav + Footer: static frame. No movement, no fade, no flicker.
+     Their content still swaps underneath (active link updates), but the
+     snapshots themselves never animate. */
+  ::view-transition-old(app-nav),
+  ::view-transition-new(app-nav),
+  ::view-transition-old(app-footer),
+  ::view-transition-new(app-footer) {
+    animation: none;
+  }
+}
+
+@keyframes card-lift-out {
+  from {
+    transform: translate(0, 0) scale(1);
+    box-shadow: 0 0 0 rgba(34, 34, 34, 0);
+  }
+  to {
+    /* equal X/Y magnitude = a true 45deg exit, up and to the right */
+    transform: translate(3%, -3%) scale(0.99);
+    box-shadow: 6px 6px 0 rgba(34, 34, 34, 0.35);
+  }
+}
+
+@keyframes card-lift-in {
+  from {
+    /* equal X/Y magnitude = a true 45deg entry, from down and to the left */
+    transform: translate(-6%, 6%) scale(0.985);
+    box-shadow: 6px 6px 0 rgba(34, 34, 34, 0.35);
+  }
+  to {
+    transform: translate(0, 0) scale(1);
+    box-shadow: 0 0 0 rgba(34, 34, 34, 0);
+  }
+}

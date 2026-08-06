@@ -1,6 +1,8 @@
 ---
 import '../styles/tokens.css';
 import '../styles/fonts.css';
+import '../styles/transitions.css';
+import { ViewTransitions } from 'astro:transitions';
 import ChatWidget from '../components/ChatWidget.astro';
 
 const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.props;
@@ -16,6 +18,7 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
       content="SecureProspective is a technical business consulting firm. We make businesses AI-native: diagnose the bottleneck, position the tool, shape the output for ownership."
     />
     <title>{title}</title>
+    <ViewTransitions />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -198,9 +201,23 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (reduceMotion) {
-    gsap.set('.reveal-word, .animate-in, .animate-item', { y: 0, clearProps: 'transform' });
-  } else {
+  // Runs on every page load, INCLUDING every View Transition (Astro fires
+  // `astro:page-load` after the swap, and once on the first full document
+  // load). This is what keeps the scroll reveals working when the page
+  // content is swapped without a full reload.
+  function initMotion() {
+    // Kill any ScrollTriggers left over from the previous page so we never
+    // stack/duplicate listeners or triggers across navigations. Also clear
+    // gsap's inline transform on current nodes so the CSS pre-states
+    // (translateY) apply cleanly before we re-animate them.
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+    gsap.set('.reveal-word, .animate-in, .animate-item', { clearProps: 'transform' });
+
+    if (reduceMotion) {
+      gsap.set('.reveal-word, .animate-in, .animate-item', { y: 0, clearProps: 'transform' });
+      return;
+    }
+
     // 1. Hero word-by-word reveal on load (200ms each, 80ms stagger, no fade)
     const words = gsap.utils.toArray('.reveal-word');
     if (words.length) {
@@ -243,4 +260,6 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
       });
     });
   }
+
+  document.addEventListener('astro:page-load', initMotion);
 </script>
