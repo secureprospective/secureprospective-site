@@ -143,25 +143,27 @@ import Layout from '../../../layouts/Layout.astro';
           <td></td>
         `;
         const actionCell = tr.lastElementChild as HTMLTableCellElement;
-        if (status === 'Pending') {
-          const revokeBtn = document.createElement('button');
-          revokeBtn.type = 'button';
-          revokeBtn.className = 'btn-link';
-          revokeBtn.textContent = 'Revoke';
-          revokeBtn.addEventListener('click', async () => {
-            if (!confirm(`Revoke the invite for ${inv.email}?`)) return;
-            try {
-              await api('/api/auth/admin/invite-revoke', {
-                method: 'POST',
-                body: JSON.stringify({ id: inv.id }),
-              });
-              loadInvites();
-            } catch (err) {
-              alert((err as Error).message);
-            }
-          });
-          actionCell.appendChild(revokeBtn);
-        }
+        const isPending = status === 'Pending';
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.className = isPending ? 'btn-link' : 'btn-link btn-link--danger';
+        actionBtn.textContent = isPending ? 'Revoke' : 'Remove';
+        actionBtn.addEventListener('click', async () => {
+          const confirmMsg = isPending
+            ? `Revoke the invite for ${inv.email}?`
+            : `Remove this ${status.toLowerCase()} invite record for ${inv.email}? This only clears the history row — it does not touch any account already created from it.`;
+          if (!confirm(confirmMsg)) return;
+          try {
+            await api('/api/auth/admin/invite-revoke', {
+              method: 'POST',
+              body: JSON.stringify({ id: inv.id }),
+            });
+            loadInvites();
+          } catch (err) {
+            alert((err as Error).message);
+          }
+        });
+        actionCell.appendChild(actionBtn);
         invitesBody.appendChild(tr);
       });
     } catch (err) {
