@@ -43,6 +43,7 @@ const isActive = (href: string) => path === href;
           </a>
         ))
       }
+      <a href="/members" class="nav-login-btn">Login</a>
     </nav>
   </div>
 </header>
@@ -126,6 +127,28 @@ const isActive = (href: string) => path === href;
     color: var(--blue-brand);
   }
 
+  .nav-login-btn {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    text-decoration: none;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-button);
+    padding: 6px 14px;
+    transition: background 120ms ease-out, color 120ms ease-out;
+  }
+  .nav-login-btn:hover {
+    background: var(--ink);
+    color: var(--ink-inverted);
+  }
+  .nav-login-btn:focus-visible {
+    outline: 2px solid var(--blue-brand);
+    outline-offset: 2px;
+  }
+
   .nav-burger {
     display: none;
     cursor: pointer;
@@ -176,8 +199,14 @@ const isActive = (href: string) => path === href;
       border-top: none;
     }
 
+    .nav-login-btn {
+      display: block;
+      text-align: center;
+      margin: var(--space-3) var(--space-4);
+    }
+
     .nav-links.is-open {
-      max-height: 360px;
+      max-height: 420px;
     }
   }
 </style>
