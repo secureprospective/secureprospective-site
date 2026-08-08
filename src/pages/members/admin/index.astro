@@ -23,6 +23,18 @@ import Layout from '../../../layouts/Layout.astro';
         <p id="invite-error" class="form-error" role="alert" hidden></p>
       </section>
 
+      <section class="panel" id="welcome-email-panel" hidden>
+        <h2>Welcome email</h2>
+        <p class="result-line">
+          Copy this and paste it into a new email in Gmail (secureprospective@gmail.com), then send it to the invitee.
+        </p>
+        <div class="email-preview-wrap">
+          <iframe id="welcome-email-frame" title="Welcome email preview"></iframe>
+        </div>
+        <button type="button" class="btn" id="copy-email-btn">Copy welcome email</button>
+        <p id="copy-email-status" class="result-line" hidden></p>
+      </section>
+
       <section class="panel">
         <h2>Outstanding &amp; past invites</h2>
         <div class="table-wrap">
@@ -94,7 +106,81 @@ import Layout from '../../../layouts/Layout.astro';
   const invitesBody = document.getElementById('invites-body') as HTMLTableSectionElement | null;
   const membersBody = document.getElementById('members-body') as HTMLTableSectionElement | null;
 
+  const welcomeEmailPanel = document.getElementById('welcome-email-panel') as HTMLElement | null;
+  const welcomeEmailFrame = document.getElementById('welcome-email-frame') as HTMLIFrameElement | null;
+  const copyEmailBtn = document.getElementById('copy-email-btn') as HTMLButtonElement | null;
+  const copyEmailStatus = document.getElementById('copy-email-status') as HTMLParagraphElement | null;
+
   let currentAdminId = '';
+  let currentWelcomeEmailHtml = '';
+  let currentWelcomeEmailText = '';
+
+  const LOGO_URL = 'https://secureprospective.com/assets/email/logo.png';
+
+  function buildWelcomeEmailHtml(acceptUrl: string, expiresLabel: string): string {
+    return `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;background:#ffffff;">
+  <div style="text-align:center;padding:28px 0 20px;">
+    <img src="${LOGO_URL}" alt="SecureProspective" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
+  </div>
+  <div style="padding:0 32px 32px;color:#222222;">
+    <h2 style="font-size:20px;margin:0 0 16px;color:#222222;">You are invited to the SecureProspective back office</h2>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hello,</p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">
+      You have been invited to join the SecureProspective back office. Follow the steps
+      below to get signed in.
+    </p>
+    <ol style="font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
+      <li>Click the button below to open your invite.</li>
+      <li>Set your own password on that page.</li>
+      <li>You will be signed in right away.</li>
+    </ol>
+    <div style="text-align:center;margin:0 0 24px;">
+      <a href="${acceptUrl}" style="display:inline-block;background:#FFD700;color:#222222;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:2px;font-size:15px;">Accept Your Invite</a>
+    </div>
+    <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 8px;">
+      If the button does not work, copy and paste this link into your browser:
+    </p>
+    <p style="font-size:13px;line-height:1.6;word-break:break-all;margin:0 0 24px;">
+      <a href="${acceptUrl}" style="color:#0033A0;">${acceptUrl}</a>
+    </p>
+    <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 24px;">This invite expires on ${expiresLabel}.</p>
+    <p style="font-size:14px;line-height:1.6;margin:0;">Questions? Just reply to this email.</p>
+  </div>
+  <div style="border-top:1px solid #E5E4E2;padding:16px 32px;text-align:center;">
+    <p style="font-size:12px;color:#666666;margin:0;">SecureProspective &middot; secureprospective.com</p>
+  </div>
+</div>`.trim();
+  }
+
+  function buildWelcomeEmailText(acceptUrl: string, expiresLabel: string): string {
+    return [
+      'You are invited to the SecureProspective back office.',
+      '',
+      '1. Open your invite: ' + acceptUrl,
+      '2. Set your own password on that page.',
+      '3. You will be signed in right away.',
+      '',
+      'This invite expires on ' + expiresLabel + '.',
+      '',
+      'Questions? Just reply to this email.',
+      '',
+      'SecureProspective',
+      'secureprospective.com',
+    ].join('\n');
+  }
+
+  function showWelcomeEmail(acceptUrl: string, expiresAt: string) {
+    const expiresLabel = fmt(expiresAt);
+    currentWelcomeEmailHtml = buildWelcomeEmailHtml(acceptUrl, expiresLabel);
+    currentWelcomeEmailText = buildWelcomeEmailText(acceptUrl, expiresLabel);
+
+    if (welcomeEmailFrame) {
+      welcomeEmailFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#f2f2f2;">${currentWelcomeEmailHtml}</body></html>`;
+    }
+    if (welcomeEmailPanel) welcomeEmailPanel.hidden = false;
+    if (copyEmailStatus) copyEmailStatus.hidden = true;
+  }
 
   function fmt(dateStr: string | null): string {
     if (!dateStr) return '—';
@@ -282,6 +368,7 @@ import Layout from '../../../layouts/Layout.astro';
           ? `Invite sent to ${body.email}.`
           : `Invite created. Email delivery isn't wired up yet — copy this link to ${body.email}: <code>${body.acceptUrl}</code>`;
       }
+      if (!body.emailSent) showWelcomeEmail(body.acceptUrl, body.expiresAt);
       inviteForm.reset();
       loadInvites();
     } catch (err) {
@@ -292,6 +379,40 @@ import Layout from '../../../layouts/Layout.astro';
     } finally {
       inviteSubmit?.classList.remove('is-loading');
       inviteSubmit?.removeAttribute('disabled');
+    }
+  });
+
+  copyEmailBtn?.addEventListener('click', async () => {
+    if (!currentWelcomeEmailHtml) return;
+    if (copyEmailStatus) copyEmailStatus.hidden = true;
+    try {
+      // Writing both text/html and text/plain lets Gmail's compose box (a
+      // rich text editor) paste the formatted version — logo, button,
+      // clickable link — instead of raw HTML tags as literal text.
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([currentWelcomeEmailHtml], { type: 'text/html' }),
+          'text/plain': new Blob([currentWelcomeEmailText], { type: 'text/plain' }),
+        }),
+      ]);
+      if (copyEmailStatus) {
+        copyEmailStatus.hidden = false;
+        copyEmailStatus.textContent = 'Copied. Paste into a new Gmail message.';
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(currentWelcomeEmailText);
+        if (copyEmailStatus) {
+          copyEmailStatus.hidden = false;
+          copyEmailStatus.textContent =
+            'Copied as plain text only (rich copy is not supported in this browser) — the logo and button will not carry over.';
+        }
+      } catch {
+        if (copyEmailStatus) {
+          copyEmailStatus.hidden = false;
+          copyEmailStatus.textContent = 'Could not copy automatically. Select the preview above and copy it manually.';
+        }
+      }
     }
   });
 
@@ -377,6 +498,18 @@ import Layout from '../../../layouts/Layout.astro';
     font-size: var(--text-caption);
     color: var(--fineprint-gray);
     word-break: break-all;
+  }
+
+  .email-preview-wrap {
+    border: 2px solid var(--ink);
+    margin-bottom: var(--space-4);
+  }
+
+  #welcome-email-frame {
+    width: 100%;
+    height: 520px;
+    border: none;
+    display: block;
   }
 
   .result-line code {
