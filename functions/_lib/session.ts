@@ -12,6 +12,7 @@ export interface SessionUser {
   email: string;
   role: string;
   email_verified_at: string | null;
+  must_change_password: number;
 }
 
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;    // 30 days
@@ -68,7 +69,7 @@ export async function getSession(
   }
 
   const user = await db
-    .prepare("SELECT id, email, role, email_verified_at FROM users WHERE id = ?1")
+    .prepare("SELECT id, email, role, email_verified_at, must_change_password FROM users WHERE id = ?1")
     .bind(row.user_id)
     .first<SessionUser>();
   if (!user) return null;

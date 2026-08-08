@@ -32,9 +32,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const user = await env.BACKOFFICE_DB
-    .prepare("SELECT id, password_hash, email_verified_at FROM users WHERE email = ?1")
+    .prepare("SELECT id, password_hash, email_verified_at, must_change_password FROM users WHERE email = ?1")
     .bind(email)
-    .first<{ id: string; password_hash: string; email_verified_at: string | null }>();
+    .first<{ id: string; password_hash: string; email_verified_at: string | null; must_change_password: number }>();
 
   if (!user) {
     await hashPassword(password); // burn the same CPU as a real verify: timing parity
@@ -46,8 +46,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const raw = await createSession(env.BACKOFFICE_DB, user.id);
 
-  return new Response(JSON.stringify({ ok: true, user: { email } }), {
-    status: 200,
-    headers: { "Content-Type": "application/json", "Set-Cookie": sessionCookie(raw) },
-  });
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      user: { email, mustChangePassword: Boolean(user.must_change_password) },
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Set-Cookie": sessionCookie(raw) },
+    },
+  );
 };

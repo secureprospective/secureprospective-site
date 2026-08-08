@@ -14,6 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       id: session.user.id,
       email: session.user.email,
       role: session.user.role,
+      mustChangePassword: Boolean(session.user.must_change_password),
     },
   });
 };

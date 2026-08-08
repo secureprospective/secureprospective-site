@@ -1,7 +1,9 @@
 // POST /api/auth/admin/member-password — admin sets a new password directly
 // for a member (support/reset path; there is no self-service forgot-password
 // flow yet). Existing sessions for that member are invalidated so a stolen
-// or shared old password stops working immediately.
+// or shared old password stops working immediately. Sets
+// must_change_password=1, same as bootstrap: the admin-chosen password is
+// only good for one login, then /members/change-password forces a real one.
 
 import { json, originAllowed, isJsonRequest, MIN_PASSWORD_LENGTH, type AuthEnv } from "../../../_lib/http";
 import { requireAdminSession } from "../../../_lib/admin";
@@ -30,7 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const passwordHash = await hashPassword(newPassword);
   const result = await env.BACKOFFICE_DB
-    .prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2")
+    .prepare("UPDATE users SET password_hash = ?1, must_change_password = 1 WHERE id = ?2")
     .bind(passwordHash, id)
     .run();
   if (!result.meta.changes) return json({ error: "Member not found." }, 404);

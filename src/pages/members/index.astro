@@ -33,6 +33,10 @@ import Layout from '../../layouts/Layout.astro';
         return;
       }
       const body = await res.json();
+      if (body.user?.mustChangePassword) {
+        window.location.href = '/members/change-password';
+        return;
+      }
       if (emailEl) emailEl.textContent = body.user?.email ?? '';
       if (adminLink && body.user?.role === 'admin') adminLink.hidden = false;
       if (shell) shell.hidden = false;
