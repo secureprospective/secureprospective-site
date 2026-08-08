@@ -1,0 +1,85 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Back Office — SecureProspective">
+  <main class="gate-shell" id="gate-shell" hidden>
+    <div class="gate-card">
+      <p class="eyebrow">Back Office</p>
+      <h1>Under construction</h1>
+      <p class="gate-copy">
+        You're signed in as <strong id="user-email"></strong>. This is the access point &mdash;
+        the components that live behind it are still being built.
+      </p>
+      <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const shell = document.getElementById('gate-shell') as HTMLElement | null;
+  const emailEl = document.getElementById('user-email') as HTMLElement | null;
+  const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;
+
+  async function checkSession() {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        window.location.href = '/members/login';
+        return;
+      }
+      const body = await res.json();
+      if (emailEl) emailEl.textContent = body.user?.email ?? '';
+      if (shell) shell.hidden = false;
+    } catch {
+      window.location.href = '/members/login';
+    }
+  }
+
+  logoutBtn?.addEventListener('click', async () => {
+    logoutBtn.setAttribute('disabled', 'true');
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } finally {
+      window.location.href = '/members/login';
+    }
+  });
+
+  checkSession();
+</script>
+
+<style>
+  .gate-shell {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .gate-card {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    background: var(--white);
+    border: 2px solid var(--ink);
+    padding: var(--space-7) var(--space-6);
+  }
+
+  .gate-card h1 {
+    font-size: var(--text-h1);
+    margin-bottom: var(--space-4);
+  }
+
+  .gate-copy {
+    color: var(--fineprint-gray);
+    margin-bottom: var(--space-5);
+  }
+
+  #logout-btn {
+    display: inline-block;
+  }
+</style>

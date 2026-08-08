@@ -1,0 +1,217 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Accept Invite — SecureProspective Back Office">
+  <main class="auth-shell">
+    <div class="auth-card">
+      <p class="eyebrow">Back Office</p>
+      <h1 id="card-heading">Set your password</h1>
+      <p class="auth-sub" id="invite-status">Checking your invite&hellip;</p>
+
+      <form id="accept-form" novalidate hidden>
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="email" id="email-display" disabled />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label class="field">
+          <span>Confirm password</span>
+          <input type="password" name="passwordConfirm" autocomplete="new-password" minlength="8" required />
+        </label>
+
+        <div
+          class="cf-turnstile"
+          data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY}
+        >
+        </div>
+
+        <p id="form-error" class="form-error" role="alert" hidden></p>
+
+        <button type="submit" class="btn" id="submit-btn">Create account</button>
+      </form>
+    </div>
+  </main>
+</Layout>
+
+<script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+
+<script>
+  const statusEl = document.getElementById('invite-status') as HTMLParagraphElement | null;
+  const headingEl = document.getElementById('card-heading') as HTMLHeadingElement | null;
+  const form = document.getElementById('accept-form') as HTMLFormElement | null;
+  const emailDisplay = document.getElementById('email-display') as HTMLInputElement | null;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+  const errorEl = document.getElementById('form-error') as HTMLParagraphElement | null;
+
+  const token = new URLSearchParams(window.location.search).get('token') ?? '';
+
+  function showError(message: string) {
+    if (!errorEl) return;
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function hideError() {
+    if (!errorEl) return;
+    errorEl.hidden = true;
+  }
+
+  async function init() {
+    if (!token) {
+      if (statusEl) statusEl.textContent = 'This invite link is missing its token.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/auth/accept-invite?token=${encodeURIComponent(token)}`);
+      const body = await res.json();
+
+      if (!res.ok) {
+        if (statusEl) statusEl.textContent = body.error ?? 'This invite link is invalid or has expired.';
+        return;
+      }
+
+      if (statusEl) statusEl.hidden = true;
+      if (emailDisplay) emailDisplay.value = body.user?.email ?? body.email ?? '';
+      if (form) form.hidden = false;
+    } catch {
+      if (statusEl) statusEl.textContent = 'Could not check this invite. Please try again.';
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const data = new FormData(form);
+    const password = String(data.get('password') ?? '');
+    const passwordConfirm = String(data.get('passwordConfirm') ?? '');
+    const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
+
+    if (password.length < 8) {
+      showError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      showError('Passwords do not match.');
+      return;
+    }
+    if (!turnstileToken) {
+      showError('Please complete the verification challenge.');
+      return;
+    }
+
+    submitBtn?.classList.add('is-loading');
+    submitBtn?.setAttribute('disabled', 'true');
+
+    try {
+      const res = await fetch('/api/auth/accept-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password, turnstileToken }),
+      });
+      const body = await res.json();
+
+      if (!res.ok) {
+        showError(body.error ?? 'Could not create your account.');
+        // @ts-ignore
+        window.turnstile?.reset();
+        return;
+      }
+
+      window.location.href = '/members';
+    } catch {
+      showError('Something went wrong. Please try again.');
+      // @ts-ignore
+      window.turnstile?.reset();
+    } finally {
+      submitBtn?.classList.remove('is-loading');
+      submitBtn?.removeAttribute('disabled');
+    }
+  });
+
+  init();
+</script>
+
+<style>
+  .auth-shell {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--white);
+    border: 2px solid var(--ink);
+    padding: var(--space-6);
+  }
+
+  .auth-card h1 {
+    font-size: var(--text-h2);
+    margin-bottom: var(--space-2);
+  }
+
+  .auth-sub {
+    color: var(--fineprint-gray);
+    font-size: var(--text-caption);
+    margin-bottom: var(--space-5);
+  }
+
+  .field {
+    display: block;
+    margin-bottom: var(--space-4);
+  }
+
+  .field span {
+    display: block;
+    font-size: var(--text-caption);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--space-2);
+  }
+
+  .field input {
+    width: 100%;
+    padding: var(--space-3);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-default);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    background: var(--white);
+    color: var(--ink);
+  }
+
+  .field input:disabled {
+    background: var(--silver-base);
+    color: var(--fineprint-gray);
+  }
+
+  .field input:focus-visible {
+    outline: 2px solid var(--blue-brand);
+    outline-offset: 2px;
+  }
+
+  .cf-turnstile {
+    margin-bottom: var(--space-4);
+  }
+
+  .form-error {
+    color: #B3261E;
+    font-size: var(--text-caption);
+    margin-bottom: var(--space-4);
+  }
+
+  #submit-btn {
+    width: 100%;
+    text-align: center;
+  }
+</style>
