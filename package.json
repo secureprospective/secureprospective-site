@@ -2,7 +2,9 @@
   "name": "secureprospective-site",
   "type": "module",
   "version": "0.0.1",
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
@@ -19,6 +21,6 @@
     "@cloudflare/workers-types": "^5.20260724.1",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.11.1",
-    "vitest": "^4.1.10"
+    "vitest": "^3.2.7"
   }
 }
