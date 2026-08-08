@@ -98,11 +98,14 @@ import Layout from '../../../layouts/Layout.astro';
 
   function fmt(dateStr: string | null): string {
     if (!dateStr) return '—';
-    try {
-      return new Date(dateStr.replace(' ', 'T') + 'Z').toLocaleString();
-    } catch {
-      return dateStr;
-    }
+    // D1 rows show up in two shapes: SQLite's own `datetime('now')` default
+    // ("2026-08-08 16:47:51", no timezone) and full ISO strings this app
+    // writes itself via `new Date().toISOString()` ("...T...Z"). Only the
+    // first form needs a timezone appended — doing it unconditionally to an
+    // already-ISO string produces "...ZZ", which Date() can't parse.
+    const iso = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleString();
   }
 
   async function api(path: string, options: RequestInit = {}) {
