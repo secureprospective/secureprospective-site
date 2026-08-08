@@ -28,6 +28,13 @@ import Layout from '../../../layouts/Layout.astro';
         <p class="result-line">
           Copy this and paste it into a new email in Gmail (secureprospective@gmail.com), then send it to the invitee.
         </p>
+        <div class="subject-field">
+          <span class="subject-label">Subject line</span>
+          <div class="subject-row">
+            <input type="text" id="welcome-email-subject" readonly />
+            <button type="button" class="btn-link" id="copy-subject-btn">Copy subject</button>
+          </div>
+        </div>
         <div class="email-preview-wrap">
           <iframe id="welcome-email-frame" title="Welcome email preview"></iframe>
         </div>
@@ -108,6 +115,8 @@ import Layout from '../../../layouts/Layout.astro';
 
   const welcomeEmailPanel = document.getElementById('welcome-email-panel') as HTMLElement | null;
   const welcomeEmailFrame = document.getElementById('welcome-email-frame') as HTMLIFrameElement | null;
+  const welcomeEmailSubjectInput = document.getElementById('welcome-email-subject') as HTMLInputElement | null;
+  const copySubjectBtn = document.getElementById('copy-subject-btn') as HTMLButtonElement | null;
   const copyEmailBtn = document.getElementById('copy-email-btn') as HTMLButtonElement | null;
   const copyEmailStatus = document.getElementById('copy-email-status') as HTMLParagraphElement | null;
 
@@ -116,6 +125,7 @@ import Layout from '../../../layouts/Layout.astro';
   let currentWelcomeEmailText = '';
 
   const LOGO_URL = 'https://secureprospective.com/assets/email/logo.png';
+  const WELCOME_EMAIL_SUBJECT = "You're invited to the SecureProspective back office";
 
   function buildWelcomeEmailHtml(acceptUrl: string, expiresLabel: string): string {
     return `
@@ -178,6 +188,7 @@ import Layout from '../../../layouts/Layout.astro';
     if (welcomeEmailFrame) {
       welcomeEmailFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#f2f2f2;">${currentWelcomeEmailHtml}</body></html>`;
     }
+    if (welcomeEmailSubjectInput) welcomeEmailSubjectInput.value = WELCOME_EMAIL_SUBJECT;
     if (welcomeEmailPanel) welcomeEmailPanel.hidden = false;
     if (copyEmailStatus) copyEmailStatus.hidden = true;
   }
@@ -382,6 +393,23 @@ import Layout from '../../../layouts/Layout.astro';
     }
   });
 
+  copySubjectBtn?.addEventListener('click', async () => {
+    if (copyEmailStatus) copyEmailStatus.hidden = true;
+    try {
+      await navigator.clipboard.writeText(WELCOME_EMAIL_SUBJECT);
+      if (copyEmailStatus) {
+        copyEmailStatus.hidden = false;
+        copyEmailStatus.textContent = 'Subject line copied.';
+      }
+    } catch {
+      welcomeEmailSubjectInput?.select();
+      if (copyEmailStatus) {
+        copyEmailStatus.hidden = false;
+        copyEmailStatus.textContent = 'Could not copy automatically. The subject field is selected — copy it manually.';
+      }
+    }
+  });
+
   copyEmailBtn?.addEventListener('click', async () => {
     if (!currentWelcomeEmailHtml) return;
     if (copyEmailStatus) copyEmailStatus.hidden = true;
@@ -498,6 +526,38 @@ import Layout from '../../../layouts/Layout.astro';
     font-size: var(--text-caption);
     color: var(--fineprint-gray);
     word-break: break-all;
+  }
+
+  .subject-field {
+    display: block;
+    margin: var(--space-3) 0 var(--space-4);
+  }
+
+  .subject-label {
+    display: block;
+    font-size: var(--text-caption);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--space-2);
+    color: var(--fineprint-gray);
+  }
+
+  .subject-row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+  }
+
+  .subject-row input {
+    flex: 1;
+    padding: var(--space-2) var(--space-3);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-default);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    background: var(--silver-base);
+    color: var(--ink);
   }
 
   .email-preview-wrap {
