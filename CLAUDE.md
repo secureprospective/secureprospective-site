@@ -93,7 +93,7 @@ Loop-closer: *"What's native today gets re-diagnosed tomorrow. The loop doesn't 
 
 ## Pillars
 
-Business, Creative
+Business, Creative, Technical (Technical added 2026-08-08 — the back-office access point/D1/admin console build is real backend engineering, not a design pass)
 
 ---
 
@@ -128,6 +128,8 @@ Business, Creative
 
 **Pages project bindings (production + preview):** `CF_API_TOKEN` (secret, for the chatbot Function — **edited 2026-07-04** from broad account token to `AI Search: Read` + `Workers AI: Read` + `Workers R2 Storage: Edit`; still account-wide on R2, not bucket-scoped to `ccwork-leads` — revisit if tighter scoping wanted), `NODE_VERSION=20`, `LEADS` → R2 bucket `ccwork-leads`. **Uses Functions: YES.**
 
+**D1 bindings:** `ECOSYSTEM_DB` (id `76a9973f-eef6-4d37-acd3-92e378e04151` — bound but **discovered already live 2026-08-08**, not documented anywhere before this; the AI-ecosystem wiring-phase handoff above still describes creating this as step 1, which is now stale, this database already exists, don't recreate it, just verify what's actually in it before assuming it's empty) and `BACKOFFICE_DB` (id `fd3d4c74-1868-4695-a23e-b592637d8ec1`, added 2026-08-08 for the back-office access point, see that section above). Production has both + `nodejs_compat`; **Preview also has both D1 bindings + `nodejs_compat`, but is missing the back-office's Turnstile/bootstrap secrets** (see Back-Office Access Point section).
+
 ### Tunnels
 
 | Name | Tunnel ID | Status | Hostnames → Origin |
@@ -143,6 +145,24 @@ Business, Creative
 - **SSL/TLS mode:** `Full (Strict)` — upgraded 2026-07-04
 - **Plan:** Free | **Zone:** Active
 - **Nameservers:** `connie.ns.cloudflare.com`, `lamar.ns.cloudflare.com`
+
+---
+
+## Back-Office Access Point (built + live, 2026-08-08)
+
+Invite-only auth for `secureprospective.com/members`, its own D1 database, and a real admin console — full detail in `docs/BACKOFFICE_AUTH.md`, read that before touching anything here. Summary:
+
+- **D1 database** `secureprospective-backoffice-db` (`fd3d4c74-1868-4695-a23e-b592637d8ec1`), bound as `BACKOFFICE_DB`, own instance per `feedback_tfm_sp_data_separation` — never shared with TFM. Migrations 0002 (users/sessions/invites) + 0003 (`must_change_password`) applied.
+- **Auth pattern** copied from TFM's members build (`reference_cloudflare_d1_auth_pattern` in the backbone memory): scrypt password hashing, sha256-hashed session cookies, enumeration-safe errors.
+- **Invite-only, not open registration.** `secureprospective@gmail.com` is the real admin (`role='admin'` in `users`), created via a one-time key-gated bootstrap endpoint since invite-only has no other way to make the first account.
+- **Forced password change** on any admin-set one-time password (bootstrap, or an admin "Set password" reset) — `must_change_password` flag routes straight to `/members/change-password` before anything else is usable.
+- **`/members/admin` console** (session + `role='admin'` gated): invite members, revoke pending invites or remove redeemed/expired ones from history, edit a member's email/role, admin-triggered password reset, remove a member outright. Also generates a copy-paste-ready **welcome email** (logo, numbered steps, accept-invite button, subject line) via the Clipboard API, since Brevo send is deliberately unwired this session — Christopher copies it into a real Gmail compose window at `secureprospective@gmail.com` and sends it himself.
+- **Threat protection:** Cloudflare Turnstile on login + accept-invite forms, origin-lock, 8-char minimum passwords, session rotation on password change.
+- **Nav "Login" button** added to the public site, links to `/members` (self-routes to login or the gated view depending on session state).
+- **Everything behind the plain member `/members` view is still a placeholder "under construction" screen** — real member-facing components are a future session's scope. The admin console itself is the one exception: it's fully real.
+- **Known gaps, not urgent:** Brevo invite-email delivery unwired (deferred, see docs); Preview-environment Cloudflare secrets not set (Production only, deliberate — see docs); no self-service forgot-password for ordinary members; no audit log of admin actions beyond D1 row timestamps.
+- **⚠️ Reusable pattern for TFM's members access, when that session happens:** this session's admin-console layer (bootstrap + role-based console + forced password change + invite management UI + the copy-paste welcome-email generator) is a real upgrade over TFM's original build, which only had open self-registration and no admin console at all. `reference_cloudflare_d1_auth_pattern` in the backbone memory has been updated with this — read it first, don't rebuild the TFM pattern from scratch.
+- **Temporary provisioning token used this session** (D1/Pages/Turnstile Edit scope, created by Christopher, used once from CT105) **should be revoked/rolled from the Cloudflare dashboard** — it was never meant to be a standing credential.
 
 ---
 
@@ -293,6 +313,8 @@ Standing convention (started 2026-07-07): Christopher uses Hermes on the go to d
 ---
 
 ## Next Branch
+
+**2026-08-08 session (back-office access point) is DONE and merged/deployed to `main`** (`5f92dab`→`3a511ba`, 9 commits, all live). See "Back-Office Access Point" section above for full detail. No open code work from this session — pick-up items are the "Known gaps" listed there (Brevo, preview secrets, forgot-password, audit log), none urgent. Revoke/roll the temporary Cloudflare provisioning token before next session if that hasn't happened yet.
 
 **2026-08-06 full session (logo/hero-motion + page-transition + buttons + motif rework + critique + all P2 fixes) is DONE and merged to `main` (`5dc4d02`, `dc05750`, `aa5394e`, live, pushed). Site declared production-ready at session close — no open code work.** See Current Build State above for full detail. Impeccable live-mode's multi-variant-pick workflow is proven across several feature passes now; its click-to-select picker does NOT work well on `pointer-events:none` canvas layers (the overlay eats the click) — for that case, build real switchable variants behind a `?param=` query string instead and let Christopher flip between them directly, no picker needed. The Beelink DeepSeek lane is proven for web-research, small reference-prototype builds, and mechanical edits.
 
