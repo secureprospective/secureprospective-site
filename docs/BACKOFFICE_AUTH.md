@@ -1,16 +1,21 @@
 # Back-Office Access Point — Provisioning & Ops
 
-Built 2026-08-08. Invite-only auth for `secureprospective.com/members`.
-Pattern copied from TFM's members build (`reference_cloudflare_d1_auth_pattern`
-in the backbone memory) — the code shape is shared, the runtime is not. This
-D1 database, its Brevo sender, and its secrets belong to SecureProspective
-only and must never be shared with TFM (`feedback_tfm_sp_data_separation`).
+Built 2026-08-08. Invite-only auth for `secureprospective.com/members`, with
+a real admin account (`secureprospective@gmail.com`) that has its own
+console at `/members/admin` for inviting, removing, editing, and resetting
+passwords for members. Pattern copied from TFM's members build
+(`reference_cloudflare_d1_auth_pattern` in the backbone memory) — the code
+shape is shared, the runtime is not. This D1 database, its Brevo sender,
+and its secrets belong to SecureProspective only and must never be shared
+with TFM (`feedback_tfm_sp_data_separation`).
 
 Scope of this build: the access point (login, invite-redemption, session
-cookie), the database, and Turnstile-based threat protection. Everything
-behind the login wall is a placeholder "under construction" screen —
-`src/pages/members/index.astro` — until real back-office components get
-built in a later session.
+cookie), the admin console, the database, and Turnstile-based threat
+protection. Everything behind the plain member login wall
+(`src/pages/members/index.astro`) is still a placeholder
+"under construction" screen — real member-facing components are a later
+session. The admin console itself (`/members/admin`) is real and functional
+once provisioned.
 
 ## Cloudflare provisioning checklist (not yet done — see below)
 
@@ -39,12 +44,53 @@ hand in the dashboard:
 6. **Set Pages secrets** (Settings > Environment variables, Production +
    Preview, "Encrypt" for the secret ones):
    - `TURNSTILE_SECRET_KEY` — from step 5
-   - `ADMIN_INVITE_KEY` — a random 32+ byte string (`openssl rand -base64 32`).
-     Whoever holds this can mint invites. Treat it like a password.
+   - `ADMIN_BOOTSTRAP_KEY` — a random 32+ byte string
+     (`openssl rand -base64 32`). One-time use: creates the first admin
+     account, then every subsequent admin action goes through a normal
+     login session, not this key. Treat it like a password, roll it after
+     bootstrap if it ever leaked.
    - `BREVO_PRIVATE_API_KEY` — **deferred this session**, see below.
 7. **Set the public Turnstile site key as a build-time env var**:
    `PUBLIC_TURNSTILE_SITE_KEY` (Production + Preview, does not need
    encryption — it's public by design, embedded in the page HTML).
+
+## Bootstrapping the admin account
+
+There is no public registration and no existing admin to send the first
+invite, so the very first admin account is created by a one-time,
+key-gated endpoint rather than through the normal invite flow:
+
+```
+curl -X POST https://secureprospective.com/api/auth/admin/bootstrap \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Key: <ADMIN_BOOTSTRAP_KEY>" \
+  -d '{"password":"<choose a real password, 8+ chars>"}'
+```
+
+This hardcodes the email to `secureprospective@gmail.com` (the endpoint
+refuses to create an admin under any other address) and 409s if an admin
+already exists — it cannot be re-run to reset the password later. After
+this runs once, log in normally at `/members/login` with that email and
+password; `/members/admin` will be reachable.
+
+## The admin console (`/members/admin`)
+
+Once logged in as the admin, the console (session + `role='admin'` gated,
+no separate key needed) supports:
+
+- **Invite** — email in, creates an `invites` row, shows either "sent" (if
+  Brevo is wired) or a copyable accept-link (if not).
+- **Revoke** an outstanding invite.
+- **Edit** a member — change email or promote/demote `role`
+  (member ⇄ admin). An admin cannot demote themselves (no recovery path if
+  the only admin locks themselves out).
+- **Set password** — admin-triggered password reset for any member; also
+  invalidates that member's existing sessions.
+- **Remove** a member — deletes the account and its sessions outright (not
+  a soft-delete). An admin cannot remove their own account.
+
+All of this is real API + real D1 writes once provisioned — nothing here is
+mocked.
 
 ## Brevo (deferred, 2026-08-08 decision)
 
@@ -53,30 +99,15 @@ TFM's own Brevo transactional send is unresolved in production
 session: build everything else first, wire Brevo last, once TFM's issue is
 root-caused (or budget time to debug SP's send fresh, if that's faster).
 
-Until `BREVO_PRIVATE_API_KEY` is set, `POST /api/auth/invite` still works —
-it just returns `emailSent: false` and the `acceptUrl` in its JSON response.
-Copy that URL and send it to the invitee by hand (any email client) until
+Until `BREVO_PRIVATE_API_KEY` is set, invite creation still works — it just
+shows `emailSent: false` and the raw accept-link in the console instead of
+sending anything. Copy that link and send it to the invitee by hand until
 Brevo is wired.
 
 Before wiring: set a real verified sender in **SecureProspective's own**
 Brevo account (`functions/_lib/email.ts`'s `SENDER` constant currently has a
 `TODO-set-verified-sender@secureprospective.com` placeholder — do not deploy
 with that unchanged, the send will just fail).
-
-## Creating an invite (once provisioned)
-
-```
-curl -X POST https://secureprospective.com/api/auth/invite \
-  -H "Content-Type: application/json" \
-  -H "X-Admin-Key: <ADMIN_INVITE_KEY>" \
-  -d '{"email":"agent@example.com","createdBy":"christopher"}'
-```
-
-Returns `{ ok, email, acceptUrl, emailSent, expiresAt }`. The invite expires
-in 7 days if unredeemed. Re-inviting the same email while an invite is still
-outstanding 409s — no revoke endpoint exists yet (delete the row from
-`invites` directly via `wrangler d1 execute` if a re-issue is needed before
-this session builds admin tooling for it).
 
 ## Local dev testing
 
@@ -87,9 +118,11 @@ allowance to production.
 
 ## What's NOT built yet
 
-- Any UI/tooling to create or revoke invites other than the raw curl call
-  above — there's no admin panel.
-- The real content behind `/members` — placeholder "under construction"
-  only, per this session's locked scope.
-- Password reset / forgot-password flow.
+- The real content behind the plain member `/members` view — placeholder
+  "under construction" only, per this session's locked scope. (The admin
+  console itself is the exception — it's real.)
+- Password reset / forgot-password self-service for ordinary members (the
+  admin console's "Set password" covers this manually for now).
 - Brevo invite-email delivery (see above).
+- Audit log of admin actions (invite/remove/edit/reset are not currently
+  logged anywhere beyond D1's own row timestamps).

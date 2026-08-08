@@ -13,10 +13,13 @@ export interface AuthEnv {
   // Turnstile secret key, verified server-side against every login and
   // invite-accept submission. Cloudflare Pages secret, never committed.
   TURNSTILE_SECRET_KEY: string;
-  // Shared secret gating the admin-only invite-creation endpoint. Cloudflare
-  // Pages secret. There is no admin UI yet — invites are created by whoever
-  // holds this key, via a direct authenticated request.
-  ADMIN_INVITE_KEY: string;
+  // One-time bootstrap secret: gates POST /api/auth/admin/bootstrap, the
+  // only way to create the very first admin account (secureprospective@gmail.com)
+  // in an invite-only system with no existing admin to send an invite. Every
+  // admin action after that (invite/revoke/remove/edit/reset-password) goes
+  // through the normal session + role='admin' check, not this key. Cloudflare
+  // Pages secret, never committed.
+  ADMIN_BOOTSTRAP_KEY: string;
 }
 
 export function json(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {

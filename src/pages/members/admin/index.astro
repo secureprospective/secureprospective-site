@@ -1,0 +1,434 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+---
+
+<Layout title="Admin Console — SecureProspective Back Office">
+  <main class="admin-shell" id="admin-shell" hidden>
+    <div class="admin-inner container">
+      <div class="admin-header">
+        <div>
+          <p class="eyebrow">Back Office</p>
+          <h1>Admin Console</h1>
+        </div>
+        <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
+      </div>
+
+      <section class="panel">
+        <h2>Invite a member</h2>
+        <form id="invite-form" class="inline-form" novalidate>
+          <input type="email" name="email" placeholder="agent@example.com" required />
+          <button type="submit" class="btn" id="invite-submit">Send invite</button>
+        </form>
+        <p id="invite-result" class="result-line" hidden></p>
+        <p id="invite-error" class="form-error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel">
+        <h2>Outstanding &amp; past invites</h2>
+        <div class="table-wrap">
+          <table id="invites-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Invited by</th>
+                <th>Created</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="invites-body">
+              <tr><td colspan="6">Loading&hellip;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Members</h2>
+        <div class="table-wrap">
+          <table id="members-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="members-body">
+              <tr><td colspan="4">Loading&hellip;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  type Invite = {
+    id: string;
+    email: string;
+    created_by: string;
+    created_at: string;
+    expires_at: string;
+    redeemed_at: string | null;
+  };
+  type Member = {
+    id: string;
+    email: string;
+    role: string;
+    created_at: string;
+    email_verified_at: string | null;
+  };
+
+  const shell = document.getElementById('admin-shell') as HTMLElement | null;
+  const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;
+
+  const inviteForm = document.getElementById('invite-form') as HTMLFormElement | null;
+  const inviteSubmit = document.getElementById('invite-submit') as HTMLButtonElement | null;
+  const inviteResult = document.getElementById('invite-result') as HTMLParagraphElement | null;
+  const inviteError = document.getElementById('invite-error') as HTMLParagraphElement | null;
+
+  const invitesBody = document.getElementById('invites-body') as HTMLTableSectionElement | null;
+  const membersBody = document.getElementById('members-body') as HTMLTableSectionElement | null;
+
+  let currentAdminId = '';
+
+  function fmt(dateStr: string | null): string {
+    if (!dateStr) return '—';
+    try {
+      return new Date(dateStr.replace(' ', 'T') + 'Z').toLocaleString();
+    } catch {
+      return dateStr;
+    }
+  }
+
+  async function api(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status}).`);
+    return body;
+  }
+
+  async function loadInvites() {
+    if (!invitesBody) return;
+    try {
+      const { invites } = (await api('/api/auth/admin/invites')) as { invites: Invite[] };
+      if (!invites.length) {
+        invitesBody.innerHTML = '<tr><td colspan="6">No invites yet.</td></tr>';
+        return;
+      }
+      invitesBody.innerHTML = '';
+      invites.forEach((inv) => {
+        const tr = document.createElement('tr');
+        const status = inv.redeemed_at
+          ? 'Redeemed'
+          : new Date(inv.expires_at) < new Date()
+            ? 'Expired'
+            : 'Pending';
+        tr.innerHTML = `
+          <td>${inv.email}</td>
+          <td>${inv.created_by}</td>
+          <td>${fmt(inv.created_at)}</td>
+          <td>${fmt(inv.expires_at)}</td>
+          <td>${status}</td>
+          <td></td>
+        `;
+        const actionCell = tr.lastElementChild as HTMLTableCellElement;
+        if (status === 'Pending') {
+          const revokeBtn = document.createElement('button');
+          revokeBtn.type = 'button';
+          revokeBtn.className = 'btn-link';
+          revokeBtn.textContent = 'Revoke';
+          revokeBtn.addEventListener('click', async () => {
+            if (!confirm(`Revoke the invite for ${inv.email}?`)) return;
+            try {
+              await api('/api/auth/admin/invite-revoke', {
+                method: 'POST',
+                body: JSON.stringify({ id: inv.id }),
+              });
+              loadInvites();
+            } catch (err) {
+              alert((err as Error).message);
+            }
+          });
+          actionCell.appendChild(revokeBtn);
+        }
+        invitesBody.appendChild(tr);
+      });
+    } catch (err) {
+      invitesBody.innerHTML = `<tr><td colspan="6">${(err as Error).message}</td></tr>`;
+    }
+  }
+
+  async function loadMembers() {
+    if (!membersBody) return;
+    try {
+      const { members } = (await api('/api/auth/admin/members')) as { members: Member[] };
+      membersBody.innerHTML = '';
+      members.forEach((m) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${m.email}</td>
+          <td></td>
+          <td>${fmt(m.created_at)}</td>
+          <td></td>
+        `;
+
+        const roleCell = tr.children[1] as HTMLTableCellElement;
+        const roleSelect = document.createElement('select');
+        ['member', 'admin'].forEach((r) => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r;
+          if (r === m.role) opt.selected = true;
+          roleSelect.appendChild(opt);
+        });
+        roleSelect.addEventListener('change', async () => {
+          try {
+            await api('/api/auth/admin/member-edit', {
+              method: 'POST',
+              body: JSON.stringify({ id: m.id, role: roleSelect.value }),
+            });
+            loadMembers();
+          } catch (err) {
+            alert((err as Error).message);
+            roleSelect.value = m.role;
+          }
+        });
+        roleCell.appendChild(roleSelect);
+
+        const actionCell = tr.lastElementChild as HTMLTableCellElement;
+        actionCell.className = 'action-cell';
+
+        const pwBtn = document.createElement('button');
+        pwBtn.type = 'button';
+        pwBtn.className = 'btn-link';
+        pwBtn.textContent = 'Set password';
+        pwBtn.addEventListener('click', async () => {
+          const newPassword = prompt(`New password for ${m.email} (min 8 characters):`);
+          if (!newPassword) return;
+          if (newPassword.length < 8) {
+            alert('Password must be at least 8 characters.');
+            return;
+          }
+          try {
+            await api('/api/auth/admin/member-password', {
+              method: 'POST',
+              body: JSON.stringify({ id: m.id, newPassword }),
+            });
+            alert(`Password updated for ${m.email}.`);
+          } catch (err) {
+            alert((err as Error).message);
+          }
+        });
+        actionCell.appendChild(pwBtn);
+
+        if (m.id !== currentAdminId) {
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'btn-link btn-link--danger';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', async () => {
+            if (!confirm(`Remove ${m.email}? This cannot be undone.`)) return;
+            try {
+              await api('/api/auth/admin/member-remove', {
+                method: 'POST',
+                body: JSON.stringify({ id: m.id }),
+              });
+              loadMembers();
+            } catch (err) {
+              alert((err as Error).message);
+            }
+          });
+          actionCell.appendChild(removeBtn);
+        }
+
+        membersBody.appendChild(tr);
+      });
+    } catch (err) {
+      membersBody.innerHTML = `<tr><td colspan="4">${(err as Error).message}</td></tr>`;
+    }
+  }
+
+  inviteForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (inviteError) inviteError.hidden = true;
+    if (inviteResult) inviteResult.hidden = true;
+
+    const data = new FormData(inviteForm);
+    const email = String(data.get('email') ?? '');
+
+    inviteSubmit?.classList.add('is-loading');
+    inviteSubmit?.setAttribute('disabled', 'true');
+    try {
+      const body = await api('/api/auth/admin/invites', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      if (inviteResult) {
+        inviteResult.hidden = false;
+        inviteResult.innerHTML = body.emailSent
+          ? `Invite sent to ${body.email}.`
+          : `Invite created. Email delivery isn't wired up yet — copy this link to ${body.email}: <code>${body.acceptUrl}</code>`;
+      }
+      inviteForm.reset();
+      loadInvites();
+    } catch (err) {
+      if (inviteError) {
+        inviteError.hidden = false;
+        inviteError.textContent = (err as Error).message;
+      }
+    } finally {
+      inviteSubmit?.classList.remove('is-loading');
+      inviteSubmit?.removeAttribute('disabled');
+    }
+  });
+
+  logoutBtn?.addEventListener('click', async () => {
+    logoutBtn.setAttribute('disabled', 'true');
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    } finally {
+      window.location.href = '/members/login';
+    }
+  });
+
+  async function init() {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        window.location.href = '/members/login';
+        return;
+      }
+      const body = await res.json();
+      if (body.user?.role !== 'admin') {
+        window.location.href = '/members';
+        return;
+      }
+      currentAdminId = body.user.id;
+      if (shell) shell.hidden = false;
+      loadInvites();
+      loadMembers();
+    } catch {
+      window.location.href = '/members/login';
+    }
+  }
+
+  init();
+</script>
+
+<style>
+  .admin-shell {
+    padding: var(--space-6) 0 var(--space-8);
+  }
+
+  .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+  }
+
+  .panel {
+    background: var(--white);
+    border: 2px solid var(--ink);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  .panel h2 {
+    font-size: var(--text-h3);
+    margin-bottom: var(--space-4);
+  }
+
+  .inline-form {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-3);
+  }
+
+  .inline-form input {
+    flex: 1;
+    min-width: 220px;
+    padding: var(--space-3);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-default);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+  }
+
+  .result-line {
+    font-size: var(--text-caption);
+    color: var(--fineprint-gray);
+    word-break: break-all;
+  }
+
+  .result-line code {
+    font-family: monospace;
+    background: var(--silver-base);
+    padding: 2px 4px;
+  }
+
+  .form-error {
+    color: #B3261E;
+    font-size: var(--text-caption);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-caption);
+  }
+
+  th, td {
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--silver-base);
+    white-space: nowrap;
+  }
+
+  th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--fineprint-gray);
+  }
+
+  select {
+    font-family: var(--font-body);
+    font-size: var(--text-caption);
+    padding: 2px 4px;
+    border: 1px solid var(--ink);
+  }
+
+  .action-cell {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--blue-brand);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: var(--text-caption);
+    font-family: var(--font-body);
+  }
+
+  .btn-link--danger {
+    color: #B3261E;
+  }
+</style>

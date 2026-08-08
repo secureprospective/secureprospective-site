@@ -1,41 +1,45 @@
-// POST /api/auth/invite — admin-only. Creates a single-use invite for one
-// email address and returns the accept-invite URL (and attempts to email
-// it, non-fatally — see _lib/email.ts). There is no admin UI yet: this
-// endpoint is called directly (curl/script) by whoever holds
-// ADMIN_INVITE_KEY, a Cloudflare Pages secret. Back-office access is
-// invite-only by design (2026-08-08 decision) — there is no public
-// /register endpoint anywhere in this API.
+// GET  /api/auth/admin/invites — list all outstanding + historical invites.
+// POST /api/auth/admin/invites — create one. Both admin-session gated.
 
 import { randomUUID, randomBytes, createHash } from "node:crypto";
-import { json, originAllowed, isJsonRequest, EMAIL_RE, type AuthEnv } from "../../_lib/http";
-import { timingSafeStringEqual } from "../../_lib/password";
-import { sendInviteEmail } from "../../_lib/email";
+import { json, originAllowed, isJsonRequest, EMAIL_RE, type AuthEnv } from "../../../_lib/http";
+import { requireAdminSession } from "../../../_lib/admin";
+import { sendInviteEmail } from "../../../_lib/email";
 
 interface Env extends AuthEnv {}
 
 const INVITE_TTL_DAYS = 7;
 
+export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  if (!originAllowed(request)) return json({ error: "Forbidden origin." }, 403);
+  const admin = await requireAdminSession(env.BACKOFFICE_DB, request);
+  if (!admin) return json({ error: "Not authorized." }, 403);
+
+  const { results } = await env.BACKOFFICE_DB
+    .prepare(
+      "SELECT id, email, created_by, created_at, expires_at, redeemed_at FROM invites ORDER BY created_at DESC",
+    )
+    .all();
+
+  return json({ invites: results });
+};
+
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!originAllowed(request)) return json({ error: "Forbidden origin." }, 403);
   if (!isJsonRequest(request)) return json({ error: "JSON body required." }, 415);
+  const admin = await requireAdminSession(env.BACKOFFICE_DB, request);
+  if (!admin) return json({ error: "Not authorized." }, 403);
 
-  const adminKey = request.headers.get("X-Admin-Key") ?? "";
-  if (!env.ADMIN_INVITE_KEY || !timingSafeStringEqual(adminKey, env.ADMIN_INVITE_KEY)) {
-    return json({ error: "Not authorized." }, 401);
-  }
-
-  let email: unknown, createdBy: unknown;
+  let email: unknown;
   try {
     const body = (await request.json()) as Record<string, unknown>;
     email = body.email;
-    createdBy = body.createdBy;
   } catch {
     return json({ error: "Invalid JSON body." }, 400);
   }
 
   email = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!EMAIL_RE.test(email as string)) return json({ error: "A valid email is required." }, 400);
-  createdBy = typeof createdBy === "string" && createdBy.trim() ? createdBy.trim() : "unknown";
 
   const existingUser = await env.BACKOFFICE_DB
     .prepare("SELECT id FROM users WHERE email = ?1")
@@ -54,7 +58,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       .prepare(
         "INSERT INTO invites (id, email, token_hash, created_by, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
       )
-      .bind(id, email, tokenHash, createdBy, now, expiresAt)
+      .bind(id, email, tokenHash, admin.email, now, expiresAt)
       .run();
   } catch {
     // UNIQUE(email) fired: an outstanding invite already exists for this address.
@@ -71,6 +75,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // The link is always returned in the response, regardless of emailSent,
-  // so an admin can copy/paste it by hand while Brevo send is unwired/unreliable.
+  // so the console can show a "copy link" fallback while Brevo is unwired.
   return json({ ok: true, email, acceptUrl, emailSent, expiresAt }, 201);
 };
