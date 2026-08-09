@@ -6,12 +6,16 @@ import Layout from '../../layouts/Layout.astro';
   <main class="gate-shell" id="gate-shell" hidden>
     <div class="gate-card">
       <p class="eyebrow">Back Office</p>
-      <h1>Under construction</h1>
+      <h1>InsuranceAgentKit</h1>
       <p class="gate-copy">
-        You're signed in as <strong id="user-email"></strong>. This is the access point &mdash;
-        the components that live behind it are still being built.
+        You're signed in as <strong id="user-email"></strong>. Set up your Claude assistant, or
+        come back later to add more to it.
       </p>
       <div class="gate-actions">
+        <a href="/kit/setup" class="btn">Get Started</a>
+        <button type="button" class="btn btn--ink" disabled title="Coming soon — this is where you'll add more components later.">Update</button>
+      </div>
+      <div class="gate-actions gate-actions--secondary">
         <a href="/members/admin" class="btn" id="admin-link" hidden>Admin console</a>
         <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
       </div>
@@ -93,5 +97,16 @@ import Layout from '../../layouts/Layout.astro';
     gap: var(--space-3);
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .gate-actions--secondary {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--fineprint-gray);
+  }
+
+  .gate-actions button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>
