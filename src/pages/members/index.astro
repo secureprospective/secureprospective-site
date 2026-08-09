@@ -20,6 +20,27 @@ import Layout from '../../layouts/Layout.astro';
         <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
       </div>
     </div>
+
+    <!--
+      R6(b): the standing off-switch control. Was a one-time rehearsal
+      inside the wizard's last screen (FireDrillStep.jsx) — Christopher,
+      2026-08-09: "They don't need to practice, they just need the ability
+      to turn off and on." Reuses the monopoly-property-card visual
+      language (colored band, sharp corners, collapsible) already built
+      for StateLicenseSelect.jsx rather than a new pattern. Hidden until
+      capability-state.ts confirms there's a real install to show a
+      control for.
+    -->
+    <div class="property-card" id="control-card" hidden>
+      <button type="button" class="property-card__band" id="control-toggle" aria-expanded="false">
+        <span class="property-card__title">Your Claude connection</span>
+        <span class="property-card__caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="property-card__body" id="control-body" hidden>
+        <p id="control-summary"></p>
+        <div class="property-card__actions" id="control-actions"></div>
+      </div>
+    </div>
   </main>
 </Layout>
 
@@ -62,6 +83,105 @@ import Layout from '../../layouts/Layout.astro';
   });
 
   checkSession();
+
+  // R6(b): the standing off-switch card.
+  const controlCard = document.getElementById('control-card') as HTMLElement | null;
+  const controlToggle = document.getElementById('control-toggle') as HTMLButtonElement | null;
+  const controlBody = document.getElementById('control-body') as HTMLElement | null;
+  const controlSummary = document.getElementById('control-summary') as HTMLElement | null;
+  const controlActions = document.getElementById('control-actions') as HTMLElement | null;
+
+  const STORAGE_LABELS: Record<string, string> = {
+    drive: 'Google Drive (SecureProspective-managed folder)',
+    local: 'A local folder on his computer',
+  };
+
+  function renderControl(state: any) {
+    if (!controlCard || !controlSummary || !controlActions) return;
+    if (!state.started) {
+      controlCard.hidden = true;
+      return;
+    }
+    controlCard.hidden = false;
+
+    const storageLabel = STORAGE_LABELS[state.storageLocation ?? ''] ?? 'Not chosen yet';
+    const connectors = [
+      state.gmailConnected ? 'Gmail' : null,
+      state.calendarConnected ? 'Calendar' : null,
+    ].filter(Boolean);
+
+    controlSummary.textContent =
+      `Storage: ${storageLabel}.` +
+      (connectors.length ? ` Connected: ${connectors.join(', ')}.` : '');
+
+    controlActions.innerHTML = '';
+
+    if (state.storageLocation === 'drive' && state.driveScope === 'scoped') {
+      // Only the scoped OAuth path gives SecureProspective a grant of its
+      // own to control — this is the one case the card can turn on/off.
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      if (state.googleGrantActive) {
+        btn.textContent = 'Turn off';
+        btn.addEventListener('click', async () => {
+          btn.setAttribute('disabled', 'true');
+          btn.textContent = 'Turning off…';
+          try {
+            const res = await fetch('/api/wizard/capability-toggle', { method: 'POST' });
+            if (res.ok) await loadControl();
+          } finally {
+            btn.removeAttribute('disabled');
+          }
+        });
+      } else {
+        btn.textContent = 'Reconnect';
+        btn.addEventListener('click', () => {
+          window.location.href = '/api/wizard/bridge?next=/api/google/oauth/start';
+        });
+      }
+      controlActions.appendChild(btn);
+    } else if (state.storageLocation) {
+      // Native connector / local folder: SecureProspective never held a
+      // grant here, so there is nothing of ours to toggle. Say that
+      // honestly and point at the control that actually exists — his own
+      // Claude connection — rather than offering a button that would do
+      // nothing.
+      const note = document.createElement('p');
+      note.className = 'property-card__note';
+      note.textContent =
+        'This install doesn’t use a SecureProspective-managed connection — turn Claude itself on or off from Google’s own connections page.';
+      controlActions.appendChild(note);
+      const link = document.createElement('a');
+      link.className = 'btn btn--ink';
+      link.href = 'https://myaccount.google.com/connections';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Open Google connections →';
+      controlActions.appendChild(link);
+    }
+  }
+
+  async function loadControl() {
+    try {
+      const res = await fetch('/api/wizard/capability-state');
+      if (!res.ok) {
+        if (controlCard) controlCard.hidden = true;
+        return;
+      }
+      renderControl(await res.json());
+    } catch {
+      if (controlCard) controlCard.hidden = true;
+    }
+  }
+
+  controlToggle?.addEventListener('click', () => {
+    const expanded = controlToggle.getAttribute('aria-expanded') === 'true';
+    controlToggle.setAttribute('aria-expanded', String(!expanded));
+    if (controlBody) controlBody.hidden = expanded;
+  });
+
+  loadControl();
 </script>
 
 <style>
@@ -108,5 +228,60 @@ import Layout from '../../layouts/Layout.astro';
   .gate-actions button[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* R6(b): the standing off-switch card — same monopoly-property-card
+     language as StateLicenseSelect.jsx's region groups (colored band,
+     sharp corners, expand/collapse), not a new visual pattern. */
+  .property-card {
+    width: 100%;
+    max-width: 480px;
+    margin: var(--space-5) auto 0;
+    border: 2px solid var(--ink);
+    background: var(--white);
+  }
+
+  .property-card__band {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--blue-brand);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+  }
+
+  .property-card__title {
+    font-weight: 600;
+  }
+
+  .property-card__caret {
+    transition: transform 120ms ease;
+  }
+
+  .property-card__band[aria-expanded='true'] .property-card__caret {
+    transform: rotate(180deg);
+  }
+
+  .property-card__body {
+    padding: var(--space-4);
+    text-align: left;
+  }
+
+  .property-card__note {
+    color: var(--fineprint-gray);
+    margin-bottom: var(--space-3);
+  }
+
+  .property-card__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
   }
 </style>

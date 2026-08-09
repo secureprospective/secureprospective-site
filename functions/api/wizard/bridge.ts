@@ -40,6 +40,19 @@ interface BridgeEnv {
   KIT_DB: D1Database;
 }
 
+// R6: the back-office standing control (a "Reconnect Google" action on the
+// off-switch card) needs to mint a fresh KIT_DB session and then land on
+// the real OAuth start route, not always `/kit/setup` — the agent has
+// already finished the wizard, re-running it would be the wrong landing.
+// Restricted to a same-origin relative path (must start with exactly one
+// `/`, never `//` — a protocol-relative URL would silently become an
+// open redirect) so this can't be turned into a redirect to anywhere else.
+function safeNext(request: Request): string {
+  const raw = new URL(request.url).searchParams.get('next');
+  if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw;
+  return '/kit/setup';
+}
+
 export const onRequestGet: PagesFunction<BridgeEnv> = async ({ request, env }) => {
   const backofficeSession = await getSession(env.BACKOFFICE_DB, sessionHashFromRequest(request));
 
@@ -55,7 +68,7 @@ export const onRequestGet: PagesFunction<BridgeEnv> = async ({ request, env }) =
   return new Response(null, {
     status: 302,
     headers: {
-      Location: '/kit/setup',
+      Location: safeNext(request),
       'Set-Cookie': issued.cookie,
     },
   });
