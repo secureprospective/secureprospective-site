@@ -52,12 +52,20 @@ export const onRequestGet: PagesFunction<GoogleEnv & DevBypassEnv> = async ({ re
   // so every downstream screen sees genuine server state instead of
   // mock data — without a live Google OAuth client existing yet.
   if (isDevBypass(env)) {
+    // R5 cross-check found this branch had not been updated alongside the
+    // real callback.ts — it simulates the same completed-connect state for
+    // Preview testing, so it must set the SAME columns callback.ts now
+    // does. Without storage_location/drive_scope here, a Preview session
+    // using this bypass would resolve to UNSET/INCOHERENT capability
+    // state instead of SCOPED, breaking the very simulation this branch
+    // exists to provide.
     const now = Math.floor(Date.now() / 1000);
     await env.KIT_DB.prepare(
       `UPDATE kit_installs
           SET google_email = ?, google_sub = ?, google_scope = ?,
               google_refresh_token_enc = ?, google_connected_at = ?,
               google_revoked_at = NULL,
+              storage_location = 'drive', drive_scope = 'scoped',
               step = CASE WHEN step IN ('registered','profile_saved')
                           THEN 'google_connected' ELSE step END,
               updated_at = ?

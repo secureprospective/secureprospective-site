@@ -130,11 +130,18 @@ export const onRequestGet: PagesFunction<GoogleEnv> = async ({ request, env }) =
     ? readIdTokenClaims(tokens.id_token)
     : { sub: '', email: '', emailVerified: false };
 
+  // storage_location/drive_scope are set HERE, not by set-storage-mode.ts —
+  // this route is the one place the server independently knows the scoped
+  // grant succeeded. Written unconditionally (not gated by current step)
+  // because, unlike the step CASE WHEN below, re-authorizing an already
+  // -connected scoped install should still read as 'drive'/'scoped' — it
+  // was never anything else on this path.
   await env.KIT_DB.prepare(
     `UPDATE kit_installs
         SET google_email = ?, google_sub = ?, google_scope = ?,
             google_refresh_token_enc = ?, google_connected_at = ?,
             google_revoked_at = NULL,
+            storage_location = 'drive', drive_scope = 'scoped',
             step = CASE WHEN step IN ('registered','profile_saved')
                         THEN 'google_connected' ELSE step END,
             updated_at = ?

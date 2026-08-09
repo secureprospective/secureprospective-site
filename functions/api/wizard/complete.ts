@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
   // safety spine; completing past them would be the silent-failure class
   // the whole design exists to avoid.
   const install = await env.KIT_DB.prepare(
-    `SELECT verified_read_at, verified_write_at, drive_folder_id
+    `SELECT verified_read_at, verified_write_at, drive_folder_id, drive_scope
        FROM kit_installs WHERE user_id = ?`,
   )
     .bind(session.userId)
@@ -63,11 +63,20 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
       verified_read_at: number | null;
       verified_write_at: number | null;
       drive_folder_id: string | null;
+      drive_scope: string | null;
     }>();
 
   if (!install) return json({ error: 'no_install' }, 409);
   if (!install.verified_read_at) return json({ error: 'verify_read_pending', step: 'verify' }, 409);
-  if (!install.drive_folder_id) return json({ error: 'not_provisioned', step: 'provision' }, 409);
+  // R2's Gate 3: a server-provisioned Drive folder only exists on the
+  // scoped path. The two delegated paths (native connector, local folder)
+  // never run drive-provision.ts by design — Claude creates the folder
+  // itself — so requiring drive_folder_id universally would make
+  // 'complete' permanently unreachable for them. Only the path that
+  // actually provisions one is held to having one.
+  if (install.drive_scope === 'scoped' && !install.drive_folder_id) {
+    return json({ error: 'not_provisioned', step: 'provision' }, 409);
+  }
 
   // ---- Unconditional revocation --------------------------------------
   // revokeAndForget() already handles the correct order internally:

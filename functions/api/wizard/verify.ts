@@ -65,13 +65,13 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
 
   const now = Math.floor(Date.now() / 1000);
   const body = await request.json<{
-    check: 'read' | 'write' | 'write_selfreport';
+    check: 'read' | 'read_selfreport' | 'write' | 'write_selfreport';
     code?: string;
   }>();
 
   const install = await env.KIT_DB.prepare(
     `SELECT setup_code, setup_code_attempts, provisioned_at, google_email,
-            verified_read_at
+            verified_read_at, storage_location, drive_scope
        FROM kit_installs WHERE user_id = ?`,
   )
     .bind(session.userId)
@@ -81,7 +81,57 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
       provisioned_at: number | null;
       google_email: string | null;
       verified_read_at: number | null;
+      storage_location: string | null;
+      drive_scope: string | null;
     }>();
+
+  /* ================================================================= */
+  /* CHECK A' — the delegated paths' proof (native connector, local)   */
+  /* ================================================================= */
+  /*
+   * R2's Gate 2 answer (research/wizard-reshape-r2-blocker.md): the
+   * four-word CODE check below (check: 'read') cannot run here — no
+   * route on these paths mints a setup_code, because there is nothing
+   * for OUR server to write ahead of time. Claude has to create the
+   * folder itself, and the one channel to tell Claude what to name the
+   * file is the on-screen prompt (cowork-link.js's createFolderPrompt),
+   * which the agent's own browser already displays in full — so a typed
+   * -back code would prove nothing (he'd be reading it off our own page,
+   * not out of Claude's reply, defeating the exact property status.ts's
+   * header explains the code check exists to prove).
+   *
+   * So this is a SELF-REPORT, structurally identical in spirit to
+   * 'write_selfreport' below: the agent is trusted to say Claude actually
+   * did it. Recorded honestly, under its own distinct audit event, same
+   * posture as verify.write.selfreport vs verify.write.observed — a
+   * regulator or E&O carrier reading kit_audit_log later must be able to
+   * tell an observed proof from a self-reported one, and this keeps that
+   * true for the read check as it already was for the write check.
+   */
+  if (body.check === 'read_selfreport') {
+    if (install?.drive_scope === 'scoped') {
+      // The scoped path has a real code check available — self-report
+      // must not be usable as a shortcut around it.
+      return json({ error: 'code_check_required', step: 'verify' }, 409);
+    }
+    await env.KIT_DB.prepare(
+      `UPDATE kit_installs
+          SET verified_read_at = ?,
+              step = CASE WHEN step IN ('storage_chosen','provisioned','handoff_ack')
+                          THEN 'verified_read' ELSE step END,
+              updated_at = ?
+        WHERE user_id = ?`,
+    )
+      .bind(now, now, session.userId)
+      .run();
+    await env.KIT_DB.prepare(
+      `INSERT INTO kit_audit_log (user_id, at, event, detail_json)
+       VALUES (?, ?, 'verify.read.selfreport', ?)`,
+    )
+      .bind(session.userId, now, JSON.stringify({ source: 'agent_confirmed_claude_created_folder' }))
+      .run();
+    return json({ ok: true, observed: false });
+  }
 
   if (!install?.setup_code) return json({ error: 'not_provisioned' }, 409);
 
@@ -202,9 +252,18 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
     const res = await brainWriteWasObserved(env, accessToken, session.userId, since);
 
     if (res.modified) {
+      // R4: reaching a passing write check means screen 4's task 1 (turn
+      // on Gmail/Calendar, plus Drive when that task is shown) is done —
+      // record it so a resumed session does not ask again. SELF-REPORTED
+      // in spirit even though this particular branch is the OBSERVED write
+      // check: nothing here independently confirms Gmail/Calendar
+      // specifically got turned on, only that the write check passed,
+      // which is why 0003's own header marks these two flags self-reported
+      // rather than verified regardless of which verify.ts branch sets them.
       await env.KIT_DB.prepare(
         `UPDATE kit_installs
             SET verified_write_at = ?,
+                gmail_connected = 1, calendar_connected = 1,
                 step = CASE WHEN step = 'verified_read' THEN 'verified_write' ELSE step END,
                 updated_at = ?
           WHERE user_id = ?`,
@@ -254,9 +313,13 @@ export const onRequestPost: PagesFunction<GoogleEnv> = async ({ request, env }) 
       return json({ error: 'verify_read_pending', step: 'verify' }, 409);
     }
 
+    // R4: same reasoning as the observed branch above — reaching this
+    // point means screen 4's task 1 is done, self-reported through the
+    // manual fallback rather than the write check itself.
     await env.KIT_DB.prepare(
       `UPDATE kit_installs
           SET verified_write_at = ?,
+              gmail_connected = 1, calendar_connected = 1,
               step = CASE WHEN step = 'verified_read' THEN 'verified_write' ELSE step END,
               updated_at = ?
         WHERE user_id = ?`,

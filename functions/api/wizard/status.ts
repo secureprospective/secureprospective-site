@@ -27,6 +27,24 @@
  * The same goes for `google_refresh_token_enc` (sealed, but there is no
  * reason for it to leave the server) and `google_sub`.
  * =========================================================================
+ *
+ * ============== DEPLOY ORDER: 0003 MUST BE APPLIED FIRST ================
+ * This route SELECTs `storage_location`, `drive_scope`, `gmail_connected`
+ * and `calendar_connected`, which do not exist until
+ * migrations/0003_capability_state.sql has run.
+ *
+ * As of writing, 0003 is written but NOT YET APPLIED to the live D1.
+ * Shipping this file before applying it breaks the ENTIRE wizard, not one
+ * screen: D1 raises `no such column: storage_location`, this route 500s,
+ * and the shell cannot render anything without it. Verified against real
+ * SQLite, not assumed.
+ *
+ *   1. Apply 0003 (rehearse on Preview first — it ALTERs a live table).
+ *   2. Then deploy this.
+ *
+ * There is no version-skew window in the other direction: 0003 is purely
+ * additive, so applying it while the OLD code is live is harmless.
+ * =========================================================================
  */
 
 import { requireSession } from '../../_lib/kit-session';
@@ -56,6 +74,7 @@ export const onRequestGet: PagesFunction<StatusEnv> = async ({ request, env }) =
     `SELECT step, agent_display_name, agency_name, stated_work_email, profile_json,
             google_email, google_connected_at, google_revoked_at,
             drive_folder_id, drive_folder_url, drive_folder_name, provisioned_at,
+            storage_location, drive_scope, gmail_connected, calendar_connected,
             verified_read_at, verified_write_at, completed_at
        FROM kit_installs WHERE user_id = ?`,
   )
@@ -73,6 +92,10 @@ export const onRequestGet: PagesFunction<StatusEnv> = async ({ request, env }) =
       drive_folder_url: string | null;
       drive_folder_name: string | null;
       provisioned_at: number | null;
+      storage_location: string | null;
+      drive_scope: string | null;
+      gmail_connected: number;
+      calendar_connected: number;
       verified_read_at: number | null;
       verified_write_at: number | null;
       completed_at: number | null;
@@ -88,6 +111,11 @@ export const onRequestGet: PagesFunction<StatusEnv> = async ({ request, env }) =
       profile: {},
       google: { connected: false },
       drive: { provisioned: false },
+      // No row means screen 2 has certainly not been answered. Sent
+      // explicitly rather than omitted so the client's resolveStorageMode()
+      // sees the same shape here as it does for a real row.
+      storage: { location: null, driveScope: null },
+      connectors: { gmail: false, calendar: false },
       proof: { read: false, write: false },
       complete: false,
     });
@@ -162,6 +190,34 @@ export const onRequestGet: PagesFunction<StatusEnv> = async ({ request, env }) =
       folderName:
         row.drive_folder_name ||
         (row.agency_name ? brainFolderName(row.agency_name) : ''),
+    },
+
+    /**
+     * The capability state screens 3 and 4 branch on (migration 0003).
+     *
+     * Returned as RAW FACTS — the two columns as stored — not as a
+     * pre-computed mode. The client's storage-mode.js does the deriving,
+     * so there is exactly one place that decides what a given pair means
+     * and it is unit-tested. A server that shipped its own opinion here
+     * would be a second such place, free to disagree.
+     *
+     * That includes not "helpfully" repairing an incoherent pair: the
+     * database can hold one (0003's header explains why SQLite cannot
+     * reject it), and the client is built to treat it as "screen 2 is
+     * unfinished". Papering over it here would hide a real write bug.
+     */
+    storage: {
+      location: row.storage_location ?? null,
+      driveScope: row.drive_scope ?? null,
+    },
+
+    /**
+     * SELF-REPORTED, never observed — there is no API into claude.ai.
+     * Any UI reading these must not imply we checked. See 0003's header.
+     */
+    connectors: {
+      gmail: Boolean(row.gmail_connected),
+      calendar: Boolean(row.calendar_connected),
     },
 
     proof: {
