@@ -69,6 +69,63 @@ Each step is pass/fail against a **named, real** item chosen in Phase 0 step 2 �
 
 ---
 
+## Enforced gates (added 2026-08-15)
+
+Everything above this line describes governance as *policy* — the draft-never-send rule, no
+autonomous delete, no bulk ops. As of 2026-08-15 that policy is backed by actual enforcement in
+CT105's `permissions` config, not doctrine alone. This section is the ground truth for what the
+harness will and will not allow.
+
+**Denied outright (8).** These tools are removed from Claude's toolset entirely — not promptable,
+not callable by mistake, not callable by a background agent. Chosen because a bypass cannot be
+walked back: mail that has left the building and files shared outside the account are permanent.
+
+`Gmail send_message` · `reply` · `forward` · `trash_message` · `trash_thread` ·
+`Drive share_file` · `trash_file` · `Calendar delete_event`
+
+**Gated on `ask` (6).** Prompt before running. Chosen because a bypass is recoverable.
+
+`Gmail mark_message_spam` · `mark_thread_spam` · `Drive update_file` ·
+`Calendar create_event` · `update_event` · `respond_to_event`
+
+Everything else on the three connectors — all read, search, and **draft** operations — runs without
+friction. The draft-only workflow this pilot specifies is fully unblocked.
+
+### The caveat that matters most
+
+**`ask` does not prompt in a child / auto-mode session.** This was proven, not assumed, with a
+controlled probe on 2026-08-15: the same tool under the same `ask` rule prompted correctly in a
+plain interactive session (and wrote nothing to disk), but in a session with
+`CLAUDE_CODE_CHILD_SESSION=1` it executed with no prompt and auto-wrote an `allow` entry that then
+outranked the `ask` rule sitting beside it in the same object.
+
+The implication runs the wrong way and should not be forgotten: **the sessions that bypass the gate
+are the automated, unwatched ones.** Only `deny` held in both session types. So:
+
+- Run connector work from a plain interactive `claude` session on CT105, never a child session, if
+  you are relying on an `ask` prompt to catch anything.
+- Do not add a destructive tool to `ask` and consider it protected against automation. It is not.
+- A `PreToolUse` hook returning `ask` (`confirm-connector.sh`) is defeated the same way. That hook
+  is correct and does fire — it was unit-tested with a synthetic payload — but an `allow` entry
+  overrides it. The hook was never the problem; precedence was.
+
+### Sending mail when you actually want to
+
+`send_message` is denied, so a legitimate send is a deliberate three-step cycle: lift the single
+entry, send, restore. The restore script re-reads the file and verifies each entry landed rather
+than trusting its own write. Leaving the wall down between tasks defeats the point, since every
+agent on this box shares the config.
+
+### Who edits these gates
+
+**Christopher, not Claude.** Claude's auto-mode classifier blocks Claude from editing the
+permission files — twice during setup, through two different tools — and it is right to: the edits
+loosen restrictions on Claude itself. Given that the failure mode discovered here was *an `allow`
+entry appearing without anyone approving it*, keeping Claude out of that file is the standing
+arrangement, not a temporary inconvenience.
+
+---
+
 ## Test log
 
 **2026-08-15 — Phase 1 (Connect) — PASS, verified in a fresh claude.ai chat.** All three connectors returned real, specific, verifiable data, not vague/generic answers — this matters because a connector can look "connected" in Settings while actually returning hallucinated or stale content:
@@ -79,3 +136,19 @@ Each step is pass/fail against a **named, real** item chosen in Phase 0 step 2 �
 **Note the distinction:** this confirms the connectors work end-to-end (Phase 1), not that the 9-step staged Phase 2 sequence below has been run. Phase 2 (Drive write, Calendar write, Gmail draft, cross-tool chaining, the ambiguity probe, the export/portability drill) is still the next real gate before this is trusted for actual business use — don't skip to real work assuming Phase 1's read-only success covers it.
 
 **Also worth noting for whoever picks this up next:** real, sensitive SP business/personal data is now flowing through this pipeline (a real client name, real church-organization data, real annuity/insurance research documents). Treat every session touching these connectors from here forward as live, not a sandbox — the governance already locked in (chat-mode only, Gmail draft-never-autonomous-send, no Cowork) applies starting now, not just once a "real" workflow is declared.
+
+**2026-08-15 — Gate enforcement — PASS, verified live on CT105.** The connector gate was found *not*
+firing: a `trash_message` call with a deliberately fake ID (`GATE_TEST_NOT_A_REAL_ID_0000000000`)
+reached Google and returned a real API error rather than being blocked. Root cause was permission
+precedence, not the hook (see "Enforced gates" above). Layered `deny`/`ask` config applied and
+verified three ways: read back from disk, denied tools observably disappearing from Claude's
+toolset the moment the file was written, and a live end-to-end exercise —
+`list_labels` returned real inbox counts (963 inbox / 164 sent), then a real email was sent to
+secureprospective@gmail.com (message `1a006b5214d7ebbc`) through a deliberate lift→send→restore
+cycle, and Christopher confirmed receipt.
+
+**Relationship to Phase 2:** this is *not* Phase 2. The staged 9-step sequence (Drive write,
+Calendar write, Gmail draft, cross-tool chaining, ambiguity probe, export/portability drill) is
+still unrun and is still the gate before real business use. What this entry establishes is only
+that the safety harness underneath Phase 2 is real, so Phase 2 can be run without the standing
+rules depending on good behavior alone.
