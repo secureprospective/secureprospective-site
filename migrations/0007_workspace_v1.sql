@@ -222,6 +222,13 @@ CREATE INDEX IF NOT EXISTS idx_activities_external   ON activities (external_ref
 -- anything written there can never be unwritten.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS event_log (
+  -- DELIBERATE DEVIATION from this file's UUID-primary-key convention,
+  -- documented here so nobody "corrects" it back later. This table gets
+  -- a monotonic INTEGER precisely because it is the append-only log: the
+  -- sequence gives free chronological ordering independent of clock skew,
+  -- and a removed row shows up as a GAP in the sequence. A UUID key would
+  -- silently hide exactly the deletion this table exists to make visible.
+  -- Changing this to a UUID would weaken the append-only guarantee.
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
 
   -- WHO
