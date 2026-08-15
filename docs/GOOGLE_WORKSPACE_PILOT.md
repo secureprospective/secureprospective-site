@@ -22,7 +22,21 @@
 5. Claude.ai or Claude Desktop (Chat tab, **not** Cowork tab) → Settings → Connectors → enable Gmail, Calendar, Drive against the confirmed SP account. OAuth grant happens here; nothing else changes.
 6. Sanity-check the connection with the lowest-possible-stakes read: ask Claude to name today's date from Calendar, or list the Drive folder names at the top level. Confirms the plumbing works before any real content is touched.
 
-**⚠️ Correction, verified 2026-08-15: this entire phase happens in claude.ai chat, never in Claude Code.** Gmail and Calendar have no Claude Code tool at all — confirmed by searching Claude Code's own tool list directly, not a config gap. Drive has a separate Claude Code MCP integration, but it requires its own OAuth flow from inside Code and is unrelated to the claude.ai Settings→Connectors Drive connection. Every step in Phase 2 below that touches Gmail or Calendar must be run from an actual claude.ai chat window — Tom and ClaudeBox (both Claude Code) cannot execute these steps themselves. See `SESSION_HANDOFF_2026-08-15.md`'s correction section for the full implication.
+**✅ Correction, verified 2026-08-15 (supersedes the struck block below): Gmail, Calendar and Drive DO have working Claude Code tools.** They are exposed as MCP tools named `mcp__claude_ai_Gmail__*`, `mcp__claude_ai_Google_Calendar__*` and `mcp__claude_ai_Google_Drive__*`. The claude.ai Settings→Connectors OAuth grant propagated to the Claude Code surface on its own. No separate OAuth flow from inside Code was needed.
+
+Evidence, from real tool calls in Claude's CT105 session on 2026-08-15:
+
+- `list_calendars` returned `secureprospective@gmail.com` plus "Holidays in United States", timezone `America/Chicago`.
+- `list_labels` returned INBOX 963 messages / 99 unread, SENT 164, DRAFT 1, TRASH 90.
+
+**New risk, stated plainly: the Gmail tool surface is not draft-only.** It includes `send_message`, `reply`, `forward`, `trash_message`, `trash_thread` and `mark_message_spam`. Real send and real destructive operations are exposed, with no vendor-side guardrail standing between a tool call and a delivered or deleted message.
+
+**Consequence for this pilot: SP's own rule in Phase 0 step 4 is now the only thing enforcing draft-only.** That step anticipated this exact case by saying SP's rule holds even if Anthropic loosens the send restriction. That contingency is now the live situation, not a hypothetical. The rule is load-bearing.
+
+**Open item, owned by Claude on CT105, not by Tom:** CT105's `PreToolUse` guardrail hook has matcher `"Bash"` only, so it does not gate these MCP tools at all. A Gmail send or trash issued as an MCP call runs unprompted. Closing that gap is Claude's to do on CT105; Tom cannot reach that machine and has not attempted it.
+
+> **Superseded 2026-08-15, kept visible as history (this claim was wrong):**
+> ~~**⚠️ Correction, verified 2026-08-15: this entire phase happens in claude.ai chat, never in Claude Code.** Gmail and Calendar have no Claude Code tool at all — confirmed by searching Claude Code's own tool list directly, not a config gap. Drive has a separate Claude Code MCP integration, but it requires its own OAuth flow from inside Code and is unrelated to the claude.ai Settings→Connectors Drive connection. Every step in Phase 2 below that touches Gmail or Calendar must be run from an actual claude.ai chat window — Tom and ClaudeBox (both Claude Code) cannot execute these steps themselves. See `SESSION_HANDOFF_2026-08-15.md`'s correction section for the full implication.~~
 
 ## Phase 2 — Staged test sequence
 
