@@ -22,6 +22,8 @@
 5. Claude.ai or Claude Desktop (Chat tab, **not** Cowork tab) → Settings → Connectors → enable Gmail, Calendar, Drive against the confirmed SP account. OAuth grant happens here; nothing else changes.
 6. Sanity-check the connection with the lowest-possible-stakes read: ask Claude to name today's date from Calendar, or list the Drive folder names at the top level. Confirms the plumbing works before any real content is touched.
 
+**⚠️ Correction, verified 2026-08-15: this entire phase happens in claude.ai chat, never in Claude Code.** Gmail and Calendar have no Claude Code tool at all — confirmed by searching Claude Code's own tool list directly, not a config gap. Drive has a separate Claude Code MCP integration, but it requires its own OAuth flow from inside Code and is unrelated to the claude.ai Settings→Connectors Drive connection. Every step in Phase 2 below that touches Gmail or Calendar must be run from an actual claude.ai chat window — Tom and ClaudeBox (both Claude Code) cannot execute these steps themselves. See `SESSION_HANDOFF_2026-08-15.md`'s correction section for the full implication.
+
 ## Phase 2 — Staged test sequence
 
 Each step is pass/fail against a **named, real** item chosen in Phase 0 step 2 — not a hypothetical. Do not proceed to the next step until the current one is verified correct by Christopher, not just "looked plausible." Order goes low-risk/read-only → higher-risk/write → cross-tool chaining, matching how the actual day-to-day workload will use it.

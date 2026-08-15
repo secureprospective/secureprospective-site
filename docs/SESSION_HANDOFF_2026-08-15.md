@@ -39,9 +39,21 @@ Keep it simple — this is deliberately not the full architecture in `NO_CRM_ARC
 
 ---
 
+## ⚠️ Correction, same day (2026-08-15, after initial handoff written): Gmail/Calendar are NOT reachable from Claude Code at all
+
+Verified directly by searching this Code session's own tool list: **there is no Gmail tool and no Calendar tool available to Claude Code, for ClaudeBox or for Tom.** Those connectors are a **claude.ai chat-only feature** (web/desktop/mobile app) — they don't exist as Code tools, full stop, not a config issue, not something to authenticate your way into from here.
+
+**Google Drive is different but still not automatic:** there IS a Drive MCP server available to Claude Code (`claude.ai Google Drive`), but it's a **separate integration from claude.ai's Settings→Connectors Drive** — it needs its own OAuth flow run from inside Claude Code specifically, unrelated to whatever's connected in the claude.ai chat UI.
+
+**This splits the real architecture into two surfaces, revise the mental model accordingly:**
+- **Gmail + Calendar**: only reachable from an actual claude.ai chat window. Neither Tom nor ClaudeBox can touch these directly — any workflow step that needs to read/draft email or read/write calendar events has to be driven from claude.ai chat, by Christopher or as an explicit human-in-the-loop step, not automated inside the Code-based build.
+- **Drive + D1/Worker/dashboard**: this is Tom/ClaudeBox's actual territory. Authenticate the Drive MCP server from Code separately if Drive access is needed from a Code session; otherwise Drive can also just go through claude.ai chat like Gmail/Calendar.
+
+**Practical consequence for the v1 build:** the "lead → contact record → booked call → pipeline entry" loop (recommended first build, below) cannot be a single Code-driven flow if it needs to draft a Gmail reply or create a Calendar event — those two steps need to happen in a claude.ai chat, with Code/Tom owning the D1 record-keeping and dashboard around them. Design the v1 build with that seam in mind from the start rather than discovering it mid-build.
+
 ## Before any of this starts: Christopher's Claude.ai setup
 
-The Google Workspace connectors (Gmail/Calendar/Drive) have to be enabled from Claude.ai's Settings UI — not something either Claude Code session can do. Full checklist is in `/root/paste.md` on CT105 (Christopher's side, not this repo). **Do not assume the connectors are live — verify with a trivial read (e.g. "what's on today's calendar") before building anything that depends on them.**
+The Google Workspace connectors (Gmail/Calendar/Drive) have to be enabled from Claude.ai's Settings UI — not something either Claude Code session can do, and per the correction above, Gmail/Calendar stay chat-only even once enabled. Full checklist is in `/root/paste.md` on CT105 (Christopher's side, not this repo). **Do not assume the connectors are live — verify with a trivial read (e.g. "what's on today's calendar") before building anything that depends on them.**
 
 ---
 

@@ -74,6 +74,8 @@ Google Workspace (Gmail/Calendar/Drive)  →  Worker sync/cron  →  D1 (source 
 - **Workers**: cron jobs for the no-touch/follow-up report, inbound-email routing (Cloudflare Email Routing → Worker → D1), the API surface Claude actually calls.
 - **Claude**: reads/writes through Worker endpoints and the approved connectors, schema and SOP knowledge living in portable markdown per the adopted rule.
 
+**⚠️ Correction, verified 2026-08-15: "Claude" above is two different surfaces, not one.** Gmail and Calendar connectors have no Claude Code tool at all — verified directly, not assumed — so any step needing to draft an email or create a calendar event must run in an actual claude.ai chat, not in Tom's or ClaudeBox's Code sessions. Drive has a separate Code-side MCP integration requiring its own auth. Practical effect on this diagram: the Worker/D1 layer is Code's (Tom's) territory end-to-end; the Gmail/Calendar edges of any workflow are a claude.ai-chat step, either driven by Christopher directly or by a documented handoff between the two surfaces. Design each workflow with this seam explicit, not implicit.
+
 ### Failure modes, named honestly (converged across panelists)
 
 1. **Concurrent edits / last-write-wins.** D1 has no row-level locking by default. Needs optimistic locking (a `version` column) or single-writer-by-area conventions.
