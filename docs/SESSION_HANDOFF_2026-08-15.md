@@ -1,0 +1,53 @@
+# Handoff — No-CRM / Google Workspace Build, 2026-08-15
+
+**Read this first if you are Tom, picking up this build.** This is the entry point; `NO_CRM_ARCHITECTURE.md` and `GOOGLE_WORKSPACE_PILOT.md` have the full detail this doc summarizes and points to. If anything here conflicts with those two docs, they win — this is a handoff summary, not the source of truth.
+
+---
+
+## Who does what (locked this session)
+
+- **ClaudeBox (Christopher's CT105 Claude Code session) is head brain.** Running Opus, medium effort. Owns judgment calls, code review, merge, and deploy — same role it already has for bird and the Beelink DeepSeek lane in this repo's existing workflow (see `CLAUDE.md`'s Workflow section). ClaudeBox does not do the heavy code-writing on this build.
+- **Tom (Beelink) does the heavy lifting — code and token burn.** Running Opus, low effort. Builds the D1 schema/migrations, Worker endpoints, dashboard, and SOP scaffolding per the plan below. **Tom does not merge to `main` and does not deploy** — that's CT105's job, identical to the existing bird/Beelink gate already in place for this repo (`CLAUDE.md`: "Bird never deploys to Cloudflare... CT105 owns the merge"). Push your work to a branch; CT105 fetches, reviews, merges.
+- Tom has **no shared filesystem with CT105** (`reference_beelink_claude_subagent`). This doc, and the two docs it points to, are the way context reaches you — they're committed to this repo specifically so a `git pull`/`git fetch` is enough, no cross-machine copy needed.
+
+---
+
+## What was decided this session (context, compressed)
+
+1. **Google Workspace integration decision.** SP connects Claude to its real Gmail/Calendar/Drive via Anthropic's official connectors (MCP-based), chat-mode only — never Cowork (ruled out: no audit-log/export path on any plan tier, plus a disclosed unpatched prompt-injection exfil vuln). Never Tom or Buzz for the connector access itself (Buzz stays walled off from real business per standing doctrine; Tom builds the code but the live Workspace connection is chat-mode-only on ClaudeBox/Claude.ai, not something Tom's build touches directly).
+2. **Portability rule adopted** (`feedback_portability_rule_business_builds`): business logic in portable plain markdown, every data store needs a documented lossless export path, credentials in a standard secrets mechanism, never markdown. Applies to everything built here.
+3. **"Never need a CRM" — scope locked** (`project_sp_no_crm_architecture`): no CRM *SaaS* specifically, not no-cloud. Cloudflare and Google Workspace stay as infrastructure — SP is a real one-man business operating today, not a green-field build. Applies across the whole business, IMO producer/compliance side included — compliance gets engineered in over time, not exempted and not blocking day-one work.
+4. **One hard exception to "build simple now, retool later":** the append-only event/audit log must start recording from day one. Everything else in this system is retrofittable after the fact; a log covering a period before it existed cannot be reconstructed. This is the one place "move fast" doesn't apply — see `NO_CRM_ARCHITECTURE.md`'s compliance-spine section for exactly what this table needs to look like (append-only, no `UPDATE`/`DELETE`, who/what/when/before/after).
+
+A four-model adversarial panel (DeepSeek, Nemotron, Gemini, MiMo — explicitly instructed not to be agreeable) produced the architecture below and unanimously flagged the IMO-compliance risk before Christopher made the final scope call. Their reasoning is preserved in `NO_CRM_ARCHITECTURE.md` — worth reading before building the compliance pieces specifically, since it names concrete failure modes (no relational integrity in Sheets, the Drive-connector-is-file-level-not-Sheets-API trap, sync drift, schema-drift maintenance tax) that the build should design around, not discover the hard way.
+
+---
+
+## v1 build scope (what Tom should actually build)
+
+Keep it simple — this is deliberately not the full architecture in `NO_CRM_ARCHITECTURE.md`, just its first slice:
+
+1. **D1 schema**: `contacts`, `deals` (with a stage-history append-only pattern, not in-place stage updates), `activities`, and `event_log` (the compliance-spine exception above — minimal but real, starts logging from the first commit that touches real data, not added later).
+2. **Worker API endpoints** that Claude calls to read/write D1 — Claude never holds DB credentials directly.
+3. **Sheets** only where a human-editable surface is genuinely needed (not as the source of truth — D1 is).
+4. **A simple dashboard** — visual feedback for Christopher, nothing fancy, matches "handful of spreadsheets, markdown files, and a dashboard" as literally stated.
+5. **SOP markdown** documenting the schema and workflows as they're built, per the portability rule — this doubles as the future onboarding-assistant's grounding corpus (`NO_CRM_ARCHITECTURE.md` steelman §D covers that follow-on, not in scope for v1).
+
+**Recommended first concrete build** (converged panel recommendation, `NO_CRM_ARCHITECTURE.md` §E): the lead → contact record → booked call → pipeline entry loop, **consulting side only** first, not the IMO side. Small, end-to-end, externally checkable. Exercises every approved Workspace connector and the full portability rule in one visible flow before anything more ambitious gets attempted.
+
+**Explicitly not in v1:** Kanban UI, commission calculator, hash-chain tamper-evidence, RBAC beyond what D1/Workers give by default, the onboarding chatbot, anything IMO-specific beyond the baseline `event_log` table. Those come later, if and when actually needed — don't build ahead of the business.
+
+---
+
+## Before any of this starts: Christopher's Claude.ai setup
+
+The Google Workspace connectors (Gmail/Calendar/Drive) have to be enabled from Claude.ai's Settings UI — not something either Claude Code session can do. Full checklist is in `/root/paste.md` on CT105 (Christopher's side, not this repo). **Do not assume the connectors are live — verify with a trivial read (e.g. "what's on today's calendar") before building anything that depends on them.**
+
+---
+
+## Where everything lives
+
+- `docs/NO_CRM_ARCHITECTURE.md` — full architecture, panel findings, failure modes, steelman arguments, the compliance-spine definition.
+- `docs/GOOGLE_WORKSPACE_PILOT.md` — the connector build map and 9-step staged test sequence (Drive/Calendar/Gmail read→write→chained→ambiguity-probe→export-drill). Run this before trusting the connectors with anything real.
+- `CLAUDE.md` (this repo's root) — Open Items has pointers to both, plus the existing SP stack/workflow conventions (Astro/Cloudflare Pages, bird/Beelink git remotes, build command, branch discipline).
+- Backbone memory (CT105-side, not reachable from Tom directly, but Christopher can relay anything relevant): `project_sp_no_crm_architecture`, `project_google_workspace_integration_decision`, `feedback_portability_rule_business_builds`, `christopher_worldview_maxims` (#4 is relevant here — vendor-support arguments don't hold the way they used to, don't over-index on "what would a CRM vendor's support team do" when making build calls).
