@@ -43,3 +43,44 @@ test steps.
   point, but it was outside my scope so I did not touch it. Someone should decide whether
   it gets the same treatment.
 - **Ownership of the CT105 hook gap is recorded, not fixed.** I cannot reach CT105.
+
+---
+
+## Follow-up, same day, same branch (task C1b)
+
+This closes the third bullet above. `SESSION_HANDOFF_2026-08-15.md` was worse than I
+described: the stale claim was not a passing mention, it was a dedicated section with
+build guidance derived from it.
+
+**`docs/SESSION_HANDOFF_2026-08-15.md`, the whole correction section.** Rewritten in the
+same pattern as the other two files: a superseding block citing the `mcp__claude_ai_*`
+tool names and the `list_calendars` / `list_labels` evidence, the send/trash exposure
+stated as the new risk, and the entire old section (heading, the no-Gmail-tool claim, the
+separate-Drive-OAuth claim, the two-surface split bullets, and the practical-consequence
+paragraph) preserved verbatim as struck blockquoted history.
+
+**The load-bearing edit: the "practical consequence for the v1 build" guidance is
+corrected, not merely struck.** It previously told the reader that the lead → contact →
+booked call → pipeline loop could not be a single Code-driven flow. It now says plainly
+that it can, and that the Gmail draft, the Calendar event and the D1 writes all belong in
+one Code session with no chat handoff. A reader who skips the struck history gets the
+right architecture.
+
+I kept one human-in-the-loop step, but reframed it honestly as a **policy** rule rather
+than a capability limit: drafts are left in Drafts for Christopher to send himself, and
+`send_message` / `reply` / `forward` stay out of any automated path. That is the standing
+never-send-without-permission rule, not a leftover of the wrong claim.
+
+**Line 56's verify-with-a-trivial-read instruction stays**, as directed. Only the
+chat-only clause around it was corrected.
+
+**`docs/GOOGLE_WORKSPACE_PILOT.md`, the hook open item.** Reworded: the gate is written
+(`confirm-connector.sh`, per-server `PreToolUse` matchers for all three connectors) and
+pending activation, since hook config edits do not apply to an already-running session.
+It no longer says no gate exists. The unprompted-send window is still described as open
+until activation, because it is.
+
+### Still true from above
+
+I verified nothing myself and was not asked to. The struck history retains its em dashes
+by the same reasoning as before. The hook remains Claude's to activate on CT105.
