@@ -57,4 +57,11 @@ Each step is pass/fail against a **named, real** item chosen in Phase 0 step 2 �
 
 ## Test log
 
-*(Append results here as each phase-2 step is actually run — date, step #, pass/fail, notes. Empty until the pilot begins.)*
+**2026-08-15 — Phase 1 (Connect) — PASS, verified in a fresh claude.ai chat.** All three connectors returned real, specific, verifiable data, not vague/generic answers — this matters because a connector can look "connected" in Settings while actually returning hallucinated or stale content:
+- **Calendar**: real event (a real client's actual name, real Google Meet link, real attendee email), correctly reported the rest of the 7-day window as empty rather than inventing filler.
+- **Gmail**: real thread IDs/senders/timestamps from the actual inbox, including correctly identifying Google's own connector-confirmation security-alert emails as exactly that.
+- **Drive**: real file listing, opened one document and quoted its actual first line verbatim rather than a generic description.
+
+**Note the distinction:** this confirms the connectors work end-to-end (Phase 1), not that the 9-step staged Phase 2 sequence below has been run. Phase 2 (Drive write, Calendar write, Gmail draft, cross-tool chaining, the ambiguity probe, the export/portability drill) is still the next real gate before this is trusted for actual business use — don't skip to real work assuming Phase 1's read-only success covers it.
+
+**Also worth noting for whoever picks this up next:** real, sensitive SP business/personal data is now flowing through this pipeline (a real client name, real church-organization data, real annuity/insurance research documents). Treat every session touching these connectors from here forward as live, not a sandbox — the governance already locked in (chat-mode only, Gmail draft-never-autonomous-send, no Cowork) applies starting now, not just once a "real" workflow is declared.
