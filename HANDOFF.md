@@ -1,9 +1,7 @@
 # Handoff
 
-- **Baton:** Bee, 2026-08-25
-- **Status:** First Advisor OS build-test scaffolding is in `projects/advisor-os/` on branch `session/advisor-os-poc`.
-- **Built:** Fedora 43 bootc KDE payload, Brave policy, local Advisor PWA/RPC printer workflow, qcow2, and generic bootc ISO.
-- **Verified:** host tests, playbook integrity, installed-image runtime smoke, qcow2 UEFI/KVM/swtpm boot, and ISO UEFI GRUB boot.
-- **Next:** complete an interactive ISO install with LUKS2 in QEMU, then verify the PWA workflow from Brave. Do not call encrypted-install acceptance passed yet.
-- **Blocked:** no Podman is installed, so scripts use Docker to build and an image-builder container with an internal Podman store. The QEMU RPC host-forward experiment did not reach the loopback-bound service and needs a deliberate test path.
-- **Deferred:** production signing, real Pi runtime wiring, live cloud provider, physical IPP printer, GNOME edition, branding, and hardware matrix.
+- **Baton:** ClaudeBox, 2026-08-25
+- **Where it stands:** `projects/advisor-os/` contains the first KDE Fedora 43 bootc payload, Brave policy, local Advisor RPC/PWA, Markdown printer help, integrity-checked printer playbook, QEMU scripts, qcow2 artifact path, and generic bootc ISO path. Host tests, installed-image functional smoke, qcow2 UEFI/KVM/swtpm boot, and ISO UEFI/GRUB boot passed. The encrypted-install gate is still open.
+- **Next move:** Run the interactive LUKS2 installation test in QEMU with `QEMU_MODE=iso ./projects/advisor-os/scripts/run-qemu.sh`, then verify Brave opens the PWA and complete the printer workflow without a terminal.
+- **Blocked on:** Interactive graphical Anaconda/LUKS2 installation and the loopback test path for the local-only RPC service. Podman is absent; Docker plus the image-builder container is the working build path for now.
+- **Tried and rejected:** Direct Docker `bootc install to-disk` was rejected after loop-device/root-partition-type failures. The host Docker image store was not treated as interchangeable with Podman storage; the image-builder container's internal Podman store is used instead. The QEMU host-forward experiment was not counted as passing because the service intentionally binds to guest loopback.
