@@ -1,0 +1,6 @@
+label: "Secureprospective-Advisor-POC"
+grub2:
+  entries:
+    - name: "Install Advisor OS POC"
+      linux: "/images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Secureprospective-Advisor-POC console=tty0 inst.graphical selinux=0 rhgb quiet"
+      initrd: "/images/pxeboot/initrd.img"

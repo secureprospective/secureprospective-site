@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0033a0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Advisor Help</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <p class="eyebrow">ADVISOR HELP / DEVICE HEALTH</p>
+        <h1>Printer help</h1>
+        <p class="lede">Understand the problem first. Nothing changes until you approve it.</p>
+      </header>
+
+      <section class="card" aria-labelledby="status-heading">
+        <div class="card-heading"><h2 id="status-heading">Current status</h2><span id="status-badge" class="badge">Checking</span></div>
+        <p id="status-copy">Checking the print service and printer connection.</p>
+        <dl id="facts" class="facts"></dl>
+      </section>
+
+      <section class="card" aria-labelledby="help-heading">
+        <h2 id="help-heading">What can I do?</h2>
+        <div class="actions">
+          <button id="diagnose" class="button button-primary">Diagnose problem</button>
+          <button id="approve" class="button" disabled>Approve reconnect</button>
+          <button id="reconnect" class="button" disabled>Reconnect printer</button>
+          <button id="verify" class="button" disabled>Print test page</button>
+          <button id="report" class="button button-secondary">Generate evidence record</button>
+        </div>
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+      </section>
+
+      <section id="diagnosis" class="card hidden" aria-labelledby="diagnosis-heading">
+        <h2 id="diagnosis-heading">Plain-English explanation</h2>
+        <p id="diagnosis-copy"></p>
+        <details><summary>Technical information sent for diagnosis</summary><pre id="sanitized-request"></pre></details>
+      </section>
+
+      <section id="report-panel" class="card hidden" aria-labelledby="report-heading">
+        <div class="card-heading"><h2 id="report-heading">Security evidence record</h2><button id="download" class="link-button">Download JSON</button></div>
+        <pre id="report-output"></pre>
+      </section>
+
+      <footer><p>Proof-of-concept surface. Client records, browser contents, credentials, and documents are not read.</p></footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

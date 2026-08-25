@@ -1,0 +1,12 @@
+{
+  "id": "printer-reconnect",
+  "version": 1,
+  "description": "Reconnect the disposable IPP/CUPS printer fixture and verify a test page.",
+  "reversible": true,
+  "requires_approval": true,
+  "allowed_actions": [
+    "restart-cups",
+    "reconnect-fixture",
+    "verify-test-page"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "HomepageLocation": "http://127.0.0.1:8765/",
+  "HomepageIsNewTabPage": false,
+  "RestoreOnStartup": 4,
+  "RestoreOnStartupURLs": ["http://127.0.0.1:8765/"],
+  "BraveRewardsDisabled": true,
+  "BraveWalletDisabled": true,
+  "BraveAIChatEnabled": false,
+  "PasswordManagerEnabled": false,
+  "ExtensionSettings": {
+    "*": { "installation_mode": "blocked" },
+    "nngceckbapebfimnlniiiahkandclblb": { "installation_mode": "allowed" }
+  }
+}

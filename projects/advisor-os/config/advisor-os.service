@@ -1,0 +1,25 @@
+[Unit]
+Description=Secureprospective Advisor POC RPC and PWA
+After=network-online.target cups.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=advisor
+Group=advisor
+ExecStart=/usr/bin/python3 /usr/libexec/advisor-os/advisor_rpc.py
+Restart=on-failure
+RestartSec=2
+WorkingDirectory=/var/lib/advisor-os
+Environment=ADVISOR_OS_ROOT=/usr/libexec/advisor-os
+Environment=ADVISOR_PRINTER_FIXTURE=1
+StateDirectory=advisor-os
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/advisor-os
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

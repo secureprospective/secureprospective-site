@@ -1,0 +1,21 @@
+:root { font-family: system-ui, sans-serif; color: #222; background: #f5f5f2; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.shell { width: min(820px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 48px; }
+.masthead { border-top: 8px solid #0033a0; padding: 24px 0 20px; }
+.eyebrow { color: #0033a0; font-size: .75rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 12px; }
+h1, h2 { margin: 0; }
+h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -.04em; }
+h2 { font-size: 1.2rem; }
+.lede { font-size: 1.15rem; max-width: 55ch; }
+.card { background: #fff; border: 1px solid #d5d5d0; border-left: 6px solid #0033a0; padding: 20px; margin: 16px 0; box-shadow: 5px 5px 0 #222; }
+.card-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.badge { background: #e6e6e1; padding: 5px 8px; font-size: .75rem; font-weight: 800; text-transform: uppercase; }
+.badge.warning { background: #ffd700; }.badge.good { background: #87d7a0; }
+.facts { display: grid; grid-template-columns: 1fr 2fr; gap: 8px 16px; margin: 20px 0 0; }.facts dt { font-weight: 700; }.facts dd { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+button { font: inherit; cursor: pointer; border: 2px solid #222; background: #fff; padding: 10px 14px; font-weight: 700; }.button-primary { background: #ffd700; }.button-secondary { background: #0033a0; color: #fff; }.button:disabled { cursor: not-allowed; opacity: .45; }
+.message { min-height: 1.5em; margin-top: 18px; font-weight: 650; }.message.error { color: #9a1b1b; }.message.success { color: #146b35; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f0f0ec; padding: 12px; font-size: .8rem; }details { margin-top: 20px; }summary { cursor: pointer; font-weight: 700; }
+.hidden { display: none; }.link-button { border: 0; background: transparent; text-decoration: underline; padding: 0; }.card footer, footer { color: #555; font-size: .85rem; margin-top: 28px; }
+@media (max-width: 560px) { .shell { width: min(100% - 20px, 820px); padding-top: 20px; }.card { box-shadow: 3px 3px 0 #222; padding: 16px; }.facts { grid-template-columns: 1fr; gap: 2px; }.facts dd { margin-bottom: 8px; } }
