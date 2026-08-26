@@ -44,6 +44,13 @@ Greppable record of approaches proven not to work. Every entry has an error sign
 - **Source:** Dated host verification run, 2026-08-26; docs/03-ISO-BUILD-PLAN.md §2.2
 - **Status:** PREDICTED
 
+### DN-07 — Current pinned bootc-image-builder cannot convert this Fedora Kinoite-derived image
+- **Error signature:** `failed to initialize bootc distro: missing required info: DefaultRootFs`; one explicit `--rootfs xfs` corrective attempt then returned `reference "[overlay@/var/lib/containers/storage+/run/containers/storage]docker.io/library/sp-plus-kde:spike" does not resolve to an image ID`
+- **Why:** The pinned `quay.io/centos-bootc/bootc-image-builder:latest` digest did not produce a qcow2 from the exact Spike A image and command path. The first failure lacked root filesystem metadata; the only corrective attempt did not resolve the local image reference.
+- **Do instead:** Do not claim the derived Fedora Kinoite desktop architecture passes until the builder/image metadata and local-reference failure are resolved in a separately authorized run.
+- **Source:** `docs/ledger/runs/2026-08-26-spike-A.md`, Spike A on 2026-08-26
+- **Status:** PROVEN
+
 ## Candidates from the postmortem
 
 See docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md Part II. Anti-patterns get promoted into this file with a DN number when a run actually proves them, not in bulk.
