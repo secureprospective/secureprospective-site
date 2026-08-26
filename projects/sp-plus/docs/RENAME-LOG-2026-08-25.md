@@ -23,9 +23,11 @@ The outer repository directory `~/work/secureprospective-advisor-os/` was **not*
 It is a git worktree of `secureprospective-site`, and worktrees store absolute paths; a
 rename would need the whole cluster moved together. Left as-is deliberately.
 
-`~/.pi/agent/memory/project_secureprospective_advisor_os.md` was **not** renamed in this
-pass because Bee was running against that memory directory at the time. It needs the
-same treatment in a follow-up.
+`~/.pi/agent/memory/project_secureprospective_advisor_os.md` became
+`~/.pi/agent/memory/project_sp_plus.md`, rewritten around the architecture of record, with
+the `MEMORY.md` index link updated and a dated entry appended to
+`~/.pi/agent/backbone/context.md`. This was done after Bee's research run finished, so
+that nothing wrote into that directory while Bee was using it.
 
 ## Identifiers
 
