@@ -184,23 +184,44 @@ else
     if ! cat > /usr/libexec/spplus-firstboot-password <<'SPPLUS_PASSWORD_SCRIPT'
 #!/bin/bash
 set -u
-exec </dev/tty1 >/dev/tty1 2>&1
-mkdir -p /var/lib/spplus || exit 1
-printf '\nSP+ first boot: choose the password for advisor.\n'
-printf 'New password: '
-IFS= read -r -s first || exit 1
-printf '\nRetype new password: '
-IFS= read -r -s second || exit 1
-printf '\n'
-if [ -z "$first" ] || [ "$first" != "$second" ]; then
-    printf 'Passwords did not match; reboot and try again.\n'
+# DN-17: this ran on a hardcoded /dev/tty1 and failed on every boot. Use whatever
+# the system's ACTIVE console is, so it works on a laptop screen and on a serial
+# console alike, and record WHY it failed instead of dying silently.
+fail() {
+    mkdir -p /var/lib/spplus 2>/dev/null
+    printf '%s %s\n' "$(date -u +%FT%TZ)" "$1" >> /var/lib/spplus/firstboot-error
     exit 1
-fi
-printf 'advisor:%s\n' "$first" | /usr/sbin/chpasswd || exit 1
-unset first second
-printf '%s\n' "$(date -u +%FT%TZ)" > /var/lib/spplus/advisor-password-set
-chmod 600 /var/lib/spplus/advisor-password-set
-printf 'Password set. Starting the graphical login.\n'
+}
+# Plymouth owns the framebuffer until it is told to stop (DN-15); the prompt is
+# invisible underneath it and the machine looks bricked while it waits.
+/usr/bin/plymouth quit --retain-splash 2>/dev/null
+/usr/bin/plymouth quit 2>/dev/null
+CON=/dev/console
+[ -c "$CON" ] || fail "no $CON character device"
+exec <"$CON" >"$CON" 2>&1 || fail "could not attach to $CON"
+mkdir -p /var/lib/spplus || fail "could not create /var/lib/spplus"
+for attempt in 1 2 3; do
+    printf '\n'
+    printf '  ============================================\n'
+    printf '     SP+ first boot\n'
+    printf '     Choose the password for the advisor account.\n'
+    printf '  ============================================\n\n'
+    printf '  New password: '
+    IFS= read -r -s first || fail "console read failed (attempt $attempt)"
+    printf '\n  Retype new password: '
+    IFS= read -r -s second || fail "console read failed (attempt $attempt)"
+    printf '\n'
+    if [ -n "$first" ] && [ "$first" = "$second" ]; then
+        printf 'advisor:%s\n' "$first" | /usr/sbin/chpasswd || fail "chpasswd failed"
+        unset first second
+        printf '%s\n' "$(date -u +%FT%TZ)" > /var/lib/spplus/advisor-password-set
+        chmod 600 /var/lib/spplus/advisor-password-set
+        printf '\n  Password set. Starting SP+.\n\n'
+        exit 0
+    fi
+    printf '\n  Those did not match. Try again.\n'
+done
+fail "three mismatched attempts"
 SPPLUS_PASSWORD_SCRIPT
     then
         post_failure "SP+ post FAILED: could not write first-boot password helper"
@@ -211,8 +232,9 @@ SPPLUS_PASSWORD_SCRIPT
 [Unit]
 Description=SP+ first-boot advisor password setup
 ConditionPathExists=!/var/lib/spplus/advisor-password-set
-After=local-fs.target
-Before=display-manager.service
+After=local-fs.target systemd-user-sessions.service plymouth-quit-wait.service
+Before=display-manager.service getty@tty1.service
+Conflicts=getty@tty1.service
 
 [Service]
 Type=oneshot
@@ -220,10 +242,11 @@ ExecStart=/usr/libexec/spplus-firstboot-password
 StandardInput=tty-force
 StandardOutput=tty
 StandardError=tty
-TTYPath=/dev/tty1
+# DN-17: /dev/console, not /dev/tty1 — the active console is the laptop screen on
+# hardware and the serial line under test, and hardcoding tty1 failed both.
+TTYPath=/dev/console
 TTYReset=yes
 TTYVHangup=yes
-TTYVTDisallocate=yes
 
 [Install]
 WantedBy=multi-user.target

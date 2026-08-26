@@ -164,6 +164,53 @@ RUN set -eux; \
     # is requested explicitly and asserted — never let this regress silently.
     lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q ostree
 
+# ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----
+# Vendored, audited subset of KDE-Windows-Modern (GPL-3.0-only, upstream author
+# Jeysef; LICENSE and ATTRIBUTION ship alongside it under /usr/share/sp-plus/theme).
+# Deliberately NOT shipped: the upstream C++ System Tray and Icon Tasks applets, the
+# patched login manager and the lock-screen shell overlay — they fork core Plasma and
+# break at every update. The layout uses native Plasma applets instead, and no
+# Microsoft artwork ships: the wallpaper is SP+'s own.
+COPY theme/look-and-feel/  /usr/share/plasma/look-and-feel/
+COPY theme/desktoptheme/   /usr/share/plasma/desktoptheme/
+COPY theme/color-schemes/  /usr/share/color-schemes/
+COPY theme/aurorae/        /usr/share/aurorae/themes/
+COPY theme/icons/          /usr/share/icons/
+COPY theme/Kvantum/        /usr/share/Kvantum/
+COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
+
+# kvantum supplies the widget style the theme's defaults select. Without it Qt apps
+# fall back and the theme looks half-applied in System Settings.
+RUN dnf install -y --setopt=install_weak_deps=False kvantum \
+ && dnf clean all \
+ && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true
+
+# Make SP+ Windows 11 (Dark) the shipped default look, system-wide rather than in
+# /home, so a fresh advisor account gets it on first login (decision D25).
+RUN printf '%s\n' \
+      '[General]' \
+      'ColorScheme=WindowsModernDark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
+      '' \
+      '[Icons]' \
+      'Theme=windows-modern' \
+      '' \
+      '[KDE]' \
+      'widgetStyle=kvantum-dark' \
+      > /etc/xdg/kdeglobals \
+ && printf '%s\n' \
+      '[Theme]' \
+      'name=Windows-modern-dark' \
+      > /etc/xdg/plasmarc \
+ && printf '%s\n' \
+      '[org.kde.kdecoration2]' \
+      'library=org.kde.kwin.aurorae' \
+      'theme=__aurorae__svg__windows-modern-dark-aurorae' \
+      > /etc/xdg/kwinrc \
+ && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark \
+ && test -f /usr/share/color-schemes/WindowsModernDark.colors \
+ && test -d /usr/share/aurorae/themes/windows-modern-dark-aurorae
+
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1
 ENV SPPLUS_LISTEN_ADDRESS=127.0.0.1
