@@ -17,12 +17,28 @@ Every fact below was checked on 2026-08-25. Anything not verified is marked
 | Fact | Value | Source |
 |---|---|---|
 | Fedora Linux 44 release date | 2026-04-28 (delayed twice from 2026-04-14) | [OSTechNix](https://ostechnix.com/fedora-44-release-date-confirmed/), [Fedora Magazine](https://fedoramagazine.org/announcing-fedora-linux-44/) |
-| Fedora 44 is current stable as of today | Yes. Fedora 45 is in development (tags exist in registries) | quay.io tag listing |
+| Fedora 44 is current stable as of today | Yes. Fedora 45 branched from Rawhide on 2026-08-11 and entered Beta Freeze on 2026-08-25; Beta 2026-09-15, final target 2026-10-20 | [F45 schedule](https://fedorapeople.org/groups/schedule/f-45/f-45-key-tasks.html) |
 | `quay.io/fedora/fedora-bootc:44` exists | Yes. Also tagged `latest`. Manifest list, 4 architectures. Last pushed 2026-08-24 | `quay.io/api/v1/repository/fedora/fedora-bootc/tag/` |
 | `quay.io/fedora/fedora-kinoite:44` exists | Yes. Tags: `latest, 44, 44-x86_64, 44-aarch64, 43, 43-*, 45` | quay.io API |
 | `quay.io/fedora/fedora-silverblue:44` exists | Yes, same tag shape | quay.io API |
 | `bootc-image-builder` repo status | **Archived 2026-06-18.** Development merged into `osbuild/image-builder` | [osbuild/bootc-image-builder README](https://github.com/osbuild/bootc-image-builder/blob/main/README.md), [osbuild.org/docs/bootc](https://osbuild.org/docs/bootc/) |
-| image-builder image types | `qcow2` (default), `raw`, `ami`, `vmdk`, `vhd`, `gce`, `anaconda-iso`, `bootc-installer`, `pxe-tar-xz` | bootc-image-builder README |
+| Builder containers that currently exist | `quay.io/centos-bootc/bootc-image-builder:latest` (still published) **and** `ghcr.io/osbuild/image-builder-cli:latest` (the successor; this is what the 2026-08-25 session used) | quay.io and ghcr.io tag listings, checked 2026-08-25 |
+| Fedora 44 EOL | ~2027-05-19 to 2027-06-02 (about 13 months of support) | [endoflife.date/fedora](https://endoflife.date/fedora) |
+| Fedora 45 release date | 2026-10-20 — **about eight weeks from now** | [Fedora wiki Releases/45](https://fedoraproject.org/wiki/Releases/45/ChangeSet) |
+| image-builder image types | `qcow2` (default), `raw`, `ami`, `vmdk`, `vhd`, `gce`, `anaconda-iso`, `bootc-installer`, `pxe-tar-xz` | bootc-image-builder README (**archived — superseded, see next row**) |
+| **Current ISO image type** | **`bootc-generic-iso`.** `anaconda-iso` is the historical path and the current CLI rejects it in some bootc modes. Flags: `--bootc-ref`, `--bootc-installer-payload-ref`, `--bootc-default-fs` | [image-builder doc/20-advanced/20-bootc/10-isos.md](https://github.com/osbuild/image-builder/blob/main/doc/20-advanced/20-bootc/10-isos.md) |
+| Generic ISO container contract | The installer container must supply: a kernel at `/usr/lib/modules/*/vmlinuz` with `initramfs.img` beside it; the UEFI vendor dir under `/usr/lib/efi/shim/*EFI/$VENDOR`; `shimx64.efi`, `mmx64.efi`, `gcdx64.efi` under `/boot/efi/EFI/$VENDOR`; `/usr/share/grub2/unicode.pf` and `/usr/lib/grub/i386-pc`; the executables `podman`, `mksquashfs`, `xorriso`, `implantisomd5`, `grub2-mkimage`, `python`; an `iso.yaml` under `/usr/lib/image-builder/bootc/`; **and Anaconda plus its dependencies, which image-builder does not provide** | same |
+| Payload embedding | `--bootc-installer-payload-ref` copies the payload container into `/var/lib/containers/storage` inside the ISO's squashfs, so installation needs no registry | same |
+| Anaconda `bootc` kickstart arguments | **Two are needed:** `--source-imgref` (what to install) and `--target-imgref` (what the installed machine updates from). Omitting the target leaves the machine with no update channel | [pykickstart bootc](https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html#bootc) |
+| image-builder + LUKS | image-builder documents that **LUKS does not currently work with bootable containers** in its disk-image storage configuration. Encryption must therefore come from Anaconda, not from the image-builder config | [image-builder sources-of-configuration](https://github.com/osbuild/image-builder/blob/main/doc/20-advanced/20-bootc/05-sources-of-configuration.md) |
+| `bootc install to-disk --block-setup tpm2-luks` | Exists, and is a trap for SP+: it creates a temporary passphrase, enrolls TPM2, and then **wipes all other keyslots**, leaving no user passphrase and no recovery key | [bootc install-to-disk](https://github.com/bootc-dev/bootc/blob/main/docs/src/man/bootc-install-to-disk.8.md) |
+| Fedora bootc base images and users | Contain **no default interactive user** and no hardcoded credentials. An installed system can boot correctly and have no way to log in | [Fedora bootc authentication](https://docs.fedoraproject.org/en-US/bootc/authentication/) |
+| `systemd-cryptenroll --tpm2-pcrs` default | **Empty** when enrolling directly. `crypttab` documents a PCR 7 default in a different situation. Always state the PCR policy explicitly | [systemd-cryptenroll(1)](https://man7.org/linux/man-pages/man1/systemd-cryptenroll.1.html) |
+| Own-shim signing | Since **2026-06-27** shims submitted to Microsoft can only be signed by the Microsoft UEFI CA 2023, on top of reproducible-build, SBAT, security-contact, and revocation obligations | [shim-review](https://github.com/rhboot/shim-review) |
+| Fedora's current image definitions | `fedora-kickstarts` / `spin-kickstarts` is **archived**. Fedora now builds images from `releng/kiwi-descriptions` on Fedora Forge using **KIWI NG**, with Zuul/tmt CI. Fedora's own prose documentation still describes the old kickstart path; the Forge repository is the current implementation | [Fedora Forge kiwi-descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) |
+| `generic-release` identity | Sets `ID=generic`. It satisfies the trademark rule but leaves the machine identifying as "generic"; SP+ needs its own release package. Upstream pattern: `dnf -y swap fedora-release generic-release --allowerasing` | Fedora bootc docs; `generic-release` package |
+| Brave RPM vs Flatpak | Brave **recommends its native Fedora RPM over its Flatpak**, warning that the Flatpak modifies Chromium sandboxing in ways not vetted by Brave or Chromium security teams | [brave.com/linux](https://brave.com/linux/) |
+| `containers.bootc` label on `quay.io/fedora/fedora-kinoite:44` | `containers.bootc=1`, `ostree.bootable=true`, `ostree.linux=7.1.10-200.fc44.x86_64`, `org.opencontainers.image.version=44.20260826.0` — confirmed bootc-compatible and rebuilt within the last day | quay.io registry API, checked 2026-08-25 |
 | Anaconda `bootc` kickstart command | Landed ~Dec 2025. `bootc --source-imgref=registry:<ref>`. Does filesystem population *and* bootloader via bootc. Supersedes `ostreecontainer` for bootc images | [Fedora Magazine](https://fedoramagazine.org/introducing-the-new-bootc-kickstart-command-in-anaconda/) |
 | Anaconda `bootc` known limits | No multi-disk partitioning, limited custom mount points, no authenticated registry support | same |
 | Anaconda Web UI in Fedora 44 | Default graphical installer. Four steps: Welcome, Installation method, Storage configuration, Review and install. Storage step has a single **"Encrypt my data"** checkbox for LUKS FDE | [Fedora Magazine](https://fedoramagazine.org/anaconda-installer-redesign/), F44 install walkthroughs |
@@ -62,10 +78,9 @@ RUN bootc container lint
 ```
 
 Build with `podman build`. Push to a registry. Convert to installable media with
-`osbuild/image-builder` (`--type anaconda-iso` or `--type bootc-installer`) or a live-ISO
-builder. Installed machines update with `bootc upgrade`, pulling the new image from the
-registry, staging it, and rebooting into it, with the previous deployment retained for
-rollback.
+`osbuild/image-builder` (image type `bootc-generic-iso`). Installed machines update with
+`bootc upgrade`, pulling the new image from the registry, staging it, and rebooting into
+it, with the previous deployment retained for rollback.
 
 **What you get.** `/usr` is read-only and byte-identical on every machine in the fleet.
 The build is a Containerfile in git — completely reproducible, diffable, reviewable, and
@@ -89,11 +104,27 @@ bootc. Choosing raw ostree today means operating a bespoke HTTP repo and its GPG
 mirroring, and pruning, instead of using a container registry that already solves all
 three. Option B is Option A with more infrastructure and fewer tools. **Rejected.**
 
-### Option C — Classic Kickstart + Lorax / livemedia-creator / Pungi
+### Option C — Classic package mode (today: KIWI NG, not Lorax kickstarts)
 
-The traditional Fedora spin path. A kickstart file lists packages and `%post` scripts;
-`livemedia-creator` produces a live ISO with Anaconda; the installed system is an
-ordinary mutable dnf system that updates with `dnf upgrade` or `dnf-automatic`.
+The traditional Fedora spin path, producing an ordinary mutable dnf system that updates
+with `dnf upgrade` or `dnf-automatic`.
+
+**An important correction to the obvious version of this option.** Fedora's own image
+definitions have moved. The `fedora-kickstarts` / `spin-kickstarts` repository is
+**archived**, and Fedora now builds its images from `releng/kiwi-descriptions` on Fedora
+Forge using **KIWI NG**, with Zuul/tmt CI. Those current definitions already include
+`KDE-Desktop-Live` and `Workstation-Live` profiles, Anaconda live-install packages,
+signed shim packages, and scripts that clear machine identity and set first-boot
+behavior — a far better starting point than the archived kickstarts. Note that Fedora's
+prose documentation still describes maintaining spins through kickstart files, so the two
+sources disagree; treat the Forge KIWI repository as the current implementation
+reference. `livemedia-creator` and Lorax still work, but building this way today means
+copying a path Fedora itself has left.
+
+Two operational warnings on this path if it is ever taken: `livemedia-creator --no-virt`
+runs Anaconda directly on the build host and Lorax warns it can touch real host devices
+and damage the machine, so use the QEMU path; and KIWI wants at least 15 GB of free build
+space.
 
 **What you get.** Maximum familiarity, maximum flexibility, an enormous body of prior
 art, and no constraints on kernel modules or filesystem layout.
@@ -134,7 +165,9 @@ team without distribution-engineering experience, that is a real advantage.
    unencrypted (unacceptable), or it ships with an encryption key that every SP+ user
    shares (catastrophically worse than unencrypted, because it looks safe). Encryption
    must be established on the user's machine, with the user's secret, at install time.
-   A disk capture structurally cannot do that.
+   A disk capture structurally cannot do that. A TPM enrollment captured from the
+   prototype is worse still: it is bound to the *prototype's* TPM, so it unlocks nothing
+   on the advisor's machine.
 2. **Machine identity leaks.** `/etc/machine-id`, SSH host keys, NetworkManager
    connection profiles with the build lab's Wi-Fi PSK, dconf caches, systemd random
    seed, journal from the build machine, `/var/lib/dbus`, browser profile GUIDs. Each of
@@ -224,9 +257,9 @@ layers remain identical.
 
 ### Second choice, and when to switch
 
-**Second choice: Option C (kickstart + Lorax), building a mutable Fedora 44 Workstation
-remix.** Switch to it only if one of these turns out to be true after the Phase 0 spike
-in document 3:
+**Second choice: Option C (package mode, starting from Fedora's current KIWI
+descriptions), building a mutable Fedora 44 desktop remix.** Switch to it only if one of
+these turns out to be true after the Phase 0 spike in document 3:
 
 - The Atomic Desktop bootc images cannot be made to accept a required piece of software
   at all (a genuinely unavoidable third-party kernel module, an installer that refuses
@@ -242,55 +275,103 @@ by pinning updates and shipping a config RPM — not waved away.
 
 ## 3. Installation media: how "plug and play" is actually achieved
 
-An ISO is not a product. The install experience is. There are two viable tracks and they
-should be sequenced, not chosen between.
+An ISO is not a product. The install experience is.
 
-### Track 1 — `anaconda-iso` with an interactive kickstart (use this first)
+> **This section was rewritten after the parallel research pass.** The original version
+> proposed a second track built on `titanoboa` plus a third-party graphical installer as
+> the public v1.0. That is now demoted to a later optional artifact. The reasoning is in
+> document 7 §4.
 
-`image-builder --type anaconda-iso` embeds the SP+ container image inside an ISO whose
-installer is Anaconda. The kickstart is deliberately *minimal*: it supplies the
-container reference and locale defaults and nothing else, which leaves Anaconda in
-interactive mode.
+### The plan: `bootc-generic-iso` with a preconfigured Anaconda
 
-The user experience is Fedora 44's Anaconda Web UI: Welcome → Installation method →
-Storage configuration (with a single **"Encrypt my data"** checkbox that turns on LUKS
-full-disk encryption) → Review and install. It is four screens, it is graphical, and it
-is maintained by Fedora rather than by us.
+Two container images are built per edition:
 
-**Verdict: this is not yet "plug and play", but it is honest, it works, and it is
-achievable now.** It gets a correctly encrypted, Secure-Boot-clean SP+ onto real hardware
-so the rest of the product can be validated. Ship it to internal testers and the pilot
-cohort. Do not ship it to the public and call it plug and play.
+1. **`sp-plus-kde` / `sp-plus-gnome`** — the operating system the advisor ends up
+   running.
+2. **`sp-plus-installer`** — a Fedora bootc image carrying Anaconda, its install and
+   runtime dependencies, the GRUB/ISO tooling, and the SP+ installer configuration. It
+   contains no user data.
 
-Note the documented limitation: `[customizations.user]` and
-`[customizations.installer.kickstart]` cannot both be used. If a custom kickstart is
-supplied, user creation must happen inside it — or, better for SP+, be deferred to a
-first-boot wizard.
+`image-builder` then assembles the ISO with the OS image embedded as the payload, so
+installation never touches a registry:
 
-### Track 2 — Live ISO with a branded graphical installer (the public v1.0)
+```
+image-builder build \
+  --bootc-ref localhost/sp-plus-installer \
+  --bootc-installer-payload-ref localhost/sp-plus-kde:44 \
+  --bootc-default-fs ext4 \
+  bootc-generic-iso
+```
 
-Two components, both from the Universal Blue ecosystem, both currently active:
+The installer container must satisfy the contract in the fact table above — kernel,
+initramfs, EFI vendor directory, shim and GRUB binaries, GRUB modules, six executables,
+an `iso.yaml`, and Anaconda itself, which image-builder does not supply. Getting that
+contract wrong produces an ISO that boots a kernel and then strands the user, which is
+exactly the failure class this document exists to prevent.
 
-- **`titanoboa`** builds a *live* ISO from a bootc container image: it extracts the
-  rootfs, generates a `dracut-live` initramfs, compresses with squashfs or erofs, embeds
-  the container image for offline installation, preinstalls Flatpaks, and assembles a
-  UEFI+BIOS-bootable ISO. Live means the advisor can boot the stick and **try SP+ on
-  their own laptop before touching their disk** — which for this ICP is worth more than
-  any feature we could build.
-- **`projectbluefin/bootc-installer`** is a GTK4/libadwaita graphical installer for
-  bootc images. It supports unencrypted, LUKS2 with passphrase, TPM2 auto-unlock, and
-  TPM2-primary-with-passphrase-fallback, and it detects live-ISO mode to install
-  offline from the embedded image with no network. Readymade (Ultramarine) is the
-  alternative with a comparable feature set.
+**`anaconda-iso` is the historical image type.** It appears in the archived
+`bootc-image-builder` README, which is still the top search result, and the current CLI
+rejects it in some bootc modes. Use `bootc-generic-iso`.
 
-That combination is the real answer to "plug and play": insert USB → boot → a working
-SP+ desktop appears → click *Install SP+* → choose the disk → choose a password → done →
-reboot into a first-run wizard.
+### The advisor's actual experience
 
-**Both are third-party and both are young.** `titanoboa` describes itself as
-experimental. `bootc-installer` is a hard fork of a fork. Depending on them is a real
-risk and must be treated as one: vendor the versions used, pin by digest, and budget for
-maintaining a fork. That risk is still smaller than writing an installer.
+Preselected in the kickstart, so the advisor never sees them: locale, keyboard, timezone,
+DHCP networking, filesystem layout, graphical mode, the embedded payload, SELinux
+enforcing in the installed system, and a locked root account.
+
+Explicitly decided by the advisor, because each is destructive or secret and must be:
+
+1. **Installation destination.** The internal disk shown by model and capacity. Never
+   silently erase every disk.
+2. **Encryption passphrase**, entered twice, with an explanation that it protects the
+   laptop when powered off. Not defaulted to the login password.
+3. **User account** — display name, username, login password. One normal user, no shared
+   default account.
+4. **Confirmation**, restating the target disk and that its data will be destroyed.
+5. **Reboot**, with a prompt to remove the USB stick.
+
+That is five decisions. It is not two clicks, and it should not be: disk destruction, a
+login credential, and an encryption credential cannot honestly be hidden. What it *can*
+be is five decisions and nothing else — no repositories, no desktop choice, no
+partitioning, no registry credentials, no terminal.
+
+### `--target-imgref` is mandatory
+
+The Anaconda `bootc` kickstart command takes two references:
+
+```
+bootc --source-imgref registry:ghcr.io/secureprospective/sp-plus-kde:44 \
+      --target-imgref ghcr.io/secureprospective/sp-plus-kde:44
+```
+
+`--source-imgref` is what gets installed. `--target-imgref` is what the installed machine
+updates *from*. Omit the target and every machine installs perfectly and then silently
+never receives another update. This is the highest-consequence single line in the build.
+
+### A live "try SP+" ISO is a later, optional artifact
+
+Booting a live SP+ desktop from the USB stick and using it before touching the disk is
+genuinely valuable for this user, and `ublue-os/titanoboa` builds exactly that from a
+bootc image. But titanoboa self-describes as experimental, and the graphical bootc
+installers that would pair with it (`projectbluefin/bootc-installer`, Readymade) are
+young forks. Making them the *only* public install path would put a non-technical user
+with client PII behind two dependencies we do not control.
+
+So: Anaconda is the installer of record. A live-try ISO gets its own evaluation after the
+Anaconda path is accepted, and it is allowed to fail without endangering the product.
+
+### What is rejected outright
+
+- **`ublue-os/isogenerator`** — archived since April 2024, explicitly does not support
+  bootc images, and still ranks highly in search results.
+- **Wrapping a captured disk image in an ISO** — see Option D above.
+- **`bootc install to-disk --via-loopback` as a build step** — the first thing the
+  2026-08-25 session attempted. It needs loop devices, privileged containers, and a
+  matching root partition type, and it produces a disk image rather than installation
+  media. Fine for a qcow2 test artifact; not a path to a public ISO.
+- **`bootc install to-disk --block-setup tpm2-luks`** — it creates a temporary
+  passphrase, enrolls TPM2, and then wipes all other keyslots, leaving the advisor with
+  no passphrase and no recovery key. An appliance feature, not an SP+ feature.
 
 ### What is rejected
 
@@ -338,7 +419,21 @@ operating system for the first time, it is a support call and probably an abando
 
 If a future release must break this rule, the MOK enrollment step becomes a mandatory,
 designed, illustrated part of the install flow — not an accident discovered at first
-boot.
+boot. Note also that RPM Fusion warns an unsigned NVIDIA kmod can leave the user at a
+blank screen, which is the worst possible outcome for this ICP.
+
+**Shipping our own shim is not an escape hatch.** It requires a reproducible build, a
+maintained shim source and patch set, SBAT data, published security contacts, key
+protection, long-term revocation and vulnerability response, and Microsoft signing —
+and since **2026-06-27** shims submitted to Microsoft can only be signed by the Microsoft
+UEFI CA 2023. That is an organizational commitment with no end date. Fedora's
+documentation explicitly permits a Fedora Remix to ship Fedora's shim, GRUB, and kernel
+unchanged. Do that.
+
+**Two things that are not Secure Boot and must not be confused with it.** A Fedora RPM
+signature proves package provenance; it does not make a modified PE binary acceptable to
+firmware. And cosign signs OCI artifacts; it has no bearing on what the firmware will
+boot. SP+ needs all three, separately.
 
 **What must be verified in Phase 0**, not assumed: that the derived image actually boots
 with Secure Boot enabled on real hardware, and that `mokutil --sb-state` reports
@@ -357,26 +452,63 @@ image is public. Therefore:
 
 | Stage | What happens | Mechanism |
 |---|---|---|
-| Install | The user chooses a disk password. LUKS2 is created on their machine with their secret. | Anaconda "Encrypt my data" (Track 1) or the graphical installer's encryption pane (Track 2) |
-| First boot | A recovery key is generated **on the machine**, added as a second LUKS keyslot, and displayed to the user in a wizard that will not continue until they confirm they have written it down or printed it. | `systemd-cryptenroll --recovery-key` from an SP+ first-boot unit |
-| First boot | TPM2 is enrolled as an additional keyslot so the machine unlocks without a typed password on subsequent boots, bound to PCR 7 (Secure Boot state). | `systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7` — **Anaconda cannot do this; it must be a post-install step** |
-| Ongoing | The passphrase remains a valid keyslot as a fallback for firmware changes that invalidate the TPM binding. | LUKS2 multi-keyslot |
+| Install | The advisor chooses a disk passphrase. LUKS2 is created on their machine with their secret. | Anaconda's encryption screen, driven by `autopart --encrypted --luks-version=luks2` **with `--passphrase` deliberately omitted** so Anaconda prompts |
+| First boot | A recovery key is generated **on the machine**, added as a second LUKS keyslot, and displayed once in a wizard that will not continue until the advisor confirms they have recorded it. | `systemd-cryptenroll --recovery-key` from an SP+ first-boot unit |
+| First boot | TPM2 is enrolled as an additional keyslot so later boots need no typed passphrase. | `systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=…` — **Anaconda cannot do this; it must be a post-install step** |
+| Ongoing | The passphrase remains a valid keyslot forever, as the fallback when PCR state changes. | LUKS2 multi-keyslot |
 
-Two facts constrain this design and are verified:
+Four facts constrain this design and are verified:
 
 1. **bootc has no encryption integration of its own.** Encryption comes from the
    installer, not from the image pipeline.
-2. **Anaconda has no TPM2 enrollment**, in the Web UI or in kickstart. TPM enrollment is
-   necessarily a first-boot step. `bootc-installer` (Track 2) does offer TPM2 modes,
-   which is another argument for Track 2 at v1.0.
+2. **image-builder documents that LUKS does not currently work with bootable containers**
+   in its own disk-image storage configuration. That is the concrete reason the
+   encryption must come from Anaconda's storage path.
+3. **Anaconda has no TPM2 enrollment**, in the Web UI or in kickstart. TPM enrollment is
+   necessarily a first-boot step.
+4. **The passphrase cannot be deferred to first boot.** An encrypted root cannot boot far
+   enough to reach a first-boot wizard unless something already unlocks it. The only
+   alternatives are a temporary secret carried from install to first boot, or a
+   TPM/FIDO2 enrollment done during installation — both worse. So the advisor sets the
+   passphrase in Anaconda, and first boot adds to it. `systemd-firstboot` does not solve
+   this; it configures hostname, locale, keyboard, timezone, and root credentials, and
+   is not a LUKS provisioning tool.
 
-**PCR binding is a support hazard and must be designed for.** Binding to PCR 7 means a
-firmware update, a Secure Boot key rollover, or a BIOS setting change can invalidate the
-TPM keyslot and drop the user to a password prompt they have never seen. The recovery
-key wizard and the knowledge-base article covering that exact screen are not optional
-polish; they are the difference between a recoverable event and a lost laptop full of
-client PII. The existing knowledge base already contains
-`troubleshooting/computer-asks-for-recovery-key.md`, which is the right instinct.
+**Never preseed a passphrase in the kickstart.** It would be identical on every machine
+and visible in the ISO, in git history, in installer logs, and in the generated kickstart
+on the installed system.
+
+**PCR policy must be chosen deliberately, not defaulted.** `systemd-cryptenroll`'s
+`--tpm2-pcrs` default is *empty* when enrolling directly, while `crypttab` documents a
+PCR 7 default in a different situation — so state it explicitly either way. PCR 7 measures
+Secure Boot policy and firmware trust state; PCR 11 measures kernel/UKI boot; PCR 14
+measures shim and MOK state. A GRUB/BLS system and a systemd-boot/UKI system do not
+measure identically, so the right PCR set for SP+ depends on the boot chain actually
+shipped and must be tested through kernel, bootloader, firmware, and Fedora
+major-version updates before it is fixed.
+
+**PCR binding is a support hazard either way.** A firmware update, a Secure Boot key
+rollover, or a BIOS setting change can invalidate the TPM keyslot and drop the advisor to
+a passphrase prompt they have never seen. The recovery-key wizard and the knowledge-base
+article covering that exact screen are not optional polish; they are the difference
+between a recoverable event and a lost laptop full of client PII. The existing knowledge
+base already contains `troubleshooting/computer-asks-for-recovery-key.md`, which is the
+right instinct.
+
+**Handling of the recovery key.** Display it once, in large type, offer a QR code
+(`systemd-cryptenroll` can render one) and a print option, require acknowledgement, and
+then remove every transient copy. It must never be written to `/home`, `/var`, a support
+bundle, a screenshot directory, a cloud account, or the system journal. A support
+technician must be able to walk an advisor through recovery **without ever receiving the
+key**. If no TPM is present or enrollment fails, keep the passphrase and recovery key and
+carry on — TPM must never be the only unlock path.
+
+**"Full-disk encryption" still needs a written definition.** Firmware requires an
+unencrypted EFI System Partition, and the standard Fedora layout may leave some boot
+metadata outside the LUKS volume. Whether SP+ means "root and user data" or "every
+non-firmware byte including `/boot`" is a boot-chain design decision, not a checkbox, and
+it is open (document 6, Q12). Whatever is decided, the marketing copy must match it
+exactly.
 
 ---
 
@@ -416,6 +548,23 @@ on a third party's RPM signing, and it sits awkwardly against product principle 
 ("open-source foundation"). It is a decision to make consciously — the alternative is
 Firefox with policies, or Chromium — and it is recorded as an open question in document
 6 rather than silently accepted.
+
+If Brave is chosen, use the **native RPM, not the Flatpak**. Brave's own documentation
+recommends the native package and warns that its Flatpak modifies Chromium's sandboxing
+in ways neither the Brave nor the Chromium security teams have vetted. A separate
+unknown remains: whether Brave's self-updater behaves sensibly on an immutable root.
+Either SP+ rebuilds the image to ship browser updates, or Brave's updater is permitted
+and its write path is verified. That is untested (document 6, Q1).
+
+**More generally on Flatpak sandboxing:** Flatpak's default sandbox denies network, broad
+host filesystem, device, and unrestricted D-Bus access, and those denials collide with
+exactly the things advisors need — password-manager integration, keyring access,
+printing, smart cards, file access, hardware tokens. Every Flatpak SP+ ships needs its
+permission set reviewed individually, not assumed.
+
+**Never run `dnf update` inside the Containerfile.** Fedora's bootc documentation warns
+it harms reproducibility and can mishandle kernel and bootloader updates. Pin the base
+image by digest and rebuild to pick up updates.
 
 ---
 

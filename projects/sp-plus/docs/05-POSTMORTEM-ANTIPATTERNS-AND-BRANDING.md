@@ -162,6 +162,64 @@ Specific mistakes that produce an unusable ISO. Numbered so they can be cited in
 28. **Declaring a phase complete without its gate.** This is the meta-anti-pattern that
     produces all the others.
 
+### Added from the parallel research pass
+
+These came out of Bee's independent review (document 7 §6) and are the ones most likely
+to be hit by someone following upstream examples without reading them closely.
+
+29. **Omitting `--target-imgref` from the Anaconda `bootc` kickstart.** The machine
+    installs perfectly and then silently never updates. Nobody notices for weeks. This
+    is the highest-consequence single omission in the whole build.
+30. **Using `--type anaconda-iso` because the archived README says so.** The current
+    image type is `bootc-generic-iso`, and the current CLI rejects `anaconda-iso` in some
+    bootc modes.
+31. **Building an ISO from a container that has no Anaconda in it.** image-builder does
+    not supply the installer; the installer container must. The result boots a kernel and
+    strands the user.
+32. **Mismatching the ISO label and `inst.stage2=hd:LABEL=…`.** GRUB boots, Anaconda never
+    finds its runtime, and the failure looks nothing like a label typo.
+33. **Omitting `initramfs.img` beside the kernel**, or misplacing the shim/GRUB EFI files
+    relative to `$VENDOR`. Both produce an ISO that looks complete and fails before the
+    installer starts.
+34. **Letting `selinux=0` leak from the installer into the installed system.** It appears
+    in the upstream examples as an installer-side workaround. The advisor's machine runs
+    SELinux enforcing.
+35. **Using `bootc install to-disk --block-setup tpm2-luks` and calling encryption done.**
+    It creates a temporary passphrase, enrolls the TPM, and **wipes every other keyslot** —
+    no user passphrase, no recovery key. One firmware update from an unopenable disk.
+36. **Trying to enroll a TPM during the image build.** The build runner's TPM is not the
+    advisor's TPM.
+37. **Writing the recovery key to `/var`** (or `/home`, a support bundle, a screenshot
+    directory, or the journal). That is a plaintext unlock credential sitting on the disk
+    it unlocks.
+38. **Shipping an image with no user account and no first-boot account creation.** Fedora
+    bootc base images contain no default interactive user. The system boots correctly and
+    cannot be logged into.
+39. **Running `dnf update` inside the Containerfile.** Fedora's bootc documentation warns
+    it harms reproducibility and can mishandle kernel and bootloader updates.
+40. **Writing vendor content into `/var` and expecting a later image update to replace
+    it.** `/var` is persistent machine state; versioned vendor content belongs in `/usr`.
+41. **Installing Brave's managed policy into a user profile instead of
+    `/etc/brave/policies/managed/`.** A profile reset erases it and it was never a machine
+    policy.
+42. **Assuming the Brave Flatpak and the Brave RPM are equivalent.** Brave itself
+    recommends the RPM and warns the Flatpak alters Chromium sandboxing.
+43. **Publishing an unsigned SHA-256 file.** It detects corruption; it authenticates
+    nothing. Sign the checksum.
+44. **Promoting a floating `:latest` or `:stable` tag.** The digest you tested and the
+    digest you shipped can differ. Promote the digest.
+45. **Building one image containing both KDE and GNOME.** Size, package conflicts, display
+    manager ambiguity, and a combinatorial support matrix.
+46. **Running `livemedia-creator --no-virt` on a machine you care about.** Lorax warns it
+    can operate on real host devices and damage the host. Only relevant on the fallback
+    path, and only worth learning once.
+47. **Ignoring the documented `systemd-remount-fs.service` failure** on bootc systems
+    installed through Anaconda. Reproduce it, then fix it or consciously accept it.
+48. **Failing to configure installer networking.** A remote payload, remote kickstart, or
+    external repository needs the network up inside Anaconda, and F44 changed which
+    network profiles get created. Test installer networking and installed-system
+    networking separately.
+
 ---
 
 ## Part III — Legal, trademark, and branding
@@ -191,6 +249,35 @@ guidelines apply, and they are simple to satisfy.
   legally clean way to signal the lineage.
 - Stating that SP+ is "derived from Fedora" or "built on Fedora Linux 44", provided the
   genuine Fedora repositories are used.
+
+**Three notices are required** to use the Fedora Remix mark, and they belong on the
+website, the download page, and the release materials:
+
+1. that SP+ contains **modified** Fedora materials;
+2. that SP+ is **not provided or supported by** Fedora or Red Hat;
+3. **where unmodified Fedora materials can be obtained**.
+
+SP+'s own name and branding must also be more prominent than the Fedora reference, and
+nothing may imply Fedora or Red Hat sponsorship or endorsement.
+
+**SP+ is a Fedora Remix, not a Fedora Spin.** A Spin is part of Fedora's official release
+process and requires a Fedora account and contributor agreement, a Self-Contained Change
+proposal, Release Engineering coordination, website and design coordination, Media Writer
+coordination, and an ongoing responsive maintainer. SP+ should not describe itself as a
+Spin unless it actually goes through that.
+
+**Two details on the package swap.** The upstream pattern is
+`dnf -y swap fedora-release generic-release --allowerasing`, and `generic-logos` conflicts
+with `fedora-logos` by design. But **`generic-release` sets `ID=generic`** — it satisfies
+the trademark rule while leaving the machine identifying as "generic", which is wrong for
+a product with a name. SP+ should ship its own release and logos packages, using
+`generic-*` only as the reference implementation.
+
+**One unresolved legal question.** Whether an *unchanged* Fedora-signed shim, which
+carries Fedora vendor metadata in its EFI vendor directory, needs additional trademark
+permission when it ships inside a modified image is not answered by the published
+guidelines. Ask the Fedora Council or Fedora Legal before public release. Nobody would
+think to ask this unprompted, and it is cheap to ask.
 
 **Practical consequence for the Containerfile:** the branding swap is a small, explicit
 layer, and it must be done in Phase 1 rather than left to the end, because it touches

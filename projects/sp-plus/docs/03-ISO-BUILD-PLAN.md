@@ -50,9 +50,9 @@ projects/sp-plus/
 │   ├── kde/Containerfile       # FROM quay.io/fedora/fedora-kinoite:44
 │   └── gnome/Containerfile     # FROM quay.io/fedora/fedora-silverblue:44
 ├── installer/
-│   ├── config.toml             # image-builder config (Track 1)
-│   ├── minimal-interactive.ks  # deliberately minimal kickstart
-│   └── live/                   # titanoboa config (Track 2)
+│   ├── Containerfile           # the sp-plus-installer image: Anaconda + ISO tooling
+│   ├── iso.yaml                # → /usr/lib/image-builder/bootc/iso.yaml
+│   └── interactive-defaults.ks # → /usr/share/anaconda/interactive-defaults.ks
 ├── runtime/                    # SP+ local RPC service
 ├── pwa/                        # advisor-facing PWA
 ├── knowledge/                  # Markdown knowledge base
@@ -116,9 +116,38 @@ with no manual intervention.
 
 ### 0.3 Spike B — Secure Boot on real hardware
 
-Build a Track 1 `anaconda-iso` from the spike image, write it to a USB stick, and
-install it on one physical laptop from the hardware matrix with **Secure Boot enabled in
-firmware**.
+Build a `bootc-generic-iso` from the spike image, write it to a USB stick, and install it
+on one physical laptop from the hardware matrix with **Secure Boot enabled in firmware**.
+
+This needs a second, minimal `sp-plus-installer` container carrying Anaconda:
+
+```dockerfile
+FROM quay.io/fedora/fedora-bootc:44
+RUN dnf install -qy anaconda anaconda-install-img-deps anaconda-dracut \
+      dracut-config-generic dracut-network net-tools grub2-efi-x64-cdboot \
+      plymouth default-fonts-core-sans xorrisofs squashfs-tools \
+ && dnf clean all
+RUN mkdir -p /boot/efi && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
+COPY installer/iso.yaml /usr/lib/image-builder/bootc/iso.yaml
+COPY installer/interactive-defaults.ks /usr/share/anaconda/interactive-defaults.ks
+```
+
+```bash
+image-builder build \
+  --bootc-ref localhost/sp-plus-installer \
+  --bootc-installer-payload-ref localhost/sp-plus-kde:spike \
+  --bootc-default-fs ext4 \
+  bootc-generic-iso
+```
+
+Three things in that skeleton are load-bearing and are where builds fail:
+
+- The **`inst.stage2=hd:LABEL=…`** kernel argument in `iso.yaml` must match the ISO
+  label exactly, or GRUB boots a kernel and Anaconda never finds its runtime.
+- The kickstart must carry **both** `--source-imgref` and `--target-imgref`. Without the
+  target, the installed machine has no update channel and nobody finds out for weeks.
+- The upstream example sets `selinux=0` as an **installer-side** workaround. It must not
+  leak into the installed system, which stays SELinux enforcing.
 
 **Gate 0.B:** the machine installs and boots with Secure Boot on, `mokutil --sb-state`
 reports `SecureBoot enabled`, and no MOK enrollment screen appeared at any point.
@@ -192,8 +221,13 @@ the OS image and do not force an image rebuild for an application security fix.
 - firewalld default zone and rules
 - `/usr` vendor defaults for the desktop: scaling, font sizes appropriate for older
   eyes, screen lock timeout, power management, panel layout per edition
-- SP+ branding: wallpaper, logo, `/etc/os-release` `PRETTY_NAME`, plymouth theme,
-  and the trademark-required package swap (document 5)
+- SP+ branding: wallpaper, logo, `os-release` identity, plymouth theme, GRUB menu text,
+  and the trademark-required package swap (document 5). Note that swapping in
+  `generic-release` sets `ID=generic`; SP+ needs its own release package, not that one
+- Desktop defaults through the *system* mechanisms, not the user's home: GNOME via
+  dconf keyfiles under `/etc/dconf/db/local.d/` with `dconf update`, and locks under
+  `locks/` for anything that must not drift; KDE via the cascading `XDG_CONFIG_DIRS`
+  system paths, with `[$i]` on keys that must be immutable
 - The SP+ runtime systemd unit (`sp-plus.service`), bound to loopback
 - The knowledge base under `/usr/share/sp-plus/knowledge/`
 - The PWA under `/usr/share/sp-plus/pwa/`
@@ -208,21 +242,34 @@ This is the component that most determines whether SP+ feels plug and play, and 
 not exist yet. It runs once, on first login, before the desktop is usable, and it:
 
 1. Welcomes the advisor by name and explains, in three sentences, what SP+ is.
-2. Creates or confirms the user account (if the installer deferred it).
-3. Connects to Wi-Fi if not already connected.
-4. **Generates the LUKS recovery key, displays it in large type, and refuses to continue
-   until the advisor confirms they have written it down or printed it.** Offers to print
-   it directly.
-5. Enrolls TPM2 against PCR 7 so future boots do not require the passphrase.
+2. Confirms network connectivity, connecting to Wi-Fi if needed.
+3. Runs a hardware baseline check and reports what it found in plain language.
+4. **The recovery-key sequence**, which is the security-critical part and must be built
+   as a privileged helper driven by the GUI, never as a shell command the user runs:
+   1. identify the LUKS2 device backing `/`;
+   2. ask for the existing passphrase through the GUI;
+   3. run `systemd-cryptenroll --recovery-key`;
+   4. capture the generated key **without letting it reach the journal**;
+   5. display it once, in large type, with a QR code;
+   6. offer print and save-to-removable-media;
+   7. require explicit acknowledgement that it was recorded;
+   8. only then detect a TPM2 device and enroll it against the chosen PCR policy;
+   9. verify that the passphrase, the recovery key, **and** the TPM key each unlock;
+   10. delete every transient copy.
+   If no TPM is present or enrollment fails, keep the passphrase and recovery key and
+   continue. TPM must never become the only unlock path.
+5. Explains that updates download automatically and apply on a controlled reboot.
 6. Offers to sign in to Bitwarden and to the advisor's email provider.
 7. Adds their business apps as browser PWAs.
 8. Runs the printer setup path.
-9. Shows the SP+ help PWA once, so they know where it is.
+9. Shows the SP+ help PWA once, so they know where it is, then disables itself.
 
-Implement it as a normal desktop application launched by a first-boot unit, not as an
-Anaconda addon. Steps 4 and 5 are the security-critical ones and must be idempotent and
-resumable — an advisor who closes the laptop halfway through must not end up with an
-un-enrolled recovery key and no prompt to fix it.
+Implement it as a small SP+ first-run application launched by a systemd unit, not as an
+Anaconda addon and **not by depending on `gnome-initial-setup`, `initial-setup`, or the
+Plasma welcome screen** — those are variant-specific, change between releases, and are
+not designed for machine-specific security provisioning. Step 4 must be idempotent and
+resumable: an advisor who closes the laptop halfway through must not end up with no
+recovery key and no prompt to fix it.
 
 **Gate 1.A:** a clean install reaches a usable desktop through the wizard, with a
 recorded recovery key and a TPM-enrolled disk, on real hardware.
@@ -285,24 +332,45 @@ nothing but a reboot prompt.
 
 ---
 
-## 6. Phase 4 — Plug-and-play install media (Track 2)
+## 6. Phase 4 — The public install experience
 
-**Entry:** Phase 3 gates passed. **This is where the public ISO is actually built.**
+**Entry:** Phase 3 gates passed. **This is where the ISO becomes something a member can
+be handed.**
 
-- Add the `titanoboa` live-ISO build to CI, producing a live SP+ desktop with the
-  container image embedded for offline install.
-- Integrate a graphical installer (`projectbluefin/bootc-installer` or Readymade),
-  branded as SP+, with disk selection, LUKS2 passphrase, and TPM2 enrollment in the GUI.
-- Vendor and pin both by digest. Budget for maintaining a fork.
-- Preinstall Flatpaks into the live environment so the install works with no network.
-- Produce a signed ISO plus a published SHA-256 checksum and a detached signature, with
-  verification instructions written for a non-technical reader.
-- Write the USB-writing guide for Windows and macOS users, naming specific tools.
+> **Revised after the parallel research pass.** This phase previously proposed replacing
+> Anaconda with a live ISO plus a third-party graphical installer. Anaconda is now the
+> installer of record; the live ISO is demoted to an optional experiment. See document 7
+> §4.
+
+The work here is not building a different installer. It is making the Anaconda one
+finished:
+
+- Preselect everything that is not a real decision (locale, keyboard, timezone, DHCP,
+  layout, payload, graphical mode, SELinux enforcing, root locked) so the advisor sees
+  five screens and no Linux vocabulary.
+- Two ISOs, one per desktop: `SP-Plus-44-KDE-x86_64.iso` and
+  `SP-Plus-44-GNOME-x86_64.iso`. Never one ISO that asks which desktop they want.
+- One prominent GRUB entry per ISO: **Install SP+ (KDE)**. Optionally one secondary
+  hardware-check entry.
+- Rebrand the installer surfaces: GRUB menu text, Plymouth, Anaconda product name,
+  and every Fedora string an advisor could see.
+- Confirm the ISO boots in **both** UEFI-with-Secure-Boot and plain UEFI. Do not promise
+  legacy BIOS unless it is separately tested.
+- Publish a signed ISO: SHA-256 checksum plus a detached signature, and a verification
+  path a non-technical person will actually complete (see Q10 — asking an advisor to
+  verify a GPG signature by hand is not a plan).
+- Write the USB-writing guide for Windows and macOS, naming one recommended tool that
+  verifies after writing, and warning plainly that the selected internal disk is erased.
+
+**Optional and separable:** evaluate a `titanoboa` live ISO so the advisor can try SP+
+before installing. Valuable, not load-bearing, and allowed to fail.
 
 **Gate 4.A:** an advisor-representative tester, given only the download page and a USB
-stick, installs SP+ unassisted on their own laptop in under 45 minutes.
-**Gate 4.B:** they can boot the live environment and try SP+ without touching their disk.
-**Gate 4.C:** the ISO installs with no network available.
+stick, installs SP+ unassisted on their own laptop in under 45 minutes, with Secure Boot
+on and the disk encrypted.
+**Gate 4.B:** the ISO installs with no network available.
+**Gate 4.C:** the installed machine's `--target-imgref` is correct and
+`bootc upgrade --check` reaches the SP+ channel.
 
 ---
 
@@ -310,13 +378,43 @@ stick, installs SP+ unassisted on their own laptop in under 45 minutes.
 
 **Entry:** Phase 4 gates passed.
 
-Define the supported hardware matrix explicitly, test it, and publish it. Candidate
-first tier, chosen because it is what advisors actually buy: Dell Latitude 5000/7000,
-HP EliteBook 800 / ProBook 400, Lenovo ThinkPad T/L/X, and two or three current consumer
-models from Dell, HP, and Lenovo. For each model record: Wi-Fi, Bluetooth, suspend and
-resume, external display over HDMI and USB-C, docking station, audio, microphone,
-webcam, fingerprint reader, TPM2 presence and version, Secure Boot behavior, and
-firmware update support via `fwupd`.
+Define the supported hardware matrix explicitly, test it, and publish it. **Ship a
+certified list, never a "works on most laptops" promise.**
+
+Candidate first tier, chosen because it is what advisors actually buy: two Dell Latitude
+models, two HP EliteBook or ProBook models, two Lenovo ThinkPads, one AMD business
+laptop, one recent Intel Wi-Fi 7 machine, and one deliberately older supported Intel
+machine. For each model record: Wi-Fi, Bluetooth, suspend and resume, external display
+over HDMI and USB-C, docking station, audio, microphone, webcam, fingerprint reader,
+TPM2 presence and version, Secure Boot behavior, and `fwupd` firmware update support.
+
+**Reject a model from certification if any of these are unreliable:** cold-boot
+networking, LUKS unlock, suspend/resume, external display, an audio/video call, printing,
+firmware update, or recovery-key unlock.
+
+Known gaps to test rather than assume, in rough order of likelihood:
+
+- **Broadcom Wi-Fi.** Some parts work with in-tree `brcmfmac`; others need firmware or
+  NVRAM that `linux-firmware` does not carry, or the proprietary `broadcom-wl` module,
+  which is excluded by the no-out-of-tree-modules rule. Consumer laptops are where this
+  bites.
+- **Qualcomm/Atheros and MediaTek Wi-Fi.** `ath11k`, `ath12k`, and the MT7922/MT7925
+  parts are broadly supported at the family level, but OEM board files and calibration
+  are per-SKU. Test the SKU, not the family.
+- **Fingerprint readers.** `libfprint`'s supported-device list is drawn from its
+  development branch and may describe drivers not present in the stable release. Make
+  fingerprint optional and never a path to disk recovery.
+- **Suspend / S0ix.** Firmware- and model-specific. Test lid close and open, overnight
+  battery drain, resume with external displays attached, Wi-Fi and Bluetooth resume, and
+  an encrypted reboot.
+- **NVIDIA.** Excluded by the no-out-of-tree-modules rule; the machine either works on
+  the open stack or is not on the list.
+- **HiDPI and fractional scaling**, tested separately on KDE and on GNOME, including
+  mixed-DPI multi-monitor.
+
+**`linux-firmware` is not a driver.** It supplies firmware blobs. It does not supply a
+missing kernel driver, a user-space graphics stack, or working suspend, and it does not
+guarantee any particular SKU.
 
 Anything not tested is not supported, and the download page says so.
 
@@ -355,7 +453,8 @@ Not a total loss. Triage as follows:
 | `Containerfile` FROM `fedora-bootc:43` | **Discard.** Wrong base, wrong version. Rewrite FROM `fedora-kinoite:44` |
 | Docker + image-builder workaround scripts | **Discard.** Install Podman instead |
 | `bootc install to-disk --via-loopback` attempts | **Discard** as a build path; keep the log as a recorded negative result |
-| Generic bootc installer ISO | **Discard.** Rebuild as Track 1, then Track 2 |
+| `installer/iso.yaml` + `interactive-defaults.ks` | **Keep as a starting point.** The session was on the correct modern `bootc-generic-iso` path here; audit for `--target-imgref`, the `inst.stage2` label, and a leaked `selinux=0` |
+| The built generic installer ISO itself | **Discard.** Rebuild against the new base |
 | 4.5 GB of qcow2 / ISO / QEMU state | **Delete.** Keep the text logs only |
 | Session and live-test logs | **Keep** under `docs/`, as the record of what was tried |
 
@@ -369,7 +468,7 @@ Not a total loss. Triage as follows:
 | 1 | SP+ image, both editions, first-boot wizard | Clean install to usable desktop, encrypted, TPM-enrolled |
 | 2 | Assistant, KB, evidence report | Printer workflow end to end, no terminal |
 | 3 | Signed update channel and rollback | Unattended update; recovery from a bad release |
-| 4 | Live ISO + graphical installer | Unassisted install by a representative advisor |
+| 4 | Public install experience, two branded ISOs | Unassisted install by a representative advisor |
 | 5 | Hardware matrix and pilot | 30 days, under one hour of support |
 
 Phases do not overlap. The temptation to start Phase 2 during Phase 0 is exactly what

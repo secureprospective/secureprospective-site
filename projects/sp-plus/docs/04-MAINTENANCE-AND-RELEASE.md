@@ -81,7 +81,7 @@ git push ──► GitHub Actions
                         ▼
                      …:stable      ──► advisor fleet via bootc-fetch-apply-updates
                         │
-                        └─ quarterly: titanoboa live ISO + graphical installer
+                        └─ quarterly: bootc-generic-iso from sp-plus-installer
                                       → signed ISO + SHA-256 + detached signature
 ```
 
@@ -126,9 +126,18 @@ Non-negotiables:
 
 This is the recurring event that will hurt, so it gets a standing procedure.
 
-Fedora releases roughly every six months (44 shipped 2026-04-28; 45 is in development
-now) and supports each release for about thirteen months. SP+ therefore has a mandatory
-base bump roughly annually, with a comfortable window rather than an emergency.
+Fedora releases roughly every six months and supports each release for about thirteen
+months. Fedora 44 shipped 2026-04-28 and reaches end of life around 2027-05-19. SP+
+therefore has a mandatory base bump roughly annually, with a comfortable window rather
+than an emergency.
+
+**One piece of timing matters immediately: Fedora 45 is scheduled for 2026-10-20, about
+eight weeks from this document's date.** That does not change the decision to build on
+44 — 44 is stable, tested, and supported into mid-2027, and building on a release that
+does not exist yet would be reckless. But it does mean the very first SP+ release will
+be built on a base that is one version behind within two months of shipping, and that
+the migration procedure below will be exercised for real much sooner than a year from
+now. Plan the F45 branch as part of the first year's work, not as a distant event.
 
 **Standing procedure, starting when Fedora N+1 reaches Beta:**
 

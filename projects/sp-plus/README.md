@@ -26,7 +26,8 @@ Read in order. Each document assumes the ones before it.
 
 Supporting records:
 
-- [`docs/07-PARALLEL-REVIEW-AND-DEBATE.md`](docs/07-PARALLEL-REVIEW-AND-DEBATE.md) — the independent parallel research pass and where the two analyses agreed and disagreed
+- [`docs/07-PARALLEL-REVIEW-AND-DEBATE.md`](docs/07-PARALLEL-REVIEW-AND-DEBATE.md) — the independent parallel research pass, where the two analyses agreed, the four places they disagreed, and how each was settled. **Read this before acting on documents 2 and 3; it changed both.**
+- [`docs/APPENDIX-BEE-RESEARCH-2026-08-25.md`](docs/APPENDIX-BEE-RESEARCH-2026-08-25.md) and [`docs/APPENDIX-BEE-BRIEF-2026-08-25.md`](docs/APPENDIX-BEE-BRIEF-2026-08-25.md) — the second pass's raw report and the brief it was given
 - [`docs/RENAME-LOG-2026-08-25.md`](docs/RENAME-LOG-2026-08-25.md) — the Advisor OS → SP+ old/new mapping
 - [`docs/SESSION-LOG-2026-08-25.md`](docs/SESSION-LOG-2026-08-25.md), [`docs/LIVE-TEST-LOG-2026-08-25.md`](docs/LIVE-TEST-LOG-2026-08-25.md) — the first build attempt's own record, kept unedited
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — the printer acceptance sequence
@@ -40,12 +41,14 @@ images** (`quay.io/fedora/fedora-kinoite:44` for the KDE edition,
 `quay.io/fedora/fedora-silverblue:44` for GNOME), defined entirely by a Containerfile in
 git, built in CI, signed with cosign, and published to a container registry that
 installed machines update from with `bootc`. Do **not** ship a captured disk image, and
-do **not** assemble a desktop from the minimal `fedora-bootc` base. Get the encrypted,
-Secure-Boot-clean install working first with an `anaconda-iso`, then replace the install
-experience with a live ISO and a branded graphical installer for the public release. A
-hand-configured prototype VM is a good way to discover what the image should contain and
-a terrible way to ship it: transcribe every discovery into the Containerfile and throw
-the prototype away.
+do **not** assemble a desktop from the minimal `fedora-bootc` base. Build the installation
+media as a **`bootc-generic-iso`** from a purpose-built SP+ installer container carrying
+Anaconda, and let Anaconda own disk selection, the LUKS2 passphrase, and account creation;
+enroll TPM2 and generate the recovery key on the advisor's own machine at first boot,
+never in the ISO. Keep Fedora's signed shim, GRUB, and stock kernel untouched and ship no
+out-of-tree kernel modules, so Secure Boot works with no MOK enrollment. A hand-configured
+prototype VM is a good way to discover what the image should contain and a terrible way to
+ship it: transcribe every discovery into the Containerfile and throw the prototype away.
 
 ## What is in this directory from the first build pass
 
