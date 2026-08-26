@@ -1,0 +1,1 @@
+There is one append-only file per dispatch, named `<YYYY-MM-DD>-<spike-id>.md`, recording the commands run, the exact output of the gate checks, and the verdict. Negative results are deliverables and are never deleted.
