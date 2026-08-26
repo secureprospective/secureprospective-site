@@ -65,12 +65,30 @@ function createWindowsModernPanel(screenId) {
     if (!start) { start = panel.addWidget("org.kde.plasma.kickoff"); }
     start.currentConfigGroup = new Array("General");
     start.writeConfig("icon", "start-here");
+    start.writeConfig("favorites", [
+        "applications:sp-plus-assistant.desktop",
+        "applications:brave-browser.desktop",
+        "applications:net.thunderbird.Thunderbird.desktop",
+        "applications:libreoffice-writer.desktop",
+        "applications:libreoffice-calc.desktop",
+        "applications:org.kde.dolphin.desktop",
+        "applications:org.keepassxc.KeePassXC.desktop",
+        "applications:systemsettings.desktop"
+    ].join(","));
 
     // 3. Icon-only task manager — custom Win11 style, or fall back to stock.
     var tasks = panel.addWidget("org.kde.plasma.icontasks");
     if (!tasks) { tasks = panel.addWidget("org.kde.plasma.icontasks"); }
     tasks.currentConfigGroup = new Array("General");
-    tasks.writeConfig("launchers", "");
+    // SP+ pins the advisor-facing set on the taskbar so the assistant is one
+    // click away out of the box. The assistant opens the local RPC PWA in
+    // Brave app mode; it is a launcher, not an autostart.
+    tasks.writeConfig("launchers", [
+        "applications:sp-plus-assistant.desktop",
+        "applications:brave-browser.desktop",
+        "applications:org.kde.dolphin.desktop",
+        "applications:net.thunderbird.Thunderbird.desktop"
+    ].join(","));
     tasks.writeConfig("showOnlyCurrentScreen", "false");
     tasks.writeConfig("showOnlyCurrentDesktop", "false");
     tasks.writeConfig("showOnlyCurrentActivity", "false");

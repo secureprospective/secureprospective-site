@@ -16,7 +16,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         pipewire wireplumber \
         xdg-desktop-portal-kde \
         udisks2 \
-        python3 curl ca-certificates jq sudo \
+        python3 curl ca-certificates jq sudo desktop-file-utils \
         plymouth plymouth-scripts \
         libreoffice-writer libreoffice-calc \
         okular dolphin ark gwenview spectacle kate kcalc \
@@ -51,6 +51,7 @@ COPY knowledge/ /usr/libexec/sp-plus/knowledge/
 COPY playbooks/ /usr/libexec/sp-plus/playbooks/
 COPY config/sp-plus.service      /usr/lib/systemd/system/sp-plus.service
 COPY config/brave-policies.json  /etc/brave/policies/managed/sp-plus.json
+COPY config/sp-plus-assistant.desktop /usr/share/applications/sp-plus-assistant.desktop
 
 RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
@@ -58,6 +59,10 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && systemctl enable sp-plus.service \
  && systemctl enable cups.service \
  && systemctl enable firewalld.service
+ && chmod 0644 /usr/share/applications/sp-plus-assistant.desktop \
+ && desktop-file-validate /usr/share/applications/sp-plus-assistant.desktop \
+ && grep -q "127.0.0.1:8765" /usr/share/applications/sp-plus-assistant.desktop \
+ && test -x /usr/bin/brave-browser
 
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
 # already owns /etc/systemd/system/display-manager.service. sddm is installed and its

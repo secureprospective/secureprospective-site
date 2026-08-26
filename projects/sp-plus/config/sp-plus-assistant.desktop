@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Advisor Assistant
+GenericName=SP+ Tech Buddy
+Comment=Diagnose and fix problems on this machine, safely
+Exec=/usr/bin/brave-browser --app=http://127.0.0.1:8765/ --class=SP-Plus-Assistant
+Icon=sp-plus-logo-icon
+Terminal=false
+StartupNotify=true
+StartupWMClass=SP-Plus-Assistant
+Categories=System;Utility;
+Keywords=help;support;printer;assistant;fix;
