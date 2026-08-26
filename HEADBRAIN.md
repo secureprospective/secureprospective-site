@@ -1,0 +1,279 @@
+# SP+ — HEADBRAIN ROLE HANDOFF TO TOM
+**Written 2026-08-26 ~16:30 CDT by Claude (ClaudeBox CT105) · for Tom (Claude Code, Opus, on the Beelink)**
+
+Christopher is presenting SP+ to someone important. He is working through tonight into
+tomorrow. **CT105 Headbrain is about to lose its weekly compute window. You are Headbrain now.**
+
+Read this file completely before you touch anything. Then read
+`~/sp-plus-bee/RUNBOOK.md`. Those two files are the whole job.
+
+---
+
+## 0. WHAT YOU ARE INHERITING, IN ONE PARAGRAPH
+
+SP+ is a Fedora-Kinoite-44 **bootc / image-mode** Linux distribution for financial
+advisors. It builds. It boots. Its graphical installer works and installs onto
+Dell-like SATA hardware automatically with full-disk LUKS2 encryption. **It is not yet
+deliverable, because an advisor cannot actually use the installed machine.** Two
+defects stand in the way, DN-16 and DN-15. DN-16 has a fix built and under test right
+now. DN-15 has no fix and nobody has started it. Your job tonight is to close both and
+produce an ISO Christopher can show.
+
+---
+
+## 1. THE MACHINES
+
+| Where | What |
+|---|---|
+| **Beelink `192.168.1.190`** | You run here. Also Christopher's **daily driver** — keep RAM and disk tidy. Repo at `~/work/secureprospective-advisor-os`, branch `session/sp-plus-plan`, **local only, no remote**. |
+| **CT105 `192.168.1.105`** | The old Headbrain. Going quiet. Nothing you need lives only there. |
+| **Dell `192.168.1.201`** | HW-00, the target hardware. `ssh -i ~/.ssh/laptop-sweep trader@192.168.1.201`. **FREE TO WIPE** (explicit authorization). 2014 Inspiron 5737, UEFI+GPT, Secure Boot present but DISABLED, **NO TPM**, i5-4200U, 7.6 GB RAM, 931 GB **mechanical SATA** HDD → presents `sda`. |
+
+`/tmp` on the Beelink is a **16 GB tmpfs**. Never copy a repo into it.
+A VM named `chris` belongs to Christopher. **Never kill it.**
+
+---
+
+## 2. THE TWO DEFECTS — THIS IS THE WHOLE PROJECT RIGHT NOW
+
+### DN-16 — `/etc` is `unlabeled_t`, so EVERY login fails under SELinux Enforcing
+
+This is the login loop Christopher hit by hand. **His password was always correct.**
+Anaconda writes `/etc` while the installer itself runs with `selinux=0` (DN-09), so the
+files never receive a security context. Real kernel AVCs at `permissive=0` from cycle6:
+
+```
+plasmalogin denied read on /etc/nsswitch.conf and /etc/passwd
+local_login  denied /etc/nsswitch.conf
+getty        denied /etc/localtime
+firewalld    denied /etc/nsswitch.conf
+all with tcontext=system_u:object_r:unlabeled_t:s0
+```
+
+Matches upstream bootc **#1438** and **#1690**.
+
+**The fix (commit `44f14bb`, shipped in ISO `6a593d70…`):** `%post` runs
+`spplus_relabel_targets()` — `setfiles -F` over `/etc` and `/var` using the *target*
+policy at `/etc/selinux/targeted/contexts/files/file_contexts`, then **verifies** that
+`nsswitch.conf`, `passwd`, `shadow` and `localtime` are no longer unlabeled, writing a
+durable failure to `/var/lib/spplus/%post-failed` if not.
+
+**STATUS: BUILT, INSTALLED ONTO cycle7, NEVER YET OBSERVED WORKING.** Closing this is
+your first task.
+
+### DN-15 — the LUKS passphrase prompt is INVISIBLE on the local screen
+
+`fbcon: Deferring console take-over`. The prompt goes somewhere the physical screen
+never shows. `systemd-cryptsetup` waits forever → `cryptsetup.target` never completes →
+`sysinit.target` is held → nothing starts. **To Christopher, and to anyone he shows
+this to, the laptop looks dead.**
+
+**STATUS: UNFIXED. NOT STARTED.** Almost certainly a plymouth / fbcon console-handoff
+issue. This blocks the Dell independently of DN-16 — you can close DN-16 completely and
+still have an unusable machine. **Do not let this one sit until the last hour.**
+
+---
+
+## 3. LIVE STATE AS OF THIS WRITING
+
+- **T-13 ISO built and on disk:** sha256
+  `6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db`,
+  4,135,002,112 bytes, 2026-08-26 16:04. Supersedes b04 `afc0f9c7…`.
+- **cycle7 install: SUCCEEDED, fully automated.** 8,339,324,928 bytes, plateaued at
+  420 s, final screen stddev 9068 (a real UI, not a grey screen). Disk at
+  `~/sp-plus-iso/cycle7/disk.qcow2`.
+- **cycle7 boot: FAILED TO INSTRUMENT.** `spb-boot` reported
+  `LUKS_PROMPT_ON_SERIAL=no`, `bserial.log` only 258 bytes. **See §5 — this is a bug in
+  my script, not in SP+.** The AVC count of 0 from that log is MEANINGLESS; the log
+  captured nothing past GRUB.
+- `~/sp-plus-iso/cycle6/` — the disk and `bserial.log` that PROVE DN-15 and DN-16.
+  **Do not delete.** `reap.sh` holds disks younger than 12 h; that window will expire
+  tonight, so if you still need cycle6, touch it or copy it aside.
+
+---
+
+## 4. YOUR TOOLS — `~/sp-plus-bee/`
+
+The whole test lane runs **as `chris`, with no root**. Root lives *inside* the guest and
+you reach it over the serial console. If you find yourself reaching for `sudo`, you are
+on the wrong path.
+
+```bash
+cd ~/sp-plus-bee
+export CYCLE=cycle8            # a NEW name each run; never reuse a cycle dir
+./spb-sha                      # what ISO is on disk + known shas
+./spb-build                    # rebuild, ~15 min, detached (the ONE privileged step)
+./spb-install                  # fresh SATA VM + drives Anaconda, ~12 min. WORKS.
+./spb-boot ["extra kargs"]     # serial boot + LUKS unlock. SEE §5 — NEEDS A FIX.
+./spb-shell '<cmd>'            # run a command as root inside the booted guest
+./spb-evidence                 # every avc: line, failed units, in-guest label state
+```
+
+Mirrored into the repo at `projects/sp-plus/tests/bee-lane/`.
+Gates at `~/sp-plus-gates/`: `preflight-gate.sh` (runs inside the build, 10 checks),
+`release-gate.sh` (**exit 0 is the only verdict that counts**), `reap.sh`.
+
+---
+
+## 5. THE FIRST THING YOU MUST FIX — `spb-boot` MISSES THE GRUB WINDOW
+
+I wrote `spb-boot` an hour ago and it has a real bug. It sleeps ~6 s setting up socat,
+then sends 60 `end` keys at 0.4 s apart to halt the GRUB countdown. **The countdown is
+1 second and has already expired** — the log shows
+`The highlighted entry will be executed automatically in 0s` followed immediately by
+`Booting …`. So `console=ttyS0` was never appended, and the serial log went silent
+after GRUB. That is why cycle7's boot produced 258 bytes.
+
+**Fix it before you trust any boot result.** Options, cheapest first:
+1. Start hammering `end` **immediately** after the QEMU launch, before the socat setup,
+   and drop `KEYDELAY` to ~0.05.
+2. Better: raise the GRUB timeout in the image so the window is not a race at all.
+3. Or copy the proven approach from `~/sp-plus-iso/sboot.sh`, which drives a
+   `system_reset` first so the countdown start is known.
+
+`sboot.sh` and `gboot.sh` in `~/sp-plus-iso/` are the versions that actually worked on
+cycle6 — they are hardcoded to `cycle6` but they are correct. Steal from them.
+
+**GRUB editor facts, learned the hard way:** `end` alone selects *UEFI Firmware
+Settings* — you must press `home` to get the first entry. Pressing Enter inside the
+editor **splits the linux line**, which is why `vmtype-noret.sh` exists (it is
+`vmtype.sh` with the trailing Enter removed). `grubby` **does not exist** in a bootc
+image (DN-12); boot entries are edited as BLS files under `/boot/loader/entries/*.conf`.
+
+---
+
+## 6. DO NOT RETEST — ALREADY REFUTED
+
+Every one of these was tested and disproved today. Re-running any of them costs hours
+you do not have.
+
+1. **"SELinux Enforcing deadlocks the boot."** FALSE. This was my own wrong conclusion
+   (recorded as DN-14, since corrected). It came from a single-variable A/B where the
+   harness typed the LUKS passphrase on a timer and it landed differently between runs.
+   With a serial console the system **boots to a login prompt under Enforcing**.
+2. The first-boot password unit causes the hang. Masking it → byte-identical hang.
+3. The system asks for the LUKS passphrase twice. It does not.
+4. **"`/etc` is fully labeled"** — a `find`/`ls -Z` survey reported 4820 files, 0
+   unlabeled. **The survey was wrong.** `ls -Z` prints in columns so `?` is not at line
+   start. **The kernel AVC log is the authority, never a filesystem survey.**
+5. Fedora 44 removed local graphical installs. FALSE.
+6. A missing RPM caused the grey installer screen. FALSE — the cause was
+   `TMPDIR=/mnt/sysimage/boot`.
+7. `/.autorelabel` is the fix. It is not — the ostree root is read-only (bootc #1087).
+8. `chcon` in the Containerfile. OCI layers do not carry `security.selinux` xattrs.
+
+**GOTCHA THAT WILL FOOL YOU:** SELinux **`dontaudit`** rules silently suppress denials.
+A clean `grep avc:` proves **nothing** until you have run `semodule -DB` in the guest.
+
+---
+
+## 7. VERIFICATION DOCTRINE — THIS IS THE ROLE, NOT A FORMALITY
+
+I got two conclusions wrong today and had to retract both in front of Christopher. Both
+came from trusting a signal instead of an artifact. Inherit the scars:
+
+- **The artifact is the evidence, never the exit code.** A build that exits 0 proves
+  nothing; check the file and its size. An install that "succeeded" with a 1 MB disk
+  installed nothing.
+- **An implausible number beats green output.** Check the *size* of a result.
+- **An open port is NOT a listening service.** QEMU slirp accepts the TCP connect
+  whether or not anything listens. Prove sshd with a **banner grab**:
+  `timeout 8 bash -c 'exec 3<>/dev/tcp/127.0.0.1/2299; head -c 40 <&3'`
+- **`pkill -f <pattern>` and `ps | grep <pattern>` match your own shell** when the
+  pattern appears in your own command line. This killed my ssh session **twice** today,
+  the second time an hour after I wrote the lesson down. Kill from a **pidfile**, or
+  match on `comm`.
+- **Never report a hypothesis as a conclusion.** Say what you observed and what you
+  infer, separately.
+- The build log line `Failed to create directory or subvolume "/usr/local/sbin":
+  Read-only file system` is **non-fatal**. Do not chase it.
+
+---
+
+## 8. CHRISTOPHER'S STANDING RULINGS — DO NOT RELITIGATE
+
+- **D36 — partitioning is fully automatic and always encrypted.** His words: *"no. IF an
+  advisor wants something else, they can build it themselves, or pay me to build a
+  custom setup. The intent for this is lowest bar for entry."* The LUKS passphrase is
+  the **only** storage input an advisor gives.
+- **DN-13 — SP+ ships NO default account password, ever.** The advisor account ships
+  **LOCKED** and the advisor sets their own password at first boot.
+- **No secrets in the image, ever** — not in a layer, a Containerfile, a build arg, or
+  git history. **The ISO must never contain the encryption secret.**
+- `spplus-test` is a **disposable test-only** LUKS/root passphrase for throwaway VMs. It
+  may appear in run logs. It must **never** appear in the ISO, the repo, or committed
+  config.
+- **No work on main, ever.** Work on `session/sp-plus-plan`. **Never use
+  `git --no-verify`, under any circumstances.**
+- **A passing build is not a working feature.** Nothing is done until Christopher has
+  used it in the real environment. That gate is the most commonly skipped one.
+- **Cleanup is part of the loop**, not a policy debate: *"If we will not be coming back
+  to said process or file, it must be cleaned up. The token burn is worth the prevention
+  of slop."* Keep RAM and disk tidy on his daily driver. But **never delete a disk or
+  log that an open defect's evidence was drawn from.**
+
+---
+
+## 9. HOW TO WORK WITH CHRISTOPHER
+
+- **Lead with the outcome.** First sentence is the conclusion or what just happened.
+- **Act, don't over-plan.** When you have enough to move, move — give a recommendation
+  and the exact first step, not a menu. *Unless* he is in plan mode, which is a
+  deliberate signal to slow down and align first.
+- **Confirm between steps.** Observe each step's real output before starting the next.
+  Assumed success is where drift enters.
+- **Push back on faulty premises**: flaw → risk → fix. Do not confidently elaborate a
+  wrong answer faster.
+- **No em-dashes in prose he will read.** Full bash output, not summaries, when he asks
+  what happened.
+- When he must run something you cannot reach, write exact commands to `/root/paste.md`
+  — plain commands and `#` comments only, one batch, overwrite, header naming the target
+  machine, **never real secrets**.
+- Under 85% confidence, ask him. But foresee the issue rather than reporting it after.
+
+---
+
+## 10. YOUR PLAN TONIGHT, IN ORDER
+
+1. **Fix `spb-boot`'s GRUB timing (§5).** Nothing downstream is trustworthy until the
+   serial console reliably attaches. Prove it by seeing >50 KB in `bserial.log`.
+2. **Boot cycle7 and settle DN-16.** Run `semodule -DB` first so `dontaudit` cannot hide
+   anything, then `./spb-evidence`. You need: **zero `avc: denied`**, real contexts on
+   `/etc/passwd` and `/etc/nsswitch.conf`, and **an actual successful login**. A login
+   that works is the only proof that matters; label output alone is not.
+3. **Then attack DN-15** — make the passphrase prompt visible on the local VGA console.
+   Research first, guess second: plymouth's console handoff, `plymouth.enable=0`,
+   `rd.plymouth=0`, and the `fbcon` deferred take-over are the places to look. Test with
+   `spb-boot` and a **screendump** (stddev ~0–170 = grey/black, 5,000–15,000 = real UI),
+   because the whole point is what a human eye sees.
+4. **Rebuild, then run the full loop clean** on the resulting ISO: preflight gate →
+   install → boot → `release-gate.sh` **exit 0**.
+5. **Only then** the Dell (HW-00) — and Christopher does the graphical install himself.
+   That is his rule and it is the real acceptance test.
+6. Record what you learn in `projects/sp-plus/docs/ledger/` (`DO-NOT.md`, `TODO.md`,
+   `OPERATIONS.md`) and **commit as you go**. Incremental commits are mandatory; you can
+   hit a hard compute wall with no warning, exactly as I am about to.
+
+---
+
+## 11. THE HONEST STATE
+
+Two mile markers are genuinely done: the graphical installer works, and the SATA/`sda`
+rehearsal for the Dell passes. Those were the two biggest unknowns and they are closed.
+
+**But there is no deliverable ISO yet, and Christopher has a presentation.** DN-16's fix
+looks right, was negative-tested at the preflight gate, and has *never been observed
+working on a running system*. That is precisely the shape of evidence that misled me
+twice today. DN-15 has no fix at all.
+
+Believe nothing until `release-gate.sh` exits 0 against a live installed system with
+zero AVC denials and a login you actually completed.
+
+**The biggest process lesson of the day (OP-22):** most of today was burned A/B-testing
+a black screen against a screendump statistic that could say *"bad"* but never *"why."*
+A read/write serial console answered the entire question in a single boot. **Buy
+observability before you test another hypothesis.** If you find yourself running the
+same experiment a third time with a slightly different variable, stop and build an
+instrument instead.
+
+Good luck. He is counting on this one.
