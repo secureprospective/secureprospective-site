@@ -3,7 +3,8 @@
 # Format: TYPE|NAME|WHY
 # TYPE: rpm | path | unit | user
 rpm|plasma-workspace|the desktop itself
-rpm|sddm|graphical login — without it there is no login screen
+rpm|sddm|graphical login — installed; NOT the active DM on Kinoite 44
+rpm|plasma-login-manager|the ACTIVE display manager on Kinoite 44 (plasmalogin)
 rpm|cups|printing, the single most common advisor support call
 rpm|cups-filters|printing
 rpm|cups-pk-helper|lets a non-root advisor add a printer

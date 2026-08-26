@@ -24,8 +24,8 @@ RUN mkdir -p /boot/efi \
     && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
 
 RUN mkdir -p /usr/lib/image-builder/bootc
-COPY iso.yaml /usr/lib/image-builder/bootc/iso.yaml
-COPY interactive-defaults.ks /usr/share/anaconda/interactive-defaults.ks
+COPY installer/iso.yaml /usr/lib/image-builder/bootc/iso.yaml
+COPY installer/interactive-defaults.ks /usr/share/anaconda/interactive-defaults.ks
 
 RUN echo "install:x:0:0:root:/root:/usr/libexec/anaconda/run-anaconda" >> /etc/passwd \
     && echo "install::14438:0:99999:7:::" >> /etc/shadow \
@@ -61,6 +61,57 @@ RUN mkdir -p /etc/systemd/system/anaconda.service.d \
 # only for the Anaconda service PATH. Image-builder preflight still reaches the
 # preserved binary through the wrapper's exec path.
 RUN cp -a /usr/bin/bootc /usr/bin/bootc-real
-COPY bootc-wrapper.sh /usr/local/bin/bootc
+COPY installer/bootc-wrapper.sh /usr/local/bin/bootc
 RUN chmod 0755 /usr/local/bin/bootc
 
+# ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees,
+# and it is a separate image with its own Fedora art. Build context is
+# projects/sp-plus/, so COPY paths above are prefixed with installer/.
+COPY branding/ /usr/share/sp-plus/branding/
+
+RUN printf '%s\n' \
+      'NAME="SP+"' \
+      'VERSION="1.0"' \
+      'ID=sp-plus' \
+      'ID_LIKE=fedora' \
+      'VERSION_ID=1.0' \
+      'PRETTY_NAME="SP+ 1.0"' \
+      'VARIANT="Advisor"' \
+      'VARIANT_ID=advisor' \
+      'LOGO=sp-plus-logo-icon' \
+      'HOME_URL="https://secureprospective.com/"' \
+      'SUPPORT_URL="https://secureprospective.com/support"' \
+      'BUG_REPORT_URL="https://secureprospective.com/support"' \
+      > /usr/lib/os-release \
+ && ln -sf ../usr/lib/os-release /etc/os-release \
+ && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue \
+ && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue.net
+
+# Anaconda pixmaps and every visible fedora-logos surface, enumerated from rpm.
+RUN set -eux; \
+    ICON=/usr/share/sp-plus/branding/sp-plus-icon-512.png; \
+    LOCK=/usr/share/sp-plus/branding/sp-plus-lockup.png; \
+    B64=$(base64 -w0 "$ICON"); \
+    mksvg() { printf '%s\n' \
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">' \
+      "<image width=\"512\" height=\"512\" xlink:href=\"data:image/png;base64,${B64}\"/>" \
+      '</svg>' > "$1"; }; \
+    install -d /usr/share/icons/hicolor/scalable/apps /usr/share/pixmaps; \
+    mksvg /usr/share/icons/hicolor/scalable/apps/sp-plus-logo-icon.svg; \
+    cp "$ICON" /usr/share/pixmaps/sp-plus-logo-icon.png; \
+    P=/usr/share/anaconda/pixmaps; \
+    [ -d "$P" ] && { cp -f "$LOCK" "$P/sidebar-logo.png"; cp -f "$LOCK" "$P/anaconda_header.png"; }; \
+    if rpm -q fedora-logos >/dev/null 2>&1; then \
+      rpm -ql fedora-logos \
+        | grep -E '/(plymouth|sddm|pixmaps|anaconda)/|icons/hicolor/(scalable|256x256|512x512)/' \
+        | while read -r f; do \
+            [ -f "$f" ] || continue; \
+            rm -f "$f"; \
+            case "$f" in \
+              *.svg) mksvg "$f" ;; \
+              *)     cp -f "$ICON" "$f" ;; \
+            esac; \
+          done; \
+    fi; \
+    find /usr/share/anaconda/pixmaps/rnotes -type f \( -name '*.png' -o -name '*.jpg' \) \
+      -exec cp -f "$LOCK" {} \; 2>/dev/null || true

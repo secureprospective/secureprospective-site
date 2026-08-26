@@ -1,5 +1,171 @@
+# SP+ payload image — this is the image the ISO installs onto the advisor's disk.
+# DN-18: this file used to be four lines (bare Kinoite) while the real product was
+# described in projects/sp-plus/Containerfile, which the sanctioned build never built.
+# The two are merged here. Build context is projects/sp-plus/.
+#   sudo podman build -t localhost/sp-plus-kde:spike -f images/kde/Containerfile .
+# Fedora 44 everywhere (the old file said 43). DN-13: the advisor account ships LOCKED.
 FROM quay.io/fedora/fedora-kinoite:44
+
+# ---- 1. platform + advisor application suite (spb-manifest, spb-appmanifest) ----
 RUN dnf install -y --setopt=install_weak_deps=False \
-        firewalld cups cups-filters nss-mdns \
+        sddm \
+        cups cups-filters cups-pk-helper nss-mdns \
+        firewalld \
+        NetworkManager-wifi \
+        bluez blueman \
+        pipewire wireplumber \
+        xdg-desktop-portal-kde \
+        udisks2 \
+        python3 curl ca-certificates jq sudo \
+        plymouth plymouth-scripts \
+        libreoffice-writer libreoffice-calc \
+        okular dolphin ark gwenview spectacle kate kcalc \
+        keepassxc thunderbird system-config-printer \
+        plasma-systemsettings plasma-workspace \
  && dnf clean all
+
+# ---- 2. Brave, the advisor-facing application ----
+# Kinoite ships /opt as a symlink to a var/opt that does not exist, so Brave's rpm
+# fails to unpack: "failed to open dir opt of /opt/brave.com/: cpio: mkdir failed".
+# Repoint /opt at /usr/lib/opt so the browser is versioned image content like the
+# rest of /usr. bootc discussion #1038, approach 1 (read-only /opt at runtime,
+# which is correct for a browser — Brave writes only under the user's home).
+RUN rm -f /opt && mkdir -p /usr/lib/opt && ln -s usr/lib/opt /opt && ls -ld /opt
+
+RUN curl -fsSLo /etc/yum.repos.d/brave-browser.repo \
+      https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo \
+ && dnf install -y brave-browser \
+ && dnf clean all
+
+# ---- 3. the advisor account — created LOCKED (DN-13, non-negotiable) ----
+# No password ships in this image. spplus-firstboot-password.service is what gives
+# the advisor a credential, on the physical console, at first boot.
+RUN useradd --create-home --groups wheel --shell /bin/bash advisor \
+ && passwd -l advisor \
+ && install -d -o advisor -g advisor /var/lib/sp-plus
+
+# ---- 4. the SP+ runtime ----
+COPY runtime/   /usr/libexec/sp-plus/
+COPY pwa/       /usr/libexec/sp-plus/pwa/
+COPY knowledge/ /usr/libexec/sp-plus/knowledge/
+COPY playbooks/ /usr/libexec/sp-plus/playbooks/
+COPY config/sp-plus.service      /usr/lib/systemd/system/sp-plus.service
+COPY config/brave-policies.json  /etc/brave/policies/managed/sp-plus.json
+
+RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
+ && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
+    | awk '{print $1}' > /usr/libexec/sp-plus/playbooks/printer-reconnect.json.sha256 \
+ && systemctl enable sp-plus.service \
+ && systemctl enable cups.service \
+ && systemctl enable firewalld.service
+
+# The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
+# already owns /etc/systemd/system/display-manager.service. sddm is installed and its
+# unit file ships, but enabling it here fails outright:
+#   Failed to enable unit: File '/etc/systemd/system/display-manager.service' already
+#   exists and is a symlink to /usr/lib/systemd/system/plasmalogin.service
+# Taking the distro default is the low-risk choice before a live demo. Revisit only if
+# plasmalogin turns out not to start.
+RUN systemctl set-default graphical.target \
+ && test -L /etc/systemd/system/display-manager.service
+
+# ---- 5. branding (DN-19) ----
+COPY branding/ /usr/share/sp-plus/branding/
+
+# os-release: ID_LIKE=fedora is deliberate, tooling depends on it.
+RUN printf '%s\n' \
+      'NAME="SP+"' \
+      'VERSION="1.0"' \
+      'ID=sp-plus' \
+      'ID_LIKE=fedora' \
+      'VERSION_ID=1.0' \
+      'PRETTY_NAME="SP+ 1.0"' \
+      'VARIANT="Advisor"' \
+      'VARIANT_ID=advisor' \
+      'ANSI_COLOR="0;38;2;180;180;190"' \
+      'LOGO=sp-plus-logo-icon' \
+      'HOME_URL="https://secureprospective.com/"' \
+      'SUPPORT_URL="https://secureprospective.com/support"' \
+      'BUG_REPORT_URL="https://secureprospective.com/support"' \
+      > /usr/lib/os-release \
+ && ln -sf ../usr/lib/os-release /etc/os-release \
+ && printf '%s\n' '\S' 'Kernel \r on an \m (\l)' '' > /etc/issue \
+ && printf '%s\n' '\S' 'Kernel \r on an \m (\l)' '' > /etc/issue.net
+
+# The SP+ mark, under the name LOGO= points at, plus every visible Fedora logo
+# surface. The surfaces are ENUMERATED from the rpm database, not guessed:
+# fedora-logos owns them and `rpm -V` is what the gate reads back.
+# Do NOT `rpm -e fedora-logos` — half the desktop depends on it.
+RUN set -eux; \
+    ICON=/usr/share/sp-plus/branding/sp-plus-icon-512.png; \
+    B64=$(base64 -w0 "$ICON"); \
+    mksvg() { printf '%s\n' \
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">' \
+      "<image width=\"512\" height=\"512\" xlink:href=\"data:image/png;base64,${B64}\"/>" \
+      '</svg>' > "$1"; }; \
+    for d in scalable 256x256 512x512; do \
+      install -d "/usr/share/icons/hicolor/$d/apps" "/usr/share/icons/hicolor/$d/places"; \
+    done; \
+    mksvg /usr/share/icons/hicolor/scalable/apps/sp-plus-logo-icon.svg; \
+    cp "$ICON" /usr/share/icons/hicolor/256x256/apps/sp-plus-logo-icon.png; \
+    cp "$ICON" /usr/share/icons/hicolor/512x512/apps/sp-plus-logo-icon.png; \
+    install -d /usr/share/pixmaps; \
+    cp "$ICON" /usr/share/pixmaps/sp-plus-logo-icon.png; \
+    if rpm -q fedora-logos >/dev/null 2>&1; then \
+      rpm -ql fedora-logos \
+        | grep -E '/(plymouth|sddm|pixmaps|anaconda)/|icons/hicolor/(scalable|256x256|512x512)/' \
+        | while read -r f; do \
+            [ -f "$f" ] || continue; \
+            rm -f "$f"; \
+            case "$f" in \
+              *.svg) mksvg "$f" ;; \
+              *)     cp -f "$ICON" "$f" ;; \
+            esac; \
+          done; \
+    fi; \
+    gtk-update-icon-cache -f /usr/share/icons/hicolor || true
+
+# Plymouth: the boot splash is the first SP+ surface an advisor ever sees.
+# The initramfs must be rebuilt afterwards or the stock splash stays baked in.
+RUN set -eux; \
+    install -d /usr/share/plymouth/themes/sp-plus; \
+    cp /usr/share/sp-plus/branding/sp-plus-splash.png \
+       /usr/share/plymouth/themes/sp-plus/splash.png; \
+    printf '%s\n' \
+      '[Plymouth Theme]' \
+      'Name=SP+' \
+      'Description=SP+ boot splash' \
+      'ModuleName=script' \
+      '' \
+      '[script]' \
+      'ImageDir=/usr/share/plymouth/themes/sp-plus' \
+      'ScriptFile=/usr/share/plymouth/themes/sp-plus/sp-plus.script' \
+      > /usr/share/plymouth/themes/sp-plus/sp-plus.plymouth; \
+    printf '%s\n' \
+      'splash.image = Image("splash.png");' \
+      'screen_w = Window.GetWidth(); screen_h = Window.GetHeight();' \
+      'scale = 0.5 * screen_w / splash.image.GetWidth();' \
+      'scaled = splash.image.Scale(splash.image.GetWidth() * scale, splash.image.GetHeight() * scale);' \
+      'sprite = Sprite(scaled);' \
+      'sprite.SetX((screen_w - scaled.GetWidth()) / 2);' \
+      'sprite.SetY((screen_h - scaled.GetHeight()) / 2);' \
+      'fun refresh_callback() { sprite.SetOpacity(1); }' \
+      'Plymouth.SetRefreshFunction(refresh_callback);' \
+      > /usr/share/plymouth/themes/sp-plus/sp-plus.script; \
+    ln -sf sp-plus/sp-plus.plymouth /usr/share/plymouth/themes/default.plymouth; \
+    grep -rlis fedora /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null \
+      | while read -r t; do sed -i 's/[Ff]edora/SP+/g' "$t"; done; \
+    kernel=$(ls -1 /usr/lib/modules | head -1); \
+    DRACUT_NO_XATTR=1 dracut --force --no-hostonly \
+      "/usr/lib/modules/${kernel}/initramfs.img" "${kernel}"
+
+ENV SPPLUS_ROOT=/usr/libexec/sp-plus
+ENV SPPLUS_PRINTER_FIXTURE=1
+ENV SPPLUS_LISTEN_ADDRESS=127.0.0.1
+ENV SPPLUS_LISTEN_PORT=8765
+
+LABEL org.opencontainers.image.title="SP+" \
+      org.opencontainers.image.description="SP+ Advisor OS — KDE image-mode payload" \
+      org.opencontainers.image.version="1.0"
+
 RUN bootc container lint

@@ -81,7 +81,12 @@ for a in /usr/share/sp-plus/branding/sp-plus-icon.png /usr/share/sp-plus/brandin
 done
 
 # ---- 5. any remaining user-visible 'Fedora' string in branding config ----
-HITS=$(grep -rlis fedora /etc/os-release /etc/issue /etc/issue.net /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null | head -10)
+# ID_LIKE=fedora is DELIBERATE and must stay — tooling keys off it. It is not a
+# user-visible string, so it is excluded here rather than removed from os-release.
+HITS=$(for x in /etc/os-release /etc/issue /etc/issue.net /usr/share/plymouth/themes/*/*.plymouth; do
+         [ -f "$x" ] || continue
+         grep -vi '^ID_LIKE=' "$x" 2>/dev/null | grep -qi fedora && echo "$x"
+       done | head -10)
 if [ -n "$HITS" ]; then
   echo "FAIL strings    'Fedora' still appears in:"; echo "$HITS" | sed 's/^/     /'; f=$((f+1))
 else
