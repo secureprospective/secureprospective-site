@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# spb-state — regenerate the machine-truth half of ~/SP-PLUS-STATE.md.
+# Run it after EVERY cycle. It overwrites the AUTOMATIC section only; the
+# narrative section you write by hand is preserved below the marker.
+. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+S=/home/chris/SP-PLUS-STATE.md
+MARK="<!-- ===== NARRATIVE BELOW — spb-state NEVER TOUCHES THIS ===== -->"
+NARR=""
+[ -f "$S" ] && NARR=$(awk -v m="$MARK" 'f{print} $0==m{f=1}' "$S")
+R=/home/chris/work/secureprospective-advisor-os
+{
+echo "# SP+ LIVE STATE"
+echo "**Auto section regenerated $(date -u +%FT%TZ) by \`spb-state\`. Do not hand-edit above the marker.**"
+echo
+echo "## Machine truth"
+echo '```'
+echo "ISO on disk : $( [ -f "$ISO" ] && sha256sum "$ISO" | cut -c1-16 || echo NONE )  ($( [ -f "$ISO" ] && stat -c%s "$ISO" || echo 0 ) bytes)"
+echo "repo HEAD   : $(git -C $R log --oneline -1 2>/dev/null)"
+echo "branch      : $(git -C $R branch --show-current 2>/dev/null)"
+echo "uncommitted : $(git -C $R status --porcelain 2>/dev/null | wc -l) files"
+echo "RAM avail   : $(free -g | awk '/^Mem:/{print $7}') GB"
+echo "disk free   : $(df -h /home | awk 'NR==2{print $4}')"
+echo "VMs running : $(ps -eo args | grep -c '[q]emu-system')"
+echo '```'
+echo
+echo "## Cycle directories"
+echo '```'
+for d in "$SPB_ISO_DIR"/cycle*; do
+  [ -d "$d" ] || continue
+  live=no; [ -f "$d/boot.pid" ] && kill -0 "$(cat "$d/boot.pid" 2>/dev/null)" 2>/dev/null && live=yes
+  printf "%-40s %6s MB  running=%s  bserial=%s B\n" "$(basename "$d")" \
+    "$(du -sm "$d" 2>/dev/null | cut -f1)" "$live" "$(stat -c%s "$d/bserial.log" 2>/dev/null || echo -)"
+done
+echo '```'
+echo
+echo "## Latest evidence headline"
+echo '```'
+LAST=$(ls -dt "$SPB_ISO_DIR"/cycle*/bserial.log 2>/dev/null | head -1)
+if [ -n "$LAST" ]; then
+  echo "log: $LAST  ($(stat -c%s "$LAST") bytes)"
+  echo "avc: $(grep -ac 'avc:' "$LAST") lines  [MEANINGLESS unless semodule -DB was run]"
+  echo "failed units seen:"
+  grep -aoE 'Failed to start [^.]*' "$LAST" | sort -u | sed 's/^/  /' | head -10
+else
+  echo "no serial log yet"
+fi
+echo '```'
+echo
+echo "$MARK"
+if [ -n "$NARR" ]; then printf '%s\n' "$NARR"; else
+cat <<'TPL'
+
+## Where it stands
+_(one paragraph — what is true right now)_
+
+## What I did since the last update
+_(bullets, newest first, each with the evidence that backs it)_
+
+## Next move
+_(one concrete action, starting with a verb)_
+
+## Blocked on
+_(nothing, or the specific thing)_
+
+## Tried and rejected, with why
+_(the expensive-to-rediscover part — never delete entries from this list)_
+TPL
+fi
+} > "$S.new"
+mv "$S.new" "$S"
+cp "$S" "$R/SP-PLUS-STATE.md" 2>/dev/null
+echo "wrote $S ($(stat -c%s "$S") bytes) and mirrored into the repo"
+echo "NOW EDIT THE NARRATIVE SECTION BY HAND, then: git -C $R add -A && git -C $R commit -m 'state'"

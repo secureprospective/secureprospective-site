@@ -363,3 +363,92 @@ the SELinux denial loop. But it is now the top blocker.
 - `~/sp-plus-iso/cycle6/` — the original DN-15/DN-16 proof. `reap.sh`'s 12-hour hold
   expires tonight; copy it aside if you still want it.
 - The `spb-*` lane is proven end to end: install **and** boot both now run unattended.
+
+---
+
+# SECTION 12 — YOUR OPERATING DISCIPLINE AS HEADBRAIN
+**Added last. This is how you keep the role, not just assume it.**
+
+## 12.1 Skills now installed for you
+
+`~/.claude/skills/` — invoke by name:
+
+| Skill | When it fires |
+|---|---|
+| **`compact-safe`** | **Your context is filling and the session must survive a compaction.** Not session close, nothing merges. Reap, capture in-flight work, write the resume doc, persist it in three places, hand off. **Run it BEFORE you are forced to, not after.** |
+| `fablebrain-verify` | Any time you are about to report a result or claim something is done. Ground every claim in evidence; flag what you could not verify. |
+| `fablebrain-lessons` | After a correction, and at the end of a work block. Log the lesson into the ledger so it is never relearned. |
+| `fablebrain-boundaries` | Before anything destructive or irreversible. A question is not an order. |
+| `tom-session-close` | Your existing close checklist. |
+
+## 12.2 State keeping — THIS IS THE PART THAT MATTERS TO ME
+
+**Claude on CT105 takes the Headbrain role back tomorrow night.** Everything I know
+about this project dies with my context. The only thing that survives is what you
+write down.
+
+**`~/SP-PLUS-STATE.md` is the baton.** After **every** cycle:
+
+```bash
+~/sp-plus-bee/spb-state          # regenerates the machine-truth half automatically
+# then EDIT the narrative half by hand — it is the half that has the value
+cd ~/work/secureprospective-advisor-os && git add -A && git commit -m "state: <what changed>"
+```
+
+`spb-state` captures the ISO sha, repo HEAD, RAM, disk, running VMs, every cycle
+directory, and the latest AVC/failed-unit headline. It **never** overwrites your
+narrative, which is the five headings you fill in:
+
+- **Where it stands** — one paragraph of what is true right now
+- **What I did since the last update** — newest first, each with its evidence
+- **Next move** — one concrete action starting with a verb
+- **Blocked on** — nothing, or the specific thing
+- **Tried and rejected, with why** — **never delete an entry from this list.** It is
+  the most expensive information in the project. Today's four refuted hypotheses cost
+  most of a day; section 6 of this document exists so nobody pays that twice.
+
+Write it as if the reader has no memory of tonight, because I will not.
+
+## 12.3 Hygiene — binary, not a judgment call
+
+The Beelink is **Christopher's daily driver**. His rule: *"If we will not be coming
+back to said process or file, it must be cleaned up. The token burn is worth the
+prevention of slop."*
+
+```bash
+~/sp-plus-bee/spb-hygiene            # report
+~/sp-plus-bee/spb-hygiene --apply    # reclaim (12h evidence hold via reap.sh)
+```
+
+Run it at the **start of a work block**, after **every completed cycle**, and before
+**any handoff**. It reports RAM, disk, running VMs, and the size and age of every cycle
+directory, and warns below 6 GB RAM or 40 GB disk.
+
+The numbers that matter: **each cycle disk is ~8 GB** and **each running VM holds
+6 GB of RAM**. Three stale cycles is a quarter of his free space. Stop VMs you are done
+with — `pkill -F <cycledir>/boot.pid`, **never `pkill -f <pattern>`**, which matches
+your own shell and has killed a session twice.
+
+**But never delete evidence an open defect rests on.** Right now that is `cycle6`
+(the DN-15/DN-16 proof) and `cycle7` (the DN-17 proof). `cycle1b` through `cycle5` are
+small and answer closed questions — they can go.
+
+## 12.4 Cadence
+
+1. **Start of block:** `spb-hygiene`, read `~/SP-PLUS-STATE.md`, `git pull` is not
+   needed (local-only repo) but check `git status` is clean.
+2. **Each experiment:** one hypothesis, one instrument, one result. If you are about to
+   run the same experiment a third time with a different variable, **stop and build an
+   instrument instead** — that is OP-22, the most expensive lesson of the day.
+3. **After each cycle:** `spb-state`, edit the narrative, commit. `spb-hygiene --apply`.
+4. **When context gets tight:** run `compact-safe`. Do not wait until you are cornered.
+5. **Before you stop for the night:** `spb-state` with a full narrative, commit, and
+   leave `Next move` filled in with something I can execute cold.
+
+## 12.5 What to hand me tomorrow night
+
+One sentence I should be able to read and act on immediately: **which defects are
+closed with what evidence, which are open, and what the single next move is.** Put it
+at the top of the narrative. If DN-17 is fixed, say what fixed it and how you proved it.
+If you closed DN-16, say that the login actually succeeded, not that the labels looked
+right — I have twice mistaken the second for the first today.
