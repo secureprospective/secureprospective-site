@@ -1,29 +1,30 @@
 # SP+ LIVE STATE
-**Auto section regenerated 2026-08-26T21:47:09Z by `spb-state`. Do not hand-edit above the marker.**
+**Auto section regenerated 2026-08-26T22:33:40Z by `spb-state`. Do not hand-edit above the marker.**
 
 ## Machine truth
 ```
-ISO on disk : 6a593d7082614e56  (4135002112 bytes)
-repo HEAD   : 5eeb80e SP+: match the plus shading to the S/P letters (round 4)
+ISO on disk : 504fe550af3735ed  (5136621568 bytes)
+repo HEAD   : e67810e DN-18/19/20: build the real product into the payload image
 branch      : session/sp-plus-plan
-uncommitted : 12 files
-RAM avail   : 14 GB
-disk free   : 104G
-VMs running : 1
+uncommitted : 1 files
+RAM avail   : 18 GB
+disk free   : 88G
+VMs running : 0
 ```
 
 ## Cycle directories
 ```
 cycle6                                     8362 MB  running=no  bserial=150854 B
-cycle7                                     7977 MB  running=yes  bserial=122974 B
+cycle7                                     7977 MB  running=no  bserial=122974 B
+cycle8                                    10955 MB  running=no  bserial=78440 B
 ```
 
 ## Latest evidence headline
 ```
-log: /home/chris/sp-plus-iso/cycle7/bserial.log  (122974 bytes)
+log: /home/chris/sp-plus-iso/cycle8/bserial.log  (78440 bytes)
 avc: 0 lines  [MEANINGLESS unless semodule -DB was run]
 failed units seen:
-  Failed to start [0;1;39mspplus-firstboot-p…[0m first-boot advisor password setup
+  Failed to start [0;1;39minitrd-switch-root
 ```
 
 <!-- ===== NARRATIVE BELOW — spb-state NEVER TOUCHES THIS ===== -->
