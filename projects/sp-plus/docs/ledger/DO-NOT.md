@@ -212,3 +212,27 @@ Account tile; its warning triangle must be absent before Begin Installation is e
 `rootpw --iscrypted`; do not put a known password in the repository or image.
 
 **Status.** FIXED in cycle 2 by configuring `rootpw --iscrypted` from a random hash.
+
+### DN-14 — The first test-only crypt hash did not authenticate the provisioned user
+
+**Error signature (verbatim, installed tty):**
+```
+fedora login: advisor
+spPassword:
+Login incorrect
+```
+
+**Observed.** Cycle 3 reached the installed Plasma session and the `advisor` account was
+present, but the crypt-form user password supplied in the kickstart did not authenticate
+at the serial TTY. This blocked running the root-required field inspection harness through
+that console. The failure did not affect LUKS unlock or graphical session startup.
+
+**Detect with:** On the installed system, switch to tty2, log in as the provisioned user,
+and require a shell prompt before running `field-inspect.sh`.
+
+**Do instead.** For the throwaway QEMU inspection VM only, use the explicit test password
+in the kickstart and replace it with the product credential flow before release. The LUKS
+passphrase remains separately prompted and is not stored anywhere in the product.
+
+**Status.** FIXED in cycle 4 for the throwaway test path by using the plaintext test
+credential; this must not be treated as a release credential.

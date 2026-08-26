@@ -44,7 +44,7 @@ bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike --target-im
 # Explicitly settle the user spoke without embedding a password. The advisor
 # account is usable after a password is assigned, and its persistent home is
 # created below on /var/home. The generated root hash is not a known credential.
-user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --password=$6$spplus6$NZd8ZxrNGASEd/mYfwmWBttEe1UF7LCKx5EVmD8PIh/c1Qgo0I6M1.3CLvoORb5UUQVbRI55ucYG4iSG5YFLg0 --iscrypted
+user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --password=spplus-advisor
 
 # Anaconda copies the installer command line into the installed boot entry. Keep
 # the installer-only SELinux and serial-console workarounds out of the target.
