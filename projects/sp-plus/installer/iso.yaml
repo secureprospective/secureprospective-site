@@ -2,5 +2,5 @@ label: "Secureprospective-Advisor-POC"
 grub2:
   entries:
     - name: "Install SP+ POC"
-      linux: "/images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Secureprospective-Advisor-POC ip=dhcp console=tty0 inst.graphical selinux=0 rhgb quiet"
+      linux: "/images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Secureprospective-Advisor-POC ip=dhcp console=tty0 inst.graphical rhgb quiet"
       initrd: "/images/pxeboot/initrd.img"

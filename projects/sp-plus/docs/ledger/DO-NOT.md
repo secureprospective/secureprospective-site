@@ -53,6 +53,13 @@ Greppable record of approaches proven not to work. Every entry has an error sign
 - **Source:** `docs/ledger/runs/2026-08-26-spike-A.md`, resolved by `docs/ledger/runs/2026-08-26-spike-A-retry.md`
 - **Status:** RESOLVED
 
+### DN-08 — Do not run the current image-builder ISO pipeline rootless on this host
+- **Error signature:** `chcon: failed to change context of '/var/cache/image-builder/store' to 'system_u:object_r:root_t:s0': Operation not permitted` followed by `error: entrypoint setup failed: error running chcon system_u:object_r:root_t:s0 /var/cache/image-builder/store: exit status 1`
+- **Why:** The current image-builder container entrypoint unconditionally applies an SELinux context to its cache; rootless Podman cannot perform that operation, even with `--privileged` and `--security-opt label=disable`.
+- **Do instead:** Run the pinned image-builder container rootful with the ROOT Podman store mounted, as specified by the brief.
+- **Source:** `docs/ledger/runs/2026-08-26-spike-B.md`
+- **Status:** PROVEN
+
 ## Candidates from the postmortem
 
 See docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md Part II. Anti-patterns get promoted into this file with a DN number when a run actually proves them, not in bulk.
