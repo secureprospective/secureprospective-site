@@ -179,3 +179,30 @@ have been a wasted dispatch and a false ledger entry otherwise.
 hang. Before declaring one, LOOK AT THE SCREEN. An interactive prompt produces exactly the
 same signature as a freeze. This refines OP-07: the detection signal finds a candidate, it
 does not confirm a diagnosis.
+
+### OP-14 — Poll your own background jobs; a finished job that nobody noticed is idle time
+
+**What happened.** An ISO rebuild and a research dispatch were both launched detached, then
+left unwatched. Both completed and sat finished for roughly twenty minutes before anyone
+looked. Christopher noticed the machine had gone quiet in btop and asked for status —
+the human became the scheduler, which is exactly the standing rule against silent waiting.
+
+**Cost.** ~20 minutes of dead wall clock on a session with a hard deliverable.
+
+**Rule.** Every detached job gets a sentinel file AND an owner who polls it. After
+dispatching, loop on the sentinel rather than moving on and hoping. Report state changes
+without being asked. "No silent waiting for a nudge" is an operational requirement, not a
+courtesy.
+
+### OP-15 — Require a "how to disprove this" section and the agent will catch itself
+
+**What happened.** The same research agent that earlier produced a confident, well-cited,
+WRONG answer (see OP-02) produced an excellent one when the brief demanded a mandatory
+"HOW TO VERIFY / EVIDENCE AGAINST" section naming falsifying commands. Running its own
+suggested audit took one command and both confirmed its core claim (no missing RPM) AND
+found the one real gap it had flagged as unproven (`autovt@.service` link absent).
+
+**Rule.** Every research brief carries: state confidence per answer; say "unknown" rather
+than guess; and a MANDATORY closing section naming the exact commands that would DISPROVE
+the answer. This is the single highest-leverage line in a research brief. It converts an
+agent's output from an assertion into a testable lead, and it is cheap.
