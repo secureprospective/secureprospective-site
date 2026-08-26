@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# spb-sha — the artifact IS the evidence (OP-03). Never judge a build by its exit code.
+. /home/chris/sp-plus-bee/spb-env
+[ -f "$ISO" ] || { echo "ISO_PRESENT: no"; exit 1; }
+echo "ISO_PRESENT: yes"
+echo "ISO_BYTES: $(stat -c%s "$ISO")"
+echo "ISO_MTIME: $(stat -c%y "$ISO")"
+echo "ISO_SHA256: $(sha256sum "$ISO" | cut -d' ' -f1)"
+echo "KNOWN_b04:  afc0f9c7276ca08ae8fc9efcd333a60d22b7c19eaf05a66d31366e59c9f21c81"
+echo "KNOWN_t13:  6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db"

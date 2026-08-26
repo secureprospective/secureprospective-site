@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# spb-shell '<command>' — run one command inside the booted guest over the serial
+# console and print what came back. Logs in as root first if needed.
+# THIS IS WHY NO HOST sudo IS NEEDED: root lives inside the VM.
+. /home/chris/sp-plus-bee/spb-env
+P="$D/bserialpty"; L="$D/bserial.log"
+[ -e "$P" ] || die "no serial pty — run spb-boot first"
+printf '\n' > "$P"; sleep 2
+if tail -3 "$L" | grep -qa "login:"; then
+  printf 'root\n' > "$P"; sleep 3
+  printf '%s\n' "$LUKS_PASS" > "$P"; sleep 5
+fi
+mark="SPBMARK$$"
+before=$(stat -c%s "$L")
+printf '%s; echo %s\n' "$1" "$mark" > "$P"
+for i in $(seq 1 40); do
+  grep -qa "$mark" "$L" && break
+  sleep 2
+done
+tail -c +$((before+1)) "$L"

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# spb-install — create a fresh SATA VM from the current ISO and drive Anaconda to
+# "Complete!". SATA (ich9-ahci+ide-hd) so the guest sees /dev/sda like the Dell (G9).
+# Usage: CYCLE=cycle7 spb-install
+. /home/chris/sp-plus-bee/spb-env
+set -e
+[ -f "$ISO" ] || die "no ISO at $ISO — run spb-build first"
+mkdir -p "$D"
+pkill -F "$D/qemu.pid" 2>/dev/null || true
+pkill -F "$D/boot.pid" 2>/dev/null || true
+sleep 2
+rm -f "$D"/disk.qcow2 "$D"/vars.fd "$D"/serial.log "$D"/*.sock "$D"/serialpty
+qemu-img create -f qcow2 "$D/disk.qcow2" 60G >/dev/null
+cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd "$D/vars.fd"
+rm -rf "$D/tpm"; mkdir -p "$D/tpm"
+swtpm socket --tpmstate dir="$D/tpm" --ctrl type=unixio,path="$D/tpm/sock" --tpm2 --daemon
+sleep 1
+qemu-system-x86_64 \
+  -name "spplus-$CYCLE-sata" \
+  -machine q35,smm=on -accel kvm -m 6144 -smp 4 \
+  -drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd \
+  -drive if=pflash,format=raw,unit=1,file="$D/vars.fd" \
+  -global driver=cfi.pflash01,property=secure,value=on \
+  -chardev socket,id=chrtpm,path="$D/tpm/sock" \
+  -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
+  -device ich9-ahci,id=ahci \
+  -drive file="$D/disk.qcow2",if=none,id=hd0,format=qcow2 \
+  -device ide-hd,drive=hd0,bus=ahci.0 \
+  -cdrom "$ISO" -boot d \
+  -vga std -display none \
+  -serial unix:"$D/serial.sock",server,nowait \
+  -monitor unix:"$MON",server,nowait \
+  -netdev user,id=n0 -device virtio-net-pci,netdev=n0 &
+echo $! > "$D/qemu.pid"
+sleep 3
+setsid socat UNIX-CONNECT:"$D/serial.sock" PTY,link="$D/serialpty",raw,echo=0 >/dev/null 2>&1 &
+sleep 2
+setsid bash -c "cat $D/serialpty > $D/serial.log" >/dev/null 2>&1 &
+echo "SPB: $CYCLE up, pid=$(cat "$D/qemu.pid") serial=$D/serial.log"
+
+echo "SPB: waiting for the Anaconda greeter (up to 5 min)"
+for i in $(seq 1 60); do
+  grep -qa "anaconda" "$D/serial.log" && break
+  sleep 5
+done
+sleep 60   # let the GUI settle; the greeter appears well after the log line
+
+# --- fixed keystroke sequence, proven on cycle6 ---
+key alt-c;                       sleep 8    # Continue (welcome)
+key tab; key ret;                sleep 8    # pre-release dialog -> acknowledge
+key left; key up; key ret;       sleep 10   # Installation Destination
+key alt-d;                       sleep 8    # Done -> passphrase dialog
+/home/chris/sp-plus-iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
+key tab; sleep 1
+/home/chris/sp-plus-iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
+key ret;                         sleep 8
+key alt-d;                       sleep 8    # back on the hub
+key alt-b;                       sleep 5    # Begin Installation
+
+echo "SPB: installing — watching the disk grow, then plateau (up to 35 min)"
+prev=0; flat=0
+for i in $(seq 1 140); do
+  sleep 15
+  cur=$(stat -c%s "$D/disk.qcow2")
+  if [ "$cur" -eq "$prev" ]; then flat=$((flat+1)); else flat=0; fi
+  prev=$cur
+  # >3GB written and no growth for 3 consecutive minutes == install finished
+  if [ "$cur" -gt 3000000000 ] && [ "$flat" -ge 12 ]; then
+    echo "SPB: INSTALL_PLATEAU at $((i*15))s disk=$cur"; break
+  fi
+done
+echo "SPB: disk_bytes=$prev"
+echo "SPB: serial_bytes=$(stat -c%s "$D/serial.log")"
+# visual confirmation — stddev ~0-170 means a grey/black screen, 5000-15000 is real UI
+mon "screendump $D/install-end.ppm" "$MON"; sleep 4
+convert "$D/install-end.ppm" -resize 1000x "$D/install-end.png" 2>/dev/null && rm -f "$D/install-end.ppm"
+identify -format "SPB: final_screen stddev=%[standard-deviation]\n" "$D/install-end.png" 2>/dev/null
+echo "SPB: a disk under 3 GB did NOT install. Report the number, do not judge it."

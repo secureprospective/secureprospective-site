@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# SP+ Bee lane — shared environment. Sourced by every spb-* script.
+# Nothing here needs root. The whole test lane runs as chris.
+SPB_HOME=/home/chris/sp-plus-bee
+SPB_ISO_DIR=/home/chris/sp-plus-iso
+REPO=/home/chris/work/secureprospective-advisor-os
+ISO="$REPO/projects/sp-plus/artifacts/spikeB-rootful/out/bootc-fedora-44-bootc-generic-iso-x86_64/bootc-fedora-44-bootc-generic-iso-x86_64.iso"
+CYCLE="${CYCLE:-cycle7}"
+D="$SPB_ISO_DIR/$CYCLE"
+MON="$D/monitor.sock"        # install-phase monitor
+BMON="$D/boot-monitor.sock"  # boot-phase monitor
+LUKS_PASS=spplus-test        # DISPOSABLE test credential. Never in the ISO or the repo.
+mon() { echo "$1" | socat - UNIX-CONNECT:"$2" >/dev/null 2>&1; }
+key() { mon "sendkey $1" "${2:-$MON}"; sleep "${KEYDELAY:-0.4}"; }
+die() { echo "SPB-FAIL: $*" >&2; exit 1; }

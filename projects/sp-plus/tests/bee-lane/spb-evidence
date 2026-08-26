@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# spb-evidence — print EVIDENCE, not a verdict. Four artifacts, verbatim, to STDOUT.
+# Do not summarise these. Do not conclude from them. Paste them back.
+. /home/chris/sp-plus-bee/spb-env
+L="$D/bserial.log"
+echo "########## SP+ EVIDENCE  cycle=$CYCLE  $(date -u +%FT%TZ) ##########"
+echo "SERIAL_BYTES: $(stat -c%s "$L" 2>/dev/null || echo MISSING)"
+echo
+echo "=== A. EVERY avc: LINE, VERBATIM ==="
+grep -a "avc:" "$L" || echo "(none present in the log)"
+echo "AVC_COUNT: $(grep -ac 'avc:' "$L" 2>/dev/null || echo 0)"
+echo "CAVEAT: SELinux dontaudit rules HIDE denials. Zero here proves nothing"
+echo "        unless 'semodule -DB' was run first."
+echo
+echo "=== B. EVERY FAILED / error LINE ==="
+grep -aiE "FAILED|Failed to start|error|Dependency failed" "$L" | head -60 || echo "(none)"
+echo
+echo "=== C. LAST 60 LINES OF SERIAL ==="
+tail -60 "$L"
+echo
+echo "=== D. IN-GUEST STATE ==="
+/home/chris/sp-plus-bee/spb-shell 'getenforce; echo ---; systemctl --failed --no-legend; echo ---; ls -Zd /etc /etc/passwd /etc/nsswitch.conf /etc/shadow /etc/localtime; echo ---; ausearch -m AVC -ts boot 2>&1 | tail -40'
+echo "########## END EVIDENCE ##########"

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# spb-boot — boot the installed system with a READ/WRITE serial console, answer the
+# LUKS prompt on the serial, log in as root, and leave the guest sitting at a shell.
+# Optional arg: extra kernel args to append in the GRUB editor (e.g. "enforcing=0").
+# THE SERIAL CONSOLE IS THE INSTRUMENT. It is why this lane is cheap (OP-22).
+. /home/chris/sp-plus-bee/spb-env
+set -e
+EXTRA="$1"
+[ -f "$D/disk.qcow2" ] || die "no installed disk at $D/disk.qcow2"
+pkill -F "$D/qemu.pid" 2>/dev/null || true
+pkill -F "$D/boot.pid" 2>/dev/null || true
+sleep 2
+rm -f "$BMON" "$D"/bserial.sock "$D"/bserial.log "$D"/bserialpty
+rm -rf "$D/tpm"; mkdir -p "$D/tpm"
+swtpm socket --tpmstate dir="$D/tpm" --ctrl type=unixio,path="$D/tpm/sock" --tpm2 --daemon
+sleep 1
+qemu-system-x86_64 \
+  -name "spplus-$CYCLE-boot" \
+  -machine q35,smm=on -accel kvm -m 6144 -smp 4 \
+  -drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd \
+  -drive if=pflash,format=raw,unit=1,file="$D/vars.fd" \
+  -global driver=cfi.pflash01,property=secure,value=on \
+  -chardev socket,id=chrtpm,path="$D/tpm/sock" \
+  -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
+  -device ich9-ahci,id=ahci \
+  -drive file="$D/disk.qcow2",if=none,id=hd0,format=qcow2 \
+  -device ide-hd,drive=hd0,bus=ahci.0 \
+  -vga std -display none \
+  -serial unix:"$D/bserial.sock",server,nowait \
+  -monitor unix:"$BMON",server,nowait \
+  -netdev user,id=n0,hostfwd=tcp::2299-:22 -device virtio-net-pci,netdev=n0 &
+echo $! > "$D/boot.pid"
+sleep 3
+setsid socat UNIX-CONNECT:"$D/bserial.sock" PTY,link="$D/bserialpty",raw,echo=0 >/dev/null 2>&1 &
+sleep 2
+setsid bash -c "cat $D/bserialpty > $D/bserial.log" >/dev/null 2>&1 &
+sleep 1
+P="$D/bserialpty"
+
+# --- GRUB editor: halt the 1s countdown, pick the FIRST entry, append console=ttyS0 ---
+# `end` alone selects "UEFI Firmware Settings" — `home` is required. Enter in the
+# editor SPLITS the linux line, which is why vmtype-noret.sh exists.
+for i in $(seq 1 60); do key end "$BMON"; done
+key home "$BMON"; key e "$BMON"
+key down "$BMON"; key down "$BMON"; key down "$BMON"; key ctrl-e "$BMON"
+/home/chris/sp-plus-iso/vmtype-noret.sh "$BMON" " console=ttyS0,115200 $EXTRA" >/dev/null
+sleep 1
+key ctrl-x "$BMON"
+
+echo "SPB: waiting for the LUKS prompt on serial (up to 2 min)"
+seen=no
+for i in $(seq 1 40); do
+  grep -qai "enter passphrase" "$D/bserial.log" && { seen=yes; break; }
+  sleep 3
+done
+echo "SPB: LUKS_PROMPT_ON_SERIAL=$seen after $((i*3))s"
+[ "$seen" = yes ] || echo "SPB: prompt never appeared — capture the log anyway, do NOT retry blind"
+printf '%s\n' "$LUKS_PASS" > "$P"
+echo "SPB: passphrase sent, waiting 180s for the system to settle"
+sleep 180
+echo "SPB: serial_bytes=$(stat -c%s "$D/bserial.log")"
+echo "SPB: guest left running. Type into $P, read $D/bserial.log"

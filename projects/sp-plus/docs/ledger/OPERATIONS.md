@@ -381,3 +381,31 @@ hypothesis. A greppable transcript beats any number of pass/fail screenshots. Co
 VM: `-serial unix:<sock>,server,nowait` plus a `socat` PTY, so the console can be both READ and
 WRITTEN. A write-only `-serial file:` log cannot answer a prompt, and a screendump cannot be
 grepped.
+
+## OP-23 — the Bee test lane (2026-08-26)
+The SP+ test loop is delegable because the read/write serial console turned it from
+"look at a screenshot and judge" into "grep a text file". Scripts live in
+`~/sp-plus-bee/` on the Beelink, mirrored to `projects/sp-plus/tests/bee-lane/`.
+
+**The whole lane runs unprivileged.** QEMU, swtpm, socat and the gates need no root;
+root lives *inside* the guest and is reached with `spb-shell` over serial. This removes
+the blocker that killed b04 (Luna cannot sudo — its runtime refuses with
+`Command escalates privileges; blocked (no UI for confirmation)` and does not report
+being blocked, OP-17). Only `spb-build` needs rootful podman, and it is the single
+fixed wrapper over the pre-existing NOPASSWD `/usr/bin/podman` grant.
+
+**Briefs demand evidence, never a verdict.** DN-14 was a wrong root cause recorded from
+a pass/fail signal; a small model will make that error faster and more confidently.
+The brief asks for the verbatim `avc:` lines, the gate exit code and the last 60 lines
+of serial. Headbrain judges. `RUNBOOK.md` carries the refuted-hypothesis list so a
+delegated cycle cannot re-walk a dead end.
+
+**Split:** Luna owns the loop (build, install, boot, grep). Headbrain owns the verdict,
+the next experiment, the ledger, and anything touching a Christopher ruling. Diagnosis
+is where small models drift, so expect to spend some Headbrain compute per cycle — the
+goal is cutting it by most, not to zero.
+
+## Recorded artifact
+T-13 ISO (SELinux relabel fix): sha256
+`6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db`, 4,135,002,112 bytes,
+built 2026-08-26 16:04. Supersedes b04 `afc0f9c7…`. **Not yet installed or verified.**
