@@ -12,4 +12,8 @@ Verified techniques that pass a gate. Use this format for every entry:
 
 The `Re-verify when` field makes this survive a Fedora migration.
 
-Empty by design. The first entry is written when Spike A passes its gate.
+### W-01 — `--network host` fixes root Podman build DNS resolution
+- **Verified:** 2026-08-26 on Beelink `com`, LMDE 7, root Podman build
+- **Artifact:** `localhost/sp-plus-kde:spike@sha256:da47edacbf5f4759f7b8613f0548ea8f583f530123de3aa7536a087a8a21c6fe`
+- **Evidence:** `sudo podman build --network host -t sp-plus-kde:spike -f projects/sp-plus/images/kde/Containerfile projects/sp-plus/`; exact output included `Checks passed: 10`, `Warnings: 3`, `COMMIT sp-plus-kde:spike`, and `Successfully tagged localhost/sp-plus-kde:spike`.
+- **Re-verify when:** Fedora major version bump, Podman/network backend change, or repository mirror configuration change.
