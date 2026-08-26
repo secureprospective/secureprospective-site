@@ -49,3 +49,29 @@ exact prompt sequence. If text mode cannot prompt, the options are RDP
 `vda` is a virtio disk. The Dell (HW-00) has a SATA mechanical drive and will present
 `sda`. The kickstart will fail there as written. Make disk selection dynamic or interactive
 before the bare-metal test.
+
+### T-10 — Test VMs must expose a driveable console, not a GTK window
+
+**Problem found 2026-08-26, first QEMU install.** The launcher used `-display gtk` with the
+serial console redirected to a FILE (`-serial file:...`). That is output-only. The QEMU GTK
+window has no clipboard integration with the host, so the operator had to hand-type every
+command into the guest — including an ed25519 public key. Unacceptable and error-prone.
+
+**Immediate workarounds used:**
+1. `tests/vmtype.sh` — types a command into the guest by driving `sendkey` over the QEMU
+   monitor socket. Works, but slow and character-mapped.
+2. A short `curl 192.168.1.105:8000/k` one-liner fetching the pubkey from a temporary
+   HTTP server on CT105 (guest reaches the LAN through user-mode NAT).
+
+**Correct fix for all future launchers:** attach the serial console to a Unix socket
+instead of a file:
+```
+-serial unix:$D/console.sock,server,nowait
+```
+and drive it from the build host with `socat -,raw,echo=0 UNIX-CONNECT:$D/console.sock`.
+That gives full bidirectional console access with no GUI, works headless, survives over
+SSH, and mirrors how the bare-metal Dell will be reached. Keep `-monitor` on its own
+separate socket for screendumps and `sendkey`.
+
+**Rule.** A test environment the operator cannot paste into is a defective instrument.
+Build the access channel before the test, not during it.
