@@ -1,8 +1,21 @@
 # Handoff
 
-- **Baton:** ClaudeBox — 2026-08-25
-- **Where it stands:** The Advisor OS POC ISO is built at `projects/advisor-os/artifacts/iso/advisor-os-installer-latest.iso`. A fresh 80 GiB UEFI/KVM/swtpm QEMU install passed LUKS2 creation, bootc deployment, Anaconda `Installation complete!`, reboot, LUKS unlock, multi-user startup, `advisor-os.service`, and `advisor` login. Commit `275d9c3` contains the verified source, wrapper, test log, and prior handoff. The active desktop QEMU process is a separate snapshot-backed runtime using `artifacts/qcow2/disk.qcow2`; it has no SSH host-forward and its live SSH install is not recoverable by restarting that snapshot.
-- **Next move:** Add/use SSH port forwarding without discarding the active VM state, connect to the live guest, and save the requested inventory; then run the graphical ISO/KDE/Brave/PWA/printer checks and decide the release-clean replacement for the temporary bootc wrapper path.
-- **Blocked on:** Live SSH inventory is blocked because the running QEMU command uses plain user networking (`-nic user`) without `hostfwd`; direct host access to guest `10.0.2.15:22` fails. Do not restart the snapshot-backed VM until Christopher confirms the live SSH install can be discarded or a live console/reverse-tunnel path is used.
-- **Tried and rejected:** The active guest address is NAT-only, so `ssh 10.0.2.15` is unreachable from the host. A host-side inventory listener plus X11 keystroke attempt did not obtain data because the QEMU display was not at a usable shell. Earlier bootc experiments rejected a separate `/var` mount (`No such file or directory`) and `/tmp` (`unsupported user-specified mount point`); binding `/boot` for import and using supported `--skip-finalize` is the working POC workaround.
-- **Verification:** `projects/advisor-os/scripts/test-host.sh` passed (3 tests); `git diff --check` passed; clean automated install/reboot/unlock/login evidence is in `projects/advisor-os/artifacts/test-logs/qemu-boot-skip-07.log` and `qemu-installed-verify-07.log`. Manual graphical acceptance remains owed.
+## Baton
+
+ClaudeBox holds it. Date: 2026-08-25. (Bee completed a documentation pass and released the branch; gpt/other actors hold in-flight build work on this same branch.)
+
+## Where it stands
+
+Advisor OS documentation package is complete and pushed on `session/advisor-os-poc`: `docs/ADVISOR_OS_LANDING_CONTENT.md` (positioning copy blocks, 10-step user journey, master disclaimers in short/full pairs with counsel-review flags, approved-vs-banned language table, FAQ, regulatory appendix) and a 17-file plain-English knowledge base under `projects/advisor-os/knowledge/` (`advisor-help/`, `troubleshooting/`, `security/`, plus `README.md` voice rules for PWA builders). Zero em dashes enforced; all cross-links verified; gpt's uncommitted in-flight changes (`projects/advisor-os/installer/iso.yaml`, `projects/advisor-os/scripts/build-iso.sh`, untracked `grafix/`) were preserved untouched. Installer POC status is unchanged from `b8e9fac`: ISO installs encrypted and boots to login; live VM SSH inventory remains blocked.
+
+## Next move
+
+Wire the knowledge base into the PWA help surface: render `projects/advisor-os/knowledge/**/*.md` as articles following `knowledge/README.md` ordering, starting with `advisor-help/welcome.md`.
+
+## Blocked on
+
+Nothing blocking documentation. Separate standing blocker: live SSH access to the running snapshot-backed QEMU guest (see `~/.pi` local handoff on Beelink).
+
+## Tried and rejected
+
+Spawning subagents via the pi-subagents extension tool was unavailable this session; equivalent isolation achieved by dispatching two headless `pi --no-session -p` research workers inside one blocking bash call writing to /tmp. Backgrounding workers across separate bash calls fails because processes are reaped when the call ends.
