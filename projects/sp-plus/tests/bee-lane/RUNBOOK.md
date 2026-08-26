@@ -160,3 +160,39 @@ removing the check.
 
 Report the `PACKAGES_PASS=` / `PACKAGES_FAIL=` line and every `FAIL` line verbatim.
 As always: **evidence, not a verdict.**
+
+---
+
+## EIGHT GATES NOW — SOFTWARE, BRANDING, APPS
+
+```bash
+cd ~/sp-plus-bee && export CYCLE=cycle8
+./spb-hygiene
+./spb-packages image                              # SP+ software present?
+./spb-branding image                              # any Fedora logo left?
+./spb-branding image localhost/sp-plus-installer  # the INSTALLER has its own Fedora art
+./spb-apps     image                              # app suite installed + links cleanly?
+./spb-build                                       # ONLY if the three image gates are green
+./spb-install
+./spb-boot
+./spb-packages live
+./spb-branding live
+./spb-apps     live                               # do they RUN? any coredumps?
+./spb-evidence
+./spb-state                                       # edit the narrative, commit
+./spb-hygiene --apply
+```
+
+**Never build past a red image gate.** They answer in seconds; the ISO takes fifteen
+minutes.
+
+Manifests you may need to extend — a component with no line is a component nobody tests:
+- `~/sp-plus-bee/spb-manifest` — SP+ software (`TYPE|NAME|WHY`)
+- `~/sp-plus-bee/spb-appmanifest` — the app suite (`RPM|BINARY|DESKTOP|WHY`)
+
+Branding assets are staged at `projects/sp-plus/branding/` (icon 1024/512, lockup 1080/4k,
+dark splash). `spb-branding` enumerates the real surfaces from the rpm database rather
+than a guessed path list, and only counts regular files.
+
+Report every `FAIL` line verbatim plus the `PACKAGES_ / BRANDING_ / APPS_` count lines.
+**Evidence, not a verdict.**

@@ -562,3 +562,132 @@ partitioning, unattended, works on the target hardware class. The **product** is
 the image yet. If time runs out, a beautiful installer that lays down bare Kinoite is a
 story he can tell; a machine that hangs on a black screen (DN-15) is not. Sequence your
 night so the visible failures die first.
+
+---
+
+# SECTION 14 — BRANDING AND THE APPLICATION SUITE
+**Added 2026-08-26 ~17:00 on Christopher's instruction: replace every Fedora logo with the
+SP+ silver logo, then ship a real application suite that is verified to work on first boot.**
+
+## 14.1 DN-19 — SP+ branding is not applied anywhere
+
+New gate: `spb-branding [image|live]`. Against the payload image today:
+**1 pass, 10 fail.**
+
+```
+FAIL os-release  NAME=Fedora Linux
+FAIL os-release  PRETTY_NAME=Fedora Linux 44.20260826.0 (Kinoite)
+FAIL os-release  ID=fedora
+FAIL os-release  LOGO=fedora-logo-icon
+FAIL os-release  HOME_URL=https://kinoite.fedoraproject.org
+FAIL plymouth    no default theme selected
+FAIL logos       /usr/share/icons/hicolor/scalable/places/start-here.svg is still Fedora
+FAIL asset       /usr/share/sp-plus/branding/sp-plus-icon.png missing
+FAIL asset       /usr/share/sp-plus/branding/sp-plus-lockup.png missing
+FAIL strings     'Fedora' still appears in /etc/os-release
+```
+
+**Method matters here.** The gate does not work from a guessed list of logo paths. It
+asks the rpm database: `fedora-logos` owns **249 paths, 107 on visible surfaces**, and
+`rpm -V` says which of those are still byte-identical to stock. That is enumeration, not
+pattern-matching, and it is why the result is trustworthy. It also only counts **regular
+files** — my first version counted directories and reported an implausible "90 replaced",
+which is exactly the kind of number that should stop you.
+
+**`start-here.svg` is the application-launcher icon in the Plasma panel** — the single
+most visible Fedora mark on the desktop. It is bottom-left on every screenshot.
+
+**Where the branding surfaces actually are:**
+- **Payload image** (`sp-plus-kde:spike`) — desktop icons, plymouth boot splash, sddm
+  login theme, wallpapers, `/etc/os-release`.
+- **Installer image** (`sp-plus-installer`) — `/usr/share/anaconda/pixmaps/*`
+  (`sidebar-logo.png`, `topbar-bg.png`, `anaconda_header.png`, the `rnotes` slideshow).
+  **Run `spb-branding image localhost/sp-plus-installer` too.** The installer is the
+  first screen anyone sees, and it is a separate image with its own Fedora art.
+- **GRUB** — `/boot/grub2/themes` and the bootloader pixmaps.
+
+**Assets are staged for you** at `projects/sp-plus/branding/`:
+`sp-plus-icon.png` (1024), `sp-plus-icon-512.png`, `sp-plus-lockup.png` (1080),
+`sp-plus-lockup-4k.png`, `sp-plus-splash.png` (dark lockup, for the boot splash).
+Source renders live in `grafix/render/`.
+
+**How to do it properly**, in the payload Containerfile:
+1. `COPY branding/ /usr/share/sp-plus/branding/`
+2. Rewrite `/etc/os-release`: `NAME="SP+"`, `PRETTY_NAME="SP+ 1.0"`, `ID=sp-plus`,
+   `ID_LIKE=fedora`, `LOGO=sp-plus-logo-icon`, `HOME_URL=` your URL, `VARIANT="Advisor"`.
+   Keep `ID_LIKE=fedora` — tooling depends on it.
+3. Install the icon under the name `LOGO=` points at, in
+   `/usr/share/icons/hicolor/{scalable,256x256,512x512}/apps/`, and **overwrite
+   `start-here.svg`** in `places/`, then `gtk-update-icon-cache`.
+4. Ship a plymouth theme: `/usr/share/plymouth/themes/sp-plus/sp-plus.plymouth` with the
+   splash art, and point `default.plymouth` at it. **Rebuild the initramfs afterwards**
+   or the old splash stays baked in — this is the step people forget.
+5. Do the same for the anaconda pixmaps in the **installer** Containerfile.
+6. `spb-branding image` must reach `BRANDING_FAIL=0` **before** you build an ISO.
+
+**Do not simply `rpm -e fedora-logos`** — a great deal depends on it and you will pull
+half the desktop with it. Overwrite the files that are visible.
+
+## 14.2 DN-20 — there is no application suite
+
+New gate: `spb-apps [image|live]` against `~/sp-plus-bee/spb-appmanifest`.
+Today: **14 pass, 27 fail.** Missing entirely: Brave, LibreOffice, Thunderbird,
+KeePassXC, Kate, KCalc, Okular, Ark, system-config-printer.
+
+The manifest is `RPM|BINARY|DESKTOP_FILE|WHY`, and it is a **proposal — Christopher's
+call**. It currently proposes a browser, an office suite, a PDF reader, a file manager,
+an archive tool, an image viewer, a screenshot tool, a text editor, a calculator, a
+password manager, a mail client, and printer setup. Add or cut freely, but **every app
+that ships must have a line**, because this file is the definition of the suite and
+anything absent from it is untested.
+
+**Three checks per app, and they answer different questions:**
+- `inst` — the rpm is present.
+- `libs` — the binary links cleanly (`ldd` finds no missing shared library). This is the
+  headless-safe way to catch a broken install. **A Qt app aborts on `--version` with no
+  display**, so my first version of this gate reported false failures for Spectacle and
+  System Settings; `--version` now runs only in `live` mode where a session exists.
+- `menu` — there is a `.desktop` launcher. **An app with no launcher does not exist to
+  an advisor**, however correctly it is installed.
+
+Plus, on a live system: **coredumps** (`coredumpctl`) and **failed units**. That is the
+"check the apps for errors" half — crashes after first boot show up here and nowhere else.
+
+## 14.3 THE LOOP IS NOW EIGHT GATES
+
+```bash
+cd ~/sp-plus-bee && export CYCLE=cycle8
+./spb-hygiene                    # RAM/disk
+./spb-packages image             # is the SP+ software in the image?
+./spb-branding image             # any Fedora logo left?   (also: ... image localhost/sp-plus-installer)
+./spb-apps     image             # is the app suite installed and does it link?
+./spb-build                      # only once all three image gates pass
+./spb-install
+./spb-boot
+./spb-packages live              # did the software survive the install?
+./spb-branding live              # did the branding survive?
+./spb-apps     live              # do the apps RUN, and did anything crash?
+./spb-evidence                   # AVCs, failed units, labels
+./spb-state                      # update the baton, edit narrative, commit
+./spb-hygiene --apply
+```
+
+**The image gates are cheap and the ISO build is fifteen minutes.** Never build past a
+red image gate — that is the entire point of putting them first.
+
+**`live` is not a duplicate of `image`.** Content can be dropped or relabelled during
+bootc deployment; that is precisely the class of bug DN-16 was. And an app that links
+cleanly in a container can still fail to start in a real session.
+
+## 14.4 PRIORITY ORDER — supersedes 13.4
+
+1. **DN-18** — get the SP+ software into the payload image. Nothing else matters first.
+2. **DN-19** — branding. Christopher asked for this next and it is the most *visible*
+   work in the whole project: it is what the room sees.
+3. **DN-20** — the application suite, verified with `spb-apps live`.
+4. **DN-17** — the first-boot password service (likely resolves with the advisor account).
+5. **DN-16** — finish the proof: `semodule -DB`, log in, check labels.
+6. **DN-15** — the invisible LUKS prompt. **The demo killer.** Do not leave it last if
+   there is any chance of running out of night.
+7. Full clean loop, every gate green, `release-gate.sh` exit 0.
+8. The Dell — Christopher installs it himself.

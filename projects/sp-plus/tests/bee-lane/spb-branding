@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# spb-branding — is there any Fedora branding left where an advisor can see it?
+#
+#   spb-branding image [<ref>]   # against the payload container
+#   spb-branding live            # against the booted guest
+#
+# METHOD: enumerate the REAL surfaces, never a guessed list. `fedora-logos` owns
+# 249 files and the rpm database knows their pristine checksums, so `rpm -V` tells
+# us exactly which ones we replaced and which are still stock. A detector written
+# from expectation reports variety as failure; this one reads the filesystem.
+. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+MODE="${1:-image}"; IMG="${2:-localhost/sp-plus-kde:spike}"
+
+PROBE=$(mktemp); trap 'rm -f "$PROBE"' EXIT
+cat > "$PROBE" <<'PROBE_EOF'
+p=0; f=0
+say(){ echo "$1"; }
+# ---- 1. os-release: the name the machine calls itself ----
+for k in NAME PRETTY_NAME ID LOGO HOME_URL; do
+  v=$(grep -E "^${k}=" /etc/os-release 2>/dev/null | cut -d= -f2- | tr -d '"')
+  if echo "$v" | grep -qi fedora; then
+    echo "FAIL os-release  ${k}=${v}"; f=$((f+1))
+  else
+    echo "PASS os-release  ${k}=${v}"; p=$((p+1))
+  fi
+done
+# LOGO must point at an icon that actually exists
+LOGO=$(grep -E '^LOGO=' /etc/os-release 2>/dev/null | cut -d= -f2- | tr -d '"')
+if [ -n "$LOGO" ] && find /usr/share/icons /usr/share/pixmaps -name "${LOGO}*" 2>/dev/null | grep -q .; then
+  echo "PASS os-release  LOGO icon file exists"; p=$((p+1))
+else
+  echo "FAIL os-release  LOGO=$LOGO has no matching icon file"; f=$((f+1))
+fi
+
+# ---- 2. plymouth: the boot splash, the FIRST thing an advisor sees ----
+DEFLINK=/usr/share/plymouth/themes/default.plymouth
+DEF=$(grep -E '^(ImageDir|Theme)=' "$DEFLINK" 2>/dev/null | head -1 | cut -d= -f2-)
+[ -z "$DEF" ] && DEF=$(readlink "$DEFLINK" 2>/dev/null)
+echo "INFO plymouth   default theme -> ${DEF:-NONE}"
+if [ -z "$DEF" ]; then
+  echo "FAIL plymouth   no default theme"; f=$((f+1))
+elif echo "$DEF" | grep -qiE 'spplus|sp-plus'; then
+  echo "PASS plymouth   default theme is an SP+ theme"; p=$((p+1))
+else
+  echo "FAIL plymouth   default theme is still stock ($(basename "$(dirname "$DEF")"))"; f=$((f+1))
+fi
+
+# ---- 3. fedora-logos: enumerate, do not guess ----
+if rpm -q fedora-logos >/dev/null 2>&1; then
+  TOT=$(rpm -ql fedora-logos 2>/dev/null | wc -l)
+  # visible surfaces only: boot splash, login, app icons, installer art
+  VIS=$(rpm -ql fedora-logos 2>/dev/null | grep -E '/(plymouth|sddm|pixmaps|anaconda)/|icons/hicolor/(scalable|256x256|512x512)/' | grep -v '/$')
+  NVIS=$(echo "$VIS" | grep -c . )
+  # rpm -V reports files whose checksum no longer matches the package = we replaced them
+  MOD=$(rpm -V fedora-logos 2>/dev/null | awk '{print $NF}')
+  # REGULAR FILES ONLY — directories are not branding surfaces and counting them
+  # produced an implausible "90 replaced" on the first run of this gate.
+  STILL=0; GONE=0
+  for file in $VIS; do
+    [ -f "$file" ] || continue
+    if echo "$MOD" | grep -qxF "$file"; then GONE=$((GONE+1)); else STILL=$((STILL+1)); fi
+  done
+  echo "INFO logos      fedora-logos owns $TOT paths, $NVIS on visible surfaces"
+  echo "INFO logos      regular files: still-stock=$STILL  absent-or-modified=$GONE"
+  if [ "$STILL" -eq 0 ] && [ "$NVIS" -gt 0 ]; then
+    echo "PASS logos      every visible Fedora logo surface has been replaced"; p=$((p+1))
+  else
+    echo "FAIL logos      $STILL visible Fedora logo files are still stock"; f=$((f+1))
+    echo "$VIS" | while read -r file; do
+      [ -f "$file" ] || continue
+      echo "$MOD" | grep -qxF "$file" || echo "     STILL-FEDORA  $file"
+    done | head -25
+  fi
+else
+  echo "PASS logos      fedora-logos is not installed at all"; p=$((p+1))
+fi
+
+# ---- 4. SP+ assets must actually be present ----
+for a in /usr/share/sp-plus/branding/sp-plus-icon.png /usr/share/sp-plus/branding/sp-plus-lockup.png; do
+  if [ -e "$a" ]; then echo "PASS asset      $a"; p=$((p+1)); else echo "FAIL asset      $a missing"; f=$((f+1)); fi
+done
+
+# ---- 5. any remaining user-visible 'Fedora' string in branding config ----
+HITS=$(grep -rlis fedora /etc/os-release /etc/issue /etc/issue.net /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null | head -10)
+if [ -n "$HITS" ]; then
+  echo "FAIL strings    'Fedora' still appears in:"; echo "$HITS" | sed 's/^/     /'; f=$((f+1))
+else
+  echo "PASS strings    no Fedora string in os-release/issue/plymouth config"; p=$((p+1))
+fi
+
+echo "BRANDING_PASS=$p BRANDING_FAIL=$f"
+[ "$f" -eq 0 ]
+PROBE_EOF
+
+echo "########## SP+ BRANDING GATE  mode=$MODE  $(date -u +%FT%TZ) ##########"
+case "$MODE" in
+  image) echo "image: $IMG"; sudo -n podman run --rm -i "$IMG" bash -s < "$PROBE"; rc=$? ;;
+  live)  echo "guest: $CYCLE"; /home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")"; rc=$? ;;
+  *) echo "usage: spb-branding [image|live] [ref]"; exit 2 ;;
+esac
+echo "########## END BRANDING GATE (exit $rc) ##########"
+exit $rc

@@ -36,15 +36,21 @@ a live demo. **Next move: get a root shell without auth and read
 `journalctl -u spplus-firstboot-password.service -b`.**
 
 ## HEADLINE — READ FIRST
-**DN-18 is the top blocker: the ISO contains NO SP+ software.** The package gate says
-17 pass / 14 fail against `localhost/sp-plus-kde:spike` — no Brave, no sddm, no
-`/usr/libexec/sp-plus` runtime, no PWA, no playbooks, no Brave policy, **no advisor
-account**. The build installs `images/kde/Containerfile` (four lines: Kinoite + cups +
-firewalld) while the real product lives in `projects/sp-plus/Containerfile`, which is
-never built. That also explains DN-17: there is no advisor account to set a password on.
-**Next move: merge the real Containerfile into the payload image, on Fedora 44, with the
-advisor account LOCKED (DN-13 — the existing file ships `advisor-poc`, which violates it),
-then `spb-packages image` before spending 15 minutes on a build.**
+Three gates now say the ISO is not the product yet, with numbers:
+**DN-18 packages 17 pass / 14 fail** (no Brave, no SP+ runtime, no advisor account),
+**DN-19 branding 1 pass / 10 fail** (os-release still says Fedora Linux, no plymouth
+theme, `start-here.svg` is still the Fedora launcher icon, SP+ assets not installed),
+**DN-20 apps 14 pass / 27 fail** (no LibreOffice, Thunderbird, KeePassXC, Okular, Kate,
+KCalc, Ark, printer setup).
+
+Root cause of DN-18: the build installs `images/kde/Containerfile` (four lines) while the
+real product lives in `projects/sp-plus/Containerfile`, which is never built. That also
+explains DN-17 — there is no advisor account to set a password on.
+
+**Order: DN-18 (software in the image) -> DN-19 (branding, the most visible work) ->
+DN-20 (apps) -> DN-17 -> DN-16 proof -> DN-15 (the demo killer).**
+Branding assets are staged at `projects/sp-plus/branding/`. Run the three `image` gates
+before ever starting a 15-minute build.
 
 ## Where it stands
 The T-13 ISO (`6a593d70…`) installs fully unattended onto Dell-like SATA and boots to a

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# spb-apps — are the advisor's applications installed AND do they actually run?
+# "Installed" is spb-packages' job. This asks the harder question: does it start,
+# does it have a launcher an advisor can click, and did anything crash after boot.
+#
+#   spb-apps image [<ref>]   # installed + launchable checks, no VM
+#   spb-apps live            # the above PLUS crash/coredump evidence from a real boot
+#
+. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+MODE="${1:-image}"; IMG="${2:-localhost/sp-plus-kde:spike}"
+MAN=/home/chris/sp-plus-bee/spb-appmanifest
+[ -f "$MAN" ] || { echo "no app manifest at $MAN"; exit 2; }
+
+PROBE=$(mktemp); trap 'rm -f "$PROBE"' EXIT
+{
+echo 'p=0; f=0; w=0'
+echo "SPB_LIVE=$([ \"$MODE\" = live ] && echo 1 || echo 0)"
+while IFS='|' read -r rpmn bin desk why; do
+  case "$rpmn" in \#*|'') continue ;; esac
+  printf 'if rpm -q %s >/dev/null 2>&1; then echo "PASS inst %s"; p=$((p+1)); else echo "FAIL inst %s  <- %s"; f=$((f+1)); fi\n' "$rpmn" "$rpmn" "$rpmn" "$why"
+  if [ "$bin" != "-" ]; then
+    # A Qt/GUI app ABORTS on --version with no display, so --version is a false
+    # FAIL inside a container. The headless-safe test for a genuinely broken
+    # install is a missing shared library. --version only runs in live mode,
+    # where there is a real session. (Learned on the first run of this gate.)
+    printf 'if command -v %s >/dev/null 2>&1; then B=$(command -v %s); MISS=$(ldd "$B" 2>/dev/null | grep -c "not found"); if [ "$MISS" -eq 0 ]; then echo "PASS libs %s links cleanly"; p=$((p+1)); else echo "FAIL libs %s has $MISS missing shared libraries"; f=$((f+1)); fi; if [ "$SPB_LIVE" = 1 ]; then if QT_QPA_PLATFORM=offscreen timeout 25 %s --version >/dev/null 2>&1; then echo "PASS run  %s --version"; p=$((p+1)); else echo "FAIL run  %s installed but will not start"; f=$((f+1)); fi; fi; else echo "FAIL run  %s binary not on PATH"; f=$((f+1)); fi\n' "$bin" "$bin" "$bin" "$bin" "$bin" "$bin" "$bin" "$bin"
+  fi
+  if [ "$desk" != "-" ]; then
+    printf 'D=$(ls /usr/share/applications/%s /var/lib/flatpak/exports/share/applications/%s 2>/dev/null | head -1); if [ -n "$D" ]; then echo "PASS menu %s"; p=$((p+1)); if command -v desktop-file-validate >/dev/null 2>&1 && ! desktop-file-validate "$D" >/dev/null 2>&1; then echo "WARN menu %s has a malformed .desktop file"; w=$((w+1)); fi; else echo "FAIL menu %s has no launcher — invisible to the advisor"; f=$((f+1)); fi\n' "$desk" "$desk" "$desk" "$desk" "$desk"
+  fi
+done < "$MAN"
+cat <<'TAIL'
+# ---- crash evidence: only meaningful on a real booted system ----
+if [ -d /var/lib/systemd/coredump ] || command -v coredumpctl >/dev/null 2>&1; then
+  n=$(coredumpctl list --no-legend 2>/dev/null | wc -l)
+  if [ "$n" -gt 0 ]; then
+    echo "FAIL crash $n coredumps recorded:"
+    coredumpctl list --no-legend 2>/dev/null | tail -10 | sed 's/^/     /'
+    f=$((f+1))
+  else
+    echo "PASS crash no coredumps"; p=$((p+1))
+  fi
+fi
+fu=$(systemctl --failed --no-legend --no-pager 2>/dev/null | wc -l)
+if [ "$fu" -gt 0 ]; then
+  echo "FAIL units $fu failed units:"
+  systemctl --failed --no-legend --no-pager 2>/dev/null | sed 's/^/     /'
+  f=$((f+1))
+else
+  echo "PASS units no failed units"; p=$((p+1))
+fi
+echo "APPS_PASS=$p APPS_FAIL=$f APPS_WARN=$w"
+[ "$f" -eq 0 ]
+TAIL
+} > "$PROBE"
+
+echo "########## SP+ APPLICATION GATE  mode=$MODE  $(date -u +%FT%TZ) ##########"
+case "$MODE" in
+  image) echo "image: $IMG"; sudo -n podman run --rm -i "$IMG" bash -s < "$PROBE"; rc=$? ;;
+  live)  echo "guest: $CYCLE"; /home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")"; rc=$? ;;
+  *) echo "usage: spb-apps [image|live] [ref]"; exit 2 ;;
+esac
+echo "########## END APPLICATION GATE (exit $rc) ##########"
+exit $rc

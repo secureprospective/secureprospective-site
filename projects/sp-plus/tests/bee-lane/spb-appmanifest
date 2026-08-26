@@ -1,0 +1,19 @@
+# SP+ APPLICATION SUITE — what an advisor finds installed on first boot, like a real distro.
+# Format: RPM|BINARY|DESKTOP_FILE|WHY
+# BINARY or DESKTOP_FILE may be '-' when not applicable.
+# CHRISTOPHER'S CALL: this list is a proposal. Add and remove freely — but every app
+# that ships must have a line here, because this file is what spb-apps tests.
+brave-browser|brave-browser|brave-browser.desktop|the advisor-facing browser, runs the SP+ PWA
+libreoffice-writer|libreoffice|libreoffice-writer.desktop|client letters and documents
+libreoffice-calc|-|libreoffice-calc.desktop|spreadsheets, illustrations
+okular|okular|org.kde.okular.desktop|PDF — the format every carrier sends
+dolphin|dolphin|org.kde.dolphin.desktop|file manager
+ark|ark|org.kde.ark.desktop|opening the zip a carrier emails
+gwenview|gwenview|org.kde.gwenview.desktop|image viewer
+spectacle|spectacle|org.kde.spectacle.desktop|screenshots for support tickets
+kate|kate|org.kde.kate.desktop|text editor
+kcalc|kcalc|org.kde.kcalc.desktop|calculator
+keepassxc|keepassxc|org.keepassxc.KeePassXC.desktop|password manager — a compliance talking point
+thunderbird|thunderbird|thunderbird.desktop|mail client
+system-config-printer|-|-|printer setup UI an advisor can drive
+plasma-systemsettings|systemsettings|systemsettings.desktop|settings
