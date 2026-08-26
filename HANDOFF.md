@@ -1,5 +1,14 @@
 # Handoff
 
+## 2026-08-26 — SP+ help documentation added
+
+- **Baton:** Bee — 2026-08-26
+- **Where it stands:** Added `projects/sp-plus/knowledge/START-HERE.md`, a plain-English master help guide with a task and symptom index, installation and first-day checklist, everyday work, safety, updates, troubleshooting, Assistant/support guidance, evidence-report guidance, and glossary. Added `projects/sp-plus/docs/SP-PLUS-HELP-DESIGN.md` with the beginner-distro research, source links, information-architecture decisions, article standard, and claim-safety rules.
+- **Build boundary:** Only those two documentation files and this handoff changed. Existing build work and untracked `grafix/` files were left untouched.
+- **Next move:** Wire `knowledge/START-HERE.md` into the PWA help navigation, then test the links and wording with a non-Linux advisor. Mark any test-only or not-yet-shipped feature in the UI before pilot use.
+- **Blocked on:** PWA rendering and final feature availability. The help copy must not be treated as proof that a planned screen exists in the current test image.
+- **Tried and rejected:** A single undifferentiated manual was not used as the only structure. The master guide is the front door, while focused articles remain the troubleshooting paths.
+
 ## 2026-08-26 — SP+ research complete, build begins next session
 
 The `advisor-os` subproject is renamed **SP+** and now carries an eight-document planning
