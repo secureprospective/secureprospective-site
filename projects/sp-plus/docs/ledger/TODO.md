@@ -75,3 +75,19 @@ separate socket for screendumps and `sendkey`.
 
 **Rule.** A test environment the operator cannot paste into is a defective instrument.
 Build the access channel before the test, not during it.
+
+### T-11 — Make `field-inspect.sh` exit non-zero on a security-critical PROBLEM
+
+`release-gate.sh` currently supplies the pass/fail judgement over the report. Fold the
+security-critical subset into `field-inspect.sh` itself so the script cannot be run and
+casually ignored: exit 0 clean, exit 1 when any of `selinux_mode`, `selinux_arg_leaked`,
+`luks_containers`, `luks_version` is wrong. Deferred only to avoid a merge conflict with
+the in-flight b03 dispatch, which is editing `tests/`.
+
+### T-12 — Wire the pre-build gate into `sp-plus-iso-build.sh` directly
+
+`~/sp-plus-gates/sp-plus-build-gated.sh` currently WRAPS the build script rather than
+modifying it, because b03 was mid-run and editing a script an agent is executing is a way
+to break a dispatch. Once b03 closes, fold the gate call into the head of
+`sp-plus-iso-build.sh` so there is exactly ONE build path and it cannot be bypassed by
+habit. A gate that is optional is not a gate.

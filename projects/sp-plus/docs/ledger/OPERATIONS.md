@@ -206,3 +206,75 @@ found the one real gap it had flagged as unproven (`autovt@.service` link absent
 than guess; and a MANDATORY closing section naming the exact commands that would DISPROVE
 the answer. This is the single highest-leverage line in a research brief. It converts an
 agent's output from an assertion into a testable lead, and it is cheap.
+
+### OP-16 — The security claims SP+ SELLS must be machine-enforced, never prose
+
+**What happened.** On 2026-08-26 SP+ completed an install in which SELinux was **Disabled**
+while `/etc/selinux/config` read `SELINUX=enforcing`, and in which there was **no encryption
+at all** while the kickstart declared `--encrypted --luks-version=luks2`. Both failed
+SILENTLY. Reading the configuration told you the OPPOSITE of the truth. Only an inspection
+of the running system exposed it.
+
+**Cost.** None yet, because it was caught before shipping. Shipped, it would have been a
+false security claim to an advisor holding client financial data — the exact property SP+ is
+sold on, absent, while every config file asserted it was present.
+
+**The structural problem.** The ledger works, but it is prose a human must remember to read.
+`DO-NOT.md` reached eleven entries on day one. At fifty entries and six months' distance,
+"we wrote it down" stops being protection. The backbone already states the principle:
+prose instructions are not enforcement.
+
+**Rule — two gates, both mechanical, both blocking:**
+
+1. **`tests/preflight-gate.sh`** runs BEFORE the build and aborts it. Static checks on the
+   installer definition: `selinux=0` present on the INSTALLER cmdline (DN-09) and stripped
+   from the INSTALLED system (DN-10); encryption declared and pinned to LUKS2 (D34/D36);
+   no hardcoded `--ondisk` (T-09); no secrets or private keys; no `TMPDIR=/mnt/sysimage`
+   (the grey-screen root cause). **Validated retroactively against commit `44a5e40`: it
+   catches 3 of the 3 real defects that shipped that day.**
+
+2. **`tests/release-gate.sh`** runs against the LIVE INSTALLED SYSTEM, consumes a
+   `field-inspect.sh` report, and exits non-zero if any sold property is missing:
+   `selinux_mode=Enforcing`, `selinux_arg_leaked=no`, `luks_containers>=1`, every LUKS
+   container at **version 2**, `firmware=UEFI`, `default_target=graphical.target`.
+   **Validated against the real failing report of 2026-08-26: 5 failures, correctly
+   refuses to ship.**
+
+**A gate that has never failed is unproven.** Every gate added here MUST be demonstrated
+against a known-bad artifact before it is trusted. Both of these were.
+
+**Commercial note.** The release gate is not testing overhead — it is the product's
+credibility mechanism. When a zero-day lands, every vendor will claim "immutable, encrypted,
+atomic rollback". What is rare is proving it *per machine, on demand*: a dated report for a
+named advisor's laptop showing `selinux_mode Enforcing` and `luks_version luks2 OK`. That is
+evidence, not marketing. Productize it.
+
+### OP-17 — A dispatched agent can be BLOCKED by a safety gate and will sit there silently
+
+**What happened.** Bee/Luna ran a build+test loop for ~2 hours, then went completely silent
+for 28 minutes. Commits stopped; the VM sat at a shell prompt; the screendump looked like
+normal work. It was neither thinking nor crashed. Its session transcript showed:
+```
+command: printf '%s' 'curl ... field-inspect.sh ... && echo spplus-advisor | sudo -S /tmp/field-inspect.sh' | base64 -w0
+result:  "Command escalates privileges; blocked (no UI for confirmation)"
+```
+The agent piped a password into `sudo -S` to run the inspection as root. The runtime's safety
+layer refused it because a headless dispatch has no confirmation UI. The agent had no recovery
+path and stopped making progress. **It never reported being blocked.**
+
+**Cost.** ~30 minutes of a 4-hour window, and the dispatch had to be killed and re-scoped.
+
+**Detect with:** the mtime of the agent's session JSONL under
+`~/.pi/agent/sessions/--home-chris--/`. If it is minutes old, the agent is working; if it is
+tens of minutes old, the agent is STOPPED regardless of what commits or screendumps suggest.
+**Poll the transcript mtime, not the artifacts.** Artifacts persist after an agent dies.
+
+**Rule.**
+1. Every long dispatch is monitored by SESSION TRANSCRIPT FRESHNESS, not by output existing.
+2. Briefs must name a privilege-escalation-safe path for anything needing root in a guest:
+   drive the console with `vmtype.sh` (typing at a login prompt is not command-level
+   escalation), or inspect the guest's disk OFFLINE from the host, or provision key-based root
+   SSH during the test install. **Never pipe a password into `sudo`** — it trips the safety
+   layer AND puts a credential in a command line.
+3. Briefs must instruct: *if you are blocked by a permission gate, REPORT IT IMMEDIATELY as a
+   BLOCKED outcome and stop.* Silence must never be an agent's response to a blocker (OP-04).

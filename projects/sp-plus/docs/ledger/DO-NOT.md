@@ -236,3 +236,79 @@ passphrase remains separately prompted and is not stored anywhere in the product
 
 **Status.** FIXED in cycle 4 for the throwaway test path by using the plaintext test
 credential; this must not be treated as a release credential.
+
+### DN-12 — `grubby` does NOT exist in a bootc image; a `%post` guard on it silently voids the whole block
+
+**Error signature.** None at install time. The install reports SUCCESS. On the installed system:
+```
+CMDLINE:  selinux=0
+ENFORCE:  Disabled
+GRUBBY:   MISSING
+ls: cannot access '/var/home/advisor': No such file or directory
+```
+and the graphical login LOOPS — SDDM accepts the correct password, then returns to the
+greeter, because Plasma cannot start a session without a home directory. `login` on a text
+VT succeeds but reports:
+```
+-- advisor: /var/home/advisor: change directory failed: No such file or directory
+Logging in with home = "/".
+```
+
+**Detect with:** on the installed system, `command -v grubby` (expect MISSING on bootc),
+`grep -o selinux=0 /proc/cmdline`, `getenforce`, and `ls -ld /var/home/<user>`.
+**A login loop with a CORRECT password is a missing/unwritable home directory until proven
+otherwise.**
+
+**Why.** The kickstart `%post` opened with:
+```bash
+if ! command -v grubby >/dev/null 2>&1; then
+    echo "SP+ post: grubby is required to remove installer kernel arguments" >&2
+    exit 1
+fi
+```
+`grubby` is not part of the bootc image, so `%post` exited at line 3. **Everything after it
+never ran**: the DN-10 karg strip, `systemctl set-default graphical.target`, and the home
+directory creation. One missing binary silently voided three unrelated fixes, and Anaconda
+still reported a successful install.
+
+**Do instead.**
+1. Do NOT depend on `grubby` for bootc/ostree systems. Kernel arguments live in BLS entries
+   under `/boot/loader/entries/*.conf`; edit `options` there, or pass explicit kargs to
+   `bootc install`. Whatever is chosen, the gate is empirical: `getenforce` = `Enforcing`.
+2. **NEVER let one prerequisite abort an entire `%post`.** Separate independent concerns so a
+   missing tool cannot silently cancel unrelated work. Guard narrowly, fail loudly, and make
+   the failure visible in the INSTALLED system, not only on a stream nobody reads.
+3. A `%post` failure must not be able to masquerade as a successful install.
+
+**Status.** OPEN — found 2026-08-26 during Christopher's hands-on QEMU test.
+
+**Meta-lesson.** This is the SECOND time in one day that a fix was declared correct from the
+diff and was doing nothing in reality (see DN-10). Both were caught only by inspecting a
+running installed system. **A fix is not verified until it is observed in the environment it
+targets.** The release gate (OP-16) would have caught this one mechanically.
+
+### DN-13 — SP+ must NEVER ship a default account password
+
+**Found 2026-08-26.** The kickstart contained:
+```
+user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --password=spplus-advisor
+```
+A literal, known password on a **sudo-capable** account, committed to git and baked into every
+ISO. It was added so an automated test loop could complete the User Creation spoke; it must
+never reach a shipped product.
+
+**Detect with:** `tests/preflight-gate.sh` — it now fails the build on any credential-bearing
+kickstart line lacking `--iscrypted`/`--lock`, and separately on any wheel account shipping a
+preset password.
+
+**Do instead.** Ship the advisor account LOCKED and require the advisor to set their own
+password at first boot. A shared default is identical on every SP+ machine in the field.
+
+**Gate-design lesson (important).** The original secrets check MISSED this twice:
+1. It matched `--password foo` but not `--password=foo`.
+2. It then asked whether `--iscrypted` appeared ANYWHERE IN THE FILE. An unrelated
+   `rootpw --iscrypted` line answered yes and masked the literal password on the user line.
+   **A flag must be computed from the datum, never from a neighbouring line.**
+The gate had been "validated" only against an artifact with no user account at all, so it
+passed and was trusted. **A gate tested solely against artifacts that LACK the defect proves
+nothing.** Every gate must be demonstrated against an artifact that HAS it (OP-16).
