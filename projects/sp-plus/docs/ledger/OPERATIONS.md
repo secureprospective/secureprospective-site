@@ -278,3 +278,36 @@ tens of minutes old, the agent is STOPPED regardless of what commits or screendu
    layer AND puts a credential in a command line.
 3. Briefs must instruct: *if you are blocked by a permission gate, REPORT IT IMMEDIATELY as a
    BLOCKED outcome and stop.* Silence must never be an agent's response to a blocker (OP-04).
+
+### OP-18 — Cleanup is part of the loop, not a task for later
+
+**Christopher's standing directive, 2026-08-26:** *"We need to keep cleaning up the stall
+processes and stale storage files, that needs to always be part of the loops. If we will not
+be coming back to said process or file, it must be cleaned up. The token burn is worth the
+prevention of slop."*
+
+**What prompted it.** A single day of build/test cycles left 63 GB of artifacts in
+`~/sp-plus-iso` — six ~8 GB install disk images, a 64 GB sparse raw copy, 130+ redundant
+3 MB `.ppm` screendumps each with a ~50 KB `.png` twin, and two superseded ISOs. Two orphaned
+QEMU VMs and three orphaned `swtpm` processes from a KILLED dispatch were still holding
+7.7 GB of RAM, on a 30 GB machine that a build agent shares. **56 GB and 11 GB of RAM were
+recovered in one pass.**
+
+**Rule.** `tests/reap.sh` runs at the END of every build/test cycle and at session close.
+Dry run by default; `--apply` to reclaim. It:
+- kills `swtpm` processes whose QEMU is gone (always garbage),
+- deletes `.qcow2`/`.raw` images NOT held open by a running QEMU,
+- deletes `.ppm` screendumps that already have a `.png` twin,
+- deletes superseded ISO copies, keeping the two most recent.
+
+**It never deletes evidence** — logs, screendumps as PNG, field reports and anything in the
+repo are preserved, because the ledger references them.
+
+**Why it is worth the tokens.** The cost of reaping is a few seconds per cycle. The cost of
+not reaping is a machine that runs out of RAM mid-dispatch, a build agent starved by dead
+VMs, and an artifact directory nobody can navigate six months later. **Slop compounds;
+cleanup does not.** A killed dispatch is the highest-risk moment: it leaves orphans behind
+precisely when attention is on the failure.
+
+**Corollary.** When a dispatch is killed, reap immediately as part of the kill. Do not leave
+it "for session close" — that is how 7.7 GB of RAM stayed locked up behind dead work.
