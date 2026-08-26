@@ -1,6 +1,9 @@
 label: "Secureprospective-Advisor-POC"
 grub2:
   entries:
-    - name: "Install SP+ POC"
+    - name: "Install SP+ (text mode) [default]"
+      linux: "/images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Secureprospective-Advisor-POC selinux=0 ip=dhcp console=ttyS0,115200 console=tty0 inst.text"
+      initrd: "/images/pxeboot/initrd.img"
+    - name: "Install SP+ (graphical - UNPROVEN, grey screen under test)"
       linux: "/images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Secureprospective-Advisor-POC selinux=0 ip=dhcp console=ttyS0,115200 console=tty0 inst.graphical"
       initrd: "/images/pxeboot/initrd.img"
