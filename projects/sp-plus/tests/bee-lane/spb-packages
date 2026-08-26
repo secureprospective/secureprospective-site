@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# spb-packages — does the SOFTWARE an advisor needs actually exist?
+# The boot/AVC lane proves the machine STARTS. This proves it is USEFUL.
+#
+#   spb-packages image [<image-ref>]   # fast, pre-build, against the container
+#   spb-packages live                  # against the running installed guest
+#
+# Prints PASS/FAIL per item and a count. Exit 0 only if everything passes.
+. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+MODE="${1:-image}"
+IMG="${2:-localhost/sp-plus-kde:spike}"
+MAN=/home/chris/sp-plus-bee/spb-manifest
+[ -f "$MAN" ] || { echo "no manifest at $MAN"; exit 2; }
+
+# Build one probe script that runs wherever the system under test is.
+PROBE=$(mktemp); trap 'rm -f "$PROBE"' EXIT
+{
+echo 'p=0; f=0'
+while IFS='|' read -r t n why; do
+  case "$t" in
+    \#*|'') continue ;;
+    rpm)  printf 'if rpm -q %s >/dev/null 2>&1; then echo "PASS rpm  %s"; p=$((p+1)); else echo "FAIL rpm  %s  <- %s"; f=$((f+1)); fi\n' "$n" "$n" "$n" "$why" ;;
+    path) printf 'if [ -e %s ]; then echo "PASS path %s"; p=$((p+1)); else echo "FAIL path %s  <- %s"; f=$((f+1)); fi\n' "$n" "$n" "$n" "$why" ;;
+    unit) printf 'if [ -f /usr/lib/systemd/system/%s ] || [ -f /etc/systemd/system/%s ]; then echo "PASS unit %s"; p=$((p+1)); else echo "FAIL unit %s  <- %s"; f=$((f+1)); fi\n' "$n" "$n" "$n" "$n" "$why" ;;
+    user) printf 'if getent passwd %s >/dev/null 2>&1; then echo "PASS user %s"; p=$((p+1)); else echo "FAIL user %s  <- %s"; f=$((f+1)); fi\n' "$n" "$n" "$n" "$why" ;;
+  esac
+done < "$MAN"
+# DN-13: the advisor account must exist but must NOT carry a usable password.
+echo 'st=$(passwd -S advisor 2>/dev/null | awk "{print \$2}")'
+echo 'case "$st" in L|LK) echo "PASS dn13 advisor account is LOCKED"; p=$((p+1));;'
+echo '  NP) echo "PASS dn13 advisor has no password set"; p=$((p+1));;'
+echo '  P)  echo "FAIL dn13 ADVISOR SHIPS A USABLE PASSWORD — violates DN-13"; f=$((f+1));;'
+echo '  *)  echo "FAIL dn13 could not determine advisor password state ($st)"; f=$((f+1));; esac'
+echo 'echo "PACKAGES_PASS=$p PACKAGES_FAIL=$f"'
+echo '[ "$f" -eq 0 ]'
+} > "$PROBE"
+
+echo "########## SP+ PACKAGE GATE  mode=$MODE  $(date -u +%FT%TZ) ##########"
+case "$MODE" in
+  image)
+    echo "image: $IMG"
+    sudo -n podman run --rm -i "$IMG" bash -s < "$PROBE"
+    rc=$?
+    ;;
+  live)
+    echo "guest: $CYCLE (must already be booted AND logged in via spb-boot/spb-shell)"
+    /home/chris/sp-plus-bee/spb-shell "$(cat "$PROBE" | tr '\n' ';')"
+    rc=$?
+    ;;
+  *) echo "usage: spb-packages [image|live] [image-ref]"; exit 2 ;;
+esac
+echo "########## END PACKAGE GATE (exit $rc) ##########"
+exit $rc

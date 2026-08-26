@@ -127,3 +127,36 @@ Post the full `spb-evidence` output. Add, in plain words:
 - anything that did not behave as this runbook describes
 
 Then stop. Headbrain writes the ledger and decides the next experiment.
+
+---
+
+## THE LOOP IS SIX STEPS NOW — SOFTWARE IS PART OF IT
+
+Booting is not the same as working. An SP+ machine that starts perfectly but has no
+Brave, no SP+ runtime and no advisor account is not SP+. **As of 2026-08-26 that is
+exactly what the ISO ships (DN-18).**
+
+```bash
+cd ~/sp-plus-bee && export CYCLE=cycle8
+./spb-hygiene                    # RAM/disk before you start
+./spb-packages image             # IS THE SOFTWARE IN THE IMAGE? seconds, no VM needed
+./spb-build                      # only if the image gate passes — never build an empty image
+./spb-install
+./spb-boot
+./spb-packages live              # IS IT STILL THERE AFTER INSTALL? separate question.
+./spb-evidence
+./spb-state                      # update the baton, edit the narrative, commit
+./spb-hygiene --apply
+```
+
+`spb-packages` reads `~/sp-plus-bee/spb-manifest` — one line per component,
+`TYPE|NAME|WHY`, types `rpm`, `path`, `unit`, `user`. **When the product gains a
+component, add a line.** The manifest is the definition of "SP+ is complete"; anything
+not in it is a component nobody is testing.
+
+It also enforces **DN-13**: the `advisor` account must exist and must be **locked or
+passwordless**. If a usable password ships, the gate fails. Do not "fix" that by
+removing the check.
+
+Report the `PACKAGES_PASS=` / `PACKAGES_FAIL=` line and every `FAIL` line verbatim.
+As always: **evidence, not a verdict.**

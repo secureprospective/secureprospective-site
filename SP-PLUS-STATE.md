@@ -1,12 +1,12 @@
 # SP+ LIVE STATE
-**Auto section regenerated 2026-08-26T21:40:04Z by `spb-state`. Do not hand-edit above the marker.**
+**Auto section regenerated 2026-08-26T21:47:09Z by `spb-state`. Do not hand-edit above the marker.**
 
 ## Machine truth
 ```
 ISO on disk : 6a593d7082614e56  (4135002112 bytes)
-repo HEAD   : 1948ed9 SP+: spb-boot v4 works (GRUB race fixed); cycle7 boots clean, 0 AVCs; NEW DN-17 firstboot password service fails; HEADBRAIN addendum
+repo HEAD   : 5eeb80e SP+: match the plus shading to the S/P letters (round 4)
 branch      : session/sp-plus-plan
-uncommitted : 2 files
+uncommitted : 12 files
 RAM avail   : 14 GB
 disk free   : 104G
 VMs running : 1
@@ -14,13 +14,6 @@ VMs running : 1
 
 ## Cycle directories
 ```
-cycle1b                                       2 MB  running=no  bserial=- B
-cycle1-grub-1787763477                        1 MB  running=no  bserial=- B
-cycle2                                        4 MB  running=no  bserial=- B
-cycle2boot                                    1 MB  running=no  bserial=- B
-cycle3                                       15 MB  running=no  bserial=- B
-cycle4                                        3 MB  running=no  bserial=- B
-cycle5                                       18 MB  running=no  bserial=- B
 cycle6                                     8362 MB  running=no  bserial=150854 B
 cycle7                                     7977 MB  running=yes  bserial=122974 B
 ```
@@ -41,6 +34,17 @@ and nobody can log in) is **new, open, and the top blocker**. DN-15 (invisible L
 prompt on the local screen) is **open and untouched** and is the one that will embarrass
 a live demo. **Next move: get a root shell without auth and read
 `journalctl -u spplus-firstboot-password.service -b`.**
+
+## HEADLINE — READ FIRST
+**DN-18 is the top blocker: the ISO contains NO SP+ software.** The package gate says
+17 pass / 14 fail against `localhost/sp-plus-kde:spike` — no Brave, no sddm, no
+`/usr/libexec/sp-plus` runtime, no PWA, no playbooks, no Brave policy, **no advisor
+account**. The build installs `images/kde/Containerfile` (four lines: Kinoite + cups +
+firewalld) while the real product lives in `projects/sp-plus/Containerfile`, which is
+never built. That also explains DN-17: there is no advisor account to set a password on.
+**Next move: merge the real Containerfile into the payload image, on Fedora 44, with the
+advisor account LOCKED (DN-13 — the existing file ships `advisor-poc`, which violates it),
+then `spb-packages image` before spending 15 minutes on a build.**
 
 ## Where it stands
 The T-13 ISO (`6a593d70…`) installs fully unattended onto Dell-like SATA and boots to a

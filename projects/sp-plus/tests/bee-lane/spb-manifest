@@ -1,0 +1,34 @@
+# SP+ SOFTWARE MANIFEST — what an advisor's machine must actually contain.
+# Source of truth: projects/sp-plus/Containerfile (the intended product).
+# Format: TYPE|NAME|WHY
+# TYPE: rpm | path | unit | user
+rpm|plasma-workspace|the desktop itself
+rpm|sddm|graphical login — without it there is no login screen
+rpm|cups|printing, the single most common advisor support call
+rpm|cups-filters|printing
+rpm|cups-pk-helper|lets a non-root advisor add a printer
+rpm|firewalld|host firewall, a compliance talking point
+rpm|NetworkManager-wifi|wifi on a laptop
+rpm|bluez|bluetooth
+rpm|blueman|bluetooth GUI an advisor can actually use
+rpm|pipewire|audio, for client video calls
+rpm|wireplumber|audio session manager
+rpm|xdg-desktop-portal-kde|file pickers and screen share in Plasma
+rpm|udisks2|USB media handling
+rpm|python3|the SP+ runtime is written in it
+rpm|curl|runtime dependency
+rpm|ca-certificates|TLS trust
+rpm|jq|runtime dependency
+rpm|sudo|advisor is in wheel
+rpm|brave-browser|THE advisor-facing application
+path|/usr/libexec/sp-plus/spplus_rpc.py|the SP+ RPC runtime
+path|/usr/libexec/sp-plus/pwa|the advisor PWA
+path|/usr/libexec/sp-plus/knowledge|knowledge base
+path|/usr/libexec/sp-plus/playbooks|remediation playbooks
+path|/usr/libexec/sp-plus/playbooks/printer-reconnect.json.sha256|playbook integrity stamp
+path|/etc/brave/policies/managed/sp-plus.json|managed Brave policy
+unit|sp-plus.service|the SP+ service
+unit|sddm.service|graphical login
+unit|cups.service|printing
+unit|firewalld.service|firewall
+user|advisor|the advisor account must exist

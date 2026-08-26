@@ -452,3 +452,113 @@ closed with what evidence, which are open, and what the single next move is.** P
 at the top of the narrative. If DN-17 is fixed, say what fixed it and how you proved it.
 If you closed DN-16, say that the login actually succeeded, not that the labels looked
 right — I have twice mistaken the second for the first today.
+
+---
+
+# SECTION 13 — THE SOFTWARE LAYER. READ THIS BEFORE ANYTHING ELSE.
+**Added 2026-08-26 ~16:50 after Christopher asked to test the packages. It changed the
+priority order of the whole project.**
+
+## 13.1 DN-18 — THE SHIPPED ISO CONTAINS NO SP+ SOFTWARE
+
+I built a package gate and pointed it at the image the ISO actually installs
+(`localhost/sp-plus-kde:spike`). **17 pass, 14 fail.** Missing:
+
+```
+FAIL rpm  brave-browser                                  <- THE advisor-facing application
+FAIL rpm  sddm                                           <- graphical login
+FAIL rpm  cups-pk-helper, blueman
+FAIL path /usr/libexec/sp-plus/spplus_rpc.py             <- the SP+ RPC runtime
+FAIL path /usr/libexec/sp-plus/pwa                       <- the advisor PWA
+FAIL path /usr/libexec/sp-plus/knowledge
+FAIL path /usr/libexec/sp-plus/playbooks
+FAIL path /etc/brave/policies/managed/sp-plus.json       <- managed Brave policy
+FAIL unit sp-plus.service, sddm.service
+FAIL user advisor                                        <- the advisor account does not exist
+```
+
+**The cause.** `sp-plus-iso-build.sh` installs
+`--bootc-installer-payload-ref localhost/sp-plus-kde:spike`, which is built from
+`projects/sp-plus/images/kde/Containerfile` — and that file is **four lines**: Kinoite 44
+plus `firewalld cups nss-mdns`. Nothing else.
+
+Meanwhile **all of the actual product** is described in a *different* file,
+`projects/sp-plus/Containerfile`, which installs Brave, sddm, the SP+ runtime, the PWA,
+the knowledge base, the playbooks, the Brave policy and the advisor account — **and is
+never built by the sanctioned build path.** The two files drifted apart and the ISO has
+been shipping the wrong one.
+
+This also explains DN-17 cleanly: **there is no advisor account** for
+`spplus-firstboot-password.service` to set a password on.
+
+**Two traps in `projects/sp-plus/Containerfile` you must fix while merging it:**
+1. It is `FROM quay.io/fedora/fedora-bootc:43`. Everything else is **44**. Bump it.
+2. It contains `ARG POC_LOGIN_VALUE=advisor-poc` and
+   `echo "advisor:${POC_LOGIN_VALUE}" | chpasswd` — **a shipped default password, which
+   violates DN-13 outright.** The advisor account must be created **locked**
+   (`useradd … && passwd -l advisor`), and the first-boot unit is what gives the advisor
+   their own password. The package gate checks this explicitly and will fail you if a
+   usable password ships.
+
+There is also a `ghcr.io/secureprospective/sp-plus-kde:latest` (7.75 GB, built ~5 h ago).
+I checked it: **it has the same gaps.** Do not assume it is the good one.
+
+## 13.2 The package gate
+
+```bash
+~/sp-plus-bee/spb-packages image [<ref>]   # fast, against the container. Run BEFORE building an ISO.
+~/sp-plus-bee/spb-packages live            # against the booted guest, after spb-boot + login
+```
+
+Manifest at `~/sp-plus-bee/spb-manifest`, one line per item as `TYPE|NAME|WHY`, types
+`rpm`, `path`, `unit`, `user`. **Add a line whenever the product gains a component** —
+the manifest is the definition of "SP+ is complete", and a component nobody tests is a
+component that will be missing on stage. Exit 0 only when every item passes.
+
+The `image` mode is the cheap one: it answers in seconds and needs no VM, so run it
+before you spend fifteen minutes building an ISO you already know is empty.
+
+## 13.3 THE LOOP IS NOW SIX STEPS, NOT FOUR
+
+```bash
+cd ~/sp-plus-bee && export CYCLE=cycle8
+./spb-hygiene                    # 0. RAM/disk before you start
+./spb-packages image             # 1. IS THE SOFTWARE EVEN IN THE IMAGE?  <-- NEW, do this first
+./spb-build                      # 2. rebuild, ~15 min
+./spb-install                    # 3. ~12 min, unattended
+./spb-boot                       # 4. serial boot + LUKS unlock
+./spb-packages live              # 5. IS IT STILL THERE AFTER INSTALL?    <-- NEW
+./spb-evidence                   # 6. AVCs, failed units, labels
+./spb-state                      # 7. update the baton, edit narrative, commit
+./spb-hygiene --apply            # 8. reclaim
+```
+
+Steps 1 and 5 are not optional. **Step 1 catches an empty image in seconds; step 5 is
+the only thing that proves the software survived the install**, which is a genuinely
+separate question — bootc deployment can drop or relabel content, and that is exactly
+the class of bug DN-16 was.
+
+## 13.4 CORRECTED PRIORITY ORDER — this supersedes section D of the addendum
+
+1. **DN-18 — make the ISO actually contain SP+.** Merge the real
+   `projects/sp-plus/Containerfile` into the payload image the build uses, on Fedora
+   **44**, with the advisor account **locked**. Verify with `spb-packages image` before
+   you build. **Nothing else matters if the product is not in the image** — a machine
+   that boots perfectly into bare Kinoite is not SP+, and that is what is on disk today.
+2. **DN-17** — the first-boot password service. Likely fixes itself once the advisor
+   account exists, but prove it, do not assume it.
+3. **Finish DN-16's proof** — `semodule -DB`, log in, `ls -Zd /etc/passwd
+   /etc/nsswitch.conf`, `getenforce` says `Enforcing`.
+4. **DN-15** — the invisible LUKS prompt. **This is the demo killer**: the machine looks
+   bricked while it waits for a passphrase nobody can see.
+5. Full clean loop, `spb-packages live` green, `release-gate.sh` exit 0.
+6. The Dell — Christopher installs it himself.
+
+## 13.5 A word about the presentation
+
+Christopher is showing this to someone who matters. The honest position tonight: the
+**installer** is genuinely demonstrable and impressive — automatic encrypted
+partitioning, unattended, works on the target hardware class. The **product** is not in
+the image yet. If time runs out, a beautiful installer that lays down bare Kinoite is a
+story he can tell; a machine that hangs on a black screen (DN-15) is not. Sequence your
+night so the visible failures die first.
