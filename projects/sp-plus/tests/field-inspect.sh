@@ -7,6 +7,7 @@ LC_ALL=C; export LC_ALL
 r() { printf '%-34s %-22s %s\n' "$1" "$2" "$3"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 ROOT=no; [ "$(id -u)" = 0 ] && ROOT=yes
+SECURITY_FAIL=0
 
 echo "############ SP+ FIELD INSPECTION v1 ############"
 echo "# schema=1  run_as_root=$ROOT"
@@ -23,12 +24,14 @@ echo
 echo "=== 2. SELINUX (DN-04: installed system MUST be Enforcing) ==="
 if have getenforce; then
   ge=$(getenforce 2>/dev/null)
-  [ "$ge" = "Enforcing" ] && r selinux_mode "$ge" OK || r selinux_mode "$ge" PROBLEM
+  if [ "$ge" = "Enforcing" ]; then r selinux_mode "$ge" OK; else r selinux_mode "$ge" PROBLEM; SECURITY_FAIL=1; fi
 else
   r selinux_mode absent PROBLEM
+  SECURITY_FAIL=1
 fi
 if grep -qw "selinux=0" /proc/cmdline 2>/dev/null; then
   r selinux_arg_leaked yes PROBLEM
+  SECURITY_FAIL=1
 else
   r selinux_arg_leaked no OK
 fi
@@ -48,17 +51,27 @@ echo "=== 4. ENCRYPTION (D34: LUKS2 on root + user data) ==="
 if have lsblk; then
   lsblk -o NAME,TYPE,FSTYPE,SIZE,MOUNTPOINT 2>/dev/null | sed 's/^/    /'
   n=$(lsblk -o FSTYPE 2>/dev/null | grep -c crypto_LUKS)
-  [ "$n" -ge 1 ] && r luks_containers "$n" OK || r luks_containers 0 PROBLEM
+  if [ "$n" -ge 1 ]; then r luks_containers "$n" OK; else r luks_containers 0 PROBLEM; SECURITY_FAIL=1; fi
 else
-  r lsblk absent UNKNOWN
+  r luks_containers absent PROBLEM
+  SECURITY_FAIL=1
 fi
+version_count=0
 if [ "$ROOT" = yes ] && have cryptsetup; then
   for d in $(lsblk -pnro NAME,FSTYPE 2>/dev/null | awk '$2=="crypto_LUKS"{print $1}'); do
+    version_count=$((version_count + 1))
     v=$(cryptsetup luksDump "$d" 2>/dev/null | awk '/^Version/{print $2}')
-    [ "$v" = "2" ] && r "luks_version($d)" "luks$v" OK || r "luks_version($d)" "luks${v:-?}" PROBLEM
+    if [ "$v" = "2" ]; then r "luks_version($d)" "luks$v" OK
+    else r "luks_version($d)" "luks${v:-?}" PROBLEM; SECURITY_FAIL=1
+    fi
   done
+  if [ "$version_count" -eq 0 ]; then
+    r luks_version absent PROBLEM
+    SECURITY_FAIL=1
+  fi
 else
-  r luks_version_check skipped SKIPPED_NEEDS_ROOT
+  r luks_version absent PROBLEM
+  SECURITY_FAIL=1
 fi
 echo
 
@@ -127,3 +140,7 @@ r captured_at "$(date -u +%FT%TZ)" ""
 r uptime "$(uptime -p 2>/dev/null)" ""
 r machine_id "$(cat /etc/machine-id 2>/dev/null)" ""
 echo "############ END ############"
+if [ "$SECURITY_FAIL" -ne 0 ]; then
+  echo "FIELD INSPECTION: SECURITY GATE FAIL (SELinux/encryption properties require remediation)" >&2
+  exit 1
+fi

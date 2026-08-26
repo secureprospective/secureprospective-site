@@ -44,33 +44,166 @@ bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike --target-im
 # Explicitly settle the user spoke without embedding a password. The advisor
 # account is usable after a password is assigned, and its persistent home is
 # created below on /var/home. The generated root hash is not a known credential.
-user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --password=spplus-advisor
+# The account is deliberately locked in the image. A first-boot systemd unit
+# below prompts the advisor on the local console and sets the password they choose.
+user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --lock
 
 # Anaconda copies the installer command line into the installed boot entry. Keep
 # the installer-only SELinux and serial-console workarounds out of the target.
-%post
-if ! command -v grubby >/dev/null 2>&1; then
-    echo "SP+ post: grubby is required to remove installer kernel arguments" >&2
+# This is intentionally decomposed: each concern records a durable failure and
+# the later concerns still run if an earlier one fails.
+%post --interpreter=/bin/bash --erroronfail
+set -u
+post_state=/var/lib/spplus
+post_failures=0
+post_failure() {
+    local message="$1"
+    post_failures=$((post_failures + 1))
+    printf '%s\n' "$message" >&2
+    if mkdir -p "$post_state" 2>/dev/null; then
+        printf '%s\n' "$message" >> "$post_state/%post-failed"
+    fi
+}
+if ! mkdir -p "$post_state"; then
+    echo "SP+ post: cannot create $post_state; post state is not durable" >&2
     exit 1
 fi
-grubby --update-kernel=ALL --remove-args="selinux=0 console=ttyS0,115200 console=tty0"
-systemctl set-default graphical.target
 
-if getent passwd advisor >/dev/null 2>&1; then
+# bootc/ostree stores kernel arguments in BLS entry options lines. grubby is not
+# part of a bootc image, so edit each generated entry directly and fail if no
+# entry was available to edit.
+spplus_strip_installer_kargs() {
+    local entry tmp found=0
+    local -a entries
+    shopt -s nullglob
+    entries=(/boot/loader/entries/*.conf)
+    ((${#entries[@]} > 0)) || {
+        echo "SP+ post: no BLS entries found while stripping installer kargs" >&2
+        return 1
+    }
+    for entry in "${entries[@]}"; do
+        grep -q '^options[[:space:]]' "$entry" || continue
+        found=1
+        tmp="${entry}.spplus.$$"
+        awk '
+            $1 == "options" {
+                printf "%s", $1
+                for (i = 2; i <= NF; i++)
+                    if ($i != "selinux=0" && $i != "console=ttyS0,115200" && $i != "console=tty0")
+                        printf " %s", $i
+                printf "\n"
+                next
+            }
+            { print }
+        ' "$entry" > "$tmp" || { rm -f "$tmp"; return 1; }
+        if cmp -s "$tmp" "$entry"; then rm -f "$tmp"; else mv -f "$tmp" "$entry" || return 1; fi
+    done
+    ((found > 0)) || {
+        echo "SP+ post: BLS entries have no options line" >&2
+        return 1
+    }
+}
+if ! spplus_strip_installer_kargs; then
+    post_failure "SP+ post FAILED: could not strip installer kernel arguments from BLS"
+fi
+
+# Do not rely on systemctl talking to a running manager in the install chroot;
+# the symlink is the installed system's authoritative default-target setting.
+if ! ln -sfn /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target \
+    || [ "$(readlink /etc/systemd/system/default.target 2>/dev/null)" != "/usr/lib/systemd/system/graphical.target" ]; then
+    post_failure "SP+ post FAILED: could not set installed default.target to graphical.target"
+fi
+
+# Give every declared local account a persistent home. The advisor home is
+# checked explicitly because SDDM otherwise accepts a password and loops back.
+if ! getent passwd advisor >/dev/null 2>&1; then
+    post_failure "SP+ post FAILED: advisor account is absent in installed passwd database"
+else
     advisor_home="$(getent passwd advisor | cut -d: -f6)"
-    mkdir -p "$advisor_home"
-    chown advisor:advisor "$advisor_home"
-    chmod 700 "$advisor_home"
-    command -v restorecon >/dev/null 2>&1 && restorecon -RF "$advisor_home" || true
+    if ! mkdir -p "$advisor_home" \
+        || ! chown advisor:advisor "$advisor_home" \
+        || ! chmod 700 "$advisor_home"; then
+        post_failure "SP+ post FAILED: could not create advisor home $advisor_home"
+    else
+        command -v restorecon >/dev/null 2>&1 && restorecon -RF "$advisor_home" || true
+    fi
 fi
 while IFS=: read -r name _ uid gid _ home shell; do
     case "$home" in
         /home/*)
-            mkdir -p "$home"
-            chown "$uid:$gid" "$home"
-            chmod 700 "$home"
-            command -v restorecon >/dev/null 2>&1 && restorecon -RF "$home" || true
+            if ! mkdir -p "$home" || ! chown "$uid:$gid" "$home" || ! chmod 700 "$home"; then
+                post_failure "SP+ post FAILED: could not create home $home for $name"
+            else
+                command -v restorecon >/dev/null 2>&1 && restorecon -RF "$home" || true
+            fi
             ;;
     esac
 done < /etc/passwd
+
+# The shipped account has no credential. Before the display manager starts on
+# first boot, this unit asks the advisor to choose one on the physical console.
+if ! install -d -m 0755 /usr/libexec /etc/systemd/system/multi-user.target.wants; then
+    post_failure "SP+ post FAILED: could not create first-boot password paths"
+else
+    if ! cat > /usr/libexec/spplus-firstboot-password <<'SPPLUS_PASSWORD_SCRIPT'
+#!/bin/bash
+set -u
+exec </dev/tty1 >/dev/tty1 2>&1
+mkdir -p /var/lib/spplus || exit 1
+printf '\nSP+ first boot: choose the password for advisor.\n'
+printf 'New password: '
+IFS= read -r -s first || exit 1
+printf '\nRetype new password: '
+IFS= read -r -s second || exit 1
+printf '\n'
+if [ -z "$first" ] || [ "$first" != "$second" ]; then
+    printf 'Passwords did not match; reboot and try again.\n'
+    exit 1
+fi
+printf 'advisor:%s\n' "$first" | /usr/sbin/chpasswd || exit 1
+unset first second
+printf '%s\n' "$(date -u +%FT%TZ)" > /var/lib/spplus/advisor-password-set
+chmod 600 /var/lib/spplus/advisor-password-set
+printf 'Password set. Starting the graphical login.\n'
+SPPLUS_PASSWORD_SCRIPT
+    then
+        post_failure "SP+ post FAILED: could not write first-boot password helper"
+    elif ! chmod 0750 /usr/libexec/spplus-firstboot-password; then
+        post_failure "SP+ post FAILED: could not install first-boot password helper"
+    fi
+    if ! cat > /etc/systemd/system/spplus-firstboot-password.service <<'SPPLUS_PASSWORD_UNIT'
+[Unit]
+Description=SP+ first-boot advisor password setup
+ConditionPathExists=!/var/lib/spplus/advisor-password-set
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-firstboot-password
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target
+SPPLUS_PASSWORD_UNIT
+    then
+        post_failure "SP+ post FAILED: could not write first-boot password unit"
+    elif ! ln -sfn /etc/systemd/system/spplus-firstboot-password.service \
+        /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service; then
+        post_failure "SP+ post FAILED: could not enable first-boot password unit"
+    fi
+fi
+
+if [ "$post_failures" -gt 0 ]; then
+    printf 'SP+ post: %s independent concern(s) failed; see %s/%%post-failed\n' \
+        "$post_failures" "$post_state" >&2
+    exit 1
+fi
+printf 'SP+ post: all independent post-install concerns completed\n'
 %end

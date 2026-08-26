@@ -17,8 +17,14 @@ if [ "${1:-}" = "--ssh" ]; then
   shift
   REPORT=$(mktemp)
   # shellcheck disable=SC2086
-  ssh $@ 'bash -s' < "$(dirname "$0")/field-inspect.sh" > "$REPORT" 2>/dev/null \
-    || { echo "RELEASE GATE: could not run field-inspect on the target"; exit 2; }
+  set +e
+  ssh $@ 'bash -s' < "$(dirname "$0")/field-inspect.sh" > "$REPORT" 2>/dev/null
+  inspect_status=$?
+  set -e
+  if [ "$inspect_status" -eq 255 ] || [ ! -s "$REPORT" ]; then
+    echo "RELEASE GATE: could not run field-inspect on the target"; exit 2
+  fi
+  [ "$inspect_status" -eq 0 ] || echo "RELEASE GATE: field-inspect reported a security failure; judging its full report"
 else
   REPORT="${1:?usage: release-gate.sh <report.txt> | --ssh <ssh args>}"
 fi
