@@ -100,3 +100,73 @@ it, boot reaches `basic.target` and Anaconda starts.
 
 **General lesson.** Over-correcting a do-not can cause a worse failure than the one it
 prevented. Scope a fix to where the rule actually applies.
+
+### DN-10 — Do NOT assume installer kernel args stay out of the installed system
+
+**THIS IS A SECURITY DEFECT, NOT A COSMETIC ONE.**
+
+**Error signature.** On the installed system:
+```
+/proc/cmdline: ... boot=UUID=... selinux=0 console=ttyS0,115200 console=tty0 ostree=/ostree/boot.1/...
+/etc/selinux/config: SELINUX=enforcing
+getenforce: Disabled
+```
+`/etc/selinux/config` says `enforcing` and is IGNORED, because the kernel argument wins.
+
+**Detect with:** `getenforce` on the INSTALLED system (must be `Enforcing`), and
+`grep -w selinux=0 /proc/cmdline` (must find nothing). Also read
+`/boot/loader/entries/*.conf` — the leak is visible in `options`.
+
+**Why.** DN-04 warned this arg must not reach the installed OS. The fix applied on
+2026-08-26 scoped `selinux=0` to the installer cmdline in `iso.yaml` and left the kickstart
+free of any `selinux` directive, on the assumption that this was sufficient. **It was not.**
+Anaconda/bootc COPIES THE INSTALLER'S KERNEL COMMAND LINE into the generated ostree
+bootloader entry. `console=ttyS0,115200 console=tty0` leaked by the same mechanism, proving
+it is the general behaviour and not specific to SELinux.
+
+**Consequence.** SP+ shipped with SELinux fully disabled while its own config file claimed
+enforcing. For a product holding client financial data this would be a serious finding in
+any security review, and it is invisible to anyone who trusts `/etc/selinux/config`.
+
+**Do instead.** Explicitly control the installed system's kargs. Options, to be decided:
+strip in `%post` (`grubby --update-kernel=ALL --remove-args="selinux=0 console=ttyS0,115200"`),
+or pass explicit kargs to `bootc install`. **Whichever is chosen, the gate is empirical:**
+`getenforce` on the installed system must return `Enforcing`.
+
+**Status.** OPEN — found 2026-08-26 at the first QEMU field inspection.
+
+**Meta-lesson.** The morning's fix was declared correct on the strength of a reasonable
+mechanism ("the kickstart has no selinux directive"). The claim was never tested on an
+INSTALLED system because no installed system existed yet. A fix is not verified until it is
+observed in the environment it targets. See OP-02 — this time the unverified causal story
+was the head brain's own.
+
+### DN-11 — An interactive install SILENTLY DISCARDS kickstart partitioning
+
+**Error signature.** Installed system, expected LUKS2 on root + `/var/home` per D34:
+```
+NAME   TYPE FSTYPE  SIZE MOUNTPOINT
+vda1   part vfat    600M /boot/efi
+vda2   part ext4      2G /boot
+vda3   part btrfs  57.4G /var/home
+```
+`lsblk -o FSTYPE | grep -c crypto_LUKS` returns **0**. NO ENCRYPTION ANYWHERE.
+
+**Detect with:** `lsblk -o NAME,TYPE,FSTYPE` and `cryptsetup luksDump` on each partition.
+Never infer encryption from the kickstart source — read the installed disk.
+
+**Why.** `interactive-defaults.ks` supplies DEFAULTS for an interactive install. When the
+operator walks the storage screens and accepts automatic partitioning, Anaconda's own
+scheme replaces the kickstart's `part ... --encrypted --luks-version=luks2` lines entirely.
+The result was btrfs, a single data partition, and no encryption. No warning is shown.
+The declared `ext4` layout and the separate `/var/home` partition were also discarded.
+
+**Consequence.** D34 (LUKS2 on root + all user data) was silently violated, and this is
+exactly the property most likely to be assumed rather than checked.
+
+**Do instead.** For an appliance-style product, do NOT rely on an operator choosing
+correctly in an interactive storage screen. Either ship a NON-interactive kickstart that
+fully declares partitioning (with `--encrypted` and an interactive passphrase prompt), or
+verify the resulting layout on every single install. **Encryption is a gate, not a default.**
+
+**Status.** OPEN — found 2026-08-26. Relates to T-08.

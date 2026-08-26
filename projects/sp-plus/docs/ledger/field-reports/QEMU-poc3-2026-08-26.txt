@@ -1,0 +1,92 @@
+Warning: Permanently added '[127.0.0.1]:2222' (ED25519) to the list of known hosts.
+############ SP+ FIELD INSPECTION v1 ############
+# schema=1  run_as_root=yes
+
+=== 1. IDENTITY ===
+os_name                            Fedora Linux           
+os_version                         44                     
+os_variant                         kinoite                
+kernel                             7.1.10-200.fc44.x86_64 
+arch                               x86_64                 
+
+=== 2. SELINUX (DN-04: installed system MUST be Enforcing) ===
+selinux_mode                       Disabled               PROBLEM
+selinux_arg_leaked                 yes                    PROBLEM
+
+=== 3. BOOTC / IMAGE MODE ===
+bootc_booted_image                 ghcr.io/secureprospective/sp-plus-kde:edge OK
+    apiVersion: org.containers.bootc/v1
+    kind: BootcHost
+    metadata:
+      name: host
+    spec:
+      image:
+        image: ghcr.io/secureprospective/sp-plus-kde:edge
+        transport: registry
+      bootOrder: default
+    status:
+      staged: null
+      booted:
+        image:
+          image:
+            image: ghcr.io/secureprospective/sp-plus-kde:edge
+            transport: registry
+          version: 44.20260826.0
+          timestamp: 2026-08-26T12:12:26.355076430Z
+          imageDigest: sha256:da47edacbf5f4759f7b8613f0548ea8f583f530123de3aa7536a087a8a21c6fe
+          architecture: amd64
+        cachedUpdate: null
+        incompatible: false
+        pinned: false
+        softRebootCapable: true
+        downloadOnly: false
+
+=== 4. ENCRYPTION (D34: LUKS2 on root + user data) ===
+    NAME   TYPE FSTYPE  SIZE MOUNTPOINT
+    sr0    rom         1024M 
+    zram0  disk swap    7.7G [SWAP]
+    vda    disk          60G 
+    |-vda1 part vfat    600M /boot/efi
+    |-vda2 part ext4      2G /boot
+    `-vda3 part btrfs  57.4G /var/home
+luks_containers                    0                      PROBLEM
+
+=== 5. SECURE BOOT / TPM ===
+secureboot                         SecureBoot enabled     
+firmware                           UEFI                   OK
+tpm_device                         present                OK
+
+=== 6. GRAPHICAL SESSION (SP+ ships KDE Plasma) ===
+default_target                     multi-user.target      PROBLEM
+plasma_binary                      present                OK
+
+=== 7. FAILED UNITS ===
+failed_units                       1                      PROBLEM
+    * systemd-remount-fs.service loaded failed failed Remount Root and Kernel File Systems
+
+=== 8. NETWORK / TIME ===
+hostname_set                                              
+nm_connectivity                    full                   
+ntp_sync                           yes                    
+
+=== 9. STORAGE LAYOUT ===
+    Filesystem     Type      Size  Used Avail Use% Mounted on
+    composefs      overlay    31M   31M     0 100% /
+    /dev/vda3      btrfs      58G  4.7G   52G   9% /etc
+    efivarfs       efivarfs  256K   25K  227K  10% /sys/firmware/efi/efivars
+    /dev/vda2      ext4      2.0G  254M  1.6G  14% /boot
+    /dev/vda3      btrfs      58G  4.7G   52G   9% /var/home
+    /dev/vda1      vfat      599M   14M  586M   3% /boot/efi
+
+=== 10. HARDWARE (expected to differ QEMU vs Dell - not a defect) ===
+cpu_model                          QEMU Virtual CPU version 2.5+ 
+cpu_threads                        4                      
+mem_total                          7.7 GB                 
+gpu                                Device 1234:1111 (rev 02) 
+virtualized                        kvm                    
+
+=== 11. VOLATILE (ignore in diffs) ===
+captured_at                        2026-08-26T15:44:51Z   
+uptime                             up 7 minutes           
+machine_id                         8ce1ce3f8a984c8c97bfb0e199281c7a 
+############ END ############
