@@ -23,3 +23,7 @@ The `Re-verify when` field makes this survive a Fedora migration.
 - **Artifact:** `localhost/sp-plus-installer@sha256:535e2c67196265d013cb7a55db37880a4fda77f4eea97468631479560604130b`
 - **Evidence:** `podman build --network host -t localhost/sp-plus-installer -f projects/sp-plus/installer/Containerfile projects/sp-plus/installer`; exact output ended `Successfully tagged localhost/sp-plus-installer:latest` and printed image ID `33bbab43c8110855c6b29bc0840ee8e97a20a9b99ad059c7bd53fe642fdf2c50`.
 - **Re-verify when:** Fedora major version bump, Anaconda/image-builder layout change, or the installer Containerfile changes.
+
+### W-03 — Direct kernel boot as the diagnostic escape hatch
+
+Extract vmlinuz+initrd from the ISO with `osirrox` and boot QEMU with `-kernel`/`-initrd`/`-append`. Full cmdline control, serial-captured output, no bootloader UI. Confirmed 2026-08-26: turned a silent hang into a one-line root cause. Script: `~/sp-plus-iso/t-direct.sh` (and `t-direct2.sh`, its A/B twin).

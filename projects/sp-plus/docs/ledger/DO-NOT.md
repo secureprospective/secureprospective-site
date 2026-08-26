@@ -63,3 +63,40 @@ Greppable record of approaches proven not to work. Every entry has an error sign
 ## Candidates from the postmortem
 
 See docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md Part II. Anti-patterns get promoted into this file with a DN number when a run actually proves them, not in bulk.
+
+### DN-09 — Do NOT remove `selinux=0` from the installer kernel cmdline
+
+**Error signature (verbatim, serial console):**
+```
+Unable to fix SELinux security context of /dev/kmsg: Permission denied
+Failed to set up the root directory for shared mount propagation: Permission denied
+Failed to allocate manager object: Permission denied
+[!!!!!!] Failed to allocate manager object.
+Freezing execution.
+```
+
+**Presenting symptom.** ISO boots, GRUB works, kernel and initrd load, then a Plymouth
+splash spinner animates forever. Behind `rhgb quiet` there is NO error on screen.
+
+**Detect with:** target disk stays at ~197 KB while CPU sits at 20-45%, and two
+screendumps minutes apart are byte-identical. Boot with `-kernel`/`-initrd`/`-append`
+and a serial console to see the actual failure.
+
+**Why.** DN-04 correctly says `selinux=0` must not leak into the INSTALLED system. A
+dispatch over-corrected it by deleting `selinux=0` from `iso.yaml` entirely. The Anaconda
+installer environment genuinely requires it: without it systemd PID 1 cannot allocate its
+manager object and freezes before Anaconda ever starts.
+
+**Do instead.** Keep `selinux=0` on the installer cmdline in `installer/iso.yaml`. Keep the
+kickstart free of any `selinux` directive so the installed system stays `Enforcing`. The
+rule is scoped, not deleted. **Verify both ends:** the installer boots, AND `getenforce`
+on the installed system returns `Enforcing` with no `selinux=0` in `/proc/cmdline`.
+
+**Source.** Confirmed 2026-08-26 by controlled A/B direct-kernel boot: identical kernel,
+initrd and ISO, the single difference being `selinux=0`. Without it, PID 1 freezes. With
+it, boot reaches `basic.target` and Anaconda starts.
+
+**Status.** FIXED — commit `a43c918`.
+
+**General lesson.** Over-correcting a do-not can cause a worse failure than the one it
+prevented. Scope a fix to where the rule actually applies.
