@@ -1,0 +1,25 @@
+[Unit]
+Description=Secureprospective Advisor POC RPC and PWA
+After=network-online.target cups.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=advisor
+Group=advisor
+ExecStart=/usr/bin/python3 /usr/libexec/sp-plus/spplus_rpc.py
+Restart=on-failure
+RestartSec=2
+WorkingDirectory=/var/lib/sp-plus
+Environment=SPPLUS_ROOT=/usr/libexec/sp-plus
+Environment=SPPLUS_PRINTER_FIXTURE=1
+StateDirectory=sp-plus
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sp-plus
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
