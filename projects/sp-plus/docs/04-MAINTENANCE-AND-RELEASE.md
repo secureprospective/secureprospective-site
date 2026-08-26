@@ -131,13 +131,29 @@ months. Fedora 44 shipped 2026-04-28 and reaches end of life around 2027-05-19. 
 therefore has a mandatory base bump roughly annually, with a comfortable window rather
 than an emergency.
 
-**One piece of timing matters immediately: Fedora 45 is scheduled for 2026-10-20, about
-eight weeks from this document's date.** That does not change the decision to build on
-44 — 44 is stable, tested, and supported into mid-2027, and building on a release that
-does not exist yet would be reckless. But it does mean the very first SP+ release will
-be built on a base that is one version behind within two months of shipping, and that
-the migration procedure below will be exercised for real much sooner than a year from
-now. Plan the F45 branch as part of the first year's work, not as a distant event.
+**Fedora 45 is scheduled for 2026-10-20, about eight weeks out. Treat that as an asset,
+not a problem.**
+
+The naive reading is that SP+ ships on a base that goes one version stale within two
+months. Christopher's reading, adopted here, is better: adoption will be slow at first,
+so the fleet during the F45 window will be small, known, and mostly internal. That is
+precisely the condition under which you *want* to run your first major-version migration.
+The alternative — discovering how `bootc switch` behaves across a Fedora bump for the
+first time with 400 advisors on the channel — is the version of this event that hurts.
+
+So the F45 migration is not a chore deferred to next year. It is **a deliberate rehearsal,
+scheduled into the first year's plan, run while the blast radius is small**, and its real
+deliverable is a tested, written, repeatable procedure plus honest answers to the two
+questions nobody can answer from documentation:
+
+1. Does the LUKS2 TPM2 keyslot survive a Fedora major-version rebase, or does the
+   bootloader change move PCR 7 and drop every advisor to a passphrase prompt? If it
+   drops them, exactly what do they see, and does the knowledge-base article match it?
+2. Does `/etc` three-way merge cleanly across the bump, and which SP+ files does it
+   silently keep at their old contents?
+
+Run it on the canary ring the week F45 ships. Write down what broke. That written
+procedure is worth more than the release it produces.
 
 **Standing procedure, starting when Fedora N+1 reaches Beta:**
 

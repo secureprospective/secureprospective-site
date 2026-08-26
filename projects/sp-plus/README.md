@@ -4,7 +4,8 @@ SP+ is the Secure Prospective advisor workstation: a free, immutable, preconfigu
 Linux operating system distributed to eligible members. This directory is the SP+
 subproject.
 
-**Current status: research and planning. Nothing here is authorized to be built.**
+**Current status: research complete, build begins next session.** Start at
+[`docs/08-BUILD-SESSION-HANDOFF.md`](docs/08-BUILD-SESSION-HANDOFF.md).
 
 The 2026-08-25 build attempt produced a proof-of-concept ISO that is not usable by the
 general public. That work is retained where it is useful and its lessons are recorded.
@@ -21,8 +22,9 @@ Read in order. Each document assumes the ones before it.
 | 2 | [`docs/02-DISTRIBUTION-ARCHITECTURE.md`](docs/02-DISTRIBUTION-ARCHITECTURE.md) | **How to build and maintain a distribution.** The four real options, the verified fact base, the recommendation, and the Secure Boot and encryption constraints that shape everything else |
 | 3 | [`docs/03-ISO-BUILD-PLAN.md`](docs/03-ISO-BUILD-PLAN.md) | The phased build plan from empty repository to a plug-and-play ISO, with a blocking gate on every phase |
 | 4 | [`docs/04-MAINTENANCE-AND-RELEASE.md`](docs/04-MAINTENANCE-AND-RELEASE.md) | The multi-year operating model: channels, signing, Fedora version migration, support, cost, and the discontinuation plan |
-| 5 | [`docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md`](docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md) | What went wrong on 2026-08-25 and why, 28 numbered anti-patterns, and the Fedora trademark obligations |
-| 6 | [`docs/06-OPEN-QUESTIONS-AND-DECISIONS.md`](docs/06-OPEN-QUESTIONS-AND-DECISIONS.md) | Decisions of record (D1–D20), open questions with owners (Q1–Q11), and the facts to re-verify before building |
+| 5 | [`docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md`](docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md) | What went wrong on 2026-08-25 and why, 48 numbered anti-patterns, and the Fedora trademark obligations |
+| 6 | [`docs/06-OPEN-QUESTIONS-AND-DECISIONS.md`](docs/06-OPEN-QUESTIONS-AND-DECISIONS.md) | Decisions of record (D1–D30), open questions with owners (Q1–Q15), and the facts to re-verify before building |
+| 8 | [`docs/08-BUILD-SESSION-HANDOFF.md`](docs/08-BUILD-SESSION-HANDOFF.md) | **Read this first if you are starting the build.** Build-host inventory, the first commands, the three things most likely to bite, and the calendar |
 
 Supporting records:
 

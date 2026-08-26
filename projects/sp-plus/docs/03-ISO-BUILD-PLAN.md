@@ -114,10 +114,52 @@ Boot the qcow2 in QEMU with UEFI + OVMF + swtpm.
 **Gate 0.A:** the image builds, and boots to an SDDM login on a KDE Plasma session,
 with no manual intervention.
 
-### 0.3 Spike B — Secure Boot on real hardware
+### 0.3 Spike B — an ISO that installs, tested in QEMU first
 
-Build a `bootc-generic-iso` from the spike image, write it to a USB stick, and install it
-on one physical laptop from the hardware matrix with **Secure Boot enabled in firmware**.
+**This is the deliverable Christopher asked for on 2026-08-26: an ISO he can run an
+install from, in QEMU.** It comes before bare metal, because a failed install in a VM
+costs a minute and a failed install on a laptop costs an evening.
+
+Build a `bootc-generic-iso` from the spike image, then run a **complete Anaconda
+installation inside QEMU** onto a disposable virtual disk, with UEFI, KVM, and a virtual
+TPM, and with **Secure Boot enforced**.
+
+Secure Boot in QEMU is a real test on this host, not a gesture. Beelink has
+`/usr/share/OVMF/OVMF_CODE_4M.secboot.fd` and `/usr/share/OVMF/OVMF_VARS_4M.ms.fd` — the
+latter ships with Microsoft's KEK and db already enrolled, so a Fedora shim signed by the
+Microsoft UEFI CA is genuinely validated, and an unsigned or wrongly signed boot chain
+genuinely fails. Copy `OVMF_VARS_4M.ms.fd` per-VM and pass it writable; never use the
+plain `OVMF_VARS_4M.fd`, which enrolls nothing and will happily boot anything.
+
+```bash
+cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd ./vars.fd
+qemu-system-x86_64 -machine q35,smm=on -accel kvm -m 8192 -smp 4   -drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd   -drive if=pflash,format=raw,unit=1,file=./vars.fd   -global driver=cfi.pflash01,property=secure,value=on   -chardev socket,id=chrtpm,path=./tpm/swtpm-sock   -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0   -drive file=./disposable.qcow2,if=virtio,format=qcow2   -cdrom ./sp-plus-kde-44.iso -boot d -vga virtio
+```
+
+Run the install the way an advisor would: pick the disk, tick encryption, set a
+passphrase, create a user, confirm, reboot. Then boot the installed disk (drop the
+`-cdrom`, keep the same `vars.fd`) and check, on the installed system:
+
+```bash
+mokutil --sb-state                 # expect: SecureBoot enabled
+lsblk -o NAME,FSTYPE,MOUNTPOINT    # expect: crypto_LUKS under /
+cryptsetup luksDump /dev/vda3 | grep -i version   # expect: 2
+bootc status --format=json         # expect: a booted deployment
+bootc upgrade --check              # expect: it can reach the SP+ channel
+```
+
+**Gate 0.B(QEMU):** the ISO boots under enforced Secure Boot, Anaconda completes an
+encrypted install unattended by anyone but the tester, the installed system reboots,
+unlocks with the passphrase, and reports `SecureBoot enabled` with a LUKS2 root and a
+working `--target-imgref`.
+
+### 0.4 Spike B2 — the same ISO on the Dell, bare metal
+
+**Christopher has an old Dell laptop prepared for this.** QEMU with the MS-key OVMF is a
+strong pre-check and it is still not real firmware: it does not exercise the Dell's own
+db and dbx contents, its firmware quirks, its storage controller, or its TPM. Write the
+same ISO to a USB stick and install it on the Dell with **Secure Boot enabled in
+firmware**.
 
 This needs a second, minimal `sp-plus-installer` container carrying Anaconda:
 
@@ -149,15 +191,18 @@ Three things in that skeleton are load-bearing and are where builds fail:
 - The upstream example sets `selinux=0` as an **installer-side** workaround. It must not
   leak into the installed system, which stays SELinux enforcing.
 
-**Gate 0.B:** the machine installs and boots with Secure Boot on, `mokutil --sb-state`
-reports `SecureBoot enabled`, and no MOK enrollment screen appeared at any point.
+**Gate 0.B:** the Dell installs and boots with Secure Boot on, `mokutil --sb-state`
+reports `SecureBoot enabled`, and **no MOK enrollment screen appeared at any point**.
 
 This gate is the single most important one in the plan. If it fails, the architecture in
 document 2 is wrong and the fallback in document 2 §2 must be considered before
-proceeding. QEMU with OVMF is a useful pre-check but **does not satisfy this gate** —
-it must be real firmware on real hardware.
+proceeding. Passing it in QEMU is necessary and not sufficient; this gate is the Dell.
 
-### 0.4 Spike C — encryption and TPM2 on that same machine
+Record the Dell's exact model, generation, firmware version, CPU, GPU, Wi-Fi chipset, and
+TPM version before starting. It is about to become the first row of the hardware matrix,
+and "an old Dell" is not a row.
+
+### 0.5 Spike C — encryption and TPM2 on that same machine
 
 During the Anaconda install, tick "Encrypt my data" and set a passphrase. After first
 boot, manually run:
@@ -174,7 +219,7 @@ recovery key works.
 **Gate 0.C:** LUKS2 install succeeds; TPM2 auto-unlock works; passphrase and recovery
 key both still unlock after PCR invalidation.
 
-### 0.5 Spike D — hardware reality check
+### 0.6 Spike D — hardware reality check
 
 On the same machine, without installing anything further, verify: Wi-Fi connects to a
 WPA2/WPA3 network; suspend and resume work on a lid close; an external monitor works

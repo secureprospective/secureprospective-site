@@ -40,6 +40,9 @@ records what must be verified before anything is built.
 | D25 | Desktop defaults ship as **system defaults** (`/etc/dconf/db/local.d/` plus locks for GNOME; `XDG_CONFIG_DIRS` plus `[$i]` for KDE), never written into `/home` | Otherwise it only reaches users who do not exist yet | No |
 | D26 | SP+ ships **its own release and logos packages**, not `generic-release` | `generic-release` sets `ID=generic` | No |
 | D27 | The **certified hardware list is exhaustive**: untested is unsupported, and the download page says so | "Works on most laptops" is a support-cost promise nobody can keep | No |
+| D28 | The **Fedora 44 to 45 migration is a scheduled rehearsal**, run on the canary ring the week F45 ships (2026-10-20), not deferred | Christopher, 2026-08-26: slow early adoption means a small blast radius, which is exactly when you want to run this for the first time. Document 4 §5 | No |
+| D29 | The **first testable artifact is an ISO that completes an Anaconda install in QEMU** under enforced Secure Boot, before any bare-metal attempt | Christopher, 2026-08-26. A failed VM install costs a minute; a failed laptop install costs an evening. Document 3 §2.3 | No |
+| D30 | **Secure Boot is pre-tested in QEMU** using `OVMF_CODE_4M.secboot.fd` with `OVMF_VARS_4M.ms.fd`, and **gated on the Dell** | The MS-key VARS file enrolls Microsoft's KEK and db, so the shim signature is genuinely validated. Real firmware still gates. Document 3 §2.3-2.4 | No |
 
 ---
 
@@ -124,6 +127,12 @@ Secure Prospective members actually own.
 
 *Owner:* Christopher. *Evidence needed:* a survey of the member base. *Deadline:* Phase 5,
 but the survey should start now because it takes calendar time.
+
+**Row zero exists.** Christopher has an old Dell laptop prepared for bare-metal testing.
+Record its exact model, generation, firmware version, CPU, GPU, Wi-Fi chipset, and TPM
+version at Phase 0 and treat it as the first entry in the matrix. It is also, usefully, a
+worst case: if SP+ works well on an old Dell, the newer machines advisors actually own are
+a softer target.
 
 ### Q7 — Tailscale versus Headscale
 
@@ -248,4 +257,5 @@ Every one of these was true on 2026-08-25 and every one can change.
 | Date | Change |
 |---|---|
 | 2026-08-25 | Created. D1-D20 recorded; Q1-Q11 opened. |
+| 2026-08-26 | Session close. D28 (F45 as a scheduled rehearsal), D29 (QEMU-installable ISO is the first artifact), D30 (Secure Boot pre-tested in QEMU, gated on the Dell) recorded from Christopher's direction. Q6 gains row zero, the Dell. |
 | 2026-08-25 | Revised after the parallel research pass (document 7). D10 rewritten: Anaconda via `bootc-generic-iso` is the installer of record, and the live-ISO route is demoted to optional. D4 confirmed by registry label inspection. D21-D27 added. Q5 reframed. Q12-Q15 opened. Q1 extended to cover Brave's updater behavior on an immutable root. |
