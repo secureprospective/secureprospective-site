@@ -91,3 +91,20 @@ modifying it, because b03 was mid-run and editing a script an agent is executing
 to break a dispatch. Once b03 closes, fold the gate call into the head of
 `sp-plus-iso-build.sh` so there is exactly ONE build path and it cannot be bypassed by
 habit. A gate that is optional is not a gate.
+
+### T-13 - Make SELinux Enforcing boot (BLOCKS the Dell) 🔴
+Cause of DN-14. The installed ostree filesystem is not correctly labeled, so Enforcing blocks
+service startup. Candidate fixes, in order of preference: ensure the bootc image ships correctly
+labeled; trigger an autorelabel on first boot (`/.autorelabel`); or `restorecon`/`fixfiles` over
+the installed tree from `%post`. **Verification is not "it builds" - it is an SSH banner plus a
+Plasma greeter with NO `enforcing=0` on the cmdline.**
+
+### T-14 - Suppress the Fedora pre-release warning dialog
+Every graphical install shows "This is unstable, pre-release software... Do *not* use this
+software for any critical work", requiring the installer to click "I want to proceed". An advisor
+must never see this. Comes from building on `fedora-bootc:44` pre-release.
+
+### T-15 - Installer serial log stops when Anaconda takes the console
+`-serial` capture dies at ~94 KB the moment Anaconda starts, so `%post` output is not captured.
+This is why `%post` success/failure could not be read from the serial log. Need Anaconda's own
+logs off the installed system instead.

@@ -312,3 +312,25 @@ password at first boot. A shared default is identical on every SP+ machine in th
 The gate had been "validated" only against an artifact with no user account at all, so it
 passed and was trusted. **A gate tested solely against artifacts that LACK the defect proves
 nothing.** Every gate must be demonstrated against an artifact that HAS it (OP-16).
+
+### DN-14 — Do NOT assume a bootc install boots under SELinux Enforcing
+
+**2026-08-26, cycle6 (SATA, ISO `afc0f9c7`).** With `selinux=0` correctly stripped from the
+installed BLS entry, the system **deadlocks on boot**: black tty1 with a bare cursor, no
+display-manager, **sshd not listening**, one vCPU spinning (~17-30%, host load ~0.9). The
+screen is byte-identical across VT switches and keypresses.
+
+**Proof it is SELinux, single-variable A/B on the SAME disk image:**
+- boot as shipped (Enforcing)  -> hang, screendump stddev `166.108`, no SSH banner
+- boot + `enforcing=0`         -> **"Welcome to Plasma Desktop"**, stddev `5895.29`
+
+**Why this was invisible until now:** every earlier SP+ boot that reached Plasma did so with
+`selinux=0` leaked into the installed cmdline (DN-10). Fixing DN-10 is what revealed this.
+**SP+ had never once booted with its own headline security property actually enabled.**
+
+**Detect with:** read the installed cmdline in the GRUB editor (`e` at the menu) and confirm no
+`selinux=0`; then boot and require an SSH banner on the forwarded port. A screendump alone is
+not enough - a black screen and a hung screen look the same.
+
+**Do not "fix" this by putting `selinux=0` back.** That reintroduces DN-10 and ships an advisor
+laptop with SELinux off. The fix is to make Enforcing work (labeling at install time).

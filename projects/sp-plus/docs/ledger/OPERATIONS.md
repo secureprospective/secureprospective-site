@@ -331,3 +331,37 @@ remembering, and it runs immediately whenever a dispatch is killed.
 **The general lesson.** When the head brain reaches for a policy layer, check first whether
 the underlying failure was simply not cleaning up. Machinery invented to manage a mess is
 more expensive than not making the mess, and it creates its own maintenance burden.
+
+### OP-19 - The reaper must not eat an installed disk between boots
+
+**What happened.** `reap.sh` on a 15-minute cron deleted `cycle5/disk.qcow2` (7,858 MB) forty
+seconds after a dispatch stopped its VM. The rule was "a disk not held open by a running QEMU is
+stale". An installed disk **between boots** is the deliverable, not scratch. Gates G6-G8 were
+then unverifiable because the artifact no longer existed.
+
+**Cost.** One full dispatch's verification work, and a complete reinstall cycle to recreate it.
+
+**Rule.** A cleanup rule must be written against what the artifact IS, never against whether a
+process currently holds it. `reap.sh` now keeps any disk younger than `RETAIN_HOURS` (default 12)
+and says so per file. Cleanup that can destroy evidence is not tidiness, it is data loss.
+
+### OP-20 - `ps | grep <pattern>` matches the shell whose argv contains the pattern
+
+**What happened.** A remote `ps -eo pid,args | grep "[s]pplus-c6"` matched the enclosing
+`ssh ... bash -c '...'` process, because the literal string appeared inside the command being
+run. The kill loop then killed its own shell (ssh exit 255).
+
+**Rule.** The `[p]attern` trick only stops grep matching itself; it does nothing about the
+surrounding shell. Kill from a **pidfile** written at launch, or match on the binary
+(`comm`), never on a string that also appears in your own command line. Related:
+`pgrep -f`/`pkill -f` self-match, ledger RELAY notes.
+
+### OP-21 - An open forwarded port is not a listening service
+
+**What happened.** `echo > /dev/tcp/127.0.0.1/2299` succeeded against a hung guest and was
+reported as "sshd is up". QEMU user-mode networking (slirp) **accepts the host-side TCP
+connection regardless of whether anything in the guest is listening.**
+
+**Rule.** Prove a service with its **banner or a real response**, never with a successful
+connect. `timeout 8 bash -c 'exec 3<>/dev/tcp/host/port; head -c 40 <&3'` - no bytes means no
+service. Same family as `lesson_exit_zero_does_not_prove_artifact`.
