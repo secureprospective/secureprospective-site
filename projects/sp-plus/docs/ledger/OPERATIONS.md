@@ -311,3 +311,23 @@ precisely when attention is on the failure.
 
 **Corollary.** When a dispatch is killed, reap immediately as part of the kill. Do not leave
 it "for session close" — that is how 7.7 GB of RAM stayed locked up behind dead work.
+
+**Amendment (Christopher, 2026-08-26).** An earlier draft of this response built a resource
+guard with reserved-RAM thresholds, load ceilings and escalation tiers. Christopher rejected
+that framing: *"I wouldn't worry too much about the RAM other than keeping your side tidy...
+If you kept things tidy earlier in the day there would not have been an issue to address...
+that's as far as this needs to go, somewhat binary as it's just reality, not a gray area of
+operations."*
+
+He manages his own load and checks for running processes before he executes heavy work. The
+near-collision was NOT a contention-policy failure — it was OUR orphans, 7.7 GB held for an
+hour by VMs from a dispatch that had already been killed.
+
+**Do not build arbitration machinery for this.** No watchdogs, no thresholds, no escalation
+tiers. The rule is binary: **if we are not coming back to it, it is gone.** `reap.sh --apply`
+now runs every 15 minutes from cron on the Beelink so tidiness does not depend on anyone
+remembering, and it runs immediately whenever a dispatch is killed.
+
+**The general lesson.** When the head brain reaches for a policy layer, check first whether
+the underlying failure was simply not cleaning up. Machinery invented to manage a mess is
+more expensive than not making the mess, and it creates its own maintenance burden.
