@@ -29,3 +29,16 @@ pnpm-debug.log*
 .impeccable/live/sessions/
 .impeccable/live/accept-receipts/
 .impeccable/live/pending-manual-edits.json
+
+# Logo render pipeline (grafix/render): keep the build scripts, the .blend scenes and the
+# shipped PNG deliverables. Everything below is large and regenerable, so it stays local.
+#   hdri/       - CC0 Poly Haven environment maps (~95MB), re-downloadable by name; the
+#                 HDRI actually used is recorded in grafix/render/ROUND4-PLUS-SHADING.md
+#                 and the round-2 brief (~/tom/silver-hdri-tom.md).
+#   *-scratch/  - sweep/comparison frames from picking a parameter (~105MB). The chosen
+#                 value is committed in the build script; the frames that lost are not.
+grafix/hdri/
+grafix/render/v2-scratch/
+grafix/render/v3-scratch/
+grafix/render/*.blend1
+grafix/render/*.bak
