@@ -365,3 +365,19 @@ connection regardless of whether anything in the guest is listening.**
 **Rule.** Prove a service with its **banner or a real response**, never with a successful
 connect. `timeout 8 bash -c 'exec 3<>/dev/tcp/host/port; head -c 40 <&3'` - no bytes means no
 service. Same family as `lesson_exit_zero_does_not_prove_artifact`.
+
+### OP-22 - Build the instrument that shows WHY, before spending cycles on WHAT
+
+**What happened.** Most of a session went into screendump-based A/B testing of a black screen:
+stddev `166.108` meant "bad", `5895` meant "good", and nothing said why. Three hypotheses were
+raised and refuted on that thin signal (first-boot unit, `/etc` labels, double passphrase
+prompt), and one WRONG root cause (DN-14) was written to the ledger.
+
+**A read/write serial console answered the whole question in a single boot:** the exact prompt
+that was waiting, the exact AVC denials with their contexts, and a login shell.
+
+**Rule.** When a failure is opaque, the first move is to buy observability, not to test another
+hypothesis. A greppable transcript beats any number of pass/fail screenshots. Concretely for a
+VM: `-serial unix:<sock>,server,nowait` plus a `socat` PTY, so the console can be both READ and
+WRITTEN. A write-only `-serial file:` log cannot answer a prompt, and a screendump cannot be
+grepped.

@@ -108,3 +108,15 @@ must never see this. Comes from building on `fedora-bootc:44` pre-release.
 `-serial` capture dies at ~94 KB the moment Anaconda starts, so `%post` output is not captured.
 This is why `%post` success/failure could not be read from the serial log. Need Anaconda's own
 logs off the installed system instead.
+
+### T-13 (REVISED) - Label `/etc` at install time so logins work under Enforcing 🔴 BLOCKS THE DELL
+Cause of DN-16. Options, best first: (a) give the installer environment a working SELinux policy
+so bootc labels the deployment normally (research: `selinux-policy-targeted` in the buildroot,
+bootc #1438) - this also removes the need for DN-09's `selinux=0`; (b) `setfiles`/`restorecon`
+over the installed `/etc` from `%post` using the TARGET policy's file_contexts.
+**Acceptance: boot Enforcing, log in on tty1 as the advisor, `getenforce` = Enforcing, and ZERO
+`avc: denied` in the boot log with `semodule -DB` active.**
+
+### T-16 - Make the LUKS passphrase prompt visible on the local console 🔴 BLOCKS THE DELL
+Cause of DN-15. Likely `plymouth` + fbcon console hand-off. Acceptance: on a physical-style boot
+with no serial console, the passphrase prompt is legible on screen within 30s of power-on.

@@ -334,3 +334,56 @@ not enough - a black screen and a hung screen look the same.
 
 **Do not "fix" this by putting `selinux=0` back.** That reintroduces DN-10 and ships an advisor
 laptop with SELinux off. The fix is to make Enforcing work (labeling at install time).
+
+### DN-14 — CORRECTED. It was never an "SELinux deadlock"; it is TWO separate defects
+
+**The DN-14 entry written earlier today was WRONG and is superseded by DN-15 and DN-16.**
+It claimed SELinux Enforcing deadlocks the boot, on a single-variable A/B (`enforcing=0` reached
+Plasma, Enforcing did not). That A/B was **a false correlation**: the test harness typed the LUKS
+passphrase on a timer, and whether it landed on the prompt differed between runs.
+
+**Proof it was wrong:** with a read/write serial console, the system boots **to a login prompt
+with SELinux Enforcing**, and `cryptsetup.target` is reached normally.
+
+**Lesson.** A single-variable A/B is only as good as the variable you think you changed. Both runs
+also differed in *when an interactive prompt got answered*, and that was the real variable.
+Prefer an instrument that shows you WHY (a greppable console) over one that only shows PASS/FAIL
+(a screendump stddev).
+
+### DN-15 — The LUKS passphrase prompt is INVISIBLE on the local VGA console
+
+**2026-08-26, cycle6.** On the installed system the kernel logs
+`fbcon: Deferring console take-over`, and the prompt
+`Please enter passphrase for disk QEMU_HARDDISK (luks-...)` is written where the local display
+never shows it. The screen stays black with a bare cursor while `systemd-cryptsetup@...service`
+waits forever; `cryptsetup.target` never completes, so `sysinit.target` is held and nothing
+starts - no display-manager, no sshd.
+
+**To an advisor this looks like a dead laptop.** They cannot know a hidden prompt wants a
+passphrase. **This alone makes the current build unshippable.**
+
+**Detect with:** boot with a READ/WRITE serial console and
+`grep -a "enter passphrase" <serial log>`. A screendump cannot tell a hung boot from one waiting
+on an invisible prompt (OP-13).
+
+### DN-16 — `/etc` on the installed system is `unlabeled_t`, which breaks EVERY login
+
+**2026-08-26, cycle6.** Kernel AVCs from the running system, `permissive=0`:
+```
+avc: denied { read } comm="plasmalogin"  name="nsswitch.conf" tcontext=system_u:object_r:unlabeled_t:s0 tclass=lnk_file
+avc: denied { read } comm="plasmalogin"  name="passwd"        tcontext=system_u:object_r:unlabeled_t:s0 tclass=file
+avc: denied { read } comm="local_login"  name="nsswitch.conf" tcontext=system_u:object_r:unlabeled_t:s0
+avc: denied { read } comm="getty"        name="localtime"     tcontext=system_u:object_r:unlabeled_t:s0
+avc: denied { read } comm="firewalld"    name="nsswitch.conf" tcontext=system_u:object_r:unlabeled_t:s0
+```
+`/etc/nsswitch.conf`, `/etc/passwd` and friends on the root device (`dm-1`) carry **no SELinux
+label**, so nothing can resolve users. **This is the true cause of the graphical login loop
+Christopher hit by hand** - the password was always correct; the greeter could not read
+`/etc/passwd`. Console login fails the same way.
+
+**Cause:** Anaconda/bootc writes the installed `/etc` while the installer runs with `selinux=0`
+(DN-09), so those files are created with no context. Research (bootc #1438, #1690) matches.
+
+**Do NOT conclude `/etc` is fine from a `find`/`ls -Z` survey of the deployment directory** - that
+is what misled this session. **The kernel's AVC log is the authority.** Also note SELinux
+`dontaudit` rules hide denials: a clean `grep avc:` proves nothing until `semodule -DB` is run.
