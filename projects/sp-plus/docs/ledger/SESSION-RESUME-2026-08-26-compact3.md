@@ -161,3 +161,13 @@ installed system with zero AVC denials.
 **Biggest process lesson (OP-22):** most of this session was spent A/B-testing a black screen on
 a screendump stddev that could say "bad" but never "why". A read/write serial console answered
 the entire question in one boot. **Buy observability before testing another hypothesis.**
+
+---
+
+## ADDENDUM (captured at hand-off)
+
+**The build log contains `Failed to create directory or subvolume "/usr/local/sbin":
+Read-only file system`. This is NON-FATAL.** Step 1 of `sp-plus-iso-build.sh` carries
+`|| exit 2`, and the build proceeded past it into STEP 3 (image-builder copying blobs). Do not
+chase this line. Judge the build by **the ISO existing with a new sha256**, not by log noise
+(OP-03: the artifact is the evidence, never the exit code and never the report).
