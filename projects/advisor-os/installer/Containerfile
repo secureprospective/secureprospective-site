@@ -1,4 +1,7 @@
-FROM quay.io/fedora/fedora-bootc:43
+# Fedora 43 Anaconda parses the `bootc` Kickstart command but does not execute
+# the bootc payload installer. Fedora 44 includes the functional bootc payload
+# integration used by this ISO.
+FROM quay.io/fedora/fedora-bootc:44
 
 RUN dnf install -y \
     anaconda \
@@ -18,7 +21,7 @@ RUN dnf install -y \
     && dnf clean all
 
 RUN mkdir -p /boot/efi \
-    && cp -ra /usr/lib/bootupd/updates/EFI /boot/efi
+    && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
 
 RUN mkdir -p /usr/lib/image-builder/bootc
 COPY iso.yaml /usr/lib/image-builder/bootc/iso.yaml
@@ -44,3 +47,20 @@ RUN kernel=$(kernel-install list --json pretty | jq -r '.[] | select(.has_kernel
     && test -n "$kernel" \
     && DRACUT_NO_XATTR=1 dracut --force -v --zstd --reproducible --no-hostonly \
        --add anaconda "/usr/lib/modules/${kernel}/initramfs.img" "${kernel}"
+
+# bootc imports the embedded payload through a temporary file. Keep that
+# temporary copy on the target filesystem, not the installer RAM filesystem.
+# Image ENV values are not inherited by the Anaconda systemd service, so set
+# this on the service explicitly.
+RUN mkdir -p /etc/systemd/system/anaconda.service.d \
+    && printf '%s\n' '[Service]' 'Environment=TMPDIR=/mnt/sysimage/boot' \
+       'Environment=PATH=/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin' \
+       > /etc/systemd/system/anaconda.service.d/bootc-tmp.conf
+
+# Preserve the real binary and put the first-pass diagnostic wrapper ahead of it
+# only for the Anaconda service PATH. Image-builder preflight still reaches the
+# preserved binary through the wrapper's exec path.
+RUN cp -a /usr/bin/bootc /usr/bin/bootc-real
+COPY bootc-wrapper.sh /usr/local/bin/bootc
+RUN chmod 0755 /usr/local/bin/bootc
+

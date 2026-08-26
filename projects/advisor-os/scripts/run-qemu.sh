@@ -5,12 +5,15 @@ cd "$ROOT"
 
 MODE=${QEMU_MODE:-disk}
 DISK=${QEMU_DISK:-$ROOT/artifacts/qcow2/disk.qcow2}
-ISO=${QEMU_ISO:-$ROOT/artifacts/iso/advisor-os-installer.iso}
+ISO=${QEMU_ISO:-$ROOT/artifacts/iso/advisor-os-installer-latest.iso}
+if [[ ! -f "$ISO" && -f "$ROOT/artifacts/iso/advisor-os-installer.iso" ]]; then
+  ISO=$ROOT/artifacts/iso/advisor-os-installer.iso
+fi
 if [[ "$MODE" == "iso" ]]; then
   [[ -f "$ISO" ]] || { echo "Missing $ISO. Run ./scripts/build-iso.sh first." >&2; exit 2; }
   command -v qemu-img >/dev/null || { echo 'qemu-img is required for ISO mode.' >&2; exit 2; }
   DISK=${QEMU_INSTALL_DISK:-$ROOT/artifacts/qemu-install.qcow2}
-  [[ -f "$DISK" ]] || qemu-img create -f qcow2 "$DISK" "${QEMU_INSTALL_SIZE:-24G}" >/dev/null
+  [[ -f "$DISK" ]] || qemu-img create -f qcow2 "$DISK" "${QEMU_INSTALL_SIZE:-80G}" >/dev/null
 else
   [[ -f "$DISK" ]] || { echo "Missing $DISK. Run ./scripts/build-qcow2.sh first." >&2; exit 2; }
 fi
@@ -46,7 +49,7 @@ else
 fi
 
 qemu-system-x86_64 \
-  "${ACCEL[@]}" -machine q35 -m "${QEMU_MEMORY:-4096}" -smp "${QEMU_CPUS:-4}" \
+  "${ACCEL[@]}" -machine q35 -m "${QEMU_MEMORY:-8192}" -smp "${QEMU_CPUS:-4}" \
   -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
   -drive if=pflash,format=raw,file="$RUNTIME/OVMF_VARS.fd" \
   "${STORAGE[@]}" \
