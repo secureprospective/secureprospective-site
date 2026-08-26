@@ -27,7 +27,7 @@ if [[ "${scratch_bound-}" == 1 ]]; then
     set -o pipefail
     bootc_cmd=(/usr/bin/bootc-real "$1" "$2" --skip-finalize "${@:3}")
     echo "Advisor bootc diagnostic: using supported --skip-finalize; Anaconda owns final target cleanup"
-    "${bootc_cmd[@]}" 2>&1 | while IFS= read -r line; do
+    TMPDIR=/var/tmp "${bootc_cmd[@]}" 2>&1 | while IFS= read -r line; do
         printf '%s\n' "$line"
         if [[ "$line" == *"Deploying container image...done"* ]]; then
             mountpoint -q /var/tmp && umount /var/tmp || true
