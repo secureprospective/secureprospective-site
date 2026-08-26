@@ -69,6 +69,42 @@ if ! mkdir -p "$post_state"; then
     exit 1
 fi
 
+# DN-16: Anaconda writes the installed /etc while the installer runs with
+# selinux=0 (DN-09), so those files are created with NO SELinux context. Under
+# Enforcing that breaks EVERY login: plasmalogin and local_login are denied read
+# on /etc/nsswitch.conf and /etc/passwd (tcontext=unlabeled_t), which is the
+# graphical login loop. Relabel from the TARGET policy's file_contexts.
+# setfiles writes security.* xattrs directly, so it works even though SELinux is
+# disabled in the installer kernel.
+spplus_relabel_targets() {
+    local fc=/etc/selinux/targeted/contexts/files/file_contexts
+    local rc=0 path
+    if [ ! -f "$fc" ]; then
+        echo "SP+ post: no target file_contexts at $fc" >&2
+        return 1
+    fi
+    for path in /etc /var; do
+        [ -d "$path" ] || continue
+        if ! setfiles -F "$fc" "$path" >/dev/null 2>&1; then
+            echo "SP+ post: setfiles failed on $path" >&2
+            rc=1
+        fi
+    done
+    # The files whose absence of a label actually breaks login. Verify, do not
+    # assume: an unlabeled file here means the relabel did not take (DN-16).
+    for path in /etc/nsswitch.conf /etc/passwd /etc/shadow /etc/localtime; do
+        [ -e "$path" ] || continue
+        if ! ls -dZ "$path" 2>/dev/null | grep -qv '^?'; then
+            echo "SP+ post: $path is STILL unlabeled after relabel" >&2
+            rc=1
+        fi
+    done
+    return $rc
+}
+if ! spplus_relabel_targets; then
+    post_failure "SP+ post FAILED: could not label /etc and /var from the target policy (DN-16)"
+fi
+
 # bootc/ostree stores kernel arguments in BLS entry options lines. grubby is not
 # part of a bootc image, so edit each generated entry directly and fail if no
 # entry was available to edit.
