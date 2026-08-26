@@ -170,3 +170,45 @@ fully declares partitioning (with `--encrypted` and an interactive passphrase pr
 verify the resulting layout on every single install. **Encryption is a gate, not a default.**
 
 **Status.** OPEN — found 2026-08-26. Relates to T-08.
+
+### DN-12 — Manual `part` commands keep the graphical storage spoke incomplete
+
+**Error signature (verbatim, graphical hub):**
+```
+Installation Destination
+Custom partitioning selected
+Please complete items marked with this icon before continuing to the next step.
+```
+
+**Observed.** Cycle 1 supplied a complete manual encrypted layout and did not open the
+storage spoke. Anaconda still classified it as custom, displayed the warning triangle,
+and disabled `Begin Installation`. The kickstart's declared layout was therefore not
+enough to make an interactive install proceed unattended.
+
+**Detect with:** Take a screendump of the INSTALLATION SUMMARY before pressing Begin
+Installation and inspect the Installation Destination tile and its button state.
+
+**Do instead.** Use `autopart` with a runtime `ignoredisk --only-use=` selection. Do not
+walk the storage screen; the product policy is automatic partitioning, not custom layout.
+
+**Status.** FIXED in cycle 2 by replacing manual `part` commands with `autopart`.
+
+### DN-13 — `rootpw --lock` leaves the graphical root spoke incomplete
+
+**Error signature (verbatim, graphical hub):**
+```
+Root Account
+Root account is disabled
+```
+
+**Observed.** Cycle 1 explicitly supplied `rootpw --lock`, but the graphical hub still
+showed the warning and disabled `Begin Installation`. Locking root is not treated as a
+settled root-account choice in this interactive flow.
+
+**Detect with:** Take a screendump of the INSTALLATION SUMMARY and inspect the Root
+Account tile; its warning triangle must be absent before Begin Installation is enabled.
+
+**Do instead.** Generate an unusable random crypt root hash in `%pre` and provide it via
+`rootpw --iscrypted`; do not put a known password in the repository or image.
+
+**Status.** FIXED in cycle 2 by configuring `rootpw --iscrypted` from a random hash.
