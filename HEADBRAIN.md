@@ -277,3 +277,89 @@ same experiment a third time with a slightly different variable, stop and build 
 instrument instead.
 
 Good luck. He is counting on this one.
+
+---
+
+# ADDENDUM — WRITTEN 2026-08-26 ~16:45, AFTER THE ORIGINAL HANDOFF
+
+I got further before the compute ran out. **Sections 3 and 5 above are now out of date.
+This addendum supersedes them.** Everything else in this document still stands.
+
+## A. `spb-boot` IS FIXED AND WORKING. Do not rewrite it.
+
+Section 5 told you to fix it. **I fixed it.** It took four versions and the failure was
+subtle enough that you would have burned an hour rediscovering it:
+
+- **v1** set up socat first (~6 s) and the 1-second GRUB countdown had already expired.
+- **v2** fired 250 `end` keys immediately — **also missed**, because GRUB only appears
+  after several seconds of OVMF POST, so every key was consumed before the menu existed.
+- **v3** hammered `end` continuously in the background across the whole POST+menu window
+  and *did* hold the menu — then killed the hammer, the countdown resumed, and it booted.
+- **v4 (current, WORKS):** hammers continuously, and enters the editor with `home` `e`
+  **while the hammer is still running**, because `e` is what stops the countdown
+  permanently. Only then kills the hammer.
+
+Result on cycle7: `GRUB_MENU_SEEN=yes`, `IN_EDITOR=yes`,
+`LUKS_PROMPT_ON_SERIAL=yes after 21s`, **121,960 bytes of serial**. The instrument works.
+
+## B. DN-16 LOOKS CLOSED — but finish the proof
+
+The cycle7 boot with the T-13 relabel fix produced:
+
+- **`AVC_COUNT: 0`** — with the standing caveat that you must run `semodule -DB` in the
+  guest before you may treat a zero as meaningful.
+- **`getty`, `systemd-logind`, `accounts-daemon`, `polkit`, `NetworkManager`,
+  `systemd-homed`, `plymouth`, `authselect-apply-changes` all reached `OK`.** Under
+  DN-16 these were exactly the units being denied. That is the strongest signal we have.
+- The system reached a working `fedora login:` prompt on ttyS0.
+
+**What is still missing:** an actual successful login, and `ls -Zd /etc/passwd
+/etc/nsswitch.conf` showing real contexts instead of `unlabeled_t`. I could not get
+either, because of the new defect below. **Do not record DN-16 as closed until you have
+logged in.** I have been wrong twice today on exactly this kind of near-proof.
+
+## C. NEW DEFECT — DN-17: nobody can log in, because the password service FAILED
+
+```
+[FAILED] Failed to start spplus-firstboot-password.service — first-boot advisor password setup.
+See 'systemctl status spplus-firstboot-password.service' for details.
+```
+
+It is the **only** failed unit on the system. Consequence: `root` and the advisor
+account have no credential, every login attempt returns `Login incorrect`, and the
+machine is unusable for a completely different reason than DN-16.
+
+This is good news disguised as bad: the login prompt is **behaving correctly** and
+rejecting a password that genuinely does not exist. That is a normal auth failure, not
+the SELinux denial loop. But it is now the top blocker.
+
+**Attack it first.** You cannot see the journal without logging in, so:
+1. `./spb-boot "enforcing=0 systemd.unit=emergency.target"` or add `rd.break`, get a
+   root shell without auth, and read
+   `journalctl -u spplus-firstboot-password.service -b`.
+2. The unit's definition is in the Containerfile / installer tree in the repo. Read what
+   it actually executes and under what conditions it is `ConditionFirstBoot`.
+3. Remember **DN-13**: SP+ ships **no default password, ever**. Whatever you do, the fix
+   is "the advisor successfully sets their own password at first boot", never "ship a
+   known credential". Christopher has ruled on this and it is not negotiable.
+
+## D. CORRECTED PRIORITY ORDER FOR TONIGHT
+
+1. **DN-17** — make `spplus-firstboot-password.service` succeed. Nothing is usable
+   until someone can log in.
+2. **Finish DN-16's proof** — `semodule -DB`, log in, `ls -Zd /etc/passwd
+   /etc/nsswitch.conf`, `getenforce` must say `Enforcing`.
+3. **DN-15** — the invisible LUKS prompt on the local screen. **This is the one that
+   will embarrass a live demo**, because the machine looks bricked while it waits for a
+   passphrase nobody can see. If time runs short, this matters more than polish.
+4. Rebuild, full clean loop, `release-gate.sh` **exit 0**.
+5. The Dell — Christopher installs it himself.
+
+## E. CURRENT ARTIFACT STATE
+
+- ISO under test: `6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db`
+- `~/sp-plus-iso/cycle7/disk.qcow2` — installed system, **currently booted and running**,
+  sitting at a login prompt. `bserial.log` is 121,960 bytes of real evidence. **Keep it.**
+- `~/sp-plus-iso/cycle6/` — the original DN-15/DN-16 proof. `reap.sh`'s 12-hour hold
+  expires tonight; copy it aside if you still want it.
+- The `spb-*` lane is proven end to end: install **and** boot both now run unattended.

@@ -30,18 +30,41 @@ qemu-system-x86_64 \
   -monitor unix:"$BMON",server,nowait \
   -netdev user,id=n0,hostfwd=tcp::2299-:22 -device virtio-net-pci,netdev=n0 &
 echo $! > "$D/boot.pid"
-sleep 3
+
+# --- HALT GRUB. The countdown is 1 SECOND and GRUB only appears AFTER several
+# seconds of OVMF POST. v1 set up socat first (~6s) and missed it. v2 fired 250 keys
+# immediately and ALSO missed it — every key was consumed during POST, leaving none
+# for the actual menu. v3 hammers CONTINUOUSLY in the background across the whole
+# POST+menu window, so whenever the menu appears there are keys arriving.
+for i in $(seq 1 200); do [ -S "$BMON" ] && break; sleep 0.05; done
+setsid bash -c 'for i in $(seq 1 1200); do echo "sendkey end" | socat - UNIX-CONNECT:'"$BMON"' >/dev/null 2>&1; done' >/dev/null 2>&1 &
+HAMMER=$!
+
+# attach the serial capture while the hammer runs
+sleep 1
 setsid socat UNIX-CONNECT:"$D/bserial.sock" PTY,link="$D/bserialpty",raw,echo=0 >/dev/null 2>&1 &
 sleep 2
 setsid bash -c "cat $D/bserialpty > $D/bserial.log" >/dev/null 2>&1 &
-sleep 1
 P="$D/bserialpty"
 
-# --- GRUB editor: halt the 1s countdown, pick the FIRST entry, append console=ttyS0 ---
-# `end` alone selects "UEFI Firmware Settings" — `home` is required. Enter in the
-# editor SPLITS the linux line, which is why vmtype-noret.sh exists.
-for i in $(seq 1 60); do key end "$BMON"; done
+# wait until the menu is actually on screen and held, then stop hammering
+echo "SPB: waiting for the GRUB menu"
+for i in $(seq 1 40); do
+  grep -qa "Fedora Linux" "$D/bserial.log" && break
+  sleep 1
+done
+# Enter the editor WHILE the hammer is still running — `e` stops the countdown
+# permanently. v3 killed the hammer first, the countdown resumed, and it booted.
 key home "$BMON"; key e "$BMON"
+sleep 1
+kill "$HAMMER" 2>/dev/null || true
+pkill -P "$HAMMER" 2>/dev/null || true
+sleep 2
+echo "SPB: GRUB_MENU_SEEN=$(grep -qa 'Fedora Linux' "$D/bserial.log" && echo yes || echo no)"
+echo "SPB: IN_EDITOR=$(grep -qa 'Minimum Emacs-like screen editing' "$D/bserial.log" && echo yes || echo unknown)"
+
+# --- GRUB editor. `end` alone selects "UEFI Firmware Settings" — `home` is required.
+# Enter inside the editor SPLITS the linux line, which is why vmtype-noret.sh exists.
 key down "$BMON"; key down "$BMON"; key down "$BMON"; key ctrl-e "$BMON"
 /home/chris/sp-plus-iso/vmtype-noret.sh "$BMON" " console=ttyS0,115200 $EXTRA" >/dev/null
 sleep 1
