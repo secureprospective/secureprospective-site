@@ -146,6 +146,8 @@ COPY config/fin-banner           /usr/libexec/sp-plus/fin-banner
 COPY config/fin.desktop          /usr/share/applications/fin.desktop
 COPY config/fin-system-prompt.md /usr/share/sp-plus/fin/system-prompt.md
 COPY config/fin-skills/          /usr/share/sp-plus/fin/skills/
+COPY config/fin-tips             /usr/libexec/sp-plus/fin-tips
+COPY config/fin-tip-catalogue/   /usr/share/sp-plus/fin/tips/
 # micro ships no launcher of its own -- it is a terminal editor. On a machine built
 # for people who have never used Linux, an application with no way to open it does
 # not exist. Give it one, named for what it does rather than what it is called.
@@ -236,6 +238,13 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \
+ && chmod 0755 /usr/libexec/sp-plus/fin-tips \
+ && bash -n /usr/libexec/sp-plus/fin-tips \
+ && test "$(cat /usr/share/sp-plus/fin/tips/*.tips | grep -cE '^[a-z0-9]+-[0-9]+')" -eq 20 \
+ && ! cat /usr/share/sp-plus/fin/tips/*.tips | grep -E '^[a-z0-9]+-[0-9]+' \
+      | grep -iqE 'automate|batch|prompt|query your' \
+ && ! cat /usr/share/sp-plus/fin/tips/*.tips | grep -E '^[a-z0-9]+-[0-9]+' \
+      | grep -iqE 'is compliant|ensure compliance' \
  && echo "FIN_AGENT_OK pi $(/usr/bin/pi --version) ships as Fin, no key in the image"
 
 # ---- 4c. the three tools an advisor's helper reaches for ----

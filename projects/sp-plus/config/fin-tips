@@ -1,0 +1,94 @@
+#!/usr/bin/bash
+# Fin coaching tips.
+#
+# Design comes from docs/fin-coaching-tips-discovery.md, which rejected rotating
+# random banners in favour of PROGRESSIVE CAPABILITY DISCOVERY: a staged queue of
+# "next useful things Fin can do", one per session at most, advanced by ACTIVE USE
+# rather than by the calendar. An advisor who opens Fin twice in a month must not
+# be handed second-month material.
+#
+# The week-one killer this is designed against: "Fin is interrupting me and giving
+# me homework before it has proved useful." So: never a popup, never blocking,
+# never repeated after dismissal, and off for good the moment they say so.
+#
+# Fin execs pi, so no wrapper process survives a task to hang an "after you
+# finished" tip on. The discovery document's own fallback is used instead -- the
+# next tip appears at the START of a later session, which needs no hook.
+#
+# Usage: fin-tips show <file-to-write-a-chosen-tip-into>   (exit 0 if chosen)
+#        fin-tips on | off | status
+set -u
+
+CATALOGUE=/usr/share/sp-plus/fin/tips
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus"
+STATE="$STATE_DIR/fin-tips"
+
+BOLD=$'\033[1m'; DIM=$'\033[2m'; OFF=$'\033[0m'
+
+# State is counters and tip ids ONLY. This is a regulated desk: no prompts, no
+# answers, no client names, no file names, no hashes, no telemetry, no network.
+sessions=0; disabled=0; shown=""
+[ -r "$STATE" ] && . "$STATE"
+
+save_state() {
+    install -d -m 0700 "$STATE_DIR"
+    ( umask 077
+      printf 'sessions=%s\ndisabled=%s\nshown="%s"\n' "$sessions" "$disabled" "$shown" > "$STATE" )
+}
+
+case "${1:-show}" in
+  off)    disabled=1; save_state; echo "  Coaching tips are off. Turn them back on with: fin --tips on"; exit 0 ;;
+  on)     disabled=0; save_state; echo "  Coaching tips are on."; exit 0 ;;
+  status) if [ "$disabled" = 1 ]; then echo "Coaching tips: Off"; else echo "Coaching tips: On"; fi
+          echo "Sessions: $sessions"; exit 0 ;;
+esac
+
+OUTFILE="${2:-}"
+sessions=$((sessions + 1))
+[ "$disabled" = 1 ] && { save_state; exit 1; }
+
+# Session count GATES which stages are open; it does not abandon what is still
+# unseen in an earlier one. Staging by "session 6 means week two" skipped half
+# the first-week tips outright, which is not a queue -- it is a calendar wearing
+# a queue's clothes. Earlier tips are always offered first.
+stages="$CATALOGUE/week1.tips"
+[ "$sessions" -ge 6 ]  && stages="$stages $CATALOGUE/week2.tips"
+[ "$sessions" -ge 10 ] && stages="$stages $CATALOGUE/month2.tips"
+# Session 2 stays quiet: one tip at first launch, then room to breathe.
+[ "$sessions" -eq 2 ] && { save_state; exit 1; }
+
+# First unseen tip in this stage. Dismissal is permanent: a shown id is never
+# offered a second time.
+tip=""; tip_id=""
+for stage in $stages; do
+    [ -r "$stage" ] || continue
+    while IFS=$'\t' read -r id text; do
+        case "$id" in ''|'#'*) continue ;; esac
+        case " $shown " in *" $id "*) continue ;; esac
+        tip_id="$id"; tip="$text"; break
+    done < "$stage"
+    [ -n "$tip" ] && break
+done
+[ -n "$tip" ] || { save_state; exit 1; }
+
+if [ "$sessions" -eq 1 ]; then
+    printf '\n  %sTry this first:%s %s\n' "$BOLD" "$OFF" "$tip"
+else
+    printf '\n  %sSomething else Fin can do:%s %s\n' "$BOLD" "$OFF" "$tip"
+fi
+printf '  %s[Enter] not now   [t] try it   [n] never show tips again%s ' "$DIM" "$OFF"
+
+# Never block. If this is not a terminal, print nothing more and move on.
+choice=""
+if [ -t 0 ]; then IFS= read -r choice || choice=""; fi
+printf '\n'
+
+shown="$shown $tip_id"
+case "$choice" in
+    n|N) disabled=1
+         printf '  Coaching tips are off. Turn them back on with: fin --tips on\n\n' ;;
+    t|T) if [ -n "$OUTFILE" ]; then printf '%s\n' "$tip" > "$OUTFILE"; fi
+         save_state; exit 0 ;;
+esac
+save_state
+exit 1

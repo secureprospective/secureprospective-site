@@ -1,0 +1,13 @@
+# SP+ coaching tips, stage 1 (first week): confidence and immediate wins.
+# One tip per line, id<TAB>text. Ids are stable and referenced by the test lane.
+# Copy comes from docs/fin-coaching-tips-discovery.md and deliberately describes
+# the BENEFIT, never the technology: no "automate", "batch", "prompt" or "query".
+# Nothing here may imply Fin makes a suitability, legal or compliance judgement.
+w1-01	Give Fin a letter or statement and ask, "What are the three things I need to know?"
+w1-02	Fin can turn a long statement into a short list of names, dates, amounts, and next steps.
+w1-03	Ask Fin to explain a confusing carrier letter in plain English — and list what the letter still does not answer.
+w1-04	Give Fin your rough meeting notes and ask for a clear follow-up email in your usual voice.
+w1-05	Fin can pull every action item out of a meeting note and turn them into a checklist.
+w1-06	You do not have to get it right the first time. Tell Fin what to shorten, change, or add, and it will revise the work.
+w1-07	Before Fin changes a group of documents, ask it to show you what it plans to do and wait for your approval.
+w1-08	Ask Fin to make a one-page summary of a document you need to discuss with a client.

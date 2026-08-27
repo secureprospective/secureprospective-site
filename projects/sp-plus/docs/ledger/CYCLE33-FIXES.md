@@ -62,3 +62,24 @@ See `DN-25-fin-plug-and-play.md`. Still needs Christopher's answer on whether
 The 10 SELinux AVC denials from `OBSERVED-2026-08-27-cycle32-avc.md`. Nothing
 failed because of them, and the honest test is a `bootc upgrade` on the existing
 cycle32 machine, which needs no new ISO.
+
+---
+
+## BUILT 2026-08-27 12:44
+
+cycle33 ISO: `bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
+sha256 `282f6a15b4b624e6860cee525173dc23faf28d8fd6feb01f5513de0a2e19edf2`
+bytes `5279907840`. Delivered to `~/Downloads/SP-PLUS-cycle33.iso`.
+
+Gates: `MENU_OK visible_entries=28`, `TOOLS_OK`, `FIN_AGENT_OK pi 0.84.3`,
+`AUTOSTART_OK count=13`, `DEBLOAT_OK enabled_units=76`, pre-build gate 10/10.
+
+The first attempt FAILED at TOOLS_OK, and the cause was the gate rather than the
+config: it asserted the stock Flameshot entry was unbound by reading two lines
+after the section header, and the comment explaining why it is unbound pushed the
+asserted line out of that window. Now scoped with awk.
+
+## NOT in cycle33 — Fin coaching tips (DN-25, built, awaiting a cycle)
+
+Implemented after the ISO had already started building, so it ships in cycle34.
+See `fin-coaching-tips-discovery.md` for the design this follows.

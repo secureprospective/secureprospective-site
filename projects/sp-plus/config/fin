@@ -42,6 +42,29 @@ first_run_key() {
     return 0
 }
 
+TIPS=/usr/libexec/sp-plus/fin-tips
+
+# Coaching tips are the advisor's to control, so the switches come before
+# anything else -- turning them off must not require a working key.
+case "${1:-}" in
+    --tips)
+        shift
+        case "${1:-status}" in
+            list)
+                printf '\n  %sWhat else can Fin help with?%s\n\n' "$BOLD" "$OFF"
+                for f in /usr/share/sp-plus/fin/tips/*.tips; do
+                    [ -r "$f" ] || continue
+                    while IFS=$'\t' read -r id text; do
+                        case "$id" in ''|'#'*) continue ;; esac
+                        printf '    %s\n' "$text"
+                    done < "$f"
+                done
+                printf '\n' ;;
+            *) exec "$TIPS" "${1:-status}" ;;
+        esac
+        exit 0 ;;
+esac
+
 [ -x "$BANNER" ] && "$BANNER"
 printf '  %sFin%s — your SP+ assistant\n' "$BOLD" "$OFF"
 
@@ -54,6 +77,20 @@ if ! have_key; then
 fi
 
 export ANTHROPIC_API_KEY
+
+# One coaching tip, at most, at the start of a session. It is shown only after
+# the key is settled: a tip is useless to an advisor Fin cannot yet answer.
+# "Try it" hands the tip straight to Fin as the opening request, which is the
+# whole point -- the advisor learns by having the work done, not by reading.
+TIP_CHOICE=""
+if [ -x "$TIPS" ] && [ $# -eq 0 ]; then
+    TIP_FILE=$(mktemp) || TIP_FILE=""
+    if [ -n "$TIP_FILE" ]; then
+        if "$TIPS" show "$TIP_FILE"; then TIP_CHOICE=$(cat "$TIP_FILE"); fi
+        rm -f "$TIP_FILE"
+    fi
+fi
+[ -n "$TIP_CHOICE" ] && set -- "$TIP_CHOICE"
 # --approve is deliberate: without it Fin asks about trusting project files in a
 # home directory the advisor owns anyway, which is a question they cannot answer.
 exec /usr/bin/pi \
