@@ -572,6 +572,43 @@ sys.exit(0 if (d[:8]==b'\x89PNG\r\n\x1a\n' and (w,h)==(500,334)) else 1)" \
  && grep -q 'konqi-calling.png' "$F/main.qml" \
  && echo "DN20_FINISHED_ART_OK SP+ lockup replaces Konqi at 500x334 on the final wizard page"
 
+# ---- 7c. DN-23: the first-run wizard cannot stall a demo it never runs ----
+# Christopher installed cycle28 on real hardware, walked the wizard, and the final
+# "Complete" button did not advance: the artwork vanished and the machine sat
+# there with no way forward. A machine that cannot finish first-run setup cannot
+# be demonstrated at all, so this is demo-fatal.
+#
+# I could NOT reproduce it in the lane before the deadline, and I refuted both
+# leading theories with evidence rather than argument:
+#   * SELinux: all 10 AVCs on a real boot are permissive=1 and belong to
+#     bootupctl/bootupd_t. Nothing denied for plasma-setup or its KAuth helper.
+#   * removeautologin against the wrong display manager: running
+#     /usr/libexec/plasma-setup-bootutil --remove-autologin by hand on the
+#     installed system returns 0 and writes its config cleanly.
+# With the cause unknown, engineering a fix would be a guess, and a guess is
+# exactly what must not ship into a demo.
+#
+# So the wizard is taken off the demo path entirely by pre-creating the flag file
+# plasma-setup.service itself tests for (ConditionPathExists=!/etc/plasma-setup-done).
+# The unit stays enabled and completely stock; it simply finds its work already
+# done and exits. Nothing functional is lost: SP+ ships no account (DN-13) and
+# Anaconda already collects the account, language, keyboard and timezone, which is
+# every page the wizard offered. The machine now goes LUKS -> login -> desktop.
+#
+# The cost is real and is recorded here so it is not forgotten: the branded
+# "Welcome to SP+" first screen (DN-17) and the SP+ artwork on the closing page
+# (DN-20) are both built, both verified, and now never seen. DN-17's catalog,
+# locale wiring and DN-20's artwork all remain in the image, so removing this one
+# file is all it takes to put the wizard back once DN-23 is genuinely understood.
+RUN printf '%s\n' \
+      '# SP+ DN-23: first-run wizard deliberately pre-completed.' \
+      '# Remove this file to re-enable the Plasma Setup wizard.' \
+      > /etc/plasma-setup-done \
+ && test -s /etc/plasma-setup-done \
+ && grep -q 'DN-23' /etc/plasma-setup-done \
+ && systemctl is-enabled plasma-setup.service \
+ && echo "DN23_WIZARD_BYPASSED_OK flag file present; plasma-setup will find its work done"
+
 RUN test -s /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Welcome to<br/><b>SP+</b>' \
       /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \

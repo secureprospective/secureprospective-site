@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# spb-qc <png> [question] — have GPT-Luna read a screenshot of the SP+ panel and
+# report what is ACTUALLY rendered on it.
+#
+# Why: the Bee lane watched only the serial console, so every defect that lives on
+# the graphical surface -- the wizard's headline, its artwork, a button that does
+# not advance -- survived all the way to Christopher's own install. A vision model
+# closes that hole and can judge screens faster than a human can page through them.
+#
+# Notes learned the hard way:
+#   * openai-codex/gpt-5.6-luna is the working provider. The opencode-go copies of
+#     Luna and deepseek-v4-flash-vision-exp are behind a 429 monthly usage limit.
+#   * It needs REAL time -- well over 120s per image. Two earlier attempts "failed"
+#     only because the caller's timeout killed them. Do not shorten this.
+#   * Images are downscaled to 900px first; the full 1280x800 panel dump is more
+#     than the request needs.
+set -u
+PNG="${1:?usage: spb-qc <png> [question]}"
+Q="${2:-Describe exactly what is on this screen. Reply with these lines and nothing else: HEADLINE: <exact headline text, or NONE>; BUTTONS: <exact text of every button>; IMAGE: <any logo, mascot or artwork>; STATE: <anything that looks like an error, a hang, a spinner or a blank region>. Report only what you can actually read.}"
+[ -s "$PNG" ] || { echo "SPB-FAIL: no such screenshot: $PNG" >&2; exit 2; }
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+SMALL="$TMP/$(basename "${PNG%.*}").png"
+python3 -c "
+from PIL import Image
+im=Image.open('$PNG'); im.thumbnail((900,900)); im.save('$SMALL')" || exit 3
+echo "SPB-QC: $(basename "$PNG") -> gpt-5.6-luna (allow up to 7 min)"
+cd "$TMP" && timeout 420 pi -p --model openai-codex/gpt-5.6-luna "@$(basename "$SMALL")" "$Q"

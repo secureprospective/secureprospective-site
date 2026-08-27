@@ -10,7 +10,11 @@ EXTRA="$1"
 pkill -F "$D/qemu.pid" 2>/dev/null || true
 pkill -F "$D/boot.pid" 2>/dev/null || true
 sleep 2
-rm -f "$BMON" "$D"/bserial.sock "$D"/bserial.log "$D"/bserialpty
+# NEVER delete a boot log — evidence has already been drawn from it and the
+# runbook forbids it. Re-running spb-boot on cycle10 destroyed that cycle's
+# bserial.log. Rotate to a timestamped name instead.
+[ -s "$D/bserial.log" ] && mv "$D/bserial.log" "$D/bserial-$(date +%Y%m%d-%H%M%S).log"
+rm -f "$BMON" "$D"/bserial.sock "$D"/bserialpty
 rm -rf "$D/tpm"; mkdir -p "$D/tpm"
 swtpm socket --tpmstate dir="$D/tpm" --ctrl type=unixio,path="$D/tpm/sock" --tpm2 --daemon
 sleep 1
@@ -26,6 +30,7 @@ qemu-system-x86_64 \
   -drive file="$D/disk.qcow2",if=none,id=hd0,format=qcow2 \
   -device ide-hd,drive=hd0,bus=ahci.0 \
   -vga std -display none \
+  -device qemu-xhci,id=xhci -device usb-tablet,bus=xhci.0 \
   -serial unix:"$D/bserial.sock",server,nowait \
   -monitor unix:"$BMON",server,nowait \
   -netdev user,id=n0,hostfwd=tcp::2299-:22 -device virtio-net-pci,netdev=n0 &
@@ -50,7 +55,7 @@ P="$D/bserialpty"
 # wait until the menu is actually on screen and held, then stop hammering
 echo "SPB: waiting for the GRUB menu"
 for i in $(seq 1 40); do
-  grep -qa "Fedora Linux" "$D/bserial.log" && break
+  grep -qa 'GRUB version' "$D/bserial.log" && break
   sleep 1
 done
 # Enter the editor WHILE the hammer is still running — `e` stops the countdown
@@ -60,7 +65,7 @@ sleep 1
 kill "$HAMMER" 2>/dev/null || true
 pkill -P "$HAMMER" 2>/dev/null || true
 sleep 2
-echo "SPB: GRUB_MENU_SEEN=$(grep -qa 'Fedora Linux' "$D/bserial.log" && echo yes || echo no)"
+echo "SPB: GRUB_MENU_SEEN=$(grep -qa 'GRUB version' "$D/bserial.log" && echo yes || echo no)"
 echo "SPB: IN_EDITOR=$(grep -qa 'Minimum Emacs-like screen editing' "$D/bserial.log" && echo yes || echo unknown)"
 
 # --- GRUB editor. `end` alone selects "UEFI Firmware Settings" — `home` is required.
@@ -78,8 +83,32 @@ for i in $(seq 1 40); do
 done
 echo "SPB: LUKS_PROMPT_ON_SERIAL=$seen after $((i*3))s"
 [ "$seen" = yes ] || echo "SPB: prompt never appeared — capture the log anyway, do NOT retry blind"
+# DN-15: the prompt is on the serial. Is it on the SCREEN? Capture the panel
+# BEFORE answering, because that is the moment Christopher faces on the Dell.
+/home/chris/sp-plus-bee/spb-screen luks || true
 printf '%s\n' "$LUKS_PASS" > "$P"
 echo "SPB: passphrase sent, waiting 180s for the system to settle"
-sleep 180
+sleep 60
+
+# SP+ ships NO password (DN-13); the advisor sets one at first boot on the ACTIVE
+# console, which under test is this serial line. Answer that prompt so the lane has
+# a credential to log in with. The value is the disposable test passphrase and must
+# never appear in the ISO, the repo, or committed config.
+fb=no
+for i in $(seq 1 20); do
+  grep -qa "SP+ first boot" "$D/bserial.log" && { fb=yes; break; }
+  sleep 3
+done
+echo "SPB: FIRSTBOOT_PROMPT_ON_CONSOLE=$fb after $((i*3))s"
+if [ "$fb" = yes ]; then
+  sleep 2; printf '%s\n' "$LUKS_PASS" > "$P"
+  sleep 2; printf '%s\n' "$LUKS_PASS" > "$P"
+  sleep 8
+  grep -qa "Password set" "$D/bserial.log" \
+    && echo "SPB: FIRSTBOOT_PASSWORD_SET=yes" \
+    || echo "SPB: FIRSTBOOT_PASSWORD_SET=no"
+fi
+sleep 120
+/home/chris/sp-plus-bee/spb-screen settled || true
 echo "SPB: serial_bytes=$(stat -c%s "$D/bserial.log")"
 echo "SPB: guest left running. Type into $P, read $D/bserial.log"
