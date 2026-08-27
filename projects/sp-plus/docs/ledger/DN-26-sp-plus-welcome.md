@@ -193,3 +193,48 @@ mitigated and is recorded here deliberately: SP+ grants `%wheel ALL=(ALL) NOPASS
 so anyone at an unlocked session can read that file. This is the same tradeoff already
 accepted in `sudoers-sp-plus`, now with a stored network credential behind it. If that
 becomes unacceptable, the sudoers decision is the thing to revisit, not the mount.
+
+## The "Choose the look" screen, specified
+
+Added 2026-08-27 at Christopher's direction: *"Choose the look should center around Global
+themes with options to change some things like back ground and colors palets."*
+
+The screen has a primary and a secondary, and they are deliberately unequal.
+
+**Primary — the global theme.** This is the unit of choice and it dominates the screen. A
+gallery of real desktop previews chosen by picture rather than by name: the advisor does not
+know what "Breeze Dark" means, but knows which one they like. SP+ Calm (Dark) is preselected
+and visibly recommended, per DN-27. Choosing a theme is one click and completes the screen on
+its own.
+
+**Secondary — adjustments inside that choice.** Wallpaper and colour palette, presented as
+tuning the theme already picked rather than as rival decisions. Visually subordinate, never
+required, and the screen must read as finished before they are touched.
+
+Two mechanics follow from that ordering:
+
+- **Adjustments reset when the theme changes.** Selecting a different global theme returns the
+  wallpaper and palette to that theme's own defaults. Carrying a previous theme's wallpaper
+  across is precisely how a desktop ends up looking half-applied, which is the failure DN-24
+  exists to prevent.
+- **Previews must be honest.** Applying a look-and-feel on Plasma 6 is asynchronous, and the
+  call returning success is not evidence it applied. Read the config back before showing any
+  success state. This is the same lesson `spplus-first-login` already had to learn about the
+  wallpaper on cycle32.
+
+## Standing layout constraint: no scrolling
+
+Also added 2026-08-27, and it governs every screen rather than this one:
+
+> "we need to eliminate the need to scroll. everything needs to sit in one page"
+
+Every screen must fit a single viewport with no scrollbar and nothing below the fold. A
+first-time Linux user does not know that hidden content exists, so anything requiring a scroll
+is invisible to exactly the person the application was built for. A screen that does not fit is
+fixed by cutting content, by composing horizontally, or by disclosing detail in place -- never
+by growing taller, and never by shrinking type below comfortable reading size. The target is a
+full, balanced single viewport: neither sparse nor long.
+
+The acceptance test is measured, not eyeballed: `scrollHeight` must equal `clientHeight` at
+1366x768, the smallest realistic advisor laptop and the case most likely to overflow. A
+screenshot alone is not proof, because a tall window hides the overflow a normal one reveals.
