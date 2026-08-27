@@ -331,7 +331,7 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q "Office Open XML Text" "$LOX" \
  && grep -q "Calc Office Open XML" "$LOX" \
  && grep -q "Impress Office Open XML" "$LOX" \
- && ! grep -q "writer_OOXML" "$LOX" \
+ && python3 -c "import sys,re; d=open(sys.argv[1]).read(); d=re.sub(r'<!--.*?-->','',d,flags=re.S); sys.exit(1 if 'writer_OOXML' in d else 0)" "$LOX" \
  && fc-match Carlito | grep -qi carlito \
  && fc-match Caladea | grep -qi caladea \
  && fc-match Tinos   | grep -qi tinos \
