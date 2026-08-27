@@ -14,8 +14,12 @@
 # fights the advisor's own choices afterwards.
 set -u
 
-LNF=org.secureprospective.spplus.windows11.dark
-WALLPAPER=/usr/share/sp-plus/branding/sp-plus-wallpaper.png
+LNF=org.secureprospective.spplus.calm.dark
+# The wallpaper is shipped as a Plasma wallpaper PACKAGE with a resolution ladder
+# (1920x1080 through 7680x4320, JPEG). plasma-apply-wallpaperimage is handed the
+# package directory, not a single file, so Plasma picks the size that fits the
+# advisor's screen instead of scaling one image badly.
+WALLPAPER=/usr/share/wallpapers/SPPlus-Calm
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
 
 [ -e "$STAMP" ] && { echo "spplus-first-login: already applied, nothing to do"; exit 0; }
@@ -45,7 +49,7 @@ rc=0
 # So: wait for plasmashell to come BACK on the bus after the reset, then apply,
 # then READ THE CONFIG BACK. Trust the file, never the exit code.
 APPLETSRC="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
-if [ -r "$WALLPAPER" ]; then
+if [ -d "$WALLPAPER" ] || [ -r "$WALLPAPER" ]; then
     for _ in $(seq 1 60); do
         busctl --user list --no-legend --no-pager 2>/dev/null \
             | grep -q '^org\.kde\.plasmashell\b' && break

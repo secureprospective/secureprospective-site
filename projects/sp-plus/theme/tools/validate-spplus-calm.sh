@@ -10,7 +10,9 @@ bad() { printf 'FAIL %-72s\n' "$1" >&2; fail=$((fail + 1)); }
 need() { test -e "$1" && ok "$2" || bad "$2 ($1)"; }
 
 need "$THEME/wallpapers/SPPlus-Calm/metadata.json" 'wallpaper metadata exists'
-need "$THEME/wallpapers/SPPlus-Calm/contents/images/7680x4320.png" 'literal 8K UHD wallpaper exists'
+need "$THEME/wallpapers/SPPlus-Calm/contents/images/7680x4320.jpg" '8K wallpaper exists (JPEG ladder, see 2ee76d9)'
+need "$THEME/wallpapers/SPPlus-Calm/contents/images/1920x1080.jpg" '1080p wallpaper exists'
+need "$THEME/wallpapers/SPPlus-Calm/contents/images/3840x2160.jpg" '4K wallpaper exists'
 need "$THEME/color-schemes/SPPlusCalmDark.colors" 'dark color scheme exists'
 need "$THEME/color-schemes/SPPlusCalmLight.colors" 'light color scheme exists'
 
@@ -88,9 +90,16 @@ else
   bad 'desktop-file-validate unavailable for Aurorae metadata gate'
 fi
 
+# Every rung of the ladder must actually be the resolution its filename claims.
+# Plasma picks by filename, so a mislabelled rung is served at the wrong size and
+# scales badly on exactly the screen it was meant to fit.
 if command -v magick >/dev/null; then
-  geometry="$(magick identify -format '%wx%h' "$THEME/wallpapers/SPPlus-Calm/contents/images/7680x4320.png")"
-  [ "$geometry" = '7680x4320' ] && ok 'wallpaper geometry is 7680x4320 (8K UHD)' || bad "wallpaper geometry is $geometry"
+  for want in 1920x1080 2560x1440 3840x2160 7680x4320; do
+    img="$THEME/wallpapers/SPPlus-Calm/contents/images/$want.jpg"
+    geometry="$(magick identify -format '%wx%h' "$img" 2>/dev/null || echo missing)"
+    [ "$geometry" = "$want" ] && ok "wallpaper rung $want matches its filename" \
+      || bad "wallpaper rung $want is $geometry"
+  done
 else
   bad 'ImageMagick unavailable for wallpaper geometry gate'
 fi

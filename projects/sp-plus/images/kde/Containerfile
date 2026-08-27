@@ -652,35 +652,64 @@ COPY theme/icons/          /usr/share/icons/
 COPY theme/Kvantum/        /usr/share/Kvantum/
 COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
 
+# ---- 6a. SP+ Calm, the shipped default look (DN-27) --------------------------
+# SP+ Calm is the OS's own visual language and is deliberately NOT branded to
+# secureprospective.com. Christopher's framing: "The Global theme isnt branded to
+# the website, its meant for ease on the eyes for hours of work. The slight glow
+# highlights will signal windows selected and the state they are in. We need those
+# things for productivity, not theming. We have enough of that to get them here,
+# the OS is its own animal." Brand colour belongs to the website and to SP+
+# Welcome; the desktop answers to eye comfort and state legibility instead.
+#
+# The Windows 11 theme above is NOT removed -- it stays as a choice in the theme
+# picker for advisors who want what they came from.
+COPY theme/sp-plus-calm/look-and-feel/  /usr/share/plasma/look-and-feel/
+COPY theme/sp-plus-calm/desktoptheme/   /usr/share/plasma/desktoptheme/
+COPY theme/sp-plus-calm/color-schemes/  /usr/share/color-schemes/
+COPY theme/sp-plus-calm/aurorae/        /usr/share/aurorae/themes/
+COPY theme/sp-plus-calm/wallpapers/SPPlus-Calm/ /usr/share/wallpapers/SPPlus-Calm/
+
 # kvantum supplies the widget style the theme's defaults select. Without it Qt apps
 # fall back and the theme looks half-applied in System Settings.
-RUN dnf install -y --setopt=install_weak_deps=False kvantum \
+# kvantum supplies the widget style the Windows 11 theme selects. paper-icon-theme
+# and jetbrains-mono-fonts are SP+ Calm's declared runtime dependencies: Calm names
+# Paper-Mono-Dark icons and the JetBrains Mono family, and without them the shipped
+# DEFAULT theme half-applies -- stock icons and a silent font fallback -- which is
+# the exact "looks broken on first boot" failure DN-24 was raised about.
+RUN dnf install -y --setopt=install_weak_deps=False \
+      kvantum paper-icon-theme jetbrains-mono-fonts \
  && dnf clean all \
- && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true
+ && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
+ && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
+ && test -d /usr/share/icons/Paper-Mono-Dark \
+ && fc-list : family | grep -qi 'JetBrains Mono' \
+ && echo "CALM_DEPS_OK $(rpm -q paper-icon-theme jetbrains-mono-fonts | tr '\n' ' ')"
 
-# Make SP+ Windows 11 (Dark) the shipped default look, system-wide rather than in
-# /home, so a fresh advisor account gets it on first login (decision D25).
+# Make SP+ Calm (Dark) the shipped default look, system-wide rather than in
+# /home, so a fresh advisor account gets it on first login (D25, retargeted by
+# DN-27). Graphite grounds, calm dark, glow reserved for signalling focus and
+# state. Windows 11 Dark remains installed and selectable.
 RUN printf '%s\n' \
       '[General]' \
-      'ColorScheme=WindowsModernDark' \
+      'ColorScheme=SPPlusCalmDark' \
       'TerminalApplication=kitty' \
-      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.calm.dark' \
       '' \
       '[Icons]' \
-      'Theme=windows-modern' \
+      'Theme=Paper-Mono-Dark' \
       '' \
       '[KDE]' \
-      'widgetStyle=kvantum-dark' \
-      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
+      'widgetStyle=Breeze' \
+      'LookAndFeelPackage=org.secureprospective.spplus.calm.dark' \
       > /etc/xdg/kdeglobals \
  && printf '%s\n' \
       '[Theme]' \
-      'name=Windows-modern-dark' \
+      'name=spplus-calm-dark' \
       > /etc/xdg/plasmarc \
  && printf '%s\n' \
       '[org.kde.kdecoration2]' \
       'library=org.kde.kwin.aurorae' \
-      'theme=__aurorae__svg__windows-modern-dark-aurorae' \
+      'theme=__aurorae__svg__spplus-calm-dark' \
       '' \
       '# SP+ ships on laptops with real keys. kwin otherwise launches' \
       '# plasma-keyboard -- the ONSCREEN keyboard -- because its desktop file' \
@@ -693,9 +722,17 @@ RUN printf '%s\n' \
       'InputMethod=' \
       'VirtualKeyboardEnabled=false' \
       > /etc/xdg/kwinrc \
+ && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark \
+ && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.light \
+ && test -f /usr/share/color-schemes/SPPlusCalmDark.colors \
+ && test -d /usr/share/aurorae/themes/spplus-calm-dark \
+ && test -d /usr/share/plasma/desktoptheme/spplus-calm-dark \
+ && test -d /usr/share/wallpapers/SPPlus-Calm/contents/images \
+ && test -f /usr/share/wallpapers/SPPlus-Calm/contents/images/3840x2160.jpg \
  && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark \
  && test -f /usr/share/color-schemes/WindowsModernDark.colors \
- && test -d /usr/share/aurorae/themes/windows-modern-dark-aurorae
+ && test -d /usr/share/aurorae/themes/windows-modern-dark-aurorae \
+ && echo "CALM_DEFAULT_OK themes=$(ls /usr/share/plasma/look-and-feel | wc -l)"
 
 # ---- 6b. DN-24: naming the look and feel is not applying it ----
 # Section 6 writes LookAndFeelPackage into /etc/xdg/kdeglobals, and that is
@@ -721,9 +758,11 @@ RUN chmod 0755 /usr/libexec/spplus-first-login \
  && test -x /usr/sbin/plasma-apply-lookandfeel \
  && test -x /usr/sbin/plasma-apply-wallpaperimage \
  && test -r /usr/share/sp-plus/branding/sp-plus-wallpaper.png \
- && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
- && grep -q '^Image=/usr/share/sp-plus/branding/sp-plus-wallpaper.png$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
+ && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
+ && grep -q '^Image=SPPlus-Calm$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/defaults \
+ && grep -q '^ColorScheme=SPPlusCalmDark$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/defaults \
  && bash -n /usr/libexec/spplus-first-login \
  && echo "DN24_FIRST_LOGIN_OK look-and-feel is applied, not merely named"
 
