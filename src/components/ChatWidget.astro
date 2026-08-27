@@ -8,7 +8,8 @@
   <!-- Launcher -->
   <button id="cw-launcher" type="button" aria-label="Ask SecureProspective" aria-expanded="false">
     <span class="cw-launcher-dot" aria-hidden="true"></span>
-    Ask SecureProspective
+    <span class="cw-launcher-label cw-launcher-label--full">Ask SecureProspective</span>
+    <span class="cw-launcher-label cw-launcher-label--compact" aria-hidden="true">Ask</span>
   </button>
 
   <!-- Panel -->
@@ -79,6 +80,7 @@
   .cw-launcher-dot {
     width: 8px; height: 8px; background: var(--cw-yellow); display: inline-block;
   }
+  .cw-launcher-label--compact { display: none; }
 
   /* Panel */
   #cw-panel {
@@ -116,8 +118,9 @@
     font-size: 14px;
   }
   .cw-close {
+    display: grid; min-width: 44px; min-height: 44px; place-items: center;
     background: none; border: none; color: var(--cw-white);
-    font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+    font-size: 22px; line-height: 1; cursor: pointer; padding: 0;
   }
   .cw-close:hover { color: var(--cw-yellow); }
 
@@ -171,10 +174,12 @@
   .cw-send:hover { background: var(--gold-identity, #D4AF37); }
 
   @media (max-width: 520px) {
-    #cw-root { right: 12px; bottom: 12px; }
-    #cw-launcher { gap: 6px; padding: 10px 12px; font-size: 10px; }
+    #cw-root { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
+    #cw-launcher { min-height: 44px; gap: 6px; padding: 10px 14px; font-size: 11px; }
     .cw-launcher-dot { width: 7px; height: 7px; }
-    #cw-panel { width: calc(100vw - 24px); max-width: none; max-height: calc(100vh - 24px); }
+    .cw-launcher-label--full { display: none; }
+    .cw-launcher-label--compact { display: inline; }
+    #cw-panel { width: calc(100vw - 24px); max-width: none; max-height: calc(100vh - 24px - env(safe-area-inset-bottom)); }
   }
 
   @media (prefers-reduced-motion: reduce) {

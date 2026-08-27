@@ -10,31 +10,31 @@ colors:
   white: "#FFFFFF"
 typography:
   display:
-    fontFamily: "Primal, system-ui, sans-serif"
+    fontFamily: "SP Primal, system-ui, sans-serif"
     fontSize: "72px"
     fontWeight: 700
     lineHeight: 1.0
     letterSpacing: "-0.02em"
   headline:
-    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
+    fontFamily: "SP IBM Plex Sans, system-ui, sans-serif"
     fontSize: "48px"
     fontWeight: 700
     lineHeight: 1.05
     letterSpacing: "-0.03em"
   title:
-    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
+    fontFamily: "SP IBM Plex Sans, system-ui, sans-serif"
     fontSize: "24px"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.01em"
   body:
-    fontFamily: "IBM Plex Sans, system-ui, -apple-system, sans-serif"
+    fontFamily: "SP IBM Plex Sans, system-ui, -apple-system, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.6
     letterSpacing: "normal"
   label:
-    fontFamily: "IBM Plex Sans, system-ui, -apple-system, sans-serif"
+    fontFamily: "SP IBM Plex Sans, system-ui, -apple-system, sans-serif"
     fontSize: "14px"
     fontWeight: 500
     lineHeight: 1.4
@@ -128,8 +128,8 @@ A small, fixed deck of colors: each one plays a specific card-face role, not a b
 
 ## Typography
 
-**Display Font:** Primal (with system-ui, sans-serif fallback)
-**Body Font:** IBM Plex Sans (with system-ui, -apple-system fallback)
+**Display Font:** SP Primal (self-hosted Primal with system-ui, sans-serif fallback)
+**Body Font:** SP IBM Plex Sans (self-hosted IBM Plex Sans with system-ui, -apple-system fallback)
 
 **Character:** Primal is a heavy, geometric, uppercase-by-default display face that reads as stamped card-title lettering. IBM Plex Sans carries the technical, engineered-not-generic body voice without competing with Primal for attention.
 
@@ -176,8 +176,9 @@ Sharp corners by default (0px radius): the card-stock edge. Buttons and badges g
 ### Cards / Containers
 - **Corner Style:** sharp (0px)
 - **Background:** flat solid color from the fixed deck, one card, one color
-- **Shadow Strategy:** the proof-teaser cards (`.teaser`) carry the Card-Lift shadow statically, the first real content-section use of the system's signature move (added 2026-08-05). Reserve the static treatment for genuinely card-like content containers; use the card-lift shadow on hover only for lower-emphasis interactive elements (see Elevation & Depth).
+- **Shadow Strategy:** genuinely card-like content containers may carry the static Card-Lift shadow. Interactive cards may strengthen the shadow and translate slightly on hover. Informational cards never lift or translate; they use a quiet fixed-deck color or border shift only.
 - **Border:** 1px hairline where separation is needed, otherwise none
+- **Interaction Rule:** strong yellow hover communicates clickability. Quiet white, silver, ink, or gold shifts communicate inspection without implying an action.
 
 ### Navigation
 - Uppercase Primal labels, 120ms ease-out color transition on hover, mobile menu collapses via a 200ms linear max-height transition, same fast/snappy rhythm as the rest of the system, no easing outliers.
@@ -189,6 +190,7 @@ Sharp corners by default (0px radius): the card-stock edge. Buttons and badges g
 - **Do** use hard offset shadows (zero blur) when depth is needed, never a soft/blurred shadow.
 - **Do** reserve Primal for identity, page titles, navigation, and actions; use IBM Plex Sans for section headings, card titles, data, and body copy.
 - **Do** keep motion fast (120–200ms) and linear/ease-out: the Bloomberg-ticker feel.
+- **Do** reserve lift and strong yellow hover for interactive cards; informational cards receive a quiet tonal shift only.
 
 ### Don't:
 - **Don't** use organic curves, pastels, script/serif type, rounded-pill containers, full-bleed photography, multi-hue gradients, glassmorphism, or bouncy easings.

@@ -10,8 +10,8 @@
   --fineprint-gray: #666666;
 
   /* Typography */
-  --font-display: 'Primal', system-ui, sans-serif;
-  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'SP Primal', system-ui, sans-serif;
+  --font-body: 'SP IBM Plex Sans', system-ui, -apple-system, sans-serif;
 
   /* Type scale */
   --text-display: 72px;

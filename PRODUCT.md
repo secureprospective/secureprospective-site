@@ -111,7 +111,11 @@ Confirmed product facts:
 - The intended workflow accepts a screenshot or plain-text question and returns plain-English step-by-step guidance.
 - SP+ does not replace MFA, secure email, offsite backups, or a formal compliance program.
 - There are no traditional software licensing fees or recurring subscription invoices.
-- Access is granted through a five-production-contract partnership selected by Christopher Campbell.
+- Access is granted through a five-production-contract partnership selected with Christopher Campbell.
+- Access begins with an operating fit review.
+- Hardware compatibility, installation and migration scope, and support expectations are confirmed before deployment.
+- SP+ is not represented as compatible with every machine.
+- A separate existing Claude or ChatGPT subscription is required for the connected AI workflow.
 
 Do not invent completion claims, performance numbers, compliance certifications, or launch status. Present SP+ as active work.
 
