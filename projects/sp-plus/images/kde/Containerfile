@@ -83,7 +83,8 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && chmod 0644 /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/micro.desktop \
- && test -x /usr/bin/konsole \
+ && test -x /usr/bin/kitty \
+ && grep -q "kitty" /usr/share/applications/fin.desktop \
  && chmod 0750 /usr/libexec/spplus-relabel \
  && bash -n /usr/libexec/spplus-relabel \
  && systemctl enable spplus-relabel.service \
