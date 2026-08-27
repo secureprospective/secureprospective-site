@@ -248,8 +248,9 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
       | grep -iqE 'is compliant|ensure compliance' \
  && test -f /usr/share/sp-plus/fin/prompts/techhelp.md \
  && grep -q '^--prompt-template\|prompt-template' /usr/libexec/sp-plus/fin \
- && grep -q '^5. Something else' /usr/share/sp-plus/fin/prompts/techhelp.md \
- && test "$(grep -cE '^[1-5]\. ' /usr/share/sp-plus/fin/prompts/techhelp.md)" -eq 5 \
+ && grep -q '^4. Something else' /usr/share/sp-plus/fin/prompts/techhelp.md \
+ && test "$(grep -cE '^[1-4]\. ' /usr/share/sp-plus/fin/prompts/techhelp.md)" -eq 4 \
+ && ! grep -qi '^[0-9]\. .*get online' /usr/share/sp-plus/fin/prompts/techhelp.md \
  && echo "FIN_AGENT_OK pi $(/usr/bin/pi --version) ships as Fin, no key in the image"
 
 # ---- 4c. the three tools an advisor's helper reaches for ----
