@@ -1,0 +1,15 @@
+# Plasma 6 desktop-theme config. SVG widgets inherit safely from Breeze.
+[Wallpaper]
+defaultWallpaperTheme=SPPlus-Calm
+defaultFileSuffix=.png
+defaultWidth=7680
+defaultHeight=4320
+
+[AdaptiveTransparency]
+enabled=false
+
+[ContrastEffect]
+enabled=false
+contrast=0.2
+intensity=0.4
+saturation=1.0

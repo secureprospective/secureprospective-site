@@ -1,0 +1,1 @@
+Generated SP+ Calm bundle. Run ../tools/validate-spplus-calm.sh from the theme directory.

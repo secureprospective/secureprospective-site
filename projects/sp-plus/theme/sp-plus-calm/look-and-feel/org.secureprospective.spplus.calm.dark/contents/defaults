@@ -1,0 +1,30 @@
+# SP+ Calm Dark Plasma 6 defaults. Keep this package source-of-truth immutable.
+[kdeglobals][General]
+ColorScheme=SPPlusCalmDark
+font=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+menuFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+toolBarFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+activeFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=JetBrains Mono,9,-1,5,50,0,0,0,0,0
+
+[kdeglobals][Icons]
+Theme=Paper-Mono-Dark
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+[plasmarc][Theme]
+name=spplus-calm-dark
+
+[Wallpaper]
+Image=SPPlus-Calm
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__spplus-calm-dark
+
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
+
+[ksplashrc][KSplash]
+Theme=none

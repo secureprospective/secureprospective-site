@@ -1,0 +1,11 @@
+{
+  "KPlugin": {
+    "Id": "spplus-calm-dark",
+    "Name": "SP+ Calm Dark",
+    "Description": "SP+ Calm Dark Plasma style colors.",
+    "License": "CC0-1.0",
+    "Version": "1.0.0",
+    "EnabledByDefault": true
+  },
+  "X-Plasma-API": "5.0"
+}

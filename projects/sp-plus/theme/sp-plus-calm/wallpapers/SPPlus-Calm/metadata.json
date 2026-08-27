@@ -1,0 +1,11 @@
+{
+  "KPackageStructure": "Plasma/Wallpaper",
+  "KPlugin": {
+    "Id": "SPPlus-Calm",
+    "Name": "SP+ Calm",
+    "Description": "A logo-only SP+ wallpaper for calm, focused work.",
+    "License": "CC0-1.0",
+    "Version": "1.0.0",
+    "Authors": [{ "Name": "Secure Prospective", "Email": "design@secureprospective.com" }]
+  }
+}

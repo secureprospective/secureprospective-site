@@ -1,0 +1,21 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "Secure Prospective",
+        "Email": "design@secureprospective.com"
+      }
+    ],
+    "Category": "",
+    "Description": "SP+ Calm Light: a quiet, Windows-familiar Plasma workspace with warm Mars accents.",
+    "Id": "org.secureprospective.spplus.calm.light",
+    "License": "CC0-1.0",
+    "Name": "SP+ Calm (Light)",
+    "Version": "1.0.0",
+    "Website": "https://secureprospective.com"
+  },
+  "Keywords": "Desktop;Workspace;Appearance;Look and Feel;SP+;Calm;",
+  "X-Plasma-APIVersion": "2",
+  "X-Plasma-MainScript": "defaults"
+}

@@ -1,0 +1,9 @@
+{
+  "KPlugin": {
+    "Id": "spplus-calm-light",
+    "Name": "SP+ Calm Light Windows",
+    "Description": "SP+ Calm Light Aurorae window decoration.",
+    "License": "CC0-1.0",
+    "Version": "1.0.0"
+  }
+}

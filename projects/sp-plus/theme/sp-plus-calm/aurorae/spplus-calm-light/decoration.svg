@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="5" height="5" viewBox="0 0 5 5">
+<style>.ColorScheme-Background{color:#f6f7f9;}.active-border{fill:#c4462e;}.inactive-border{fill:#aeb7c3;}</style>
+<g id="decoration-topleft"><rect class="ColorScheme-Background" fill="currentColor" width="2" height="2"/><rect class="active-border" width="2" height="1"/><rect class="active-border" width="1" height="2"/></g>
+<g id="decoration-top"><rect class="ColorScheme-Background" fill="currentColor" width="1" height="1"/><rect class="active-border" width="1" height="1"/></g>
+<g id="decoration-topright"><rect class="ColorScheme-Background" fill="currentColor" width="2" height="2"/><rect class="active-border" x="1" width="1" height="2"/><rect class="active-border" width="2" height="1"/></g>
+<g id="decoration-left"><rect class="ColorScheme-Background" fill="currentColor" width="1" height="1"/><rect class="active-border" width="1" height="1"/></g>
+<g id="decoration-right"><rect class="ColorScheme-Background" fill="currentColor" width="1" height="1"/><rect class="active-border" width="1" height="1"/></g>
+<g id="decoration-bottomleft"><rect class="ColorScheme-Background" fill="currentColor" width="2" height="2"/><rect class="active-border" y="1" width="2" height="1"/><rect class="active-border" width="1" height="2"/></g>
+<g id="decoration-bottom"><rect class="ColorScheme-Background" fill="currentColor" width="1" height="1"/><rect class="active-border" width="1" height="1"/></g>
+<g id="decoration-bottomright"><rect class="ColorScheme-Background" fill="currentColor" width="2" height="2"/><rect class="active-border" x="1" width="1" height="2"/><rect class="active-border" y="1" width="2" height="1"/></g>
+<rect id="decoration-center" class="ColorScheme-Background" fill="currentColor" width="1" height="1"/>
+<g id="decoration-inactive-topleft"><rect fill="#e5e8ed" width="2" height="2"/><rect class="inactive-border" width="2" height="1"/><rect class="inactive-border" width="1" height="2"/></g>
+<g id="decoration-inactive-top"><rect fill="#e5e8ed" width="1" height="1"/><rect class="inactive-border" width="1" height="1"/></g>
+<g id="decoration-inactive-topright"><rect fill="#e5e8ed" width="2" height="2"/><rect class="inactive-border" x="1" width="1" height="2"/><rect class="inactive-border" width="2" height="1"/></g>
+<g id="decoration-inactive-left"><rect fill="#e5e8ed" width="1" height="1"/><rect class="inactive-border" width="1" height="1"/></g>
+<g id="decoration-inactive-right"><rect fill="#e5e8ed" width="1" height="1"/><rect class="inactive-border" width="1" height="1"/></g>
+<g id="decoration-inactive-bottomleft"><rect fill="#e5e8ed" width="2" height="2"/><rect class="inactive-border" y="1" width="2" height="1"/><rect class="inactive-border" width="1" height="2"/></g>
+<g id="decoration-inactive-bottom"><rect fill="#e5e8ed" width="1" height="1"/><rect class="inactive-border" width="1" height="1"/></g>
+<g id="decoration-inactive-bottomright"><rect fill="#e5e8ed" width="2" height="2"/><rect class="inactive-border" x="1" width="1" height="2"/><rect class="inactive-border" y="1" width="2" height="1"/></g>
+<rect id="decoration-inactive-center" fill="#e5e8ed" width="1" height="1"/>
+</svg>

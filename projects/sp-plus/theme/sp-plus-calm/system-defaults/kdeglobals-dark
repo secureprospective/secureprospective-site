@@ -1,0 +1,12 @@
+# Thin bootstrap only. The Global Theme contents/defaults is authoritative.
+[General]
+ColorScheme=SPPlusCalmDark
+font=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+menuFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+toolBarFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+activeFont=JetBrains Mono,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=JetBrains Mono,9,-1,5,50,0,0,0,0,0
+[Icons]
+Theme=Paper-Mono-Dark
+[KDE]
+widgetStyle=Breeze
