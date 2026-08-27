@@ -53,6 +53,39 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
  && systemctl enable sshd.service \
  && test -L /etc/systemd/system/multi-user.target.wants/sshd.service
 
+# ---- 2a-ter. TEST-CYCLE ONLY: Christopher's key reaches the advisor account ----
+#
+# ############################################################################
+# #  THIS BLOCK IS FOR THE cycle35 AUDIT AND MUST COME OUT BEFORE ANY IMAGE  #
+# #  GOES TO A REAL ADVISOR. It is not hardening; it is the opposite.        #
+# ############################################################################
+#
+# Why it exists: the cycle35 sweep has to verify things that only exist in the
+# advisor's OWN home directory -- whether the look-and-feel was actually APPLIED
+# (DN-24), whether the wallpaper stuck in plasma-org.kde.plasma.desktop-appletsrc,
+# whether Print Screen reached Flameshot in kglobalshortcutsrc. The QEMU guest
+# agent cannot read any of it: it runs confined as virt_qemu_ga_t and SELinux
+# denies it user_home_t, so through that channel the absence of a file is not
+# evidence of absence. Without a real shell as the user, the most important
+# checks in tests/field-inspect.sh return UNKNOWN rather than OK or PROBLEM.
+#
+# What this does NOT do: it creates no account. DN-13 still holds -- SP+ ships no
+# human user. The key lands in /etc/skel, so it reaches whatever account Anaconda's
+# user spoke creates and no other. An installed machine still refuses every remote
+# login until that person exists.
+#
+# What it DOES mean, stated plainly: any machine installed from an ISO carrying
+# this layer trusts the holder of the matching private key. That is acceptable for
+# a throwaway audit VM on Christopher's own LAN and is not acceptable anywhere else.
+COPY --chmod=600 config/skel-ssh/authorized_keys /etc/skel/.ssh/authorized_keys
+
+RUN chmod 0700 /etc/skel/.ssh \
+ && test -s /etc/skel/.ssh/authorized_keys \
+ && grep -q '^ssh-ed25519 ' /etc/skel/.ssh/authorized_keys \
+ && test "$(wc -l < /etc/skel/.ssh/authorized_keys)" = 1 \
+ && ! grep -qi 'PRIVATE KEY' /etc/skel/.ssh/authorized_keys \
+ && echo "AUDIT_SSH_KEY_OK test-cycle only, remove before any advisor image"
+
 # ---- 2a-bis. WS-Discovery, so an advisor can SEE the office shares ----
 # DN-26 makes SP+ Welcome walk the advisor through connecting a shared network drive.
 # Everything needed to MOUNT one is already in the base image (cifs.ko, cifs-utils,

@@ -63,6 +63,19 @@ else
   printf '  \033[31mFAIL\033[0m no luks_version lines - encryption unverified\n'; FAIL=$((FAIL+1))
 fi
 
+# --- audit backdoor guard -----------------------------------------------------
+# cycle35 ships Christopher's public key in /etc/skel so the post-boot sweep can
+# read the advisor's own config, which the SELinux-confined guest agent cannot.
+# That is an audit affordance and it must never reach an advisor. A build that
+# still carries it is a test build by definition, whatever it is labelled.
+CF="$(dirname "${BASH_SOURCE[0]}")/../images/kde/Containerfile"
+if grep -q 'AUDIT_SSH_KEY_OK' "$CF" 2>/dev/null; then
+  printf '  \033[31mFAIL\033[0m audit SSH key block is STILL IN THE CONTAINERFILE - test build only, must not ship\n'
+  FAIL=$((FAIL+1))
+else
+  printf '  \033[32mPASS\033[0m no audit SSH key block in the Containerfile\n'
+fi
+
 echo
 echo "--- informational (not gating) ---"
 for k in secureboot tpm_device failed_units bootc_booted_image; do
