@@ -464,6 +464,34 @@ RUN printf '%s\n' \
 # the wrong second screen for SP+.
 COPY branding/locale/org.kde.plasmasetup.mo \
      /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo
+COPY branding/locale/org.kde.plasmasetup.en_GB.mo \
+     /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo
+# cycle26 PROVED the en_US catalog alone is not enough: the wizard still read
+# "Welcome to Plasma Desktop" on the panel even though the catalog resolved
+# correctly under plain gettext. Two causes are possible and they were not
+# separable without running the wizard with a modified environment:
+#   (a) ki18n treats en_US as its untranslated SOURCE language and never
+#       consults a catalog for it, or
+#   (b) plasma-setup.service runs with no LANG at all, so gettext short-circuits.
+# This drop-in covers BOTH. LANG makes the service a localised process at all;
+# LANGUAGE puts en_GB -- a real translation target that ki18n will not treat as
+# source -- ahead of en_US. The en_GB catalog is upstream's own (it carried a
+# single "Password:" entry, preserved) with the SP+ overrides merged on top, so
+# nothing British leaks in beyond what upstream already shipped.
+RUN install -d /usr/lib/systemd/system/plasma-setup.service.d \
+ && printf '%s\n' \
+      '[Service]' \
+      'Environment=LANG=en_US.UTF-8' \
+      'Environment=LANGUAGE=en_GB:en_US' \
+      > /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
+ && grep -q '^Environment=LANGUAGE=en_GB:en_US$' \
+      /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
+ && test -s /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && grep -q 'Welcome to<br/><b>SP+</b>' \
+      /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && grep -q 'Password:' /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && systemctl is-enabled plasma-setup.service \
+ && echo "DN17_LOCALE_OK en_GB catalog + LANGUAGE drop-in in place"
 RUN test -s /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Welcome to<br/><b>SP+</b>' \
       /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
