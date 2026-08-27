@@ -10,11 +10,23 @@ if tail -3 "$L" | grep -qa "login:"; then
   printf 'root\n' > "$P"; sleep 3
   printf '%s\n' "$LUKS_PASS" > "$P"; sleep 5
 fi
+# The console ECHOES the command line before running it. A marker written
+# plainly into that line therefore appears in the echo IMMEDIATELY, the wait
+# below returns before the command has produced anything, and the caller reads
+# an empty result. Observed 2026-08-27: `pi --version` and a curl to the local
+# RPC both reported nothing through this function while working perfectly by
+# hand -- every gate built on spb-shell was silently truncating slow commands.
+#
+# The fix is a marker that cannot match its own echo: the command line contains
+# the marker SPLIT ACROSS A QUOTE BOUNDARY, so the echo shows SPB"MARK123 while
+# only the command's real output ever contains SPBMARK123.
 mark="SPBMARK$$"
 before=$(stat -c%s "$L")
-printf '%s; echo %s\n' "$1" "$mark" > "$P"
-for i in $(seq 1 40); do
-  grep -qa "$mark" "$L" && break
+printf '%s; echo "SPB""MARK%s"\n' "$1" "$$" > "$P"
+for i in $(seq 1 60); do
+  # Count only occurrences that are NOT part of the echoed command line.
+  if grep -a "$mark" "$L" | grep -qav '""'; then break; fi
   sleep 2
 done
+sleep 1
 tail -c +$((before+1)) "$L"

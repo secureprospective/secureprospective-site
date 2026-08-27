@@ -11,12 +11,22 @@
 . /home/chris/sp-plus-bee/spb-env
 pass=0; fail=0
 check() { # check <label> <command> <expected-substring>
-  out=$(/home/chris/sp-plus-bee/spb-shell "$2" 2>&1)
+  # The serial console ECHOES the command back before running it, so a naive
+  # grep matches the expectation inside the echo of its own command and passes
+  # on a machine where the tool is absent. Observed 2026-08-27: "fastfetch is
+  # installed" PASSED one line above "fastfetch: command not found". Strip the
+  # echoed command, the marker line, and the shell-integration escape noise
+  # before deciding anything.
+  raw=$(/home/chris/sp-plus-bee/spb-shell "$2" 2>&1)
+  out=$(printf '%s' "$raw" \
+        | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g; s/\x1b\][^\x07\x1b]*//g' \
+        | grep -vF -- "$2" \
+        | grep -v 'SPBMARK')
   if printf '%s' "$out" | grep -qa -- "$3"; then
     echo "  PASS  $1"; pass=$((pass+1))
   else
     echo "  FAIL  $1"; echo "        wanted: $3"
-    echo "        got:    $(printf '%s' "$out" | tr -d '\r' | tail -3 | tr '\n' '|')"
+    echo "        got:    $(printf '%s' "$out" | tr -d '\r' | grep -v '^[[:space:]]*$' | tail -3 | tr '\n' '|')"
     fail=$((fail+1))
   fi
 }
@@ -34,7 +44,7 @@ check "no key baked into the image" \
 
 # Fin's own pieces.
 check "launcher is executable"  'test -x /usr/libexec/sp-plus/fin && echo FIN_X' 'FIN_X'
-check "banner draws the shoal"  '/usr/libexec/sp-plus/fin-banner | grep -c "><>"' '1'
+check "banner draws the shoal"  '/usr/libexec/sp-plus/fin-banner | grep -o "><>" | wc -l' '6'
 check "system prompt shipped"   'test -f /usr/share/sp-plus/fin/system-prompt.md && echo PROMPT' 'PROMPT'
 check "printer skill shipped"   'test -f /usr/share/sp-plus/fin/skills/printer/SKILL.md && echo SKILL' 'SKILL'
 
@@ -48,6 +58,25 @@ check "no-key path names the fallback" 'grep -o "spplus-fix printer" /tmp/fin.ou
 check "spplus-fix is usable" '/usr/libexec/spplus-fix 2>&1 | head -1' 'Usage: spplus-fix printer'
 check "the RPC service is up" \
   'curl -sS -m 5 http://127.0.0.1:8765/api/health' '"ok": true'
+
+# --- the three tools, checked on the installed machine ---------------------
+# Build gates proved the FILES are right. These prove the tools actually run
+# there and that the per-user defaults were really copied out of /etc/skel,
+# which is the step no build-time assertion can reach.
+check "btop is installed"       'btop --version 2>/dev/null | head -1' 'btop version'
+check "fastfetch is installed"  'fastfetch --version 2>/dev/null | head -1' '2.'
+check "flameshot is installed"  'flameshot --version 2>/dev/null | head -1' 'Flameshot v'
+check "fastfetch runs with the SP+ config" \
+  'HOME=/root fastfetch --config /etc/skel/.config/fastfetch/config.jsonc --pipe | head -3' 'SP+'
+check "flameshot config is valid" \
+  'install -d /tmp/fs/.config/flameshot && cp /etc/skel/.config/flameshot/flameshot.ini /tmp/fs/.config/flameshot/ && HOME=/tmp/fs flameshot config --check 2>&1' 'No errors detected'
+check "btop theme shipped"      'test -f /usr/share/btop/themes/sp-plus.theme && echo THEME' 'THEME'
+check "skel carries the defaults" \
+  'ls /etc/skel/.config/btop/btop.conf /etc/skel/.config/fastfetch/config.jsonc /etc/skel/.config/flameshot/flameshot.ini 2>&1 | wc -l' '3'
+check "Print is bound to flameshot" \
+  'grep -A2 "org.flameshot" /etc/xdg/kglobalshortcutsrc | grep _launch' '_launch=Print'
+check "launchers validate" \
+  'desktop-file-validate /usr/share/applications/btop.desktop /usr/share/applications/fastfetch.desktop && echo DESKTOP_OK' 'DESKTOP_OK'
 
 echo "SPB-FIN: $pass passed, $fail failed"
 [ "$fail" -eq 0 ] || exit 1

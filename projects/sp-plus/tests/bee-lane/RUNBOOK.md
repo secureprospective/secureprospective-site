@@ -44,9 +44,30 @@ export CYCLE=cycle7          # pick a NEW cycle name each run; never reuse cycle
 ./spb-sha                    # 0. what ISO is on disk right now
 ./spb-build                  # 1. rebuild (~15 min, detached). SKIP if the ISO is current.
 ./spb-install                # 2. fresh VM, drives Anaconda, ~35 min
+./spb-mkuser spbtest spplus-test   # 2b. MANDATORY. See below.
 ./spb-boot                   # 3. serial boot + LUKS unlock, ~5 min
 ./spb-evidence               # 4. THE DELIVERABLE — paste this whole output back
 ```
+
+**Step 2b is not optional and is easy to forget.** SP+ ships NO account (DN-13) and
+root's password is a random hash generated at install time and thrown away — so
+`spb-shell` and `spb-login` CANNOT log in until `spb-mkuser` has created one. If you
+skip it, every command you try returns `Login incorrect` at a `sp-plus login:` prompt
+and it looks like a defect in the ISO. It is not. It is this step, missing.
+
+`spb-mkuser` does NOT start a VM. It types into one that is ALREADY sitting in a
+dracut pre-pivot shell, so the real sequence is three commands, in this order:
+
+```bash
+./spb-boot 'rd.break=pre-pivot'      # boot INTO the pre-pivot shell
+./spb-mkuser spbtest spplus-test     # write the account into the deployment
+# then kill that VM from its pidfile and boot normally:
+kill $(cat /home/chris/sp-plus-iso/$CYCLE/boot.pid); sleep 5
+./spb-boot
+```
+
+If you run `spb-mkuser` against a normally-booted guest it prints
+`MKUSER_RESULT=NOT-IN-PREPIVOT-SHELL` and changes nothing. Never `pkill -f`.
 
 `spb-boot "enforcing=0"` boots permissive, for when you need the system up to inspect it.
 
@@ -58,22 +79,53 @@ export CYCLE=cycle7          # pick a NEW cycle name each run; never reuse cycle
 ---
 
 ## WHAT WE ARE TRYING TO PROVE RIGHT NOW
+*Rewritten 2026-08-27 for cycle32. Everything the previous version of this section
+described (DN-15, DN-16) is settled; see DO NOT RETEST below.*
 
-Two defects block an advisor from using SP+. Both are open.
+Cycle32 is the first ISO that carries all of the following at once. **None of it has
+been observed working on an installed machine.** Build gates proved the FILES are
+right; that is not the same claim.
 
-**DN-16 — `/etc` is `unlabeled_t`, so EVERY login fails under SELinux Enforcing.**
-This is the login loop Christopher hit by hand; the password was always correct.
-A fix shipped in ISO `6a593d70…` (`%post` runs `setfiles -F` over `/etc` and `/var`).
-**It has never been observed working.** The test is:
+**1. Fin is now a real agent, not a menu.** Fin was four menu items over an RPC
+allowlist. It is now the Pi agent (`/usr/bin/pi`, pinned 0.84.3) behind
+`/usr/libexec/sp-plus/fin`. The risky part: `npm` was REMOVED in the same build layer
+that installed it, so the question is whether `pi` still has a runtime on a real
+machine. Prove:
 
-- install that ISO, boot it, and report **every `avc:` line** — the target is zero
-- then `spb-shell 'ls -Zd /etc/passwd /etc/nsswitch.conf'` — no `unlabeled_t`
-- then log in on serial and report whether the login actually succeeded
+- `pi --version` prints `0.84.3`
+- `node --version` works, and `command -v npm` finds NOTHING
+- `/usr/libexec/sp-plus/fin < /dev/null` exits **1** and names `spplus-fix printer`.
+  It must NOT traceback and must NOT hang. This is what an advisor sees if they open
+  Fin before a key is set up, so it is the most likely first contact with the product.
+- **`/etc/sp-plus/fin.env` must NOT exist.** No credential ships in the ISO, ever.
 
-**DN-15 — the LUKS passphrase prompt is INVISIBLE on the local VGA screen.**
-`fbcon: Deferring console take-over`. The machine looks dead; it is waiting for a
-passphrase nobody can see. Unfixed. This blocks the Dell on its own and is likely a
-plymouth / fbcon console-handoff setting.
+**2. DN-24 — the desktop paints itself.** Previous ISOs NAMED the SP+ look-and-feel in
+`/etc/xdg/kdeglobals` but never APPLIED it, so a fresh install came up with Fedora's
+wallpaper and Fedora's favourites while a hand-dressed machine looked right. A per-user
+unit `spplus-first-login.service` now applies it. Prove:
+
+- `systemctl --user --machine=<user>@ status spplus-first-login` ran, or its journal
+  shows `spplus-first-login: applied`
+- the wallpaper on screen is the SP+ one, not Fedora's — **use `spb-screen` and look**
+- `~/.local/state/sp-plus/first-login-theme-applied` exists afterwards
+
+**3. btop, fastfetch and flameshot, configured out of the box.** Prove each RUNS on the
+installed machine, and that `/etc/skel` defaults actually reached the created account:
+
+- `btop --version`, `fastfetch --version`, `flameshot --version`
+- `~/.config/btop/btop.conf` exists **in the advisor's home**, not just in `/etc/skel`
+- `fastfetch` renders with the SP+ logo and says `System  SP+`
+- **Print Screen opens flameshot, not Spectacle.** This is UNVERIFIED and is the single
+  thing here most likely to be wrong. `kglobalshortcutsrc` was shipped as a defaults
+  layer; whether Plasma honours it for a launch binding has not been observed. Press the
+  key in a real session and report what appeared.
+
+**4. The whole ISO still works.** Everything the six-step loop already covers: boot,
+LUKS, login, the advisor account, Brave, the SP+ runtime, zero AVCs.
+
+### Run this
+`./spb-fin` is a 21-check gate covering items 1 and 3. Run it, paste the whole output.
+It returns evidence per check, not a verdict.
 
 ---
 
@@ -81,6 +133,10 @@ plymouth / fbcon console-handoff setting.
 
 Each of these was tested and disproved. Re-running them wastes a night.
 
+0. **DN-16 (`/etc` unlabeled, every login fails) and DN-15 (invisible LUKS prompt).**
+   Both were the whole point of this runbook on 2026-08-26 and both are settled —
+   Christopher has installed and logged into a real machine since. Do not spend a night
+   on them again. If a login fails now, it is a NEW defect; report it as one.
 1. "SELinux Enforcing deadlocks the boot." **False** — false correlation from a timing
    artefact. It boots to a login prompt under Enforcing.
 2. The first-boot password unit causes the hang. Masking it changed nothing.
