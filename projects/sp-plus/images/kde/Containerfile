@@ -472,6 +472,115 @@ RUN test -s /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
  && systemctl is-enabled plasma-setup.service \
  && echo "DN17_BRANDING_OK en_US catalog installed, plasma-setup still enabled"
 
+# ---- 8. operations tuning for a spinning disk ----
+# SP+ is demoed and deployed on an old laptop: 8 GB of RAM, zram swap, and a
+# rotational SATA drive. Two things follow, and only one of them needs changing.
+#
+# The I/O scheduler needs NOTHING: udev's 60-block-scheduler.rules already
+# selects bfq for rotational devices, verified on the cycle20 guest
+# ("sda rot=1 sched=none mq-deadline kyber [bfq]"). Do not "fix" it.
+#
+# vm.swappiness does need changing. The stock 60 is tuned for swap on a disk.
+# Here swap is zram -- compressed pages in RAM -- while the filesystem is on
+# rust, so swapping is orders of magnitude CHEAPER than dropping page cache and
+# re-reading it from the platter. The established value for in-memory swap
+# backed by an HDD is ~180 (Pop!_OS default; ArchWiki advises >100 for zram).
+# This is a community-established tuning, not a Fedora default.
+RUN printf '%s\n' \
+      '# SP+: swap is zram, the filesystem is on a spinning disk.' \
+      '# Prefer compressing cold pages in RAM over re-reading from the platter.' \
+      'vm.swappiness = 180' \
+      > /usr/lib/sysctl.d/60-sp-plus-zram.conf \
+ && test -s /usr/lib/sysctl.d/60-sp-plus-zram.conf \
+ && grep -q '^vm.swappiness = 180$' /usr/lib/sysctl.d/60-sp-plus-zram.conf \
+ && echo "TUNING_OK vm.swappiness=180 for zram over rotational storage"
+
+# ---- 9. the application menu an advisor actually opens ----
+# Stock, the menu offers 44 entries. An advisor who has never used Linux should
+# not be handed a partition editor, three KDE Connect entries, a coredump
+# browser and two of everything. Each entry below is hidden with NoDisplay,
+# NOT removed: the binaries stay, anything that launches them still works, and
+# the choice is one config line to reverse. Removing the packages instead is how
+# cycle23 lost bootc.
+#
+# Four groups, and the reason matters more than the list:
+#   dangerous   -- partitionmanager can wipe the disk from a menu click
+#   diagnostic  -- kdebugsettings, journald, coredumps, infocenter, menu editor,
+#                  filelight: real tools, meaningless to the audience
+#   duplicate   -- kdesystemsettings (systemsettings ships too), blueman x2
+#                  (System Settings owns Bluetooth), konsole (kitty is the SP+
+#                  terminal and Fin opens in it), kate (kwrite + micro ship),
+#                  kfind (Dolphin searches), kwalletmanager (KeePassXC is the
+#                  shipped password manager)
+#   confusing   -- kdeconnect x3 (phone pairing; its daemon is already off),
+#                  krfb (remote desktop, a security surface), kvantummanager
+#                  (theme internals -- it can break the SP+ look), kcharselect,
+#                  emojier
+#
+# Deliberately LEFT VISIBLE and not up for quiet removal: Brave, Thunderbird,
+# LibreOffice Writer/Calc, Okular, Gwenview, Dolphin, KCalc, KeePassXC, Fin,
+# kitty, System Settings, System Monitor, Firewall, Discover, Print Settings,
+# Spectacle, Flameshot, KWrite, micro, Ark, Help Center.
+RUN for d in org.kde.partitionmanager \
+             org.kde.kdebugsettings org.kde.kjournaldbrowser \
+             org.kde.drkonqi.coredump.gui org.kde.kinfocenter \
+             org.kde.kmenuedit org.kde.filelight \
+             kdesystemsettings blueman-adapters blueman-manager \
+             org.kde.konsole org.kde.kate org.kde.kfind org.kde.kwalletmanager \
+             org.kde.kdeconnect.app org.kde.kdeconnect.nonplasma \
+             org.kde.kdeconnect.sms org.kde.krfb kvantummanager \
+             org.kde.kcharselect org.kde.plasma.emojier; do \
+      f="/usr/share/applications/$d.desktop"; \
+      [ -e "$f" ] || continue; \
+      desktop-file-edit --set-key=NoDisplay --set-value=true "$f" \
+        || { echo "MENU FAILED to hide $d"; exit 1; }; \
+    done; \
+    for d in org.kde.partitionmanager org.kde.konsole org.kde.kdeconnect.app; do \
+      grep -q '^NoDisplay=true' "/usr/share/applications/$d.desktop" \
+        || { echo "MENU FAILED: $d still visible"; exit 1; }; \
+    done; \
+    for d in brave-browser net.thunderbird.Thunderbird libreoffice-writer \
+             libreoffice-calc org.kde.dolphin org.kde.okular org.kde.kcalc \
+             org.keepassxc.KeePassXC fin kitty systemsettings \
+             org.kde.plasma-systemmonitor org.kde.discover; do \
+      f="/usr/share/applications/$d.desktop"; \
+      test -e "$f" || { echo "MENU FAILED: keeper $d is missing"; exit 1; }; \
+      grep -q '^NoDisplay=true' "$f" \
+        && { echo "MENU FAILED: keeper $d got hidden"; exit 1; }; \
+    done; \
+    vis=$(for f in /usr/share/applications/*.desktop; do \
+            grep -q '^NoDisplay=true' "$f" && continue; \
+            grep -q '^Hidden=true' "$f" && continue; \
+            grep -q '^Exec=' "$f" && echo x; \
+          done | grep -c .); \
+    echo "MENU_OK visible_entries=$vis"
+
+# ---- 10. DN-15: give plymouth a reason to take over the panel ----
+# The real cause of the black screen at the LUKS passphrase prompt, found on the
+# cycle24 panel strip. Frames f11-f22 -- twenty-four seconds while the passphrase
+# was being asked -- showed GRUB's plain "Booting a command list" text on a VGA
+# console. Plymouth had not taken over the panel AT ALL. So this was never the
+# theme or the script plugin: those were necessary, and they are correct now, but
+# they were never sufficient.
+#
+# The installed kernel command line, read back off the cycle24 serial, is:
+#   ... ostree=/ostree/boot.1/default/<sha>/0 console=ttyS0,115200
+# There is no rhgb. Without it plymouth does not take the panel, so the advisor
+# is asked for a passphrase by a machine that looks switched off.
+#
+# bootc owns the installed kargs, so set them the image-mode-native way rather
+# than in the kickstart -- this way they survive `bootc upgrade` too. The final
+# `bootc container lint` in this file validates the syntax of this directory.
+RUN printf '%s\n' \
+      '# SP+ DN-15: without rhgb, plymouth never takes the panel and the LUKS' \
+      '# passphrase prompt is invisible -- the machine looks dead. quiet keeps' \
+      '# the kernel log off the splash so the advisor sees the prompt, not scroll.' \
+      'kargs = ["rhgb", "quiet"]' \
+      > /usr/lib/bootc/kargs.d/10-sp-plus-splash.toml \
+ && grep -q 'kargs = \["rhgb", "quiet"\]' \
+      /usr/lib/bootc/kargs.d/10-sp-plus-splash.toml \
+ && echo "DN15_KARGS_OK rhgb quiet staged for the installed cmdline"
+
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1
 ENV SPPLUS_LISTEN_ADDRESS=127.0.0.1
