@@ -58,17 +58,19 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
 RUN echo sp-plus > /etc/hostname \
  && test "$(cat /etc/hostname)" = sp-plus
 
-# ---- 2c. trim (~790 MB) ----
+# ---- 2c. trim ----
 # Audited against `dnf repoquery --whatrequires` on the built image; each of these is
 # required by nothing else that ships. Firefox is dead weight beside Brave (only its
 # own langpacks depend on it), glibc-all-langpacks carries every locale on earth when
-# one is needed, the Noto CJK faces are ~400 MB of fonts this product never renders,
+# one is needed, the Noto CJK faces are 116 MB of fonts this product never renders (a dry run
+# confirmed they take only their three default-fonts-cjk-* metapackages with them),
 # and mariadb-server is a database no SP+ component uses. Christopher explicitly
 # ruled KEEP on plasma-workspace-wallpapers, java-25-openjdk-headless, ibus +
 # cldr-emoji-annotation and python3-botocore -- do not add them here.
 RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
  && for p in firefox firefox-langpacks glibc-all-langpacks mariadb-server \
-      google-noto-sans-cjk-vf-fonts google-noto-serif-cjk-vf-fonts; do \
+      google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
+      google-noto-serif-cjk-vf-fonts; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
     dnf clean all; \
