@@ -154,6 +154,18 @@ COPY config/micro.desktop /usr/share/applications/micro.desktop
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 
+# DN-21: prove the RPC boundary is loopback-only on the INSTALLED machine.
+# The container ENV above does not reach systemd there, so the unit must carry
+# the bind address itself and the kernel must enforce it. Assert both, plus the
+# Python fallback, so a change to any one of the three is caught at build time.
+RUN U=/usr/lib/systemd/system/sp-plus.service \
+ && grep -q '^Environment=SPPLUS_LISTEN_ADDRESS=127\.0\.0\.1$' "$U" \
+ && grep -q '^IPAddressDeny=any$' "$U" \
+ && grep -q '^IPAddressAllow=localhost$' "$U" \
+ && grep -q 'SPPLUS_LISTEN_ADDRESS", "127\.0\.0\.1"' /usr/libexec/sp-plus/spplus_rpc.py \
+ && ! grep -q '0\.0\.0\.0' "$U" \
+ && echo "DN21_RPC_LOOPBACK_OK unit pins 127.0.0.1 and the kernel denies every other address"
+
 RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
     | awk '{print $1}' > /usr/libexec/sp-plus/playbooks/printer-reconnect.json.sha256 \
@@ -478,20 +490,77 @@ COPY branding/locale/org.kde.plasmasetup.en_GB.mo \
 # source -- ahead of en_US. The en_GB catalog is upstream's own (it carried a
 # single "Password:" entry, preserved) with the SP+ overrides merged on top, so
 # nothing British leaks in beyond what upstream already shipped.
-RUN install -d /usr/lib/systemd/system/plasma-setup.service.d \
+# cycle27 MEASURED both of those causes and settled it, so this is no longer a
+# guess. Two facts were established against the built image:
+#   1. /etc/locale.conf DOES NOT EXIST in fedora-kinoite:44. The system has no
+#      LANG at all, so every process starts in the C locale and gettext returns
+#      the msgid untranslated. That is cause (b), confirmed.
+#   2. The wizard is NOT a child of plasma-setup.service. That unit is a oneshot
+#      running /usr/libexec/plasma-setup-bootutil, which starts the wizard as the
+#      system user plasma-setup (uid 968) under display-manager autologin. A
+#      systemd Environment= drop-in on plasma-setup.service therefore CANNOT
+#      reach the process that draws the panel, which is why cycle27 shipped
+#      DN17_LOCALE_OK and still rendered "Welcome to Plasma Desktop".
+# The msgid itself was cleared: our catalog's key is byte-identical to the one in
+# upstream's own nl catalog, so the .mo is not the problem.
+#
+# The fix therefore sets the locale at the two layers the wizard's session really
+# reads. /etc/locale.conf is the system-wide default systemd exports into every
+# user manager, and /usr/lib/environment.d/ is consumed by the
+# 30-systemd-environment-d-generator that this image already ships, which reaches
+# every systemd user session including the plasma-setup autologin one. LANG stays
+# en_US so dates, paper size and spelling stay American for a US advisor; only
+# LANGUAGE -- which governs message lookup alone -- puts en_GB first, because
+# en_GB is a real translation target that ki18n will not skip as source language.
+# The service drop-in is kept as well: it costs nothing and covers bootutil.
+RUN printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_GB:en_US' > /etc/locale.conf \
+ && install -d /usr/lib/environment.d \
+ && printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_GB:en_US' \
+      > /usr/lib/environment.d/90-sp-plus-locale.conf \
+ && install -d /usr/lib/systemd/system/plasma-setup.service.d \
  && printf '%s\n' \
       '[Service]' \
       'Environment=LANG=en_US.UTF-8' \
       'Environment=LANGUAGE=en_GB:en_US' \
       > /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
+ && grep -q '^LANGUAGE=en_GB:en_US$' /etc/locale.conf \
+ && grep -q '^LANGUAGE=en_GB:en_US$' /usr/lib/environment.d/90-sp-plus-locale.conf \
  && grep -q '^Environment=LANGUAGE=en_GB:en_US$' \
       /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
+ && test -f /usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator
+RUN grep -q '^LANG=en_US.UTF-8$' /etc/locale.conf \
+ && locale -a | grep -qx 'en_GB.utf8' \
+ && locale -a | grep -qx 'en_US.utf8' \
  && test -s /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Welcome to<br/><b>SP+</b>' \
       /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Password:' /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
  && systemctl is-enabled plasma-setup.service \
- && echo "DN17_LOCALE_OK en_GB catalog + LANGUAGE drop-in in place"
+ && echo "DN17_LOCALE_OK locale.conf + environment.d + drop-in, en_GB/en_US locales present"
+# ---- 7b. DN-20: Konqi is on the LAST screen the audience sees ----
+# The wizard's "Completed!" page ships /usr/share/plasma/packages/
+# org.kde.plasmasetup.finished/contents/ui/konqi-calling.png -- Konqi, the KDE
+# dragon mascot -- and main.qml renders it with a bare relative `source:`. On an
+# SP+ demo that is a KDE mascot as the closing frame of a first-run experience
+# that is otherwise branded end to end. The wizard pages are plain, unbundled QML
+# on disk (only the outer Wizard.qml is compiled into the binary), so the honest
+# fix is to replace the asset in place at the same 500x334 the QML lays out for,
+# rather than patch a relative path. The .license file is rewritten too, because
+# leaving the upstream KDE licence stamp on an SP+ asset would be a false claim.
+COPY branding/plasmasetup-finished.png \
+     /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png
+RUN F=/usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui \
+ && printf '%s\n' \
+      'SPDX-FileCopyrightText: 2026 SecureProspective' \
+      'SPDX-License-Identifier: LicenseRef-SP-Plus-Branding' \
+      > "$F/konqi-calling.png.license" \
+ && python3 -c "import struct,sys; d=open('$F/konqi-calling.png','rb').read(); \
+w,h=struct.unpack('>II', d[16:24]); \
+sys.exit(0 if (d[:8]==b'\x89PNG\r\n\x1a\n' and (w,h)==(500,334)) else 1)" \
+ && grep -q 'SecureProspective' "$F/konqi-calling.png.license" \
+ && grep -q 'konqi-calling.png' "$F/main.qml" \
+ && echo "DN20_FINISHED_ART_OK SP+ lockup replaces Konqi at 500x334 on the final wizard page"
+
 RUN test -s /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Welcome to<br/><b>SP+</b>' \
       /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \

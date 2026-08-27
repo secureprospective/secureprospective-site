@@ -13,6 +13,12 @@ RestartSec=2
 WorkingDirectory=/var/lib/sp-plus
 Environment=SPPLUS_ROOT=/usr/libexec/sp-plus
 Environment=SPPLUS_PRINTER_FIXTURE=1
+# The container ENV that carried these does NOT reach systemd on the installed
+# machine -- ENV is a build/runtime construct, not system-wide environment -- so
+# the service was relying on a Python default to stay on loopback. State it here,
+# and enforce it below with IPAddress rules so the property survives a code change.
+Environment=SPPLUS_LISTEN_ADDRESS=127.0.0.1
+Environment=SPPLUS_LISTEN_PORT=8765
 StateDirectory=sp-plus
 NoNewPrivileges=true
 PrivateTmp=true
@@ -20,6 +26,11 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/sp-plus
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+# Fin's RPC is a LOCAL boundary. An advisor's laptop sits on client and hotel
+# networks; nothing off this machine may reach it. This is kernel-enforced, not
+# a default the service could drift away from.
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 [Install]
 WantedBy=multi-user.target
