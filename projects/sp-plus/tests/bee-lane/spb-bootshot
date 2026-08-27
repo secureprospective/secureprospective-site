@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# spb-bootshot — boot the guest while photographing the VGA panel every 2s.
+# DN-15 lives on that panel and spb-boot answers the LUKS prompt on the serial
+# within seconds, so a single manual screenshot always races it. Capture a strip
+# instead and pick the LUKS-era frame afterwards.
+. /home/chris/sp-plus-bee/spb-env
+mkdir -p "$D/strip"
+rm -f "$D"/strip/*.ppm "$D"/strip/*.png
+( ./spb-boot "$1" > "$D/bootshot-boot.log" 2>&1 ) &
+BOOTPID=$!
+for i in $(seq 1 60); do [ -S "$BMON" ] && break; sleep 1; done
+[ -S "$BMON" ] || { echo "BOOTSHOT: monitor socket never appeared"; exit 1; }
+for n in $(seq -w 1 45); do
+  echo "screendump $D/strip/f$n.ppm" | socat - UNIX-CONNECT:"$BMON" >/dev/null 2>&1
+  sleep 2
+done
+wait $BOOTPID
+echo "BOOTSHOT: strip complete, $(ls "$D"/strip/*.ppm 2>/dev/null | wc -l) frames"

@@ -33,8 +33,18 @@ else
 fi
 
 # ---- 2. plymouth: the boot splash, the FIRST thing an advisor sees ----
+# Ask plymouth's OWN tool first. `plymouth-set-default-theme <name>` writes
+# [Daemon] Theme= into /etc/plymouth/plymouthd.conf and DELETES the legacy
+# default.plymouth symlink, so a symlink-only check reports "no default theme"
+# on an image that is in fact correctly themed -- which is exactly what this
+# gate did to cycle24 while the in-build assertion passed. plymouthd.conf is
+# also what dracut reads when choosing which renderer to ship, so it is the
+# authoritative source. The symlink stays as a last-resort fallback for older
+# images.
 DEFLINK=/usr/share/plymouth/themes/default.plymouth
-DEF=$(grep -E '^(ImageDir|Theme)=' "$DEFLINK" 2>/dev/null | head -1 | cut -d= -f2-)
+DEF=$(plymouth-set-default-theme 2>/dev/null | head -1)
+[ -z "$DEF" ] && DEF=$(grep -E '^Theme=' /etc/plymouth/plymouthd.conf 2>/dev/null | tail -1 | cut -d= -f2-)
+[ -z "$DEF" ] && DEF=$(grep -E '^(ImageDir|Theme)=' "$DEFLINK" 2>/dev/null | head -1 | cut -d= -f2-)
 [ -z "$DEF" ] && DEF=$(readlink "$DEFLINK" 2>/dev/null)
 echo "INFO plymouth   default theme -> ${DEF:-NONE}"
 if [ -z "$DEF" ]; then
@@ -100,7 +110,16 @@ PROBE_EOF
 echo "########## SP+ BRANDING GATE  mode=$MODE  $(date -u +%FT%TZ) ##########"
 case "$MODE" in
   image) echo "image: $IMG"; sudo -n podman run --rm -i "$IMG" bash -s < "$PROBE"; rc=$? ;;
-  live)  echo "guest: $CYCLE"; /home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")"; rc=$? ;;
+  live)  # A live gate that produces NO output must FAIL -- cycle14 passed all three
+         # live gates on an empty guest response. Silence proves nothing.
+         echo "guest: $CYCLE"
+         out=$(/home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")" 2>&1); rc=$?
+         printf '%s\n' "$out"
+         if ! printf '%s' "$out" | grep -qE '_(PASS|FAIL)='; then
+           echo "GATE FAILED: the guest returned no gate output at all."
+           echo "  Nothing was proven -- most likely nothing is logged in on the guest."
+           rc=1
+         fi ;;
   *) echo "usage: spb-branding [image|live] [ref]"; exit 2 ;;
 esac
 echo "########## END BRANDING GATE (exit $rc) ##########"
