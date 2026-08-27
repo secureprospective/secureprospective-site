@@ -4,7 +4,10 @@
 SPB_HOME=/home/chris/sp-plus-bee
 SPB_ISO_DIR=/home/chris/sp-plus-iso
 REPO=/home/chris/work/secureprospective-advisor-os
-ISO="$REPO/projects/sp-plus/artifacts/spikeB-rootful/out/bootc-fedora-44-bootc-generic-iso-x86_64/bootc-fedora-44-bootc-generic-iso-x86_64.iso"
+# The output filename is derived from the payload's os-release, so branding the
+# image (DN-19) renamed it from bootc-fedora-44-... to bootc-sp-plus-1.0-... .
+# Take the newest ISO rather than a hardcoded name, and let SPB_ISO override.
+ISO="${SPB_ISO:-$(ls -t "$REPO"/projects/sp-plus/artifacts/spikeB-rootful/out/*/*.iso 2>/dev/null | head -1)}"
 CYCLE="${CYCLE:-cycle7}"
 D="$SPB_ISO_DIR/$CYCLE"
 MON="$D/monitor.sock"        # install-phase monitor
