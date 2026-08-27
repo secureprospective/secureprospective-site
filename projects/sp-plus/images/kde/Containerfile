@@ -188,6 +188,43 @@ RUN set -eux; \
       'sprite.SetY((screen_h - scaled.GetHeight()) / 2);' \
       'fun refresh_callback() { sprite.SetOpacity(1); }' \
       'Plymouth.SetRefreshFunction(refresh_callback);' \
+      '' \
+      '# DN-15: WITHOUT THIS THE MACHINE LOOKS DEAD AT THE PASSPHRASE PROMPT.' \
+      '# systemd asks plymouth to collect the LUKS passphrase; a theme with no' \
+      '# display-password function draws NOTHING, so the user sees a splash or a' \
+      '# black screen and no reason to type. Never remove these callbacks.' \
+      'prompt_label = Sprite();' \
+      'prompt_dots  = Sprite();' \
+      'fun display_password_callback(prompt, bullets) {' \
+      '  text = Image.Text("Enter your passphrase to unlock this computer", 1, 1, 1);' \
+      '  prompt_label.SetImage(text);' \
+      '  prompt_label.SetX((screen_w - text.GetWidth()) / 2);' \
+      '  prompt_label.SetY(screen_h * 0.72);' \
+      '  prompt_label.SetOpacity(1);' \
+      '  dots = "";' \
+      '  i = 0;' \
+      '  while (i < bullets) { dots = dots + "*"; i = i + 1; }' \
+      '  if (dots == "") { dots = " "; }' \
+      '  dotimg = Image.Text(dots, 1, 1, 1);' \
+      '  prompt_dots.SetImage(dotimg);' \
+      '  prompt_dots.SetX((screen_w - dotimg.GetWidth()) / 2);' \
+      '  prompt_dots.SetY(screen_h * 0.78);' \
+      '  prompt_dots.SetOpacity(1);' \
+      '}' \
+      'Plymouth.SetDisplayPasswordFunction(display_password_callback);' \
+      'fun display_normal_callback() {' \
+      '  prompt_label.SetOpacity(0);' \
+      '  prompt_dots.SetOpacity(0);' \
+      '}' \
+      'Plymouth.SetDisplayNormalFunction(display_normal_callback);' \
+      'fun display_message_callback(text) {' \
+      '  msg = Image.Text(text, 1, 1, 1);' \
+      '  prompt_label.SetImage(msg);' \
+      '  prompt_label.SetX((screen_w - msg.GetWidth()) / 2);' \
+      '  prompt_label.SetY(screen_h * 0.72);' \
+      '  prompt_label.SetOpacity(1);' \
+      '}' \
+      'Plymouth.SetMessageFunction(display_message_callback);' \
       > /usr/share/plymouth/themes/sp-plus/sp-plus.script; \
     ln -sf sp-plus/sp-plus.plymouth /usr/share/plymouth/themes/default.plymouth; \
     grep -rlis fedora /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null \
@@ -205,7 +242,10 @@ RUN set -eux; \
     # "[FAILED] Failed to start initrd-switch-root.service" and drops to emergency.
     # cycle8 proved that. dracut does not pull 50ostree in automatically here, so it
     # is requested explicitly and asserted — never let this regress silently.
-    lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q ostree
+    lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q ostree; \
+    # DN-15 regression guard: a splash that cannot ask for the passphrase is a
+    # machine that looks bricked to its owner.
+    grep -q 'SetDisplayPasswordFunction' /usr/share/plymouth/themes/sp-plus/sp-plus.script
 
 # ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----
 # Vendored, audited subset of KDE-Windows-Modern (GPL-3.0-only, upstream author
