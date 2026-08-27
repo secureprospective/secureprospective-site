@@ -1,14 +1,14 @@
 # SP+ LIVE STATE
-**Auto section regenerated 2026-08-27T01:19:34Z by `spb-state`. Do not hand-edit above the marker.**
+**Auto section regenerated 2026-08-27T03:39:13Z by `spb-state`. Do not hand-edit above the marker.**
 
 ## Machine truth
 ```
-ISO on disk : 9bb54a7658d0e06c  (5177253888 bytes)
-repo HEAD   : 2651ff1 DN-17/DN-15: stop the getty stealing the prompt; ship panel KMS drivers
+ISO on disk : 0a125deed919dd6a  (5234372608 bytes)
+repo HEAD   : 9af7f5a build: trim missed google-noto-sans-mono-cjk-vf-fonts
 branch      : session/sp-plus-plan
 uncommitted : 0 files
-RAM avail   : 14 GB
-disk free   : 104G
+RAM avail   : 12 GB
+disk free   : 102G
 VMs running : 1
 ```
 
@@ -16,8 +16,11 @@ VMs running : 1
 ```
 cycle10                                       1 MB  running=no  bserial=87778 B
 cycle12                                       1 MB  running=no  bserial=- B
-cycle13                                   11302 MB  running=no  bserial=136710 B
-cycle14                                   11311 MB  running=yes  bserial=120763 B
+cycle13                                       2 MB  running=no  bserial=136710 B
+cycle14                                       2 MB  running=no  bserial=125690 B
+cycle15                                       1 MB  running=no  bserial=- B
+cycle18                                   11110 MB  running=no  bserial=- B
+cycle20                                   11321 MB  running=yes  bserial=121588 B
 cycle6                                        6 MB  running=no  bserial=150854 B
 cycle7                                        1 MB  running=no  bserial=122974 B
 cycle8                                        1 MB  running=no  bserial=78440 B
@@ -26,95 +29,86 @@ cycle9                                        1 MB  running=no  bserial=133215 B
 
 ## Latest evidence headline
 ```
-log: /home/chris/sp-plus-iso/cycle14/bserial.log  (120763 bytes)
+log: /home/chris/sp-plus-iso/cycle20/bserial.log  (121588 bytes)
 avc: 0 lines  [MEANINGLESS unless semodule -DB was run]
 failed units seen:
 ```
 
 <!-- ===== NARRATIVE BELOW — spb-state NEVER TOUCHES THIS ===== -->
-## HEADLINE FOR WHOEVER READS THIS COLD (Tom/Beelink, 2026-08-26 night)
-**DN-18, DN-19 and DN-20 are closed at the IMAGE level with numbers: PACKAGES 32/0,
-BRANDING 11/0, APPS 41/0.** The payload image is now the real product — Brave, the SP+
-runtime, the app suite, SP+ os-release and logos, an SP+ plymouth theme, and an advisor
-account that ships LOCKED. None of that is proven on an INSTALLED system yet; the `live`
-gates are a separate question and DN-17, DN-16 and DN-15 are all still open.
-**Next move: read the output of `~/sp-plus-bee/spb-cycle cycle9`, which runs
-build -> install -> boot -> the three live gates -> evidence unattended.**
+## HEADLINE FOR WHOEVER READS THIS COLD (2026-08-26, ~20:20 CDT)
+**DN-17 IS CLOSED.** An installed SP+ machine now prompts the advisor for a password on
+the console at first boot and SETS it: `FIRSTBOOT_PROMPT_ON_CONSOLE=yes`,
+`FIRSTBOOT_PASSWORD_SET=yes`, and the guest console printed `Password set` (cycle14).
+DN-13 held throughout -- the account still ships LOCKED.
 
-## Where it stands
-The root cause of DN-18 was two-layered. The product lived in
-`projects/sp-plus/Containerfile` (Fedora 43) and was never built; but also
-`~/sp-plus-iso-build.sh` **never built the payload image at all** — it listed
-`sp-plus-kde:spike` in STEP 2 and consumed whatever stale copy sat in the root store.
-Both are fixed: the product is merged into `images/kde/Containerfile` on Fedora 44 and
-the build script has a STEP 0 that builds it.
+**But the three `live` gates were passing on NOTHING all night.** cycle14 ran all three
+against an empty guest response and every one exited 0. That is a false green and it
+means the entire `live` column was never actually measured. Fixed: a live gate that
+produces no `_PASS=`/`_FAIL=` line now exits 1. Verified -- all three return EXIT=1 on
+silence. **Treat every previous "live green" in this ledger as UNMEASURED, not passing.**
 
-ISO `504fe550af3735ed` (5,136,621,568 bytes) was the first ISO ever to contain the
-product — 1 GB larger than T-13 `6a593d70…`. cycle8 installed from it at 11,485,118,464
-bytes against cycle7's 8,339,324,928, which is the product landing on disk. cycle8 then
-FAILED to boot; see below. cycle9 is building with the fix.
+**DN-16 remains unproven. No login has ever succeeded on an installed SP+ system.**
 
-## What I did since the last update
-- **Merged the product into the payload image** and added STEP 0 to the build script.
-  Image gates went 17/14 -> 32/0.
-- **Branding (DN-19) 1/10 -> 11/0** on the payload, and the same treatment applied to the
-  installer image, whose build context moved to `projects/sp-plus` so it can reach
-  `branding/`. Logo surfaces are enumerated from `rpm -ql fedora-logos`, and symlinked
-  paths are `rm -f`'d before writing, because writing through a symlink modifies the
-  target and leaves the link itself checksumming as stock.
-- **App suite (DN-20) 14/27 -> 41/0.** The whole suite resolves on Kinoite 44.
-- **DN-13 upheld:** `ARG POC_LOGIN_VALUE` and its `chpasswd` are deleted. The account is
-  `useradd` + `passwd -l advisor`. Gate says `PASS dn13 advisor account is LOCKED`.
-- **Fixed three instrument bugs my own changes caused or exposed** — see below.
+## The demo, and what is being tested right now
+Christopher presents at 09:30 CST 2026-08-27, installing on a 12-year-old Dell Inspiron
+5737 himself, live. He is burning ISO `9bb54a7658d0e06c` (5,177,253,888 bytes) to USB
+tonight and installing on the real Dell. That test exists to answer **DN-15**, the one
+thing a VM cannot answer.
+
+## DN-15 -- the demo risk, captured for the first time
+The lane was serial-only and therefore blind to the exact surface the defect lives on.
+`spb-screen` now screendumps the QEMU panel; `spb-boot` captures it at the LUKS prompt
+and once settled. At the moment the serial shows the passphrase prompt, the panel shows
+"Booting a command list" on black -- byte-identical across cycle13 and cycle14.
+**CAVEAT, do not drop it:** i915 and plymouth are BOTH already in the initramfs (123
+plymouth entries, 122 drm), and the VM's emulated VGA has no KMS driver at all. So the
+black screen may be a lane artifact rather than the Dell's failure. The Dell decides.
+
+## Christopher's decisions tonight
+- **Plasma's own first-run wizard is ADOPTED as the post-install experience.** It is more
+  welcoming; rebranding it is later work and no wheels are to be spun on it now. Our text
+  password prompt STAYS (it works and satisfies DN-13). They are sequential, not
+  competing -- the wizard appears whether or not the password was set.
+- **The assistant is named Fin**, with the simple Christian fish (ichthys) icon, opening
+  as a TUI in a terminal. Not a browser app window. The terminal's look will be made
+  friendlier later so a non-technical advisor can sit in front of it comfortably.
+
+## What shipped since the last update
+- **Fin** (`/usr/libexec/sp-plus/fin`): a terminal front-end over the existing allowlisted
+  RPC, tested end to end (diagnose -> approve -> run). Adds NO privileges of its own.
+  Pinned first on the taskbar and in Kickoff in both look-and-feel variants.
+- **DN-17 fix:** the helper is IMAGE content now, not written by `%post`. The journal is
+  what settled it -- `status=203/EXEC`, `Unable to locate executable`. Then cycle13 showed
+  the prompt printing and `serial-getty@ttyS0` restarting mid-read; the unit now conflicts
+  with BOTH gettys.
+- **`spb-screen`** and the live-gate honesty fix (above).
+- Panel KMS drivers (`bochs_drm virtio_gpu qxl cirrus i915 simpledrm`) added to dracut.
+- Disk hygiene: 29 GB reclaimed. **T-13 `6a593d7082614e56` was nearly swept as stale --
+  it is the last known-good ISO and it is KEPT as the demo fallback.**
+
+## Tried and refuted TONIGHT -- never delete, never retest
+- **"The firstboot unit is absent."** The enable symlink was present all along.
+- **"`%post` cannot write `/usr` on bootc."** It CAN -- the files were on the deployment.
+  The journal (`203/EXEC`) is what actually explained it, not the filesystem survey.
+  Same lesson as DN-16: the kernel/journal is the authority, not a `find`/`ls`.
+- **"Missing DRM drivers cause DN-15."** i915 and plymouth are already in the initramfs.
+
+## Traps that bit tonight
+- **`spb-boot` began with `rm -f bserial.log`** and DESTROYED cycle10's boot log when I
+  re-ran it. It rotates to a timestamped name now. Never delete a log.
+- **Killing `$!` after `nohup ... &` killed a WRAPPER, not the script.** cycle12 kept
+  running for 20 minutes, and would have overwritten the ISO cycle13 was installing from.
+  Kill the real script pid; verify with `pgrep -af`.
+- **A gate that cannot fail is worse than no gate.** See the live-gate false green above.
+- `spb-hygiene` reports a running cycle as `running=no`; its DROP rule only fires past
+  12h. Do not trust it to protect a live VM. Fix after the demo.
 
 ## Next move
-Read `~/spb-cycle9.log`. If the boot reaches a login prompt, run `semodule -DB`, then
-attempt a REAL login and report whether it succeeded, not whether labels looked right.
+Wait on Christopher's Dell result. If the passphrase prompt is VISIBLE on the Dell panel,
+DN-15 was a lane artifact and the demo path is clear. If the panel is BLACK, that is the
+demo-killer and the mitigation is to make text visible at the cost of the branded splash.
+Then, with a credential finally existing, run the live gates FOR REAL and settle DN-16
+with an actual login -- `semodule -DB` first, then `ls -Zd /etc/passwd /etc/nsswitch.conf`.
 
 ## Blocked on
-Nothing.
-
-## Tried and rejected, with why — NEVER DELETE ENTRIES
-- **"SELinux Enforcing deadlocks the boot"** (DN-14, corrected). FALSE — a timing
-  artefact from typing the LUKS passphrase on a timer.
-- **The first-boot password unit causes the boot hang.** Masking it gave a byte-identical
-  hang. It is implicated in DN-17, a different failure.
-- **The system asks for the LUKS passphrase twice.** It does not.
-- **"`/etc` is fully labeled"** from a `find`/`ls -Z` survey. The survey was wrong;
-  `ls -Z` prints in columns. **The kernel AVC log is the authority.**
-- **Fedora 44 removed local graphical installs.** False.
-- **A missing RPM caused the grey installer screen.** False — `TMPDIR=/mnt/sysimage/boot`.
-- **`/.autorelabel` is the fix.** No; the ostree root is read-only (bootc #1087).
-- **`chcon` in the Containerfile.** OCI layers do not carry `security.selinux` xattrs.
-- **`spb-boot` v1/v2/v3 GRUB timing.** v4 works; do not re-derive.
-- **NEW: rebuilding the initramfs without `--add ostree`.** Baking in the SP+ plymouth
-  splash with a plain `dracut --force --no-hostonly` produced an initramfs with ZERO
-  ostree content (`lsinitrd | grep -ci ostree` = 0) while `/usr/lib/dracut/modules.d/50ostree`
-  existed. LUKS unlocked, then `[FAILED] Failed to start initrd-switch-root.service` and
-  emergency mode. cycle8 is the evidence. The build now passes `--add ostree` and
-  ASSERTS `lsinitrd | grep -q ostree`.
-- **NEW: `systemctl enable sddm.service` on Kinoite 44.** Fails outright —
-  `display-manager.service` already symlinks to `plasmalogin.service` from
-  `plasma-login-manager-6.7.4`. Fedora 44 KDE ships plasmalogin, not sddm. We take the
-  distro default; sddm stays installed so its unit file ships.
-- **NEW: Brave's rpm on Kinoite.** `/opt` is a symlink to a `var/opt` that does not
-  exist, so unpack fails with `cpio: mkdir failed`. `/opt` now points at `/usr/lib/opt`
-  (bootc discussion #1038, approach 1: image content, read-only at runtime).
-
-## Instrument bugs found tonight — the harness was keyed to the old branding
-- **`spb-env` hardcoded the ISO filename.** Image-builder derives the output name from
-  the payload's os-release, so branding renamed it `bootc-fedora-44-...` ->
-  `bootc-sp-plus-1.0-...`. The lane would have silently kept testing the OLD ISO. It now
-  takes the newest ISO under `out/` and honours `$SPB_ISO`.
-- **`spb-boot` detected the GRUB menu by grepping for the literal `Fedora Linux`** — the
-  boot entry title. Renaming the OS blinded it: `GRUB_MENU_SEEN=no` while the menu was
-  demonstrably on screen and held. It now matches `GRUB version`.
-- **A watcher written as `while pgrep -f "sp-plus-iso-build.sh"` matches its own command
-  line** and loops forever. Watch on the **pid**. This is the same class of trap that
-  killed two ssh sessions earlier today.
-
-## New in the lane
-- **`spb-cycle <name>`** runs build -> install -> boot -> live gates -> evidence
-  unattended and reports in one block. Christopher's standing rule is that delegated work
-  PINGS BACK when it is done or needs a turn; the driver must never sit polling. Recorded
-  in RUNBOOK.md.
+Christopher's Dell observation. Nothing else.
