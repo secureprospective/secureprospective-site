@@ -176,87 +176,20 @@ while IFS=: read -r name _ uid gid _ home shell; do
     esac
 done < /etc/passwd
 
-# The shipped account has no credential. Before the display manager starts on
-# first boot, this unit asks the advisor to choose one on the physical console.
-if ! install -d -m 0755 /usr/libexec /etc/systemd/system/multi-user.target.wants; then
-    post_failure "SP+ post FAILED: could not create first-boot password paths"
-else
-    if ! cat > /usr/libexec/spplus-firstboot-password <<'SPPLUS_PASSWORD_SCRIPT'
-#!/bin/bash
-set -u
-# DN-17: this ran on a hardcoded /dev/tty1 and failed on every boot. Use whatever
-# the system's ACTIVE console is, so it works on a laptop screen and on a serial
-# console alike, and record WHY it failed instead of dying silently.
-fail() {
-    mkdir -p /var/lib/spplus 2>/dev/null
-    printf '%s %s\n' "$(date -u +%FT%TZ)" "$1" >> /var/lib/spplus/firstboot-error
-    exit 1
-}
-# Plymouth owns the framebuffer until it is told to stop (DN-15); the prompt is
-# invisible underneath it and the machine looks bricked while it waits.
-/usr/bin/plymouth quit --retain-splash 2>/dev/null
-/usr/bin/plymouth quit 2>/dev/null
-CON=/dev/console
-[ -c "$CON" ] || fail "no $CON character device"
-exec <"$CON" >"$CON" 2>&1 || fail "could not attach to $CON"
-mkdir -p /var/lib/spplus || fail "could not create /var/lib/spplus"
-for attempt in 1 2 3; do
-    printf '\n'
-    printf '  ============================================\n'
-    printf '     SP+ first boot\n'
-    printf '     Choose the password for the advisor account.\n'
-    printf '  ============================================\n\n'
-    printf '  New password: '
-    IFS= read -r -s first || fail "console read failed (attempt $attempt)"
-    printf '\n  Retype new password: '
-    IFS= read -r -s second || fail "console read failed (attempt $attempt)"
-    printf '\n'
-    if [ -n "$first" ] && [ "$first" = "$second" ]; then
-        printf 'advisor:%s\n' "$first" | /usr/sbin/chpasswd || fail "chpasswd failed"
-        unset first second
-        printf '%s\n' "$(date -u +%FT%TZ)" > /var/lib/spplus/advisor-password-set
-        chmod 600 /var/lib/spplus/advisor-password-set
-        printf '\n  Password set. Starting SP+.\n\n'
-        exit 0
-    fi
-    printf '\n  Those did not match. Try again.\n'
-done
-fail "three mismatched attempts"
-SPPLUS_PASSWORD_SCRIPT
-    then
-        post_failure "SP+ post FAILED: could not write first-boot password helper"
-    elif ! chmod 0750 /usr/libexec/spplus-firstboot-password; then
-        post_failure "SP+ post FAILED: could not install first-boot password helper"
-    fi
-    if ! cat > /etc/systemd/system/spplus-firstboot-password.service <<'SPPLUS_PASSWORD_UNIT'
-[Unit]
-Description=SP+ first-boot advisor password setup
-ConditionPathExists=!/var/lib/spplus/advisor-password-set
-After=local-fs.target systemd-user-sessions.service plymouth-quit-wait.service
-Before=display-manager.service getty@tty1.service
-Conflicts=getty@tty1.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/libexec/spplus-firstboot-password
-StandardInput=tty-force
-StandardOutput=tty
-StandardError=tty
-# DN-17: /dev/console, not /dev/tty1 — the active console is the laptop screen on
-# hardware and the serial line under test, and hardcoding tty1 failed both.
-TTYPath=/dev/console
-TTYReset=yes
-TTYVHangup=yes
-
-[Install]
-WantedBy=multi-user.target
-SPPLUS_PASSWORD_UNIT
-    then
-        post_failure "SP+ post FAILED: could not write first-boot password unit"
-    elif ! ln -sfn /etc/systemd/system/spplus-firstboot-password.service \
-        /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service; then
-        post_failure "SP+ post FAILED: could not enable first-boot password unit"
-    fi
+# The shipped account has no credential. The helper and its unit are IMAGE
+# content (see images/kde/Containerfile) because /usr is read-only on a bootc
+# system and %post could not create them there — cycle10 installed with NO unit
+# present at all. All %post does now is confirm the image shipped them and make
+# sure the enable symlink exists under /etc, which IS writable.
+if [ ! -x /usr/libexec/spplus-firstboot-password ]; then
+    post_failure "SP+ post FAILED: image is missing /usr/libexec/spplus-firstboot-password"
+elif [ ! -f /usr/lib/systemd/system/spplus-firstboot-password.service ]; then
+    post_failure "SP+ post FAILED: image is missing spplus-firstboot-password.service"
+elif ! install -d -m 0755 /etc/systemd/system/multi-user.target.wants; then
+    post_failure "SP+ post FAILED: could not create multi-user.target.wants"
+elif ! ln -sfn /usr/lib/systemd/system/spplus-firstboot-password.service \
+    /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service; then
+    post_failure "SP+ post FAILED: could not enable first-boot password unit"
 fi
 
 if [ "$post_failures" -gt 0 ]; then

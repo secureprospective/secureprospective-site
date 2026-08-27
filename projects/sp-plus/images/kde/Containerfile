@@ -52,6 +52,13 @@ COPY playbooks/ /usr/libexec/sp-plus/playbooks/
 COPY config/sp-plus.service      /usr/lib/systemd/system/sp-plus.service
 COPY config/brave-policies.json  /etc/brave/policies/managed/sp-plus.json
 COPY config/sp-plus-assistant.desktop /usr/share/applications/sp-plus-assistant.desktop
+# DN-17: the first-boot password helper used to be written by the kickstart %post
+# into /usr/libexec. On a bootc system /usr is image content, so %post could not
+# create it and the installed machine had NO unit at all — not a failed one, an
+# absent one (cycle10 boot log: zero mentions of spplus-firstboot). It is image
+# content now, and %post only writes the enable symlink under /etc.
+COPY config/spplus-firstboot-password         /usr/libexec/spplus-firstboot-password
+COPY config/spplus-firstboot-password.service /usr/lib/systemd/system/spplus-firstboot-password.service
 
 RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
@@ -62,7 +69,11 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && chmod 0644 /usr/share/applications/sp-plus-assistant.desktop \
  && desktop-file-validate /usr/share/applications/sp-plus-assistant.desktop \
  && grep -q "127.0.0.1:8765" /usr/share/applications/sp-plus-assistant.desktop \
- && test -x /usr/bin/brave-browser
+ && test -x /usr/bin/brave-browser \
+ && chmod 0750 /usr/libexec/spplus-firstboot-password \
+ && systemctl enable spplus-firstboot-password.service \
+ && test -L /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service \
+ && bash -n /usr/libexec/spplus-firstboot-password
 
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
 # already owns /etc/systemd/system/display-manager.service. sddm is installed and its
