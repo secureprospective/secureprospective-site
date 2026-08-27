@@ -152,6 +152,7 @@ COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
+COPY config/sp-plus-starship.sh    /etc/profile.d/sp-plus-starship.sh
 # micro ships no launcher of its own -- it is a terminal editor. On a machine built
 # for people who have never used Linux, an application with no way to open it does
 # not exist. Give it one, named for what it does rather than what it is called.
@@ -285,6 +286,27 @@ COPY config/fastfetch.desktop     /usr/share/applications/fastfetch.desktop
 COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
 COPY config/flameshot-capture.desktop /usr/share/applications/flameshot-capture.desktop
 COPY config/flameshot-daemon.desktop  /etc/xdg/autostart/flameshot-daemon.desktop
+
+# starship is not in the Fedora 44 repositories ("No matching packages" checked
+# on cycle33), so it comes from upstream pinned by version AND sha256. An
+# unpinned curl-to-shell installer has no place in a reproducible image.
+ARG STARSHIP_VERSION=v1.26.0
+ARG STARSHIP_SHA256=b7c232b0e8249d8e55a40beb79c5c43a7d370f3f9408bd215deb0170daeaadf3
+RUN curl -sSLo /tmp/starship.tgz \
+      "https://github.com/starship/starship/releases/download/${STARSHIP_VERSION}/starship-x86_64-unknown-linux-musl.tar.gz" \
+ && echo "${STARSHIP_SHA256}  /tmp/starship.tgz" | sha256sum -c - \
+ && tar xzf /tmp/starship.tgz -C /usr/bin starship \
+ && rm -f /tmp/starship.tgz \
+ && chmod 0755 /usr/bin/starship \
+ && /usr/bin/starship --version \
+ && chmod 0644 /etc/profile.d/sp-plus-starship.sh \
+ && bash -n /etc/profile.d/sp-plus-starship.sh \
+ && test -f /etc/skel/.config/starship.toml \
+ && STARSHIP_CONFIG=/etc/skel/.config/starship.toml HOME=/tmp \
+      /usr/bin/starship prompt --status=0 > /tmp/spr \
+ && grep -q 'SP+' /tmp/spr \
+ && rm -f /tmp/spr \
+ && echo "STARSHIP_OK $(/usr/bin/starship --version | head -1)"
 
 RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && dnf clean all \

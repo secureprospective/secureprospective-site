@@ -15,6 +15,8 @@ TEST" on cycle32. Work through it in the order below on the next fresh install.
 |---|---|---|
 | Does `spplus-first-login.service` run for a wizard-created user? | **Yes** | Enabled image-wide at `/usr/lib/systemd/user/plasma-workspace.target.wants/spplus-first-login.service`, not per-user. Verified on cycle33. |
 
+| Does the wizard copy `/etc/skel` into the new home? | **Yes** | Christopher ran `btop` on a wizard-created cycle33 account 2026-08-27 and it came up themed. This was the single largest unknown in SP+: every per-user default we ship travels through skel. It also unblocks the LibreOffice work, whose per-user settings go to `/etc/skel/.config/libreoffice/4/user/registrymodifications.xcu`. |
+
 ## The risks, most likely to bite first
 
 ### 1. Does the wizard copy `/etc/skel` into the new home?

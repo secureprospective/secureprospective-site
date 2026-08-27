@@ -1,35 +1,59 @@
 // SP+ defaults for fastfetch.
 //
-// The labels are deliberately in plain English rather than the usual
-// Kernel/DE/WM/Shell terms. SP+ is built for advisors who have never used
-// Linux, and a summary they cannot read is not a summary. The technical
-// modules are still here, just named for what they tell you.
+// Labels are deliberately plain English rather than Kernel/DE/WM/Shell. SP+ is
+// built for advisors who have never used Linux, and a summary they cannot read
+// is not a summary. The technical modules are still here, named for what they
+// actually tell you.
+//
+// The logo is a 3D block SP+ -- blue lettering, gold plus, extruded to the lower
+// right so it reads as blocks sitting on a table. Four colour slots: $1 blue
+// face, $2 blue edge, $3 gold face, $4 gold edge.
+//
+// Escapes MUST be written as the JSON escape, never a raw ESC byte: fastfetch
+// rejects a raw ESC in JSON and the whole config fails to parse.
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
         "type": "file",
         "source": "/usr/share/sp-plus/branding/logo-sp-plus.txt",
-        "color": { "1": "blue", "2": "yellow" },
-        "padding": { "top": 1, "right": 3 }
+        "color": { "1": "38;5;33", "2": "38;5;18", "3": "38;5;220", "4": "38;5;94" },
+        "padding": { "top": 2, "right": 4 }
     },
     "display": {
-        "separator": "  ",
-        "color": { "keys": "blue", "title": "yellow" }
+        "separator": "  \u001b[38;5;240m│\u001b[0m  ",
+        "color": { "keys": "38;5;33", "title": "38;5;220" },
+        "key": { "width": 11 }
     },
     "modules": [
         "break",
-        { "type": "title", "format": "{user-name} on SP+" },
+        { "type": "custom", "format": "\u001b[38;5;220m  Secure Prospective\u001b[0m\u001b[38;5;33m Advisor OS\u001b[0m" },
+        { "type": "custom", "format": "\u001b[38;5;240m  ────────────────────────────────────────────\u001b[0m" },
         "break",
-        { "type": "os",       "key": "System    " },
+        { "type": "custom", "format": "\u001b[38;5;220m  THIS MACHINE\u001b[0m" },
+        { "type": "title",    "key": "Signed in ", "format": "{user-name}" },
         { "type": "host",     "key": "Computer  " },
+        { "type": "os",       "key": "System    " },
+        { "type": "uptime",   "key": "Running   " },
+        "break",
+        { "type": "custom", "format": "\u001b[38;5;220m  HARDWARE\u001b[0m" },
         { "type": "cpu",      "key": "Processor " },
+        { "type": "gpu",      "key": "Graphics  " },
         { "type": "memory",   "key": "Memory    " },
         { "type": "disk",     "key": "Storage   ", "folders": "/" },
         { "type": "display",  "key": "Screen    " },
-        { "type": "uptime",   "key": "Running   " },
-        { "type": "packages", "key": "Software  " },
+        { "type": "battery",  "key": "Battery   " },
         "break",
-        { "type": "custom", "format": "\u001b[90m  Secure Prospective Advisor OS\u001b[0m" },
+        { "type": "custom", "format": "\u001b[38;5;220m  SOFTWARE\u001b[0m" },
+        { "type": "packages", "key": "Installed " },
+        { "type": "terminal", "key": "Terminal  " },
+        { "type": "de",       "key": "Desktop   " },
+        "break",
+        { "type": "custom", "format": "\u001b[38;5;220m  PROTECTION\u001b[0m" },
+        { "type": "custom",   "key": "Disk      ", "format": "Encrypted" },
+        { "type": "custom",   "key": "System    ", "format": "Read-only, changes are undoable" },
+        { "type": "localip",  "key": "Network   ", "showIpv6": false },
+        "break",
+        { "type": "colors", "symbol": "circle", "paddingLeft": 2 },
         "break"
     ]
 }

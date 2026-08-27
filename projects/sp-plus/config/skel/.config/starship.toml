@@ -1,0 +1,70 @@
+# SP+ shell prompt.
+#
+# A ribbon: SP+ badge, then where you are, then git if it is relevant.
+#
+# NO NERD FONT GLYPHS. The image ships no nerd or powerline font -- fc-list finds
+# zero on cycle33 -- so the usual powerline arrows would render as tofu boxes on
+# the advisor's screen. The transitions use U+258C LEFT HALF BLOCK instead, drawn
+# in the previous segment's colour over the next segment's background. Every
+# monospace font has it, and it reads as a ribbon rather than as breakage.
+#
+# Colours are the SP+ pair: #0033a0 blue and #ffd700 gold.
+
+format = """\
+[ SP+ ](bg:#0033a0 fg:#e8e8e8 bold)\
+[▌](fg:#0033a0 bg:#ffd700)\
+$directory\
+$git_branch\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
+
+add_newline = true
+
+[directory]
+style = "bg:#ffd700 fg:#101010 bold"
+format = "[ $path ]($style)[▌](fg:#ffd700)"
+truncation_length = 3
+truncate_to_repo = false
+# Say "Documents", not "~/Documents" -- the advisor does not think in paths.
+home_symbol = "Home"
+
+[git_branch]
+symbol = ""
+style = "fg:#0033a0 bold"
+format = "[ on $branch]($style)"
+
+[git_status]
+style = "fg:#ffd700"
+format = "[ $all_status$ahead_behind]($style)"
+
+[cmd_duration]
+min_time = 2000
+style = "fg:#808080"
+format = "[ took $duration]($style)"
+
+[character]
+success_symbol = "[>](bold fg:#0033a0)"
+error_symbol = "[>](bold fg:#c0392b)"
+
+# The advisor is not a developer. Everything below would be noise on their
+# screen, and several of these modules shell out on every prompt.
+[package]
+disabled = true
+[nodejs]
+disabled = true
+[python]
+disabled = true
+[rust]
+disabled = true
+[golang]
+disabled = true
+[java]
+disabled = true
+[docker_context]
+disabled = true
+[aws]
+disabled = true
+[gcloud]
+disabled = true
