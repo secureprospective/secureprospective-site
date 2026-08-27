@@ -182,7 +182,13 @@ RUN set -eux; \
     grep -rlis fedora /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null \
       | while read -r t; do sed -i 's/[Ff]edora/SP+/g' "$t"; done; \
     kernel=$(ls -1 /usr/lib/modules | head -1); \
+    # DN-15: the LUKS prompt must be VISIBLE on the local panel. plymouth can only
+    # draw where a KMS driver exists. i915 covers the Dell; the VM emulates a plain
+    # VGA whose driver (bochs_drm) dracut does not pull in, so the test lane was
+    # showing a black screen that the real hardware may not show. Ship the common
+    # panel drivers so the lane is representative and odd hardware still lights up.
     DRACUT_NO_XATTR=1 dracut --force --no-hostonly --add ostree \
+      --add-drivers "bochs_drm virtio_gpu qxl cirrus i915 simpledrm" \
       "/usr/lib/modules/${kernel}/initramfs.img" "${kernel}"; \
     # A rebuilt initramfs WITHOUT the ostree dracut module unlocks LUKS, then dies on
     # "[FAILED] Failed to start initrd-switch-root.service" and drops to emergency.
