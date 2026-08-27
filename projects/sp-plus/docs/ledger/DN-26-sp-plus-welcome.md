@@ -69,8 +69,24 @@ other is `systemctl enable --now` plus a login step. **Any daemon-shaped compone
 be identified before the build that ships it**, because adding one later costs a whole
 image cycle.
 
-The image today ships no flatpak, no Flathub remote, no Tailscale and no Bitwarden. All
-of that is new work.
+**Corrected 2026-08-27.** That paragraph originally read "the image today ships no
+flatpak, no Flathub remote, no Tailscale and no Bitwarden. All of that is new work." Half
+of it was wrong. Verified against `localhost/sp-plus-kde:spike`:
+
+| Component | Actual state |
+|---|---|
+| `flatpak` | **already present**, 1.18.1 |
+| `plasma-discover` | **already present**, 6.7.4 |
+| `plasma-discover-flatpak` | **already present**, 6.7.4 |
+| Flathub remote | **missing** — `flatpak remotes` returns nothing |
+| PySide6 | **already present**, 6.11.1 — so SP+ Welcome itself needs no new runtime |
+| Tailscale, Bitwarden | genuinely absent |
+
+So the software-store half of this decision needs **no rebuild at all**: Discover is
+installed with a working Flatpak backend and simply has no source of applications. One
+`flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo`
+completes it, and Welcome can do that at runtime. The lesson repeats one already recorded
+in this project: assert what the image contains before writing down that it does not.
 
 ## Recorded tension, accepted
 
@@ -116,11 +132,36 @@ experience is missing.
 
 ### The one gap that needs a build
 
-**`wsdd` is not installed.** Modern Windows and NAS devices are discovered by WS-Discovery;
-the old NetBIOS browsing that `smbclient -L` relies on is disabled by default on current
-Windows. Without `wsdd` the advisor cannot be shown a list of shares on their office
-network and must type a server name or IP, which is exactly the kind of thing this product
-exists to avoid. `wsdd` must be added to the KDE image before the Welcome screen ships.
+**`wsdd` was not installed. It is now — added 2026-08-27, staged for cycle35.**
+
+Modern Windows and NAS devices are discovered by WS-Discovery; the old NetBIOS browsing
+that `smbclient -L` relies on is disabled by default on current Windows. Without `wsdd` the
+advisor cannot be shown a list of shares on their office network and must type a server
+name or IP, which is exactly the kind of thing this product exists to avoid.
+
+`wsdd` 0.8-6.fc44 is now installed and enabled in the KDE Containerfile, with a drop-in
+that corrects two things about the shipped unit:
+
+- **`BindsTo=smb.service` is cleared.** Upstream assumes wsdd runs beside a Samba *server*.
+  SP+ is a client and ships no `smb.service`, so the unit as shipped could never start —
+  it would sit failed and the advisor would see no shares and no explanation.
+- **Host mode is turned off.** Upstream defaults to advertising this machine to the whole
+  network. An advisor's laptop holding client records should not announce itself; SP+ wants
+  to look, not to be looked at. The options are `--discovery --no-host --listen
+  127.0.0.1:5357`, so the result socket is on loopback and firewalld needs no new rule.
+
+One bug was found and fixed during verification and is worth recording, because it fails
+silently in the worst possible direction: the `Environment=` value **must be quoted**.
+Unquoted, systemd splits on spaces, reports `Invalid environment assignment, ignoring:
+--no-host`, discards everything after the first token, and wsdd comes up in **host mode** —
+advertising the advisor to the office network, which is precisely the outcome the flag
+existed to prevent. `systemd-analyze verify` catches it; a build gate grepping for the
+string would not.
+
+Still unverified at runtime: that the empty `BindsTo=` reset actually makes the unit
+startable on a booted machine. It is documented systemd behaviour and `systemd-analyze
+verify` is silent, but nothing has yet watched `wsdd.service` reach `active` on real
+hardware. The cycle35 lane test must assert that.
 
 ### The mechanism, and why
 

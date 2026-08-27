@@ -53,6 +53,51 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
  && systemctl enable sshd.service \
  && test -L /etc/systemd/system/multi-user.target.wants/sshd.service
 
+# ---- 2a-bis. WS-Discovery, so an advisor can SEE the office shares ----
+# DN-26 makes SP+ Welcome walk the advisor through connecting a shared network drive.
+# Everything needed to MOUNT one is already in the base image (cifs.ko, cifs-utils,
+# samba-client, kio-extras, keyutils). What was missing is the ability to find one:
+# current Windows and most NAS boxes answer WS-Discovery, and the NetBIOS browsing that
+# `smbclient -L` relies on is off by default on modern Windows. Without this the advisor
+# has to type a server name or an IP address, which is exactly the kind of thing this
+# product exists to remove.
+#
+# Two things about the shipped unit are wrong for us and are corrected in the drop-in:
+#
+#   * `BindsTo=smb.service`. Upstream assumes wsdd runs beside a Samba SERVER. SP+ is a
+#     client and ships no smb.service, so the unit as shipped cannot start at all -- it
+#     would sit in a failed state and the advisor would see no shares with no explanation.
+#     The drop-in clears the binding.
+#   * Host mode is the upstream default, which ADVERTISES this machine to the whole
+#     office network. An advisor's laptop holding client records should not announce
+#     itself; we want to look, not to be looked at. `--no-host` turns the server side off
+#     and `--discovery` turns the client side on, listening only on localhost so nothing
+#     new is exposed and firewalld needs no new rule.
+RUN dnf install -y --setopt=install_weak_deps=False wsdd \
+ && dnf clean all \
+ && mkdir -p /usr/lib/systemd/system/wsdd.service.d \
+ && printf '%s\n' \
+      '[Unit]' \
+      '# SP+ is an SMB client and ships no smb.service; the upstream BindsTo would' \
+      '# leave this unit permanently unstartable. Empty value resets the list.' \
+      'BindsTo=' \
+      '' \
+      '[Service]' \
+      '# Discovery only. --no-host keeps this machine undiscoverable; --listen binds the' \
+      '# result socket to localhost so no port is opened to the network.' \
+      '# The value MUST be quoted. Unquoted, systemd splits on spaces and reads' \
+      '# --no-host and --listen as further assignments, discards them, and wsdd comes' \
+      '# up in host mode advertising the advisor to the office network. Verified: an' \
+      '# unquoted line produced "Invalid environment assignment, ignoring: --no-host".' \
+      'Environment="OPTIONS=--discovery --no-host --listen 127.0.0.1:5357"' \
+      > /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && systemctl enable wsdd.service \
+ && test -L /etc/systemd/system/multi-user.target.wants/wsdd.service \
+ && ! grep -q '^BindsTo=smb' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && grep -q -- '--discovery' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && test -x /usr/bin/wsdd \
+ && echo "WSDD_OK $(rpm -q wsdd)"
+
 # ---- 2b. identity ----
 # The hostname is NOT set here. /etc/hostname is bind-mounted by podman during a build,
 # so `echo sp-plus > /etc/hostname` writes to the bind mount, a build assertion reading
@@ -566,7 +611,7 @@ RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
       systemctl disable "$u" 2>/dev/null || true; \
     done; \
     for u in sshd.service sp-plus.service cups.service firewalld.service \
-             plasmalogin.service spplus-relabel.service; do \
+             plasmalogin.service spplus-relabel.service wsdd.service; do \
       systemctl is-enabled "$u" >/dev/null 2>&1 || { echo "DEBLOAT BROKE $u"; exit 1; }; \
     done; \
     echo "DEBLOAT_OK enabled_units=$(systemctl list-unit-files --state=enabled --no-legend | grep -c .)"
