@@ -81,3 +81,60 @@ Containerfile.
 
 Ported to Qt this is a `QWidget` with a `QPainter` and a `QTimer`, filling
 `QRect(x, y, 10, 2)` rectangles. It needs no OpenGL and no external library.
+
+## Rules carried over from the website project, confirmed 2026-08-27
+
+These are not inferred from the CSS. They are stated as locked rules in the
+secureprospective-site project's own `CLAUDE.md`, and they bind SP+ too: the design system
+is one system, and an advisor who sees the site and then the machine should not feel a
+seam.
+
+### Zero em dashes in anything a user reads
+
+Locked 2026-08-05 on the website: **no em dashes in any copy a visitor reads**, titles
+included. The reasoning given there is worth repeating because it applies with more force
+to an AI-native product: "Part of being AI-native is writing like it, not shipping the
+tell-tale AI-slop punctuation habit." Use a period, a colon or a comma, and restructure the
+sentence if a straight swap reads badly.
+
+For SP+ this binds every user-facing string: the Welcome screen, the help corpus, Fin's
+prompts and tips, notification text, and `.desktop` entries. It does not bind engineering
+prose such as this document, ledger entries, commit messages or code comments.
+
+### The anti-list
+
+No organic curves, no pastels, no script or serif type, **no shadows**, no rounded pills,
+no full-bleed photography, no multi-hue gradients, no glassmorphism, no bouncy easings.
+
+"No shadows" needs care, because the site plainly uses `box-shadow: 6px 6px`. The rule bans
+the *soft blurred drop shadow* that fakes depth. The site's Card-Lift is a **hard offset
+with zero blur** and reads as printed registration, not as elevation. Hard offsets are the
+system's own device; soft shadows are banned.
+
+### Motion is fast
+
+**120 to 200ms**, described there as a "Bloomberg ticker feel. NOT slow/deliberate."
+Anything slower reads as a consumer app. The one deliberate exception already recorded is
+the hero animation's ambient drift, which is slow because it is atmosphere rather than
+feedback.
+
+### Mood anchor
+
+**Corporate badge x transit signage x financial ledger x storm shelter x vault.** When a
+composition decision is genuinely open, that list is the tiebreaker, and it is the sharpest
+statement of the identity anywhere in either project.
+
+### Typography, confirmed
+
+Primal for display and IBM Plex Sans for body are the website's locked pairing, both
+self-hosted, with an explicit rule of **no font CDNs**. SP+ satisfies that by installing
+them into the image.
+
+## The SP+ Calm wallpaper
+
+`1GraphWeb_8K.png`, made by Christopher on 2026-08-27, is the default wallpaper for the
+SP+ Calm global theme. The source 8K PNG is 22 MB; it ships instead as a JPEG resolution
+ladder at 1920x1080, 2560x1440, 3840x2160 and 7680x4320, **4.3 MB for the whole set**, so
+that a modest laptop is not asked to decode an 8K PNG at every login. Three further
+wallpapers exist in the same folder and are not yet wired to a theme:
+`GraphWeb_8K.png`, `HexBlock_8K.png` and `RedBlueEtch_8K.png`.
