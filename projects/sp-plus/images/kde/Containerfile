@@ -511,21 +511,32 @@ COPY branding/locale/org.kde.plasmasetup.en_GB.mo \
 # every systemd user session including the plasma-setup autologin one. LANG stays
 # en_US so dates, paper size and spelling stay American for a US advisor; only
 # LANGUAGE -- which governs message lookup alone -- puts en_GB first, because
-# en_GB is a real translation target that ki18n will not skip as source language.
+# en_GB trails it purely as a belt-and-braces second entry.
+#
+# ORDER MATTERS AND IT WAS WRONG ONCE. Cycle28 shipped LANGUAGE=en_GB:en_US and
+# Christopher's real install came up with BRITISH ENGLISH preselected on the
+# wizard's language page (DN-22): the page's default is
+# Language.LanguageUtil.currentLanguage, which follows the FIRST entry of
+# LANGUAGE. Leading with en_US fixes that. The SP+ strings still resolve --
+# libKF6I18n has no en_US special case, it simply builds its lookup list from
+# LANGUAGE, and the catalog resolves identically for ['en_US'], ['en_US','en_GB']
+# and ['en_GB','en_US']. Cycle26's failure, long blamed on ki18n treating en_US
+# as an untranslated source language, was really just that it had no LANG and no
+# LANGUAGE at all, so the list was empty.
 # The service drop-in is kept as well: it costs nothing and covers bootutil.
-RUN printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_GB:en_US' > /etc/locale.conf \
+RUN printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_US:en_GB' > /etc/locale.conf \
  && install -d /usr/lib/environment.d \
- && printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_GB:en_US' \
+ && printf '%s\n' 'LANG=en_US.UTF-8' 'LANGUAGE=en_US:en_GB' \
       > /usr/lib/environment.d/90-sp-plus-locale.conf \
  && install -d /usr/lib/systemd/system/plasma-setup.service.d \
  && printf '%s\n' \
       '[Service]' \
       'Environment=LANG=en_US.UTF-8' \
-      'Environment=LANGUAGE=en_GB:en_US' \
+      'Environment=LANGUAGE=en_US:en_GB' \
       > /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
- && grep -q '^LANGUAGE=en_GB:en_US$' /etc/locale.conf \
- && grep -q '^LANGUAGE=en_GB:en_US$' /usr/lib/environment.d/90-sp-plus-locale.conf \
- && grep -q '^Environment=LANGUAGE=en_GB:en_US$' \
+ && grep -q '^LANGUAGE=en_US:en_GB$' /etc/locale.conf \
+ && grep -q '^LANGUAGE=en_US:en_GB$' /usr/lib/environment.d/90-sp-plus-locale.conf \
+ && grep -q '^Environment=LANGUAGE=en_US:en_GB$' \
       /usr/lib/systemd/system/plasma-setup.service.d/10-sp-plus-locale.conf \
  && test -f /usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator
 RUN grep -q '^LANG=en_US.UTF-8$' /etc/locale.conf \
@@ -536,7 +547,7 @@ RUN grep -q '^LANG=en_US.UTF-8$' /etc/locale.conf \
       /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
  && grep -q 'Password:' /usr/share/locale/en_GB/LC_MESSAGES/org.kde.plasmasetup.mo \
  && systemctl is-enabled plasma-setup.service \
- && echo "DN17_LOCALE_OK locale.conf + environment.d + drop-in, en_GB/en_US locales present"
+ && echo "DN17_LOCALE_OK locale.conf + environment.d + drop-in, en_US leads the LANGUAGE list"
 # ---- 7b. DN-20: Konqi is on the LAST screen the audience sees ----
 # The wizard's "Completed!" page ships /usr/share/plasma/packages/
 # org.kde.plasmasetup.finished/contents/ui/konqi-calling.png -- Konqi, the KDE

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# spb-key <key> [key...] — send keystrokes to the BOOT VM's local panel and
+# capture what the panel looks like afterwards. This is the only way to drive the
+# graphical first-run wizard, which is the surface Christopher actually stands in
+# front of and the one a serial-only lane is completely blind to.
+#   spb-key tab tab ret          send three keys, screenshot after the last
+#   SHOT=name spb-key ret        name the screenshot
+. /home/chris/sp-plus-bee/spb-env
+set -u
+[ -S "$BMON" ] || die "no boot monitor socket at $BMON — is the boot VM running?"
+for k in "$@"; do
+  echo "sendkey $k" | socat - UNIX-CONNECT:"$BMON" >/dev/null 2>&1
+  sleep "${KEYDELAY:-0.6}"
+done
+sleep "${SETTLE:-2}"
+exec /home/chris/sp-plus-bee/spb-screen "${SHOT:-key-$(date +%H%M%S)}"
