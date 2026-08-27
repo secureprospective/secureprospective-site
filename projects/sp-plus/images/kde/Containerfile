@@ -17,7 +17,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         xdg-desktop-portal-kde \
         udisks2 \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
-        plymouth plymouth-scripts \
+        plymouth plymouth-scripts plymouth-plugin-script \
         libreoffice-writer libreoffice-calc \
         okular dolphin ark gwenview spectacle kate kcalc \
         keepassxc thunderbird system-config-printer \
@@ -51,12 +51,30 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
  && systemctl enable sshd.service \
  && test -L /etc/systemd/system/multi-user.target.wants/sshd.service
 
-# ---- 2b. identity: a real hostname ----
-# Every SP+ machine called itself "localhost", which looks broken on a login screen,
-# in a terminal prompt and in a printer dialog. bootc writes /etc/hostname from the
-# image at install; DHCP can still override it later.
-RUN echo sp-plus > /etc/hostname \
- && test "$(cat /etc/hostname)" = sp-plus
+# ---- 2b. identity ----
+# The hostname is NOT set here. /etc/hostname is bind-mounted by podman during a build,
+# so `echo sp-plus > /etc/hostname` writes to the bind mount, a build assertion reading
+# it back passes, and NOTHING is committed to the image -- the installed machine still
+# called itself localhost while the gate stayed green. It is set in the kickstart
+# instead (network --hostname=sp-plus), which is the installer's job anyway.
+
+# ---- 2b2. standard system groups must exist in /etc/group ----
+# On the first boot of every SP+ install, 55 errors: "Failed to resolve group" for
+# audio, disk, kvm, video, lp and tss. Those groups live only in /usr/lib/group, which
+# is reachable through the altfiles NSS module, and early systemd-tmpfiles and udev
+# cannot see them -- so device nodes fall back to root ownership. lp and audio decide
+# whether printing and sound work. Materialise the standard groups into /etc/group,
+# keeping the entries the image already added there and never duplicating a name.
+RUN awk -F: 'NR==FNR{seen[$1]=1; next} !($1 in seen)' /etc/group /usr/lib/group \
+      >> /etc/group.new \
+ && cat /etc/group /etc/group.new > /etc/group.merged \
+ && mv /etc/group.merged /etc/group \
+ && rm -f /etc/group.new \
+ && for g in audio disk kvm video lp tss wheel spplus; do \
+      grep -q "^$g:" /etc/group || { echo "GROUP MISSING: $g"; exit 1; }; \
+    done \
+ && test "$(cut -d: -f1 /etc/group | sort | uniq -d | wc -l)" -eq 0 \
+ && echo "GROUPS_OK count=$(grep -c . /etc/group)"
 
 # ---- 2c. trim ----
 # Audited against `dnf repoquery --whatrequires` on the built image; each of these is
@@ -70,12 +88,13 @@ RUN echo sp-plus > /etc/hostname \
 RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
  && for p in firefox firefox-langpacks glibc-all-langpacks mariadb-server \
       google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
-      google-noto-serif-cjk-vf-fonts; do \
+      google-noto-serif-cjk-vf-fonts \
+      nvidia-gpu-firmware podman python3-pyside6 openblas-openmp; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
     dnf clean all; \
     rpm -q glibc-langpack-en || exit 1; \
-    for p in firefox glibc-all-langpacks mariadb-server; do \
+    for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware podman; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
     rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
@@ -288,7 +307,58 @@ RUN set -eux; \
     lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q ostree; \
     # DN-15 regression guard: a splash that cannot ask for the passphrase is a
     # machine that looks bricked to its owner.
-    grep -q 'SetDisplayPasswordFunction' /usr/share/plymouth/themes/sp-plus/sp-plus.script
+    grep -q 'SetDisplayPasswordFunction' /usr/share/plymouth/themes/sp-plus/sp-plus.script; \
+    # DN-15 ROOT CAUSE. The SP+ theme declares ModuleName=script, and the plugin that
+    # interprets a script theme is script.so from plymouth-plugin-script. That package
+    # was never installed, so /usr/lib64/plymouth/ held details/text/two-step and NO
+    # script.so at all. plymouth loaded the theme, found no interpreter, and drew
+    # NOTHING -- which is why the LUKS panel was blank, why adding KMS drivers changed
+    # nothing, and why adding the password callback changed nothing: the script was
+    # never executed. Assert the plugin exists AND that dracut put it in the initramfs,
+    # because only the initramfs copy is present when the passphrase is asked for.
+    test -e /usr/lib64/plymouth/script.so; \
+    lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q 'plymouth/script\.so'; \
+    lsinitrd "/usr/lib/modules/${kernel}/initramfs.img" | grep -q 'themes/sp-plus/sp-plus.script'; \
+    echo "DN15_PLUGIN_OK script.so present on disk and in the initramfs"
+
+# ---- 5b. startup debloat: a productivity laptop, not a server ----
+# Measured on the installed cycle20 system: 89 enabled units, and an idle machine
+# already holding 2.1 GB before anyone logs in. Everything disabled here is either for
+# hardware this product does not have or background work that costs a 12-year-old
+# spinning disk real time. DELIBERATELY NOT TOUCHED: sssd and systemd-homed, because
+# both sit in the authentication path and DN-16 cost a day; avahi, because network
+# printer discovery is the demo; thermald, tuned and smartd, because this is an old
+# laptop with an old drive; systemd-oomd, because it keeps a small machine alive.
+RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
+             mdmonitor.service raid-check.timer mcelog.service \
+             ModemManager.service \
+             dnf-makecache.timer rpm-ostree-countme.timer \
+             fedora-third-party-refresh.service \
+             fedora-atomic-desktop-appstream-cache-refresh.service \
+             fedora-atomic-desktop-mandb-update.service; do \
+      systemctl disable "$u" 2>/dev/null || true; \
+    done; \
+    for u in sshd.service sp-plus.service cups.service firewalld.service \
+             plasmalogin.service spplus-relabel.service; do \
+      systemctl is-enabled "$u" >/dev/null 2>&1 || { echo "DEBLOAT BROKE $u"; exit 1; }; \
+    done; \
+    echo "DEBLOAT_OK enabled_units=$(systemctl list-unit-files --state=enabled --no-legend | grep -c .)"
+
+# ---- 5c. autostart debloat ----
+# 22 XDG autostart entries fired for every session. baloo_file is the expensive one:
+# a filesystem indexer on a spinning SATA disk is felt continuously. The rest are for
+# phones, screen readers, geolocation and other vendors' virtual machines. KEPT:
+# plasmashell, kwin, powerdevil, the polkit agent, kwallet, blueman and xdg-user-dirs.
+RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
+             orca-autostart geoclue-demo-agent org.kde.kunifiedpush-distributor \
+             org.kde.xwaylandvideobridge vboxclient vmware-user spice-vdagent; do \
+      rm -f "/etc/xdg/autostart/$f.desktop"; \
+    done; \
+    test -e /etc/xdg/autostart/org.kde.plasmashell.desktop; \
+    test -e /etc/xdg/autostart/powerdevil.desktop; \
+    test -e /etc/xdg/autostart/polkit-kde-authentication-agent-1.desktop; \
+    test ! -e /etc/xdg/autostart/baloo_file.desktop; \
+    echo "AUTOSTART_OK count=$(ls /etc/xdg/autostart/ | wc -l)"
 
 # ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----
 # Vendored, audited subset of KDE-Windows-Modern (GPL-3.0-only, upstream author

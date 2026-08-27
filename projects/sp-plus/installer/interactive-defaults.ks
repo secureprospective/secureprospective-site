@@ -1,5 +1,9 @@
 # Bring up the virtual NIC for Anaconda and bootc payload access.
-network --bootproto=dhcp --device=link --activate --onboot=on
+# The hostname is set HERE, not in the Containerfile. podman bind-mounts /etc/hostname
+# during an image build, so writing it there goes to the bind mount, a build assertion
+# reading it back passes, and nothing reaches the image -- every SP+ machine still
+# called itself "localhost" on its login screen while the gate stayed green.
+network --bootproto=dhcp --device=link --activate --onboot=on --hostname=sp-plus
 
 # Storage is automatic and is never offered as an operator choice. %pre selects
 # the largest non-removable, writable disk and emits the automatic storage
