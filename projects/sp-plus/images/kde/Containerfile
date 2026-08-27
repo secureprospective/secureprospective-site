@@ -19,6 +19,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
         plymouth plymouth-scripts plymouth-plugin-script \
         libreoffice-writer libreoffice-calc libreoffice-impress \
+        google-carlito-fonts google-caladea-fonts google-tinos-fonts \
         libreoffice-draw libreoffice-base libreoffice-math \
         okular dolphin ark gwenview spectacle kate kcalc \
         keepassxc thunderbird system-config-printer \
@@ -322,6 +323,18 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q '^color_theme = "/usr/share/btop/themes/sp-plus.theme"$' \
       /etc/skel/.config/btop/btop.conf \
  && test -f /usr/share/sp-plus/branding/logo-sp-plus.txt \
+ && LOX=/etc/skel/.config/libreoffice/4/user/registrymodifications.xcu \
+ && test -f "$LOX" \
+ && python3 -c "import sys,xml.dom.minidom as m; m.parse(sys.argv[1])" "$LOX" \
+ && grep -q "notebookbar.ui" "$LOX" \
+ && grep -q "<value>colibre</value>" "$LOX" \
+ && grep -q "Office Open XML Text" "$LOX" \
+ && grep -q "Calc Office Open XML" "$LOX" \
+ && grep -q "Impress Office Open XML" "$LOX" \
+ && ! grep -q "writer_OOXML" "$LOX" \
+ && fc-match Carlito | grep -qi carlito \
+ && fc-match Caladea | grep -qi caladea \
+ && fc-match Tinos   | grep -qi tinos \
  && desktop-file-validate /usr/share/applications/flameshot-capture.desktop \
  && desktop-file-validate /etc/xdg/autostart/flameshot-daemon.desktop \
  && grep -q '^_launch=Print,none,Take Screenshot$' /etc/xdg/kglobalshortcutsrc \
