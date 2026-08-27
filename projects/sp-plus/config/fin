@@ -18,13 +18,79 @@ BOLD, DIM, CYAN, RED, GREEN, OFF = (
     "\033[1m", "\033[2m", "\033[36m", "\033[31m", "\033[32m", "\033[0m"
 )
 
-FISH = r"""
-      \                    /
-       \                  /
-   >======================<
-       /                  \
-      /                    \
-"""
+# Fin's mark is a school of ichthys, the way the fish appear in "The Chosen":
+# some slate blue, some grey, swimming both ways. The large fish is drawn once
+# facing right and mirrored at runtime rather than stored twice, because a
+# braille cell has to be flipped dot by dot (columns 1/2/3/7 swap with 4/5/6/8)
+# and a hand-reversed copy silently rots the moment the art is edited.
+BLUE, GREY = 74, 249
+
+FISH_RIGHT = """\
+⠀⠀⠀⠀⠀⠀⣀⣤⣤⣶⣶⣾⠿⠿⢿⣶⣶⣦⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⣴⡦
+⠀⠀⢀⣤⣴⡿⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠿⣷⣦⣄⠀⠀⣠⣾⠟⠁
+⣀⣴⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⣷⣾⡿⠋⠀⠀
+⠈⠻⣿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⠿⠻⣷⣄⠀⠀
+⠀⠀⠈⠙⠻⢿⣦⣤⣄⣀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣴⣾⠿⠛⠉⠀⠀⠈⢿⣧⡀
+⠀⠀⠀⠀⠀⠀⠉⠙⠛⠻⠿⠿⠿⠿⠿⠿⠿⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⢹⡗"""
+
+
+def _mirror_cell(ch):
+    """Flip one braille cell horizontally: dots 1,2,3,7 swap with 4,5,6,8."""
+    if not "\u2800" <= ch <= "\u28ff":
+        return ch
+    bits = ord(ch) - 0x2800
+    out = 0
+    for lo, hi in ((0, 3), (1, 4), (2, 5), (6, 7)):
+        if bits & (1 << lo):
+            out |= 1 << hi
+        if bits & (1 << hi):
+            out |= 1 << lo
+    return chr(0x2800 + out)
+
+
+def _mirror(art):
+    return "\n".join("".join(_mirror_cell(c) for c in reversed(line))
+                     for line in art.split("\n"))
+
+
+def school():
+    """Lay the fish out on a canvas so they overlap without erasing each other."""
+    width, height = 70, 8
+    glyph = [[" "] * width for _ in range(height)]
+    shade = [[None] * width for _ in range(height)]
+
+    def place(art, row, col, colour):
+        for dr, line in enumerate(art.split("\n")):
+            for dc, ch in enumerate(line):
+                if ch in ("\u2800", " "):
+                    continue          # an empty braille cell must not punch a hole
+                r, c = row + dr, col + dc
+                if 0 <= r < height and 0 <= c < width:
+                    glyph[r][c], shade[r][c] = ch, colour
+
+    left = _mirror(FISH_RIGHT)
+    place("><>", 0, 22, BLUE)
+    place("<><", 0, 52, GREY)
+    place(FISH_RIGHT, 1, 0, BLUE)
+    place(left, 1, 38, GREY)
+    place("<><", 7, 12, GREY)
+    place("><>", 7, 44, BLUE)
+
+    lines = []
+    for r in range(height):
+        line, cur = "", None
+        for c in range(width):
+            if shade[r][c] != cur:
+                if cur is not None:
+                    line += OFF
+                cur = shade[r][c]
+                if cur is not None:
+                    line += f"\033[38;5;{cur}m"
+            line += glyph[r][c]
+        if cur is not None:
+            line += OFF
+        lines.append(line.rstrip())
+    return "\n".join(lines)
 
 
 def call(method, params=None):
@@ -94,7 +160,7 @@ MENU = [
 
 
 def main():
-    print(f"{CYAN}{FISH}{OFF}")
+    print(school())
     print(f"  {BOLD}Fin{OFF} — your SP+ assistant")
     print(f"  {DIM}Fin only runs a small set of approved, signed actions.{OFF}")
     while True:

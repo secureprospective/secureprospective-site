@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# spb-type '<text>' [--enter] — type text into a libvirt VM's focused window.
+#
+# Why: Christopher's SP+ VM runs on libvirt "user" networking so it is
+# unreachable by SSH, the QEMU guest agent is SELinux-confined out of /etc and
+# /var/home, and SPICE clipboard paste does not work. send-key is the only
+# channel left that can actually change the machine.
+#
+# virsh send-key sends all key arguments as a SIMULTANEOUS chord, so every
+# character must be its own invocation. Keep strings short.
+set -u
+DOM="${SPB_DOM:-fedora-test}"
+TXT="${1:?usage: spb-type '<text>' [--enter]}"
+key() { virsh send-key "$DOM" --holdtime 20 "$1" >/dev/null 2>&1; sleep 0.05; }
+shifted() { virsh send-key "$DOM" --holdtime 20 KEY_LEFTSHIFT "$1" >/dev/null 2>&1; sleep 0.05; }
+while IFS= read -r -n1 c; do
+  case "$c" in
+    [a-z]) key "KEY_$(printf '%s' "$c" | tr a-z A-Z)" ;;
+    [A-Z]) shifted "KEY_$c" ;;
+    [0-9]) key "KEY_$c" ;;
+    ' ') key KEY_SPACE ;;  '-') key KEY_MINUS ;;  '.') key KEY_DOT ;;
+    '/') key KEY_SLASH ;;  '_') shifted KEY_MINUS ;; '+') shifted KEY_EQUAL ;;
+    ':') shifted KEY_SEMICOLON ;; ';') key KEY_SEMICOLON ;; '=') key KEY_EQUAL ;; ',') key KEY_COMMA ;;
+    '') : ;;
+    *) echo "spb-type: unsupported character '$c'" >&2; exit 3 ;;
+  esac
+done < <(printf '%s' "$TXT")
+[ "${2:-}" = "--enter" ] && virsh send-key "$DOM" --holdtime 20 KEY_ENTER >/dev/null 2>&1
+exit 0

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# spb-guest '<command>' — run a command inside Christopher's libvirt VM via the
+# QEMU guest agent and print its output.
+#
+# Why this exists: his SP+ install sits behind libvirt "user" (slirp) networking,
+# so its 10.0.2.15 address is unreachable from the host and SSH is impossible
+# without reconfiguring and restarting the VM. The guest agent is already
+# connected, needs nothing from him, and does not disturb the running machine.
+set -u
+DOM="${SPB_DOM:-fedora-test}"
+CMD="${1:?usage: spb-guest '<command>'}"
+esc() { python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"; }
+pid=$(virsh qemu-agent-command "$DOM" \
+  "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"/bin/sh\",\"arg\":[\"-c\",$(esc "$CMD")],\"capture-output\":true}}" \
+  2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["return"]["pid"])') || {
+    echo "SPB-GUEST-FAIL: could not start command in $DOM" >&2; exit 2; }
+for i in $(seq 1 30); do
+  out=$(virsh qemu-agent-command "$DOM" \
+    "{\"execute\":\"guest-exec-status\",\"arguments\":{\"pid\":$pid}}" 2>/dev/null)
+  echo "$out" | grep -q '"exited":true' && break
+  sleep 1
+done
+python3 - "$out" <<'PY'
+import base64, json, sys
+r = json.loads(sys.argv[1])["return"]
+for k in ("out-data", "err-data"):
+    if r.get(k):
+        sys.stdout.write(base64.b64decode(r[k]).decode("utf-8", "replace"))
+print(f"[exitcode={r.get('exitcode')}]")
+PY
