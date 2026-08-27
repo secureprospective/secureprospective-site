@@ -186,6 +186,11 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && systemctl enable cups.service \
  && systemctl enable firewalld.service \
  && chmod 0755 /usr/libexec/sp-plus/fin /usr/libexec/sp-plus/fin-banner \
+# Fin must be runnable by NAME from a terminal. cycle34 shipped it only at
+# /usr/libexec and only reachable via the menu icon, so an advisor told to
+# "type fin" -- including by our own /techhelp guidance -- got command not found.
+ && ln -sf ../libexec/sp-plus/fin /usr/bin/fin \
+ && test -x /usr/bin/fin \
  && bash -n /usr/libexec/sp-plus/fin \
  && python3 -m py_compile /usr/libexec/sp-plus/fin-banner \
  && python3 -c "import re,subprocess; \
@@ -285,6 +290,11 @@ COPY config/btop-themes/          /usr/share/btop/themes/
 COPY config/btop.desktop          /usr/share/applications/btop.desktop
 COPY config/fastfetch.desktop     /usr/share/applications/fastfetch.desktop
 COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
+# Also seeded into the advisor's own config. /etc/xdg is only the DEFAULTS
+# layer; kglobalacceld writes a per-user kglobalshortcutsrc at first login and
+# does not reliably inherit from it, which is why cycle34 shipped a correct
+# /etc/xdg binding and Print Screen still opened Spectacle.
+COPY config/skel/.config/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc
 COPY config/flameshot-capture.desktop /usr/share/applications/flameshot-capture.desktop
 COPY config/flameshot-daemon.desktop  /etc/xdg/autostart/flameshot-daemon.desktop
 
@@ -340,6 +350,9 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q '^_launch=Print,none,Take Screenshot$' /etc/xdg/kglobalshortcutsrc \
  && awk '/^\[services\]\[org.flameshot.Flameshot.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
       /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' \
+ && awk '/^\[services\]\[org.kde.spectacle.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
+      /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' \
+ && cmp -s /etc/xdg/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc \
  && grep -q '^Exec=flameshot gui$' /usr/share/applications/flameshot-capture.desktop \
  && HOME=/tmp/ffh fastfetch --config /etc/skel/.config/fastfetch/config.jsonc \
       --pipe > /dev/null \
