@@ -14,7 +14,15 @@
 
 [services][org.flameshot.Flameshot.desktop]
 _k_friendly_name=Flameshot
-_launch=Print,none,Take a screenshot
+# NOT bound to Print. This file's main Exec is a bare `flameshot`, which starts
+# the daemon rather than taking a screenshot -- a [services] binding always
+# fires the main Exec and never a desktop action. Bound here, Print Screen
+# started an invisible daemon (SP+ sets disabledTrayIcon=true) and looked broken.
+_launch=none,none,Take a screenshot
+
+[services][flameshot-capture.desktop]
+_k_friendly_name=Take Screenshot
+_launch=Print,none,Take Screenshot
 
 [services][org.kde.spectacle.desktop]
 _k_friendly_name=Spectacle

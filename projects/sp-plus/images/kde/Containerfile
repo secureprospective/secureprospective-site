@@ -18,7 +18,8 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         udisks2 \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
         plymouth plymouth-scripts plymouth-plugin-script \
-        libreoffice-writer libreoffice-calc \
+        libreoffice-writer libreoffice-calc libreoffice-impress \
+        libreoffice-draw libreoffice-base libreoffice-math \
         okular dolphin ark gwenview spectacle kate kcalc \
         keepassxc thunderbird system-config-printer \
         micro flameshot kitty \
@@ -245,11 +246,18 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
 # Per-user defaults go through /etc/skel because DN-13 means SP+ ships no human
 # account at all -- the account only exists once the wizard creates it, and
 # useradd copies /etc/skel into it at that moment.
+# Branding is copied BEFORE the tools layer: the fastfetch gate below renders the
+# SP+ logo, and the logo now lives here rather than in /etc/skel. /etc is writable
+# per-machine on bootc, so a user config pointing into /etc/skel would break for
+# every advisor the moment anyone tidied that template directory.
+COPY branding/ /usr/share/sp-plus/branding/
 COPY config/skel/                 /etc/skel/
 COPY config/btop-themes/          /usr/share/btop/themes/
 COPY config/btop.desktop          /usr/share/applications/btop.desktop
 COPY config/fastfetch.desktop     /usr/share/applications/fastfetch.desktop
 COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
+COPY config/flameshot-capture.desktop /usr/share/applications/flameshot-capture.desktop
+COPY config/flameshot-daemon.desktop  /etc/xdg/autostart/flameshot-daemon.desktop
 
 RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && dnf clean all \
@@ -264,7 +272,13 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && test -f /usr/share/btop/themes/sp-plus.theme \
  && grep -q '^color_theme = "/usr/share/btop/themes/sp-plus.theme"$' \
       /etc/skel/.config/btop/btop.conf \
- && test -f /etc/skel/.config/fastfetch/logo-sp-plus.txt \
+ && test -f /usr/share/sp-plus/branding/logo-sp-plus.txt \
+ && desktop-file-validate /usr/share/applications/flameshot-capture.desktop \
+ && desktop-file-validate /etc/xdg/autostart/flameshot-daemon.desktop \
+ && grep -q '^_launch=Print,none,Take Screenshot$' /etc/xdg/kglobalshortcutsrc \
+ && grep -A2 '^\[services\]\[org.flameshot.Flameshot.desktop\]' /etc/xdg/kglobalshortcutsrc \
+      | grep -q '^_launch=none,none' \
+ && grep -q '^Exec=flameshot gui$' /usr/share/applications/flameshot-capture.desktop \
  && HOME=/tmp/ffh fastfetch --config /etc/skel/.config/fastfetch/config.jsonc \
       --pipe > /dev/null \
  && install -d /tmp/fsh/.config/flameshot \
@@ -287,7 +301,6 @@ RUN systemctl set-default graphical.target \
  && test -L /etc/systemd/system/display-manager.service
 
 # ---- 5. branding (DN-19) ----
-COPY branding/ /usr/share/sp-plus/branding/
 RUN install -Dm644 /usr/share/sp-plus/branding/fin-icon.svg \
       /usr/share/icons/hicolor/scalable/apps/fin.svg \
  && install -Dm644 /usr/share/sp-plus/branding/fin-icon-256.png \
@@ -481,6 +494,10 @@ RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
 # a filesystem indexer on a spinning SATA disk is felt continuously. The rest are for
 # phones, screen readers, geolocation and other vendors' virtual machines. KEPT:
 # plasmashell, kwin, powerdevil, the polkit agent, kwallet, blueman and xdg-user-dirs.
+# SP+ adds one autostart of its own (the flameshot daemon, which Print Screen
+# needs under Wayland). The removal list below is by name so it survives today;
+# the test at the end asserts that, because a future addition to that list which
+# happened to match would silently break Print Screen.
 RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
              orca-autostart geoclue-demo-agent org.kde.kunifiedpush-distributor \
              org.kde.xwaylandvideobridge vboxclient vmware-user spice-vdagent; do \
@@ -490,6 +507,7 @@ RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
     test -e /etc/xdg/autostart/powerdevil.desktop; \
     test -e /etc/xdg/autostart/polkit-kde-authentication-agent-1.desktop; \
     test ! -e /etc/xdg/autostart/baloo_file.desktop; \
+    test -e /etc/xdg/autostart/flameshot-daemon.desktop; \
     echo "AUTOSTART_OK count=$(ls /etc/xdg/autostart/ | wc -l)"
 
 # ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----
@@ -808,7 +826,9 @@ RUN for d in org.kde.partitionmanager \
         || { echo "MENU FAILED: $d still visible"; exit 1; }; \
     done; \
     for d in brave-browser net.thunderbird.Thunderbird libreoffice-writer \
-             libreoffice-calc org.kde.dolphin org.kde.okular org.kde.kcalc \
+             libreoffice-calc libreoffice-impress libreoffice-draw \
+             libreoffice-base libreoffice-math \
+             org.kde.dolphin org.kde.okular org.kde.kcalc \
              org.keepassxc.KeePassXC fin kitty systemsettings \
              org.kde.plasma-systemmonitor org.kde.discover; do \
       f="/usr/share/applications/$d.desktop"; \

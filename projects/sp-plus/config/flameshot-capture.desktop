@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=Take Screenshot
+GenericName=Screenshot capture
+Comment=Drag a box around what you want to show someone
+# The stock org.flameshot.Flameshot.desktop has Exec=flameshot, which starts the
+# DAEMON, not a capture -- the capture is a desktop action on that file, and a
+# kglobalshortcutsrc [services] binding fires the main Exec, never an action.
+# Bound to Print, the stock file therefore starts an invisible daemon (SP+ ships
+# disabledTrayIcon=true) and the advisor sees nothing happen. This entry exists
+# so Print Screen can be bound to the capture itself.
+Exec=flameshot gui
+Icon=flameshot
+Terminal=false
+Categories=Utility;
+# Hidden from the menu: the visible Flameshot entry is the stock one. This is
+# purely a target for the Print Screen binding.
+NoDisplay=true

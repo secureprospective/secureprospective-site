@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Flameshot (screenshot service)
+Comment=Runs in the background so Print Screen captures instantly
+Exec=flameshot
+Icon=flameshot
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=2
+# `flameshot gui` needs the daemon already running under Wayland, and Plasma 6
+# is Wayland by default. Without this the first Print Screen of a session either
+# does nothing or races the daemon's startup.
