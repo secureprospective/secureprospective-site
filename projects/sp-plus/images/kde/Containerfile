@@ -67,16 +67,31 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
 # and mariadb-server is a database no SP+ component uses. Christopher explicitly
 # ruled KEEP on plasma-workspace-wallpapers, java-25-openjdk-headless, ibus +
 # cldr-emoji-annotation and python3-botocore -- do not add them here.
+#
+# FOUR CANDIDATES WERE REJECTED after checking properly, and the check that cleared
+# them the first time was WRONG: `dnf repoquery --whatrequires` run on the installed
+# system returned empty for every candidate, including ones with obvious dependents.
+# Only a `dnf remove --assumeno` dry run against the image tells the truth.
+#   podman          -- takes bootc AND rpm-ostree with it. That is the entire
+#                      image-mode update path. The build caught this as
+#                      "bootc: command not found" at the container lint step.
+#   openblas-openmp -- takes flexiblas, opencv and SPECTACLE, which SP+ ships.
+#   python3-pyside6 -- takes akonadi-server.
+#   qt6-qtwebengine -- takes khelpcenter, plasma-discover and kdeplasma-addons.
+# mesa-vulkan-drivers is dependency-clean but is left installed on purpose: if kwin
+# were to fall back to software rendering the demo is over, and 169 MB is not worth
+# that risk. Only nvidia-gpu-firmware is removed, and only because the target
+# hardware has no nvidia GPU.
 RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
  && for p in firefox firefox-langpacks glibc-all-langpacks mariadb-server \
       google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
       google-noto-serif-cjk-vf-fonts \
-      nvidia-gpu-firmware podman python3-pyside6 openblas-openmp; do \
+      nvidia-gpu-firmware; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
     dnf clean all; \
     rpm -q glibc-langpack-en || exit 1; \
-    for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware podman; do \
+    for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
     rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
