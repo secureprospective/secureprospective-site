@@ -61,7 +61,7 @@ SP+ is not a compliance certificate. It can provide useful evidence about this c
 
 ## The first five minutes
 
-1. Look at the bottom or top edge of the screen and identify your desktop style. The Windows-like version is KDE. The Mac-like version is GNOME. Both editions do the same work.
+1. Look along the bottom edge of the screen. The taskbar, the start menu at the left and the clock at the right all work the way you expect them to.
 2. Open the browser and check that your important work sites open.
 3. Open Bitwarden and sign in to your vault. See [Browser and passwords](advisor-help/brave-and-bitwarden.md).
 4. Connect to Wi-Fi and print one test page if you have a printer.
@@ -116,10 +116,8 @@ Complete these steps before using the computer for client work:
 
 ### Files and folders
 
-Use the file app that matches your desktop:
-
-- KDE calls it **Dolphin**. It works like Windows File Explorer.
-- GNOME calls it **Files**. It works like macOS Finder.
+Your file app is called **Dolphin**. It works like Windows File Explorer: common folders down
+the side, double-click to open, drag to move.
 
 Your **Home** folder is the normal place for files that belong to you. Create folders with names you will recognize, such as `Applications`, `Clients`, or `To review`. Keep client information in the approved work system or storage location for your business. Do not treat the desktop as a filing system or as a backup.
 

@@ -1,8 +1,8 @@
 # Finding Your Way Around
 
-SP+ comes in two editions. They work the same way underneath; only the look differs. Find the description that matches your screen and skim that section once.
+SP+ looks and works like Windows, on purpose. Skim this once and you will know where everything is.
 
-## If your desktop looks like Windows (KDE edition)
+## The desktop
 
 You will recognize most of it immediately:
 
@@ -14,17 +14,7 @@ You will recognize most of it immediately:
 
 **Making text bigger:** open System Settings, search for "display", and use the scaling control. Slide up until text is comfortable, then apply.
 
-## If your desktop looks like a Mac (GNOME edition)
-
-- **Activities** replaces the Launchpad idea. Click "Activities" in the top-left corner (or press the key with the Windows/Command logo) to zoom out and see everything: open windows, workspaces, and a search bar.
-- **Search first.** From Activities, just type what you want: an app name, a file name, a setting like "display". Press Enter to open the top result.
-- **The dock** appears when you open Activities: favorite and running apps live there, same idea as the macOS Dock. Right-click an app to add it to favorites.
-- **Files** are managed in an app called **Files**. It works like Finder: sidebar with common folders, double-click to open.
-- **Settings** are in the app called **Settings**, found through Activities search.
-
-**Making text bigger:** open Activities, type "Displays", choose your screen, and turn on scaling. Confirm when asked.
-
-## Things that work the same in both editions
+## The things you will do most days
 
 | Task | How |
 |---|---|
@@ -36,7 +26,7 @@ You will recognize most of it immediately:
 
 ## Keyboard shortcuts worth learning
 
-These work in both editions:
+These are worth learning:
 
 - **Ctrl+C, Ctrl+V, Ctrl+X**: copy, paste, cut. Exactly as you expect.
 - **Alt+Tab**: jump between open windows.

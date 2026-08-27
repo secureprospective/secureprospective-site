@@ -50,7 +50,7 @@ case "${1:-}" in
 esac
 
 [ -x "$BANNER" ] && "$BANNER"
-printf '  %sFin%s — your SP+ assistant\n' "$BOLD" "$OFF"
+printf '  %sFin%s, your SP+ assistant\n' "$BOLD" "$OFF"
 
 # Decide the opening request BEFORE any flags are prepended, so that $# still
 # reflects what the advisor actually typed.

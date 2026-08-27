@@ -652,6 +652,27 @@ COPY theme/icons/          /usr/share/icons/
 COPY theme/Kvantum/        /usr/share/Kvantum/
 COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
 
+# ---- 5c. Flathub, shipped rather than added at runtime (DN-26) ---------------
+# DN-26 makes Flathub open. The image already carries flatpak 1.18.1, Discover and
+# the Discover flatpak backend; the only thing missing was a source of applications.
+#
+# The remote ships as a vendor file in /usr/share/flatpak/remotes.d rather than
+# being added by a runtime `flatpak remote-add`. That matters on a bootc system:
+# a vendor remote is part of the image, so it is present at first boot, survives
+# `bootc rollback`, and cannot be half-applied if a first-login script fails. It
+# also means SP+ Welcome does not have to succeed at a network call before the
+# advisor can install anything. /etc/flatpak/remotes.d stays free for a local
+# override, which is the documented precedence order.
+#
+# The .flatpakrepo is committed rather than curled at build time so the GPG key we
+# ship is auditable in git history and the build stays reproducible offline.
+COPY config/flatpak/flathub.flatpakrepo /usr/share/flatpak/remotes.d/flathub.flatpakrepo
+
+RUN test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
+ && grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
+ && grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
+ && echo "FLATHUB_OK vendor remote shipped in the image"
+
 # ---- 6a. SP+ Calm, the shipped default look (DN-27) --------------------------
 # SP+ Calm is the OS's own visual language and is deliberately NOT branded to
 # secureprospective.com. Christopher's framing: "The Global theme isnt branded to
@@ -677,14 +698,17 @@ COPY theme/sp-plus-calm/wallpapers/SPPlus-Calm/ /usr/share/wallpapers/SPPlus-Cal
 # stock icons and a silent font fallback -- the exact "looks broken on first boot"
 # failure DN-24 was raised about. The UI face is now Noto Sans (already in the
 # image); JetBrains Mono stays installed for the terminal and code contexts, where
-# a monospace face is the right tool rather than the wrong one.
+# a monospace face is the right tool rather than the wrong one. IBM Plex Sans is
+# the Secure Prospective body face and is needed by SP+ Welcome, which IS a brand
+# surface even though the desktop around it is not (DN-27).
 RUN dnf install -y --setopt=install_weak_deps=False \
-      kvantum paper-icon-theme jetbrains-mono-fonts \
+      kvantum paper-icon-theme jetbrains-mono-fonts ibm-plex-sans-fonts \
  && dnf clean all \
  && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
  && test -d /usr/share/icons/Paper-Mono-Dark \
  && fc-list : family | grep -qi 'Noto Sans' \
+ && fc-list : family | grep -qi 'IBM Plex Sans' \
  && fc-list : family | grep -qi 'JetBrains Mono' \
  && echo "CALM_DEPS_OK $(rpm -q paper-icon-theme jetbrains-mono-fonts | tr '\n' ' ')"
 

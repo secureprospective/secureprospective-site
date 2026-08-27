@@ -28,7 +28,7 @@ Talk to it with `curl`. Every call is a POST to `/api/rpc` with `{"method": ...,
    single-use and expire after ten minutes, so do not hold one.
 
 5. **Verify.** `{"method":"verify_printer"}` confirms the fix and records a test
-   page. Always finish with this — "it should work now" is not an answer.
+   page. Always finish with this. "it should work now" is not an answer.
 
 ## Notes
 
