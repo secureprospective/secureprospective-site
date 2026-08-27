@@ -1,13 +1,13 @@
 # SP+ LIVE STATE
-**Auto section regenerated 2026-08-27T03:39:13Z by `spb-state`. Do not hand-edit above the marker.**
+**Auto section regenerated 2026-08-27T04:46:25Z by `spb-state`. Do not hand-edit above the marker.**
 
 ## Machine truth
 ```
-ISO on disk : 0a125deed919dd6a  (5234372608 bytes)
-repo HEAD   : 9af7f5a build: trim missed google-noto-sans-mono-cjk-vf-fonts
+ISO on disk : 588e263f34b9e6ea  (5129928704 bytes)
+repo HEAD   : 5786fd6 sp-plus: DN-15 real cause -- no rhgb, so plymouth never takes the panel
 branch      : session/sp-plus-plan
 uncommitted : 0 files
-RAM avail   : 12 GB
+RAM avail   : 15 GB
 disk free   : 102G
 VMs running : 1
 ```
@@ -19,8 +19,9 @@ cycle12                                       1 MB  running=no  bserial=- B
 cycle13                                       2 MB  running=no  bserial=136710 B
 cycle14                                       2 MB  running=no  bserial=125690 B
 cycle15                                       1 MB  running=no  bserial=- B
-cycle18                                   11110 MB  running=no  bserial=- B
-cycle20                                   11321 MB  running=yes  bserial=121588 B
+cycle18                                       1 MB  running=no  bserial=- B
+cycle20                                   11327 MB  running=no  bserial=121827 B
+cycle24                                   11403 MB  running=yes  bserial=118346 B
 cycle6                                        6 MB  running=no  bserial=150854 B
 cycle7                                        1 MB  running=no  bserial=122974 B
 cycle8                                        1 MB  running=no  bserial=78440 B
@@ -29,86 +30,101 @@ cycle9                                        1 MB  running=no  bserial=133215 B
 
 ## Latest evidence headline
 ```
-log: /home/chris/sp-plus-iso/cycle20/bserial.log  (121588 bytes)
+log: /home/chris/sp-plus-iso/cycle24/bserial.log  (118346 bytes)
 avc: 0 lines  [MEANINGLESS unless semodule -DB was run]
 failed units seen:
 ```
 
 <!-- ===== NARRATIVE BELOW — spb-state NEVER TOUCHES THIS ===== -->
-## HEADLINE FOR WHOEVER READS THIS COLD (2026-08-26, ~20:20 CDT)
-**DN-17 IS CLOSED.** An installed SP+ machine now prompts the advisor for a password on
-the console at first boot and SETS it: `FIRSTBOOT_PROMPT_ON_CONSOLE=yes`,
-`FIRSTBOOT_PASSWORD_SET=yes`, and the guest console printed `Password set` (cycle14).
-DN-13 held throughout -- the account still ships LOCKED.
 
-**But the three `live` gates were passing on NOTHING all night.** cycle14 ran all three
-against an empty guest response and every one exited 0. That is a false green and it
-means the entire `live` column was never actually measured. Fixed: a live gate that
-produces no `_PASS=`/`_FAIL=` line now exits 1. Verified -- all three return EXIT=1 on
-silence. **Treat every previous "live green" in this ledger as UNMEASURED, not passing.**
+# NARRATIVE — 2026-08-27, cycle20. Demo is 09:30 CST today.
 
-**DN-16 remains unproven. No login has ever succeeded on an installed SP+ system.**
+## The headline: a login finally worked, and Fin ran.
 
-## The demo, and what is being tested right now
-Christopher presents at 09:30 CST 2026-08-27, installing on a 12-year-old Dell Inspiron
-5737 himself, live. He is burning ISO `9bb54a7658d0e06c` (5,177,253,888 bytes) to USB
-tonight and installing on the real Dell. That test exists to answer **DN-15**, the one
-thing a VM cannot answer.
+cycle20 is the first SP+ build that has been logged into and audited from the inside.
+Everything below was measured on the installed cycle20 system over SSH, not inferred.
 
-## DN-15 -- the demo risk, captured for the first time
-The lane was serial-only and therefore blind to the exact surface the defect lives on.
-`spb-screen` now screendumps the QEMU panel; `spb-boot` captures it at the LUKS prompt
-and once settled. At the moment the serial shows the passphrase prompt, the panel shows
-"Booting a command list" on black -- byte-identical across cycle13 and cycle14.
-**CAVEAT, do not drop it:** i915 and plymouth are BOTH already in the initramfs (123
-plymouth entries, 122 drm), and the VM's emulated VGA has no KMS driver at all. So the
-black screen may be a lane artifact rather than the Dell's failure. The Dell decides.
+ISO: `bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
+  bytes  5234372608
+  sha256 0a125deed919dd6a2bd82c40a3a9e979451b4ce569996f950ddbf76e99b24664
 
-## Christopher's decisions tonight
-- **Plasma's own first-run wizard is ADOPTED as the post-install experience.** It is more
-  welcoming; rebranding it is later work and no wheels are to be spun on it now. Our text
-  password prompt STAYS (it works and satisfies DN-13). They are sequential, not
-  competing -- the wizard appears whether or not the password was set.
-- **The assistant is named Fin**, with the simple Christian fish (ichthys) icon, opening
-  as a TUI in a terminal. Not a browser app window. The terminal's look will be made
-  friendlier later so a non-technical advisor can sit in front of it comfortably.
+What this build carries (commits c88d8b9, 9af7f5a): sshd enabled, an attempted
+hostname change, the package trim, and the DN-15 plymouth passphrase callback.
 
-## What shipped since the last update
-- **Fin** (`/usr/libexec/sp-plus/fin`): a terminal front-end over the existing allowlisted
-  RPC, tested end to end (diagnose -> approve -> run). Adds NO privileges of its own.
-  Pinned first on the taskbar and in Kickoff in both look-and-feel variants.
-- **DN-17 fix:** the helper is IMAGE content now, not written by `%post`. The journal is
-  what settled it -- `status=203/EXEC`, `Unable to locate executable`. Then cycle13 showed
-  the prompt printing and `serial-getty@ttyS0` restarting mid-read; the unit now conflicts
-  with BOTH gettys.
-- **`spb-screen`** and the live-gate honesty fix (above).
-- Panel KMS drivers (`bochs_drm virtio_gpu qxl cirrus i915 simpledrm`) added to dracut.
-- Disk hygiene: 29 GB reclaimed. **T-13 `6a593d7082614e56` was nearly swept as stale --
-  it is the last known-good ISO and it is KEPT as the demo fallback.**
+## PROVEN on the installed system
 
-## Tried and refuted TONIGHT -- never delete, never retest
-- **"The firstboot unit is absent."** The enable symlink was present all along.
-- **"`%post` cannot write `/usr` on bootc."** It CAN -- the files were on the deployment.
-  The journal (`203/EXEC`) is what actually explained it, not the filesystem survey.
-  Same lesson as DN-16: the kernel/journal is the authority, not a `find`/`ls`.
-- **"Missing DRM drivers cause DN-15."** i915 and plymouth are already in the initramfs.
+- A REAL LOGIN SUCCEEDED. `LOGIN_RESULT=SUCCESS (shell answered as spbtest)`, and the
+  transcript shows `[spbtest@localhost /]$` answering `id -un`. Not labels. A shell.
+- `systemctl is-system-running` -> `running`. ZERO failed units.
+- SELinux Enforcing. `/etc/passwd` = passwd_file_t, `/etc/shadow` = shadow_t.
+  `ausearch -m AVC -ts boot` -> `<no matches>`. spplus-relabel.service ran on first
+  boot and stamped, and correctly skips afterwards.
+- sshd active and listening on :22; SSH from the host works.
+- sp-plus.service active, listening on 127.0.0.1:8765, and the RPC returns real data.
+- FIN RUNS. Its TUI renders the fish banner and the four newbie menu items and exits
+  cleanly. This is the first time Fin has been observed working on an installed system.
+- Trim held: firefox, glibc-all-langpacks, mariadb-server and the CJK faces are ABSENT;
+  glibc-langpack-en present. 1,914 packages. `/usr` 8.2G on disk.
+- Boot: 1.165s kernel + 8.271s initrd + 6.514s userspace = 15.95s (on an SSD-backed
+  VM; the Dell's spinning disk will be materially slower).
 
-## Traps that bit tonight
-- **`spb-boot` began with `rm -f bserial.log`** and DESTROYED cycle10's boot log when I
-  re-ran it. It rotates to a timestamped name now. Never delete a log.
-- **Killing `$!` after `nohup ... &` killed a WRAPPER, not the script.** cycle12 kept
-  running for 20 minutes, and would have overwritten the ISO cycle13 was installing from.
-  Kill the real script pid; verify with `pgrep -af`.
-- **A gate that cannot fail is worse than no gate.** See the live-gate false green above.
-- `spb-hygiene` reports a running cycle as `running=no`; its DROP rule only fires past
-  12h. Do not trust it to protect a live VM. Fix after the demo.
+## OPEN DEFECTS, in the order they will hurt
 
-## Next move
-Wait on Christopher's Dell result. If the passphrase prompt is VISIBLE on the Dell panel,
-DN-15 was a lane artifact and the demo path is clear. If the panel is BLACK, that is the
-demo-killer and the mitigation is to make text visible at the cost of the branded splash.
-Then, with a credential finally existing, run the live gates FOR REAL and settle DN-16
-with an actual login -- `semodule -DB` first, then `ls -Zd /etc/passwd /etc/nsswitch.conf`.
+1. DN-15 STILL OPEN — the LUKS passphrase prompt is INVISIBLE on the local panel.
+   `screen-luks.png` is 1611 bytes (blank) on every boot of this build, even with the
+   plymouth SetDisplayPasswordFunction callback compiled in. The capture instrument
+   is fine: the settled screenshot is 741000 bytes. On the Dell, Christopher will be
+   typing his passphrase into a black screen. This is the worst demo risk left.
 
-## Blocked on
-Christopher's Dell observation. Nothing else.
+2. NEW — 55 "Failed to resolve group" errors on the FIRST boot, before anything was
+   touched: audio, disk, kvm, video, lp, tss. Cause: the standard system groups live
+   only in `/usr/lib/group`, reachable through the altfiles NSS module, and early
+   systemd-tmpfiles/udev cannot see them. Device nodes therefore fall back to root
+   ownership. `lp` and `audio` matter for a demo that shows printing and calls.
+   Fix direction: materialise the standard groups into `/etc/group` in the image.
+
+3. NEW — the hostname change silently failed, and the build assertion was FALSE-GREEN.
+   The image's `/etc/hostname` contains `6b6fdb11b1a5`, the container build ID. podman
+   bind-mounts `/etc/hostname` during build, so `echo sp-plus > /etc/hostname` wrote to
+   the bind mount and `test "$(cat /etc/hostname)" = sp-plus` read the same bind mount
+   and passed. Nothing was committed to the image. DO NOT set the hostname in the
+   Containerfile. Set it in the kickstart (`network --hostname=sp-plus`) instead.
+
+4. The SP+ service account exists only in `/etc/passwd` and `/etc/group`, not in
+   `/usr/lib/`. If `/etc/group` is damaged, sp-plus.service dies with `216/GROUP` and
+   Fin never starts. Observed directly, because I caused exactly that damage (below).
+
+## WHAT IS STILL UNPROVEN — do not claim these
+
+- Anaconda's OWN user-creation path. The lane's account was written directly into the
+  deployment's /etc, because driving Anaconda's user spoke would mean guessing at
+  keystrokes. DN-16 did not reproduce here, but the mechanism Christopher actually
+  used has NOT been retested. Only his install can settle that.
+- The desktop. Nothing in this audit opened Plasma, applied the SP+ Windows theme, or
+  clicked Fin's icon. Both look-and-feel packages are present on disk; that is all.
+- Anything about the Dell's real hardware.
+
+## LANE LESSONS (encoded in spb-mkuser; do not relearn these)
+
+- `/sysroot` at pre-pivot is a READ-ONLY composefs overlay. The deployment's writable
+  /etc is already mounted at `/sysroot/etc`, and var at
+  `/sysroot/sysroot/ostree/deploy/default/var`. Writing under the deployment path fails.
+- The dracut shell has NO chroot, head, wc, sync or blockdev.
+- NOTHING IS FLUSHED. spb-boot kills QEMU outright, so page-cache writes are lost.
+  Several passes silently lost their edits before this was found. The flush that works
+  is `mount -o remount,ro` on the filesystem; XFS commits on remount.
+- Never `sed -i` in that shell: sed cannot write its temp file, and it left /etc/group
+  EMPTY. That truncation, not the product, caused the `216/GROUP` failure. Once
+  /etc/group was restored to the image's contents, sp-plus.service came up active.
+- A `pgrep -f "spb-boot ..."` watcher MATCHES ITS OWN SHELL and never exits. Match on
+  `pgrep -a -x bash | grep`, or wait on a captured pid.
+
+## RECOMMENDED FOR THE NEXT BUILD (Christopher decides)
+
+- Fix DN-15 properly. It is the only defect the audience will see.
+- Materialise standard groups into /etc/group.
+- Move the hostname to the kickstart.
+- Further trim, all verified to have ZERO reverse dependencies on the installed system:
+  nvidia-gpu-firmware 101 MB, podman 49 MB, python3-pyside6 55 MB, openblas-openmp 44 MB.
+  Riskier, same zero-reverse-dep result but likelier to be loaded at runtime rather
+  than by rpm dependency: qt6-qtwebengine 277 MB, mesa-vulkan-drivers 169 MB.
