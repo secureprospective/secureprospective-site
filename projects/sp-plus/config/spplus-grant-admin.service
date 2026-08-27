@@ -1,0 +1,16 @@
+[Unit]
+Description=Give the advisor administrative rights on their own machine (so Fin can help)
+# The account does not exist until the first-boot wizard has run, so this cannot
+# be a one-shot at install time -- it runs every boot and is idempotent.
+After=systemd-user-sessions.service
+Wants=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-grant-admin
+RemainAfterExit=no
+# Never let this cost the advisor a boot.
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

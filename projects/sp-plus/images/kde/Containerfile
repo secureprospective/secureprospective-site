@@ -149,6 +149,9 @@ COPY config/fin-skills/          /usr/share/sp-plus/fin/skills/
 COPY config/fin-tips             /usr/libexec/sp-plus/fin-tips
 COPY config/fin-tip-catalogue/   /usr/share/sp-plus/fin/tips/
 COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
+COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
+COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
+COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
 # micro ships no launcher of its own -- it is a terminal editor. On a machine built
 # for people who have never used Linux, an application with no way to open it does
 # not exist. Give it one, named for what it does rather than what it is called.
@@ -247,6 +250,15 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
  && ! cat /usr/share/sp-plus/fin/tips/*.tips | grep -E '^[a-z0-9]+-[0-9]+' \
       | grep -iqE 'is compliant|ensure compliance' \
  && test -f /usr/share/sp-plus/fin/prompts/techhelp.md \
+ && chmod 0440 /etc/sudoers.d/sp-plus \
+ && visudo -cf /etc/sudoers.d/sp-plus \
+ && grep -q '^%wheel ALL=(ALL) NOPASSWD: ALL$' /etc/sudoers.d/sp-plus \
+ && visudo -c \
+ && chmod 0755 /usr/libexec/spplus-grant-admin \
+ && bash -n /usr/libexec/spplus-grant-admin \
+ && systemctl enable spplus-grant-admin.service \
+ && test -L /etc/systemd/system/multi-user.target.wants/spplus-grant-admin.service \
+ && grep -q 'nologin' /usr/libexec/spplus-grant-admin \
  && grep -q '^--prompt-template\|prompt-template' /usr/libexec/sp-plus/fin \
  && grep -q '^4. Something else' /usr/share/sp-plus/fin/prompts/techhelp.md \
  && test "$(grep -cE '^[1-4]\. ' /usr/share/sp-plus/fin/prompts/techhelp.md)" -eq 4 \

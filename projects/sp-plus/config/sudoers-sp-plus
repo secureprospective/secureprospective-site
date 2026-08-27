@@ -1,0 +1,23 @@
+# SP+ — the advisor, and therefore Fin, may administer this machine without a
+# password prompt.
+#
+# WHY THIS EXISTS. Fin is the advisor's assistant and runs AS the advisor. Asked
+# to add a printer, install something, or read a system log, Fin's only route is
+# sudo -- and it cannot answer a password prompt. Worse, the advisor frequently
+# cannot either: SP+ ships no account at all (DN-13), the account is created by
+# the first-boot wizard, and a password chosen once during setup is not
+# something a non-technical user reliably remembers months later. Requiring it
+# turns every genuine repair into a dead end at the exact moment the advisor
+# needs help.
+#
+# WHAT THIS COSTS, stated plainly. Anyone at an unlocked session is effectively
+# root. SP+ accepts that deliberately: the containment here is architectural
+# rather than a permission wall. /usr is read-only, every change lands in a new
+# deployment, a bad state is one `bootc rollback` away, and the disk is LUKS
+# encrypted so an unattended machine is protected by being locked, not by sudo.
+# A password prompt the user cannot answer buys no real security -- it only
+# stops the assistant from helping.
+#
+# This grants nothing that the advisor, as the owner of the machine, does not
+# already have the right to do. It removes a prompt, not a boundary.
+%wheel ALL=(ALL) NOPASSWD: ALL

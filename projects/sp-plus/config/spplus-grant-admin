@@ -1,0 +1,37 @@
+#!/usr/bin/bash
+# Guarantee the advisor can administer their own machine -- and therefore that
+# Fin can.
+#
+# SP+ ships NO human account (DN-13). The account is created by the KDE first-boot
+# wizard, and whether that wizard puts the new account in `wheel` is not something
+# we control or that it documents: inspecting /usr/libexec/plasma-setup on cycle33
+# turned up no reference to wheel, useradd or AccountType. Shipping a NOPASSWD
+# rule for %wheel and hoping the wizard cooperates would mean Fin's ability to fix
+# anything rests on an assumption nobody verified.
+#
+# So this closes the gap directly: at every boot, any real human account is put in
+# wheel if it is not already. Idempotent, and silent when there is nothing to do.
+#
+# "Real human account" means uid >= 1000 with a login shell. The spplus service
+# account (uid 960, /sbin/nologin) is deliberately excluded -- it runs the RPC
+# service and must never gain administrative rights.
+set -u
+
+granted=0
+while IFS=: read -r name _ uid _ _ _ shell; do
+    [ "$uid" -ge 1000 ] 2>/dev/null || continue
+    [ "$uid" -lt 65534 ] || continue          # skip 'nobody'
+    case "$shell" in */nologin|*/false|'') continue ;; esac
+    if id -nG "$name" 2>/dev/null | tr ' ' '\n' | grep -qx wheel; then
+        continue
+    fi
+    if usermod -aG wheel "$name"; then
+        echo "spplus-grant-admin: $name may now administer this machine"
+        granted=$((granted + 1))
+    else
+        echo "spplus-grant-admin: could not add $name to wheel" >&2
+    fi
+done < /etc/passwd
+
+[ "$granted" -eq 0 ] && echo "spplus-grant-admin: nothing to do"
+exit 0
