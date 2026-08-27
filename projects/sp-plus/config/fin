@@ -13,6 +13,7 @@ set -u
 BANNER=/usr/libexec/sp-plus/fin-banner
 PROMPT=/usr/share/sp-plus/fin/system-prompt.md
 SKILLS=/usr/share/sp-plus/fin/skills
+PROMPTS=/usr/share/sp-plus/fin/prompts
 SYSTEM_ENV=/etc/sp-plus/fin.env
 USER_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/sp-plus/fin.env"
 
@@ -98,5 +99,6 @@ exec /usr/bin/pi \
     --model "${FIN_MODEL:-claude-sonnet-5}" \
     --append-system-prompt "$PROMPT" \
     --skill "$SKILLS" \
+    --prompt-template "$PROMPTS" \
     --approve \
     "$@"
