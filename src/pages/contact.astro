@@ -4,233 +4,52 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Layout title="Contact: SecureProspective">
+<Layout title="Contact: Secure Prospective" description="Choose the SecureProspective conversation that matches the work in front of you.">
   <Nav />
-
-  <main class="contact-main" transition:name="page-card">
-    {/* ───────────────────────── CONTACT HERO ───────────────────────── */}
-    <section class="contact-hero">
-      <div class="container hero-inner">
-        <div class="eyebrow">Contact</div>
-        <h1 class="page-title">
-          <span class="reveal-word">Start</span>
-          <span class="reveal-word">with</span>
-          <span class="reveal-word">a</span>
-          <span class="reveal-word">conversation.</span>
-        </h1>
-        <p class="hero-sub">
-          No RFP. No intake form. A direct conversation about what you are trying to solve.
-          The diagnosis starts here.
-        </p>
+  <main transition:name="page-card">
+    <section class="record-hero">
+      <div class="record-hero-grid shell">
+        <div class="record-hero-index"><span>FILE // CONTACT</span><span>DIRECT CHANNEL</span></div>
+        <div class="record-hero-copy">
+          <h1>Choose the conversation.</h1>
+          <p>
+            The operating business, the active build, and the prospective offer are not interchangeable.
+            Start with the state that matches the work in front of you.
+          </p>
+        </div>
       </div>
     </section>
 
-    {/* ───────────────────── CONTACT FORM ───────────────────── */}
-    <section class="form-section">
-      <div class="container form-wrap">
-        <form
-          class="contact-form animate-in"
-          action="https://formspree.io/f/YOUR_FORMSPREE_ID"
-          method="POST"
-        >
-          <label class="field">
-            <span class="field-label">Name</span>
-            <input type="text" name="name" required autocomplete="name" />
-          </label>
+    <section class="record-section record-section--white">
+      <div class="shell record-body contact-page-body">
+        <div class="contact-options">
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=Insurance%20producer%20infrastructure">
+            <span>OPERATING // AVAILABLE NOW</span>
+            <h2>Producer infrastructure.</h2>
+            <p>Case design, product positioning, federal benefits, suitability, or IMO operating support.</p>
+            <strong>Open email →</strong>
+          </a>
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=SP%2B%20conversation">
+            <span>ACTIVE // BUILD 001</span>
+            <h2>SP+.</h2>
+            <p>Discuss the encrypted, immutable advisor workstation and its five-production-contract access partnership.</p>
+            <strong>Open email →</strong>
+          </a>
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=Prospective%20AI-native%20transformation">
+            <span>PROSPECTIVE // EMERGING</span>
+            <h2>AI-native transformation.</h2>
+            <p>For operators following the method as it earns external application through delivered evidence.</p>
+            <strong>Open email →</strong>
+          </a>
+        </div>
 
-          <label class="field">
-            <span class="field-label">Company</span>
-            <input type="text" name="company" autocomplete="organization" />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Email</span>
-            <input type="email" name="email" required autocomplete="email" />
-          </label>
-
-          <fieldset class="field fieldset">
-            <legend class="field-label">Which path fits?</legend>
-            <label class="radio"><input type="radio" name="path" value="ai-native-consulting" checked /><span>AI-Native Consulting</span></label>
-            <label class="radio"><input type="radio" name="path" value="insurance-producer-infrastructure" /><span>Insurance Producer Infrastructure</span></label>
-            <label class="radio"><input type="radio" name="path" value="not-sure-yet" /><span>Not sure yet</span></label>
-          </fieldset>
-
-          <label class="field">
-            <span class="field-label">What are you trying to solve?</span>
-            <textarea name="message" rows="6" required></textarea>
-          </label>
-
-          <button type="submit" class="btn submit">Send &rarr;</button>
-        </form>
-      </div>
-    </section>
-
-    {/* ───────────────────── DIRECT CONTACT ───────────────────── */}
-    <section class="direct">
-      <div class="container direct-inner">
-        <div class="direct-label">Or reach directly:</div>
-        <a href="mailto:secureprospective@gmail.com" class="direct-email">secureprospective@gmail.com</a>
-        <div class="direct-loc">Montgomery, TX</div>
+        <div class="contact-direct">
+          <p>Direct channel</p>
+          <a href="mailto:secureprospective@gmail.com">secureprospective@gmail.com</a>
+          <p>Montgomery, Texas</p>
+        </div>
       </div>
     </section>
   </main>
-
   <Footer />
 </Layout>
-
-<style>
-  .contact-main {
-    background: var(--white);
-  }
-
-  .contact-hero {
-    background: var(--white);
-    border-bottom: 2px solid var(--ink);
-    padding: var(--space-8) 0;
-  }
-  .hero-inner {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    align-items: flex-start;
-  }
-  .page-title {
-    font-size: var(--text-h1);
-    line-height: 1.05;
-    max-width: 900px;
-  }
-  .hero-sub {
-    font-size: var(--text-body-lg);
-    max-width: 560px;
-    line-height: 1.5;
-  }
-
-  /* ── Form ── */
-  .form-section {
-    background: var(--white);
-    padding: var(--space-7) 0;
-  }
-  .form-wrap {
-    max-width: 720px;
-  }
-  .contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  .field-label {
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  input[type='text'],
-  input[type='email'],
-  textarea {
-    border: 1px solid var(--ink);
-    border-radius: 0;
-    background: var(--white);
-    color: var(--ink);
-    font-family: var(--font-body);
-    font-size: var(--text-body);
-    padding: var(--space-3);
-    width: 100%;
-    transition: border-color 120ms ease-out;
-  }
-  textarea {
-    resize: vertical;
-    line-height: 1.5;
-  }
-  input:focus,
-  textarea:focus {
-    outline: none;
-    border: 2px solid var(--blue-brand);
-    padding: calc(var(--space-3) - 1px);
-  }
-
-  .fieldset {
-    border: none;
-    padding: 0;
-    margin: 0;
-  }
-  .radio {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-family: var(--font-body);
-    font-size: var(--text-body);
-    cursor: pointer;
-    padding: var(--space-1) 0;
-  }
-  .radio input {
-    accent-color: var(--blue-brand);
-    width: 16px;
-    height: 16px;
-  }
-
-  .submit {
-    align-self: flex-start;
-    border: none;
-    cursor: pointer;
-    margin-top: var(--space-2);
-  }
-
-  /* ── Direct contact ── */
-  .direct {
-    background: var(--white);
-    border-top: 1px solid var(--ink);
-    padding: var(--space-6) 0;
-  }
-  .direct-inner {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    align-items: flex-start;
-  }
-  .direct-label {
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    opacity: 0.6;
-    margin-bottom: var(--space-1);
-  }
-  .direct-email {
-    font-family: var(--font-body);
-    font-size: var(--text-body-lg);
-    color: var(--blue-brand);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    transition: color 120ms ease-out;
-  }
-  .direct-email:hover {
-    color: var(--ink);
-  }
-  .direct-loc {
-    font-size: var(--text-body);
-    opacity: 0.7;
-  }
-
-  @media (max-width: 767px) {
-    .page-title {
-      font-size: var(--text-h2);
-    }
-  }
-</style>
-
-<script>
-  const form = document.querySelector<HTMLFormElement>('.contact-form');
-  const submitBtn = form?.querySelector<HTMLButtonElement>('.submit');
-  form?.addEventListener('submit', () => {
-    if (!submitBtn || submitBtn.classList.contains('is-loading')) return;
-    submitBtn.classList.add('is-loading');
-  });
-</script>

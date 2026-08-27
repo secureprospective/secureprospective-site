@@ -24,7 +24,8 @@ pnpm-debug.log*
 .idea/
 .dev.vars
 
-# Impeccable live-mode runtime state (local machine paths, ephemeral session logs)
+# Impeccable local review and live-mode runtime state
+.impeccable/review/
 .impeccable/live/roots.json
 .impeccable/live/sessions/
 .impeccable/live/accept-receipts/

@@ -8,66 +8,127 @@ web
 
 ## Stack
 
-Astro (existing codebase) — Astro 4.11.0 + React islands, GSAP scroll motion, CSS custom properties via `tokens.css` (no Tailwind, no font CDNs). Deployed on Cloudflare Pages, auto-deploy from `main`.
+Astro 4.11.0 with React islands, GSAP scroll motion, CSS custom properties, and Cloudflare Pages. No Tailwind and no font CDNs. Production deploys automatically from `main`; branch pushes produce preview deployments.
 
 ## Users
 
-Dual-audience site, two co-equal primary users:
+The site serves two connected audiences in a deliberate order:
 
-1. **Professional insurance agents** served by the established IMO (Independent Marketing Organization) line — the current-revenue, first-internal-proof business.
-2. **Business owners/operators** seeking to move from "AI-bolted-on" to "AI-native" — the consulting practice, the front-and-center flagship.
-
-Both audiences are written for intentionally; IA and copy split between them (6-section IA: Home / The Method / The Work / Services / The Operator / Contact).
+1. **Professional insurance agents and small IMOs** who need producer infrastructure, case design, annuity suitability support, federal-benefits expertise, and operational depth. This is the current revenue-producing business and the primary audience today.
+2. **Business owners and operators** evaluating AI-native transformation. This is the hard-forward direction, but it must be earned through delivered work rather than presented as a mature offer ahead of evidence.
 
 ## Product Purpose
 
-SecureProspective is Christopher Campbell's technical business consulting firm. It is explicitly **not** an insurance retailer, despite the operator's IMO background. The site's job is to establish the consulting practice as the primary offer while the IMO line runs alongside it as proven revenue and credibility.
+SecureProspective is first a functioning IMO and producer-infrastructure business. It has active producers, current revenue, six years of operating history, and measurable production assisted. That operation is now the live environment in which SecureProspective is rebuilding itself AI-native.
 
-Success on this site = a visitor books a consult/call. That is the primary conversion action; the interactive chatbot (lead-gated, third-person Q&A about the operator) is a secondary self-qualification/engagement layer, not the primary funnel.
+SP+ is the first AI-native deliverable. It connects the existing operation to the future transformation practice. The consulting capability becomes credible by shipping into the real business, documenting what changes, and producing evidence.
+
+The site must make that hierarchy unmistakable:
+
+1. The IMO is the operating foundation.
+2. SP+ is the first prospective system being built from it.
+3. AI-native transformation becomes an external offer only as the internal work earns it.
 
 ## Positioning
 
-The four-movement method (brand IP / differentiator): **Diagnose → Position → Shape → Transform**, with a loop-closer — *"What's native today gets re-diagnosed tomorrow. The loop doesn't end — your business just stops being the bottleneck."* This is the mechanism a competitor consultancy could not truthfully copy without actually running the same process.
+**Secure Prospective** holds two operating states in one name:
 
-Brand spine: *se-curus* + *prospicere* = "look forward without fear, because the protection is already built." Sanctuary is felt in structure, never stated in copy.
+- **Secure:** the revenue-producing IMO, its people, obligations, controls, and measurable history.
+- **Prospective:** SP+, the future operating architecture being built from inside that business.
+
+The deepest brand reading is: **look forward without fear because the protection is already built.** This is readiness and disciplined adaptation, not a guarantee that uncertainty can be eliminated.
+
+The four-movement method remains the operating discipline:
+
+**Diagnose → Position → Shape → Transform → Re-diagnose**
+
+It is demonstrated inside the IMO before it is marketed broadly.
 
 ## Operating Context
 
-- TFM (Tech Freedom Ministries) is SP's **first client**, functioning as proof-of-work for the consulting practice — not a sister project.
-- Workflow: bird (off-LAN scratch-pad, Christopher demos locally) → CT105 (review, build, merge to main after visual gate) → Cloudflare Pages auto-deploy.
-- Interactive-resume chatbot (CCwork build) is live on every page via a lead-gated widget — grounded RAG answering questions about the operator in third person. This is existing, working infrastructure, out of scope for the current design work (per Christopher: not touching CCwork this session).
+- The IMO is front and center because it produces real revenue now.
+- SP+ is in active development as the first AI-native deliverable.
+- The separate SP+ repository and its in-flight builds are outside this site's implementation scope.
+- Tech Freedom Ministries remains evidence of external technical and brand execution. It is not the lead proof of the AI-native transformation offer.
+- The interactive career chatbot remains a secondary evidence tool. Preserve its behavior and APIs.
+
+## Conversion
+
+The primary current conversion is a direct conversation about insurance producer infrastructure. A secondary conversation may concern SP+ or the emerging AI-native transformation practice. The site must never imply that an undelivered consulting package is already mature.
+
+## Voice
+
+Direct, technical, evidence-first, and unsentimental.
+
+- Current revenue before future ambition.
+- Operating facts before consulting claims.
+- Deliverables before methodology marketing.
+- Real-time status before retrospective success language.
+- Short declarative sentences and precise contrasts.
+- Technical vocabulary from electrical work, insurance responsibility, systems architecture, ledgers, and controlled records.
+- The firm speaks as “we.” Christopher speaks as “I” when discussing his own experience.
+- No hype, invented maturity, fabricated proof, or guaranteed outcomes.
+- Zero em dashes in site copy and project direction documents.
 
 ## Capabilities and Constraints
 
-- No Tailwind, no font CDNs — self-hosted fonts only (Primal display, IBM Plex Sans body — IBM Plex still on system fallback, not yet self-hosted).
-- GSAP for scroll animation, CSS for micro-interactions — no Framer Motion.
-- Node 20 pinned (Astro 4.11.0 requires it) — relevant constraint if any future tooling (e.g. Impeccable's own live-mode dependencies) requires newer Node.
-- Deploy is Cloudflare Pages via git-connected auto-deploy from `main` — any merge to `main` goes live immediately.
+- Self-hosted Primal display font and self-hosted IBM Plex Sans body font.
+- GSAP for orchestrated scroll behavior and CSS for micro-interactions. No Framer Motion.
+- Preserve public route URLs, chatbot behavior, API routes, member back office, and Cloudflare deployment behavior.
+- Do not modify the separate SP+ project.
+- No new paid services without approval.
 
 ## Brand Commitments
 
-- **Three-career bio spine:** Technology = passion / Construction (15 yrs electrical) = objective truth / Insurance = responsibility. This is real, factual biography — not marketing invention.
-- **Locked hero copy:** H2 "Make AI native. Drop the prefix." / S1 "We make businesses AI-native: diagnose the bottleneck, position the tool, shape the output for ownership."
-- **Locked color tokens:** silver-base #E5E4E2 (primary surface), blue-brand #0033A0, gold-identity #D4AF37 (logo/key moments only), yellow-accent #FFD700 (solid UI only, never text on dark/blue), ink #222222, white #FFFFFF.
-- **Mood anchor:** corporate badge × transit signage × financial ledger × storm shelter × vault.
-- **Motion character:** fast/snappy, 120–200ms, Bloomberg-ticker feel — not slow/deliberate.
-- **Anti-list (locked):** no organic curves, no pastels, no script/serif type, no shadows, no rounded pills, no full-bleed photography, no multi-hue gradients, no glassmorphism, no bouncy easings.
-- **Content rule (locked 2026-08-05): ZERO em dashes, anywhere**, covering site copy, page titles, and project docs. Use a period, colon, or comma, restructuring the sentence if a straight swap reads awkwardly. Being AI-native means not shipping the AI-slop em dash habit.
+- **Hero identity:** “Secure Prospective” in Primal, with `/sɪˈkjʊr//prəˈspek.tɪv/` immediately beneath it in the body font.
+- **Name logic:** Secure is the current operating foundation. Prospective is the future system being built.
+- **Three-career spine:** Technology is passion. Construction is objective truth. Insurance is responsibility.
+- **Core palette:** platinum `#E5E4E2`, deep blue `#0033A0`, gold `#D4AF37`, signal yellow `#FFD700`, ink `#222222`, and white `#FFFFFF`.
+- **Creative North Star:** the established Property Card System remains the visual authority.
+- **Mood:** corporate badge, transit signage, financial ledger, storm shelter, and vault.
+- **Motion:** fast, deliberate, and state-based. No bouncy easing or decorative spectacle.
+- **Visual rejection list:** no organic curves, pastels, script or decorative serif type, rounded pills, full-bleed lifestyle photography, multi-hue gradients, glassmorphism, soft shadows, or generic AI imagery.
 
 ## Evidence on Hand
 
-TFM is the **only external** proof point on hand right now. No other case studies, testimonials, metrics, or press exist yet — future design/copy work must not fabricate them.
+### The IMO
 
-**The IMO case study, corrected framing (2026-08-05):** The ~$110M/six-year, ~$18M/yr track record is real, but it predates AI-native entirely. It's traditional-method business experience, not proof the four-movement method was already applied there. SecureProspective's AI-native rebuild of that same IMO is happening now, live, in real time. It is the method's **first** real adaptation, not a completed internal proof that predates the consulting offer. Do not write copy implying the IMO was already run AI-native, or that the consulting practice only launched after an internal proof was finished, both are false. The honest, and actually stronger, story: nothing here is theoretical, watch the first real business get diagnosed and rebuilt live.
+- Approximately eight active producers.
+- Approximately $18M in current annual annuity volume assisted.
+- Approximately $110M in total annuity production assisted over six years.
+- The financial track record predates the AI-native method. It proves operating experience, not a completed AI-native transformation.
+
+### SP+
+
+SP+ is the first AI-native deliverable and is currently being built. It is a Fedora-based immutable workstation for insurance agents and financial advisors.
+
+Confirmed product facts:
+
+- Full-disk encryption is built into the installation model.
+- The core operating system is immutable and updated as a managed image.
+- Applications are contained wherever practical to reduce lateral movement after a compromise.
+- The Pi AI harness is integrated into the desktop and can connect to the advisor’s existing Claude or ChatGPT subscription.
+- The intended workflow accepts a screenshot or plain-text question and returns plain-English step-by-step guidance.
+- SP+ does not replace MFA, secure email, offsite backups, or a formal compliance program.
+- There are no traditional software licensing fees or recurring subscription invoices.
+- Access is granted through a five-production-contract partnership selected by Christopher Campbell.
+
+Do not invent completion claims, performance numbers, compliance certifications, or launch status. Present SP+ as active work.
+
+### Tech Freedom Ministries
+
+TFM is the existing external client and proof of technical execution, digital infrastructure, brand-system, and website delivery. It remains supporting evidence.
 
 ## Product Principles
 
-1. Consulting is the front-and-center flagship; the IMO line is supporting proof, not the headline.
-2. The four-movement method is the differentiator — every surface should make the mechanism legible, not just claim expertise.
-3. Sanctuary/protection is structural, felt through design discipline (the locked anti-list, the vault/ledger mood), never stated as a marketing claim.
-4. Booking a consult is the goal of every page; the chatbot supports that goal, it does not replace it.
-5. TFM is real proof-of-work and should be treated as evidence, not diluted by invented case studies.
+1. The real operating business leads.
+2. SP+ makes the forward claim concrete.
+3. Consulting is earned through delivered evidence.
+4. The method is demonstrated rather than merely described.
+5. Human ownership and auditability remain central to every AI-native claim.
+6. Protection is felt through structure and accountability, never promised as certainty.
+7. Every claim must identify whether it is proven, active, or prospective.
 
 ## Accessibility & Inclusion
 
-No product-specific accessibility requirement established beyond standard web a11y (contrast, semantic structure) already implied by the locked design system's anti-list (no gray-on-color text, etc.).
+Meet standard web accessibility requirements: semantic structure, keyboard operation, visible focus, sufficient contrast, reduced-motion support, readable line lengths, and responsive layouts without horizontal overflow.

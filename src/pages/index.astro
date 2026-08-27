@@ -2,394 +2,124 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import MethodWidget from '../components/MethodWidget.astro';
 ---
 
-<Layout title="SecureProspective: Make AI native. Drop the prefix.">
+<Layout title="Secure Prospective" description="A revenue-producing IMO building its prospective form through SP+, the first AI-native deliverable.">
   <Nav />
 
   <main transition:name="page-card">
-    {/* ───────────────────────── HERO ───────────────────────── */}
-    <section class="hero">
-      <div class="hero-fx" aria-hidden="true">
-        <canvas id="hero-fx-canvas" data-hero-fx></canvas>
-      </div>
-      <div class="container hero-inner">
-        <h1 class="hero-title">
-          <span class="line-mask"><span class="line-inner">Make AI native.</span></span>
-          <span class="line-mask"><span class="line-inner">Drop the <span class="prefix-chip">prefix.</span></span></span>
-        </h1>
-        <p class="hero-sub">
-          We make businesses AI-native: diagnose the bottleneck, position the tool,
-          shape the output for ownership.
-        </p>
-        <a href="/the-method" id="see-method-btn" class="btn btn--ink">See the method &rarr;</a>
+    <section class="identity-hero" aria-labelledby="identity-title">
+      <div class="identity-lockup">
+        <h1 id="identity-title">Secure Prospective</h1>
+        <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
       </div>
     </section>
 
-    {/* ───────────────────── PROOF TEASERS ───────────────────── */}
-    <section class="proof-teasers">
-      <div class="container">
-        <div class="eyebrow eyebrow--white">The Work</div>
+    <section class="dual-state" aria-label="Secure and prospective operating states">
+      <article class="state-field state-field--secure">
+        <div class="state-field-head">
+          <span>STATE // OPERATING</span>
+          <span>REVENUE ACTIVE</span>
+        </div>
+        <div class="state-field-body">
+          <h2>The business<br />that exists.</h2>
+          <p class="state-lede">
+            SecureProspective operates inside the work: annuity and life-insurance wholesale,
+            producer development, case design, suitability, and infrastructure for active agents.
+          </p>
+          <div class="evidence-ledger" aria-label="IMO operating evidence">
+            <div><strong>8</strong><span>Active producers</span></div>
+            <div><strong>~$18M</strong><span>Current annual annuity volume assisted</span></div>
+            <div><strong>~$110M</strong><span>Total annuity production assisted over six years</span></div>
+          </div>
+          <a href="/services" class="action action--light">Enter the operation <span>→</span></a>
+        </div>
+      </article>
 
-        <div class="teasers animate-group">
-          <article class="teaser animate-item">
-            <div class="teaser-meta">DATA_RECORD // 001</div>
-            <h3 class="teaser-title">TFM: Client #1</h3>
-            <p class="teaser-desc">
-              Tech Freedom Ministries, a faith-backed digital freedom nonprofit. Built the
-              digital infrastructure, brand system, and live site. The method's first
-              external application.
-            </p>
-          </article>
-          <article class="teaser animate-item">
-            <div class="teaser-meta">DATA_RECORD // 002</div>
-            <h3 class="teaser-title">The IMO</h3>
-            <p class="teaser-desc">
-              We operated inside an IMO for six years, the traditional way. ~$110M in
-              annuity production, ~$18M/yr current volume. Now we're rebuilding that same
-              business AI-native, live. The method's first real adaptation, happening
-              in real time.
-            </p>
-          </article>
+      <article class="state-field state-field--prospective">
+        <div class="state-field-head">
+          <span>STATE // IN BUILD</span>
+          <span>DELIVERABLE 001</span>
+        </div>
+        <div class="state-field-body">
+          <h2>The system<br />it becomes.</h2>
+          <p class="state-lede">
+            SP+ is a Fedora-based immutable workstation for insurance agents and financial advisors:
+            encrypted from installation, contained where practical, and built around human-held AI assistance.
+          </p>
+          <div class="build-proof">
+            <span class="build-proof-mark" aria-hidden="true"></span>
+            <p><strong>Immutable. Encrypted. Contained. AI-First.</strong> A safer foundation for professionals trusted with other people’s financial lives.</p>
+          </div>
+          <a href="/the-work" class="action action--dark">Inspect SP+ <span>→</span></a>
+        </div>
+      </article>
+    </section>
+
+    <section class="method-spine shell">
+      <div class="spine-copy">
+        <h2>One operation.<br />Five movements.</h2>
+        <p>
+          The method is not a consulting product sitting above the business. It is the discipline
+          being applied inside it. Every claim moves through an evidence gate.
+        </p>
+      </div>
+      <ol class="spine-steps">
+        <li><span>01</span><strong>Diagnose</strong><small>Find the real constraint.</small></li>
+        <li><span>02</span><strong>Position</strong><small>Place the right tool.</small></li>
+        <li><span>03</span><strong>Shape</strong><small>Make output ownable.</small></li>
+        <li><span>04</span><strong>Transform</strong><small>Change the operation.</small></li>
+        <li><span>↺</span><strong>Re-diagnose</strong><small>Secure the next state.</small></li>
+      </ol>
+      <a href="/the-method" class="text-link">Read the operating method →</a>
+    </section>
+
+    <section class="proof-register">
+      <div class="shell proof-register-grid">
+        <div class="proof-register-title">
+          <span>PROOF REGISTER</span>
+          <h2>Claim only<br />what the record holds.</h2>
+        </div>
+        <div class="proof-lines">
+          <a href="/the-work#imo-record" class="proof-line">
+            <span class="proof-status proof-status--proven">Proven</span>
+            <strong>The IMO operating record</strong>
+            <small>Revenue, producers, production, responsibility.</small>
+            <span>01</span>
+          </a>
+          <a href="/the-work#sp-plus" class="proof-line">
+            <span class="proof-status proof-status--active">Active</span>
+            <strong>SP+ first deliverable</strong>
+            <small>The encrypted, immutable, AI-first advisor workstation.</small>
+            <span>02</span>
+          </a>
+          <a href="/the-work#security" class="proof-line">
+            <span class="proof-status proof-status--active">Specified</span>
+            <strong>SP+ workstation foundation</strong>
+            <small>Immutable Fedora, full-disk encryption, application containment, and Pi integration.</small>
+            <span>03</span>
+          </a>
+          <div class="proof-line proof-line--future">
+            <span class="proof-status">Prospective</span>
+            <strong>AI-native transformation</strong>
+            <small>An external offer earned through the record above.</small>
+            <span>04</span>
+          </div>
         </div>
       </div>
     </section>
 
-    {/* ───────────────────── OPERATOR TEASER ───────────────────── */}
-    <section class="operator-teaser">
-      <div class="container operator-inner animate-in">
-        <p class="operator-quote">
-          Three careers. One spine. Built it before consulting it.
-        </p>
-        <p class="operator-sub">
-          Fifteen years electrical. Twenty-six years technology. Insurance, annuity, and
-          IMO leadership. The four-movement method wasn't invented in a deck.
-        </p>
-        <a href="/the-operator" class="btn btn--outline">Meet the operator &rarr;</a>
-      </div>
-    </section>
-
-    {/* ───────────────────── LOOP-CLOSER ───────────────────── */}
-    <section class="loop-closer">
-      <div class="container loop-inner animate-in">
-        <p class="loop-line">What's native today gets re-diagnosed tomorrow.</p>
-        <p class="loop-sub">
-          The loop doesn't end. Your business just stops being the bottleneck.
-        </p>
-        <a href="/contact" class="btn">Start with a conversation &rarr;</a>
+    <section class="closing-field">
+      <div class="shell closing-field-grid">
+        <p>The future is not made certain.</p>
+        <h2>The business can be made ready for it.</h2>
+        <div class="closing-actions">
+          <a href="/contact" class="action action--signal">Start the right conversation <span>→</span></a>
+          <a href="/the-operator" class="text-link text-link--light">Meet the operator →</a>
+        </div>
       </div>
     </section>
   </main>
 
   <Footer />
-  <MethodWidget />
 </Layout>
-
-<style>
-  /* ── Hero ── */
-  .hero {
-    position: relative;
-    overflow: hidden;
-    background: var(--silver-base);
-    border-bottom: 2px solid var(--ink);
-    padding: var(--space-8) 0;
-  }
-  .hero-fx {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.3;
-  }
-  .hero-fx canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .hero-inner {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    align-items: flex-start;
-  }
-  .hero-title {
-    font-size: var(--text-display);
-    line-height: 1;
-    letter-spacing: -0.02em;
-    max-width: 900px;
-  }
-  .hero-title .prefix-chip {
-    background: var(--yellow-accent);
-    padding: 0 8px;
-  }
-  .hero-title .line-mask {
-    display: block;
-    overflow: hidden;
-  }
-  .hero-title .line-inner {
-    display: block;
-    transform: translateY(110%);
-    letter-spacing: 0.06em;
-    animation: hero-title-reveal 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .hero-title .line-mask:nth-child(2) .line-inner {
-    animation-delay: 60ms;
-  }
-  @keyframes hero-title-reveal {
-    to {
-      transform: translateY(0);
-      letter-spacing: -0.02em;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .hero-title .line-inner {
-      animation: none;
-      transform: translateY(0);
-      letter-spacing: -0.02em;
-    }
-  }
-  .hero-sub {
-    font-size: var(--text-body-lg);
-    max-width: 680px;
-    line-height: 1.5;
-    color: var(--ink);
-  }
-
-  /* ── Proof teasers ── */
-  .proof-teasers {
-    background: var(--blue-brand);
-    border-bottom: 2px solid var(--ink);
-    padding: var(--space-7) 0;
-  }
-  .eyebrow--white {
-    color: var(--white);
-  }
-  .teasers {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-4);
-  }
-  .teaser {
-    background: var(--white);
-    padding: var(--space-5);
-    border: 1px solid var(--ink);
-    /* ink offset, not the usual brand-blue: this card sits on a blue-brand
-       section, and a blue shadow disappears against a blue backdrop */
-    box-shadow: 6px 6px 0 rgba(34, 34, 34, 0.35);
-    transition: border-color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
-  }
-  .teaser:hover {
-    border-color: var(--yellow-accent);
-    box-shadow: 8px 8px 0 rgba(34, 34, 34, 0.45);
-    transform: translate(-2px, -2px);
-  }
-  .teaser-meta {
-    font-family: var(--font-display);
-    font-size: 11px;
-    color: var(--fineprint-gray);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: var(--space-3);
-  }
-  .teaser-title {
-    font-family: var(--font-display);
-    font-size: var(--text-h3);
-    text-transform: uppercase;
-    margin-bottom: var(--space-3);
-    letter-spacing: -0.01em;
-  }
-  .teaser-desc {
-    font-size: var(--text-caption);
-    line-height: 1.6;
-  }
-
-  /* ── Operator teaser ── */
-  .operator-teaser {
-    background: var(--ink);
-    color: var(--ink-inverted);
-    padding: var(--space-7) 0;
-  }
-  .operator-inner {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    align-items: flex-start;
-  }
-  .operator-quote {
-    font-family: var(--font-display);
-    font-size: var(--text-h1);
-    text-transform: uppercase;
-    color: var(--white);
-    line-height: 1.1;
-    max-width: 1000px;
-  }
-  .operator-sub {
-    font-size: var(--text-body-lg);
-    color: var(--white);
-    opacity: 0.85;
-    max-width: 820px;
-  }
-
-  /* ── Loop-closer ── */
-  .loop-closer {
-    background: var(--blue-brand);
-    padding: var(--space-6) 0;
-  }
-  .loop-inner {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    align-items: flex-start;
-  }
-  .loop-line {
-    font-family: var(--font-display);
-    font-size: var(--text-h3);
-    text-transform: uppercase;
-    color: var(--white);
-  }
-  .loop-sub {
-    font-size: var(--text-body);
-    color: var(--white);
-    opacity: 0.85;
-    margin-bottom: var(--space-3);
-  }
-
-  /* ── Responsive ── */
-  @media (max-width: 767px) {
-    .hero-title {
-      font-size: 48px;
-    }
-    .operator-quote {
-      font-size: var(--text-h2);
-    }
-    .teasers {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
-
-<script>
-  // Hero background: procedural ticker-tape scan, rows of scrolling dashes
-  // with a brightness pulse traveling through, evoking a stock-ticker readout.
-  //
-  // With View Transitions this page's JS module is loaded (and cached) once but
-  // the DOM <main> is fully replaced on every navigation, so the IIFE-at-load
-  // pattern from before can no longer rely on the canvas existing when the
-  // module first evaluates. Instead we:
-  //   - boot() on `astro:page-load` (fires after every navigation AND the first
-  //     document load), guarded so a fresh canvas node is only wired once, and
-  //   - tear down (cancel rAF, disconnect observers) on `astro:before-swap`, so
-  //     a running animation loop never keeps drawing into a detached canvas.
-  (function () {
-    var raf = null;
-    var running = false;
-    var t = 0;
-    var io = null;
-    var canvas = null;
-
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function resize() {
-      if (!canvas) return;
-      var rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
-      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
-    }
-
-    var blue = '0, 51, 160';
-    var yellow = '255, 215, 0';
-
-    // Ticker scan: rows of short dashes scrolling horizontally in alternating
-    // directions, with a brightness pulse traveling through, evoking a
-    // stock-ticker readout rather than a generic tech hex-grid.
-    function draw(ctx) {
-      var w = ctx.canvas.width, h = ctx.canvas.height;
-      if (!w || !h) return;
-      ctx.clearRect(0, 0, w, h);
-      var rowH = 28 * devicePixelRatio;
-      var rows = Math.ceil(h / rowH) + 1;
-      var dashW = 10 * devicePixelRatio;
-      var gap = 8 * devicePixelRatio;
-      var unit = dashW + gap;
-
-      for (var row = 0; row <= rows; row++) {
-        var y = row * rowH + rowH / 2;
-        var dir = row % 2 === 0 ? 1 : -1;
-        var offset = ((t * 40 * devicePixelRatio * dir) % unit + unit) % unit;
-        var rowPhase = (row * 0.37) % (Math.PI * 2);
-        for (var x = -unit; x < w + unit; x += unit) {
-          var dx = x - offset;
-          var wave = Math.sin((dx / w) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
-          var isArc = wave > 0.88;
-          var brightness = 0.1 + wave * 0.3;
-          ctx.fillStyle = isArc
-            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
-            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
-          ctx.fillRect(dx, y - 1 * devicePixelRatio, dashW, 2 * devicePixelRatio);
-        }
-      }
-      t += 0.012;
-    }
-
-    function loop() {
-      if (!running) return;
-      var local = document.getElementById('hero-fx-canvas');
-      var ctx = local && local.getContext('2d');
-      if (!ctx) { running = false; return; }
-      draw(ctx);
-      raf = requestAnimationFrame(loop);
-    }
-
-    function stop() {
-      running = false;
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-    }
-
-    function teardown() {
-      stop();
-      if (io) { io.disconnect(); io = null; }
-      canvas = null;
-    }
-
-    function boot() {
-      // Fresh canvas node each time home mounts; boot each one exactly once.
-      var node = document.getElementById('hero-fx-canvas');
-      if (!node || node.dataset.fxBooted === 'true') return;
-
-      canvas = node;
-      node.dataset.fxBooted = 'true';
-
-      var ctx = canvas.getContext('2d');
-      if (!ctx) { canvas = null; return; }
-
-      function start() {
-        if (running) return;
-        resize();
-        running = true;
-        if (reduceMotion) { draw(ctx); running = false; return; }
-        loop();
-      }
-
-      io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting && canvas.offsetWidth > 0) start();
-          else stop();
-        });
-      }, { threshold: 0.05 });
-      io.observe(canvas);
-
-      window.addEventListener('resize', function () { if (running) resize(); });
-
-      if (canvas.offsetWidth > 0) start();
-    }
-
-    // Boot on every page load, including the first one.
-    document.addEventListener('astro:page-load', boot);
-    // Stop the loop before the DOM main is swapped away so we never keep
-    // drawing into a detached canvas.
-    document.addEventListener('astro:before-swap', teardown);
-  })();
-</script>

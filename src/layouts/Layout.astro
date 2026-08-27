@@ -2,10 +2,14 @@
 import '../styles/tokens.css';
 import '../styles/fonts.css';
 import '../styles/transitions.css';
+import '../styles/site.css';
 import { ViewTransitions } from 'astro:transitions';
 import ChatWidget from '../components/ChatWidget.astro';
 
-const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.props;
+const {
+  title = 'Secure Prospective',
+  description = 'SecureProspective operates a real IMO and is rebuilding it AI-native through SP+, its first deliverable.',
+} = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -13,10 +17,8 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="SecureProspective is a technical business consulting firm. We make businesses AI-native: diagnose the bottleneck, position the tool, shape the output for ownership."
-    />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#E5E4E2" />
     <title>{title}</title>
     <ViewTransitions />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -24,358 +26,17 @@ const { title = 'SecureProspective: Make AI native. Drop the prefix.' } = Astro.
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <script is:inline>
-      document.documentElement.classList.add('js');
-    </script>
   </head>
   <body>
+    <!--
+    THESIS: A real operating business leads; SP+ makes the forward claim concrete; consulting follows delivered evidence.
+    OWN-WORLD: The established Property Card System remains intact with platinum stock, compliance blue, signal yellow, ledger ink, sharp edges, stamped Primal titles, and hard card-lift depth.
+    STORY: Visitors meet the name, see the operating IMO, follow SP+ as the first deliverable, understand the method, and choose the relevant conversation.
+    FIRST VIEWPORT: Secure Prospective stands alone at the center in Primal with its pronunciation directly beneath in IBM Plex Sans.
+    FORM: Established SecureProspective visual system, reorganized around the corrected business hierarchy; seed 6fe53f20 superseded by the user's explicit instruction to preserve the incumbent world.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+    -->
     <slot />
     <ChatWidget />
   </body>
 </html>
-
-<style is:global>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html {
-    background: var(--silver-base);
-  }
-
-  body {
-    background: var(--silver-base);
-    color: var(--ink);
-    font-family: var(--font-body);
-    font-size: var(--text-body);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1, h2, h3 {
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-    line-height: 1.1;
-  }
-
-  a {
-    color: inherit;
-  }
-
-  /* Shared component classes (not atomic utilities) */
-  .container {
-    max-width: var(--container-max);
-    margin: 0 auto;
-    padding: 0 var(--space-4);
-  }
-
-  .eyebrow {
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    display: inline-block;
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid currentColor;
-    margin-bottom: var(--space-5);
-  }
-
-  .btn {
-    display: inline-block;
-    position: relative;
-    font-family: var(--font-display);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: var(--text-body);
-    padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius-button);
-    text-decoration: none;
-    cursor: pointer;
-    border: 2px solid transparent;
-    background: var(--yellow-accent);
-    color: var(--ink);
-    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out,
-      transform 60ms ease-out;
-  }
-  .btn:hover {
-    background: var(--gold-identity);
-  }
-  .btn:active {
-    transform: translateY(1px);
-    transition-duration: 60ms;
-  }
-  .btn:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
-  }
-  .btn:disabled,
-  .btn[aria-disabled='true'] {
-    opacity: 0.45;
-    cursor: not-allowed;
-    pointer-events: none;
-    transform: none;
-  }
-  .btn--ink {
-    background: var(--ink);
-    color: var(--ink-inverted);
-    border-color: var(--ink);
-  }
-  .btn--ink:hover {
-    background: var(--blue-brand);
-    border-color: var(--blue-brand);
-  }
-  .btn--outline {
-    background: transparent;
-    color: var(--white);
-    border-color: var(--white);
-  }
-  .btn--outline:hover {
-    background: var(--white);
-    color: var(--ink);
-  }
-  .btn--ink:focus-visible,
-  .btn--outline:focus-visible {
-    outline-color: var(--yellow-accent);
-  }
-
-  /* Loading state: label hides, a small ring spins in its place. Toggle
-     `.is-loading` from JS on submit; button stays disabled-in-behavior via
-     pointer-events, but keeps its layout width so nothing jumps. */
-  .btn.is-loading {
-    color: transparent;
-    pointer-events: none;
-    cursor: wait;
-  }
-  .btn.is-loading::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--ink);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: btn-spin 600ms linear infinite;
-  }
-  .btn--ink.is-loading::after,
-  .btn--outline.is-loading::after {
-    border-color: var(--ink-inverted);
-    border-top-color: transparent;
-  }
-  @keyframes btn-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .btn.is-loading::after {
-      animation: none;
-    }
-  }
-
-  /* Motion pre-states - applied only when JS is active so no-JS shows content normally */
-  .js .reveal-word {
-    display: inline-block;
-    transform: translateY(12px);
-  }
-  .js .animate-in {
-    transform: translateY(8px);
-  }
-  .js .animate-item {
-    transform: translateY(8px);
-  }
-</style>
-
-<script>
-  import { gsap } from 'gsap';
-  import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-  gsap.registerPlugin(ScrollTrigger);
-
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Runs on every page load, INCLUDING every View Transition (Astro fires
-  // `astro:page-load` after the swap, and once on the first full document
-  // load). This is what keeps the scroll reveals working when the page
-  // content is swapped without a full reload.
-  function initMotion() {
-    // Kill any ScrollTriggers left over from the previous page so we never
-    // stack/duplicate listeners or triggers across navigations. Also clear
-    // gsap's inline transform on current nodes so the CSS pre-states
-    // (translateY) apply cleanly before we re-animate them.
-    ScrollTrigger.getAll().forEach((t) => t.kill());
-    gsap.set('.reveal-word, .animate-in, .animate-item', { clearProps: 'transform' });
-
-    if (reduceMotion) {
-      gsap.set('.reveal-word, .animate-in, .animate-item', { y: 0, clearProps: 'transform' });
-      return;
-    }
-
-    // 1. Hero word-by-word reveal on load (200ms each, 80ms stagger, no fade)
-    const words = gsap.utils.toArray('.reveal-word');
-    if (words.length) {
-      gsap.to(words, {
-        y: 0,
-        duration: 0.2,
-        ease: 'none',
-        stagger: 0.08,
-      });
-    }
-
-    // 2. Standalone scroll slide-ins
-    gsap.utils.toArray('.animate-in').forEach((el) => {
-      gsap.to(el, {
-        y: 0,
-        duration: 0.2,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 90%',
-          toggleActions: 'play none none none',
-        },
-      });
-    });
-
-    // 3. Staggered groups (nodes, cards, steps, metrics)
-    gsap.utils.toArray('.animate-group').forEach((group) => {
-      const items = group.querySelectorAll('.animate-item');
-      if (!items.length) return;
-      gsap.to(items, {
-        y: 0,
-        duration: 0.2,
-        ease: 'none',
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: group,
-          start: 'top 85%',
-          toggleActions: 'play none none none',
-        },
-      });
-    });
-  }
-
-  document.addEventListener('astro:page-load', initMotion);
-</script>
-
-<script>
-  // Secondary page-hero background: a grid of vault safety-deposit-box cells
-  // that "clear" gold in a diagonal wave. Restrained echo of the homepage's
-  // ticker-scan hero motif, present only on pages with a
-  // [data-page-hero-fx] canvas (Method/Work/Services/Operator; not Home,
-  // not Contact, whose clean-room white hero deliberately stays untouched).
-  //
-  // Same astro:page-load boot / astro:before-swap teardown lifecycle as the
-  // homepage canvas, so a running loop never keeps drawing into a detached
-  // canvas after navigating away.
-  (function () {
-    var raf = null;
-    var running = false;
-    var t = 0;
-    var speed = 2;
-    var io = null;
-    var canvas = null;
-
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function resize() {
-      if (!canvas) return;
-      var rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
-      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
-    }
-
-    var blue = '0, 51, 160';
-    var yellow = '255, 215, 0';
-
-    function draw(ctx) {
-      var w = ctx.canvas.width, h = ctx.canvas.height;
-      if (!w || !h) return;
-      ctx.clearRect(0, 0, w, h);
-      var cell = 48 * devicePixelRatio;
-      var cols = Math.ceil(w / cell) + 1;
-      var rows = Math.ceil(h / cell) + 1;
-
-      for (var row = 0; row < rows; row++) {
-        for (var col = 0; col < cols; col++) {
-          var x = col * cell;
-          var y = row * cell;
-          var diag = (col + row) * 0.35;
-          var wave = Math.sin(diag - t * speed) * 0.5 + 0.5;
-          var brightness = 0.08 + wave * 0.3;
-          var isArc = wave > 0.9;
-
-          ctx.strokeStyle = 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
-          ctx.lineWidth = 1 * devicePixelRatio;
-          ctx.strokeRect(x + 2, y + 2, cell - 4, cell - 4);
-
-          if (isArc) {
-            ctx.fillStyle = 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.35).toFixed(2) + ')';
-            ctx.fillRect(x + 6, y + 6, cell - 12, cell - 12);
-          }
-        }
-      }
-      t += 0.012;
-    }
-
-    function loop() {
-      if (!running) return;
-      var local = document.querySelector('[data-page-hero-fx]');
-      var ctx = local && local.getContext('2d');
-      if (!ctx) { running = false; return; }
-      draw(ctx);
-      raf = requestAnimationFrame(loop);
-    }
-
-    function stop() {
-      running = false;
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-    }
-
-    function teardown() {
-      stop();
-      if (io) { io.disconnect(); io = null; }
-      canvas = null;
-    }
-
-    function boot() {
-      var node = document.querySelector('[data-page-hero-fx]');
-      if (!node || node.dataset.fxBooted === 'true') return;
-
-      canvas = node;
-      node.dataset.fxBooted = 'true';
-
-      var ctx = canvas.getContext('2d');
-      if (!ctx) { canvas = null; return; }
-
-      function start() {
-        if (running) return;
-        resize();
-        running = true;
-        if (reduceMotion) { draw(ctx); running = false; return; }
-        loop();
-      }
-
-      io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting && canvas.offsetWidth > 0) start();
-          else stop();
-        });
-      }, { threshold: 0.05 });
-      io.observe(canvas);
-
-      window.addEventListener('resize', function () { if (running) resize(); });
-
-      if (canvas.offsetWidth > 0) start();
-    }
-
-    document.addEventListener('astro:page-load', boot);
-    document.addEventListener('astro:before-swap', teardown);
-  })();
-</script>

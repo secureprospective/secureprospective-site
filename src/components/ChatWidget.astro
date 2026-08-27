@@ -170,6 +170,13 @@
   .cw-send { padding: 0 16px; font-size: 18px; border: none; border-left: 2px solid var(--cw-ink); }
   .cw-send:hover { background: var(--gold-identity, #D4AF37); }
 
+  @media (max-width: 520px) {
+    #cw-root { right: 12px; bottom: 12px; }
+    #cw-launcher { gap: 6px; padding: 10px 12px; font-size: 10px; }
+    .cw-launcher-dot { width: 7px; height: 7px; }
+    #cw-panel { width: calc(100vw - 24px); max-width: none; max-height: calc(100vh - 24px); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     #cw-launcher, .cw-btn, .cw-send { transition: none; }
   }
