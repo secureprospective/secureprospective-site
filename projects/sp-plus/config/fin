@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+"""Fin — the SP+ assistant, as a terminal program.
+
+Fin is a front-end over the SP+ RPC service on 127.0.0.1:8765. It cannot do
+anything the RPC does not already allow: the service exposes a fixed allowlist
+of methods, verifies a playbook's sha256 before running it, and requires an
+explicit approval id first. Fin adds no privileges of its own -- it is the
+friendly face on a boundary that stays narrow on purpose.
+"""
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+ENDPOINT = os.environ.get("SPPLUS_ENDPOINT", "http://127.0.0.1:8765")
+BOLD, DIM, CYAN, RED, GREEN, OFF = (
+    "\033[1m", "\033[2m", "\033[36m", "\033[31m", "\033[32m", "\033[0m"
+)
+
+FISH = r"""
+      \                    /
+       \                  /
+   >======================<
+       /                  \
+      /                    \
+"""
+
+
+def call(method, params=None):
+    body = json.dumps({"method": method, "params": params or {}}).encode()
+    req = urllib.request.Request(
+        ENDPOINT + "/api/rpc", data=body, headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        payload = json.loads(resp.read().decode())
+    if not payload.get("ok"):
+        raise RuntimeError(payload.get("error", "the service refused that request"))
+    return payload.get("result", {})
+
+
+def show(label, payload):
+    print(f"\n{BOLD}{label}{OFF}")
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def guarded(fn):
+    try:
+        fn()
+    except urllib.error.URLError as exc:
+        print(
+            f"\n{RED}Fin cannot reach the SP+ service.{OFF}\n"
+            f"  {DIM}{exc}{OFF}\n"
+            "  Check it with:  systemctl status sp-plus.service"
+        )
+    except Exception as exc:  # noqa: BLE001 - a TUI must never traceback at a user
+        print(f"\n{RED}That did not work:{OFF} {exc}")
+
+
+def do_status():
+    show("This machine", call("get_printer_state"))
+
+
+def do_diagnose():
+    show("What Fin thinks is wrong", call("diagnose_printer"))
+
+
+def do_fix():
+    print(
+        f"\n{BOLD}Fin is about to run the printer-reconnect playbook.{OFF}\n"
+        "It is a fixed, signed set of steps. Fin cannot change what it does."
+    )
+    if input("Type yes to continue: ").strip().lower() != "yes":
+        print("Nothing was changed.")
+        return
+    approval = call("approve_remediation")
+    show("Approved", approval)
+    show(
+        "Result",
+        call("run_remediation", {"approval_id": approval.get("approval_id")}),
+    )
+
+
+def do_history():
+    show("What has happened on this machine", call("report"))
+
+
+MENU = [
+    ("1", "How is this machine doing?", do_status),
+    ("2", "Something is wrong with my printer", do_diagnose),
+    ("3", "Fix the printer", do_fix),
+    ("4", "What has Fin done before?", do_history),
+]
+
+
+def main():
+    print(f"{CYAN}{FISH}{OFF}")
+    print(f"  {BOLD}Fin{OFF} — your SP+ assistant")
+    print(f"  {DIM}Fin only runs a small set of approved, signed actions.{OFF}")
+    while True:
+        print()
+        for key, label, _ in MENU:
+            print(f"  {BOLD}{key}{OFF}  {label}")
+        print(f"  {BOLD}q{OFF}  Leave")
+        try:
+            choice = input("\nWhat would you like to do? ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+        if choice in {"q", "quit", "exit"}:
+            print(f"\n{GREEN}Fin is here whenever you need it.{OFF}\n")
+            return 0
+        for key, _, fn in MENU:
+            if choice == key:
+                guarded(fn)
+                break
+        else:
+            print(f"{DIM}Pick a number from the list, or q to leave.{OFF}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

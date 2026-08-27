@@ -66,7 +66,7 @@ function createWindowsModernPanel(screenId) {
     start.currentConfigGroup = new Array("General");
     start.writeConfig("icon", "start-here");
     start.writeConfig("favorites", [
-        "applications:sp-plus-assistant.desktop",
+        "applications:fin.desktop",
         "applications:brave-browser.desktop",
         "applications:net.thunderbird.Thunderbird.desktop",
         "applications:libreoffice-writer.desktop",
@@ -84,7 +84,7 @@ function createWindowsModernPanel(screenId) {
     // click away out of the box. The assistant opens the local RPC PWA in
     // Brave app mode; it is a launcher, not an autostart.
     tasks.writeConfig("launchers", [
-        "applications:sp-plus-assistant.desktop",
+        "applications:fin.desktop",
         "applications:brave-browser.desktop",
         "applications:org.kde.dolphin.desktop",
         "applications:net.thunderbird.Thunderbird.desktop"

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Fin</title>
+  <!-- Ichthys. Two strokes, each running from a tail tip through the crossing
+       at (96,128) and out around the body to the nose at (232,128). -->
+  <g fill="none" stroke="#1b3a5c" stroke-width="14" stroke-linecap="round">
+    <path d="M 26,70  C 55,92  78,112 96,128 C 130,86  190,70  232,128"/>
+    <path d="M 26,186 C 55,164 78,144 96,128 C 130,170 190,186 232,128"/>
+  </g>
+</svg>

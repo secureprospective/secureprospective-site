@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Fin
+GenericName=SP+ Assistant
+Comment=Ask Fin to check this machine and fix what is wrong
+Exec=/usr/libexec/sp-plus/fin
+Icon=fin
+Terminal=true
+Categories=System;Utility;
+Keywords=fin;help;support;assistant;printer;fix;
