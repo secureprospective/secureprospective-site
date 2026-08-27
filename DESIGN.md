@@ -16,17 +16,17 @@ typography:
     lineHeight: 1.0
     letterSpacing: "-0.02em"
   headline:
-    fontFamily: "Primal, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
     fontSize: "48px"
     fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "-0.01em"
+    lineHeight: 1.05
+    letterSpacing: "-0.03em"
   title:
-    fontFamily: "Primal, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
     fontSize: "24px"
-    fontWeight: 600
-    lineHeight: 1.3
-    letterSpacing: "normal"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
   body:
     fontFamily: "IBM Plex Sans, system-ui, -apple-system, sans-serif"
     fontSize: "16px"
@@ -96,7 +96,7 @@ Confirmed visual rejections: no organic curves (the brand symbol is the only cir
 **Key Characteristics:**
 - Flat solid color blocks per section, like distinct card faces
 - Sharp corners (0px default), 2px only on buttons/badges
-- Uppercase geometric display type (Primal) as the "card title bar" voice
+- Primal reserved for identity, page-title, navigation, and action moments; IBM Plex Sans carries section and card titles
 - Fast/snappy motion: constant small ticker-like updates, not slow reveals
 - A fixed, small palette used consistently rather than a broad gradient system
 
@@ -141,7 +141,7 @@ A small, fixed deck of colors: each one plays a specific card-face role, not a b
 - **Label** (500, 14px, 1.4, 0.05em tracking, uppercase): captions, eyebrows, metadata: the card's small print.
 
 ### Named Rules
-**The Stamped Title Rule.** Primal appears only in display/title/button contexts, always uppercase, never in body copy. IBM Plex Sans never appears in display roles; sentence case is reserved for anything meant to be read at length.
+**The Stamped Identity Rule.** Primal appears only in page identity, page-title, navigation, and action contexts, always uppercase, never in body copy or routine card headings. IBM Plex Sans carries section headings, card titles, supporting data, and anything meant to be read at length.
 
 ## Layout
 
@@ -165,7 +165,7 @@ Sharp corners by default (0px radius): the card-stock edge. Buttons and badges g
 
 ### Buttons
 - **Shape:** sharp with a minimal edge (2px radius)
-- **Primary (`.btn`):** Ticker Yellow background, Ledger Ink text, 16px/32px padding, uppercase Primal label. This is the *only* button that signals the primary conversion action on a page — the actual "book a consult" ask, always the page's loop-closer/contact CTA. Earlier funnel CTAs that route interest deeper into the site (e.g. the hero's "See the method") use `.btn--ink` instead, so only one Ticker Yellow button appears per page.
+- **Primary (`.btn`):** Ticker Yellow background, Ledger Ink text, 16px/32px padding, uppercase Primal label. This is the *only* button that signals the primary conversion action on a page, the actual "book a consult" ask, always the page's loop-closer/contact CTA. Earlier funnel CTAs that route interest deeper into the site (e.g. the hero's "See the method") use `.btn--ink` instead, so only one Ticker Yellow button appears per page.
 - **Primary hover:** shifts to Vault Gold
 - **Ink variant (`.btn--ink`):** Ledger Ink background, white text, 2px Ledger Ink border. Secondary CTA, use on light/silver-base sections only, an ink fill on an ink background is invisible.
 - **Ink variant hover:** shifts to Deep Compliance Blue (background + border)
@@ -187,7 +187,7 @@ Sharp corners by default (0px radius): the card-stock edge. Buttons and badges g
 ### Do:
 - **Do** keep every new color inside the six-token Fixed Deck: recombine roles, never introduce a new hue.
 - **Do** use hard offset shadows (zero blur) when depth is needed, never a soft/blurred shadow.
-- **Do** keep display type uppercase and geometric (Primal); keep body type sentence-case (IBM Plex Sans).
+- **Do** reserve Primal for identity, page titles, navigation, and actions; use IBM Plex Sans for section headings, card titles, data, and body copy.
 - **Do** keep motion fast (120–200ms) and linear/ease-out: the Bloomberg-ticker feel.
 
 ### Don't:

@@ -54,7 +54,7 @@ It is demonstrated inside the IMO before it is marketed broadly.
 
 ## Conversion
 
-The primary current conversion is a direct conversation about insurance producer infrastructure. A secondary conversation may concern SP+ or the emerging AI-native transformation practice. The site must never imply that an undelivered consulting package is already mature.
+The primary current conversion is a direct conversation about insurance producer infrastructure, including qualification for SP+ through a five-production-contract partnership. SP+ has no software fee and no recurring subscription invoice. Its cost is the opportunity to work together. The site must never imply that an undelivered consulting package is already mature.
 
 ## Voice
 

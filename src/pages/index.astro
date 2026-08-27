@@ -9,9 +9,18 @@ import Footer from '../components/Footer.astro';
 
   <main transition:name="page-card">
     <section class="identity-hero" aria-labelledby="identity-title">
+      <div class="identity-hero-fx" aria-hidden="true">
+        <canvas id="hero-fx-canvas" data-hero-fx></canvas>
+      </div>
       <div class="identity-lockup">
         <h1 id="identity-title">Secure Prospective</h1>
         <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
+        <a class="hero-sp-plus" href="/the-work">
+          <span>SP+ // ACTIVE BUILD</span>
+          <strong>The safer advisor workstation.</strong>
+          <small>No software fee. No recurring subscription. Access begins with the opportunity to work together.</small>
+          <b>Explore SP+ →</b>
+        </a>
       </div>
     </section>
 
@@ -42,16 +51,16 @@ import Footer from '../components/Footer.astro';
           <span>DELIVERABLE 001</span>
         </div>
         <div class="state-field-body">
-          <h2>The system<br />it becomes.</h2>
+          <h2>The workstation<br />that protects the practice.</h2>
           <p class="state-lede">
-            SP+ is a Fedora-based immutable workstation for insurance agents and financial advisors:
+            SP+ is a Fedora-based immutable workstation for insurance agents and financial advisors,
             encrypted from installation, contained where practical, and built around human-held AI assistance.
           </p>
           <div class="build-proof">
             <span class="build-proof-mark" aria-hidden="true"></span>
-            <p><strong>Immutable. Encrypted. Contained. AI-First.</strong> A safer foundation for professionals trusted with other people’s financial lives.</p>
+            <p><strong>No software fee. No recurring subscription.</strong> Access is earned through five production contracts and the opportunity to work together.</p>
           </div>
-          <a href="/the-work" class="action action--dark">Inspect SP+ <span>→</span></a>
+          <a href="/the-work" class="action action--dark">See how SP+ works <span>→</span></a>
         </div>
       </article>
     </section>
@@ -93,10 +102,10 @@ import Footer from '../components/Footer.astro';
             <small>The encrypted, immutable, AI-first advisor workstation.</small>
             <span>02</span>
           </a>
-          <a href="/the-work#security" class="proof-line">
-            <span class="proof-status proof-status--active">Specified</span>
-            <strong>SP+ workstation foundation</strong>
-            <small>Immutable Fedora, full-disk encryption, application containment, and Pi integration.</small>
+          <a href="/the-work#access" class="proof-line">
+            <span class="proof-status proof-status--active">Available</span>
+            <strong>SP+ partnership access</strong>
+            <small>No software fee. No subscription. Qualify through five production contracts.</small>
             <span>03</span>
           </a>
           <div class="proof-line proof-line--future">
@@ -111,11 +120,11 @@ import Footer from '../components/Footer.astro';
 
     <section class="closing-field">
       <div class="shell closing-field-grid">
-        <p>The future is not made certain.</p>
-        <h2>The business can be made ready for it.</h2>
+        <p>SP+ partnership access</p>
+        <h2>No software fee. No subscription. The cost is the opportunity to work together.</h2>
         <div class="closing-actions">
-          <a href="/contact" class="action action--signal">Start the right conversation <span>→</span></a>
-          <a href="/the-operator" class="text-link text-link--light">Meet the operator →</a>
+          <a href="mailto:secureprospective@gmail.com?subject=SP%2B%20five-contract%20partnership" class="action action--signal">Qualify for SP+ <span>→</span></a>
+          <a href="/the-work#access" class="text-link text-link--light">See the access model →</a>
         </div>
       </div>
     </section>
@@ -123,3 +132,134 @@ import Footer from '../components/Footer.astro';
 
   <Footer />
 </Layout>
+
+<script>
+  // Production homepage motif: ticker rows moving in alternating directions
+  // with a traveling yellow pulse. Preserved here inside the new identity hero.
+  (function () {
+    var raf = null;
+    var running = false;
+    var t = 0;
+    var io = null;
+    var canvas = null;
+    var onResize = null;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function resize() {
+      if (!canvas || !canvas.parentElement) return;
+      var rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
+      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
+    }
+
+    var blue = '0, 51, 160';
+    var yellow = '255, 215, 0';
+
+    function draw(ctx) {
+      var w = ctx.canvas.width;
+      var h = ctx.canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      var rowH = 28 * devicePixelRatio;
+      var rows = Math.ceil(h / rowH) + 1;
+      var dashW = 10 * devicePixelRatio;
+      var gap = 8 * devicePixelRatio;
+      var unit = dashW + gap;
+
+      for (var row = 0; row <= rows; row++) {
+        var y = row * rowH + rowH / 2;
+        var dir = row % 2 === 0 ? 1 : -1;
+        var offset = ((t * 40 * devicePixelRatio * dir) % unit + unit) % unit;
+        var rowPhase = (row * 0.37) % (Math.PI * 2);
+        for (var x = -unit; x < w + unit; x += unit) {
+          var dx = x - offset;
+          var wave = Math.sin((dx / w) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
+          var isArc = wave > 0.88;
+          var brightness = 0.1 + wave * 0.3;
+          ctx.fillStyle = isArc
+            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
+            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.fillRect(dx, y - 1 * devicePixelRatio, dashW, 2 * devicePixelRatio);
+        }
+      }
+      t += 0.012;
+    }
+
+    function loop() {
+      if (!running) return;
+      var local = document.getElementById('hero-fx-canvas');
+      var ctx = local && local.getContext('2d');
+      if (!ctx) {
+        running = false;
+        return;
+      }
+      draw(ctx);
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    }
+
+    function teardown() {
+      stop();
+      if (io) {
+        io.disconnect();
+        io = null;
+      }
+      if (onResize) {
+        window.removeEventListener('resize', onResize);
+        onResize = null;
+      }
+      canvas = null;
+    }
+
+    function boot() {
+      var node = document.getElementById('hero-fx-canvas');
+      if (!node || node.dataset.fxBooted === 'true') return;
+
+      canvas = node;
+      node.dataset.fxBooted = 'true';
+      var ctx = canvas.getContext('2d');
+      if (!ctx) {
+        canvas = null;
+        return;
+      }
+
+      function start() {
+        if (running) return;
+        resize();
+        running = true;
+        if (reduceMotion) {
+          draw(ctx);
+          running = false;
+          return;
+        }
+        loop();
+      }
+
+      io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && canvas && canvas.offsetWidth > 0) start();
+          else stop();
+        });
+      }, { threshold: 0.05 });
+      io.observe(canvas);
+
+      onResize = function () {
+        if (canvas && canvas.offsetWidth > 0) resize();
+      };
+      window.addEventListener('resize', onResize);
+
+      if (canvas.offsetWidth > 0) start();
+    }
+
+    document.addEventListener('astro:page-load', boot);
+    document.addEventListener('astro:before-swap', teardown);
+    boot();
+  })();
+</script>
