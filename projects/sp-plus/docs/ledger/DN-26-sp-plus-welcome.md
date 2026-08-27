@@ -92,3 +92,63 @@ here so the decision is visible later rather than rediscovered.
   `fedora-kinoite:44` ships none, so without it every process starts in the C locale.
 - DN-17 ("the first screen an advisor ever sees") is not cancelled. Its subject changes
   from the KDE wizard to SP+ Welcome.
+
+## Network share drives and remembered passwords
+
+Added 2026-08-27 at Christopher's direction: the Welcome screen must walk the advisor
+through connecting to a shared network drive, and must save the password so it is not
+re-entered after every reboot.
+
+### What the image already has, verified against `localhost/sp-plus-kde:spike`
+
+| Component | Status |
+|---|---|
+| `cifs.ko` kernel module | present (`kernel/fs/smb/client/cifs.ko.xz`) |
+| `cifs-utils` (`mount.cifs`, `cifscreds`) | 7.6-2.fc44 |
+| `samba-client` (`smbclient`) | 4.24.6-1.fc44 |
+| `kio-extras` (`smb.so`, so Dolphin browses `smb://`) | 26.08.0-1.fc44 |
+| `keyutils` | 1.6.3-7.fc44 |
+| `avahi` | 0.9~rc2-8.fc44 |
+| `kwalletd6` + `pam_kwallet5.so` | present on the installed system |
+
+Nothing about mounting a share is blocked. Mounting works today; only the guided
+experience is missing.
+
+### The one gap that needs a build
+
+**`wsdd` is not installed.** Modern Windows and NAS devices are discovered by WS-Discovery;
+the old NetBIOS browsing that `smbclient -L` relies on is disabled by default on current
+Windows. Without `wsdd` the advisor cannot be shown a list of shares on their office
+network and must type a server name or IP, which is exactly the kind of thing this product
+exists to avoid. `wsdd` must be added to the KDE image before the Welcome screen ships.
+
+### The mechanism, and why
+
+Two routes exist and they behave differently for a non-technical user:
+
+1. **Dolphin `smb://` with the password saved in KWallet.** Per-user, no root. But it only
+   exists inside Dolphin's network view, and the wallet must be unlocked. Applications that
+   open a plain file path will not see the share.
+2. **A real system mount** — an `/etc/fstab` or systemd `.mount` entry using
+   `credentials=` pointing at a root-only file. The share becomes an ordinary folder that
+   every application sees, and it is present at every boot with nothing typed.
+
+**Route 2 is the product answer.** An advisor should see a folder, not a protocol. The
+Welcome screen collects the server, share, and credentials once, writes
+`/etc/sp-plus/shares/<name>.cred` mode `0600` root-owned, adds the mount, and drops a
+Dolphin bookmark plus a desktop shortcut so the share is visible where they already look.
+`/etc` is writable and per-machine on a bootc system, so this survives upgrades and
+`bootc rollback` alike.
+
+Route 1 should still work, and `pam_kwallet5` should auto-unlock the wallet at login so
+that saved `smb://` credentials in Dolphin do not prompt either. The two are complementary:
+the mount is for the advisor's daily folder, the wallet is for ad-hoc browsing.
+
+### Recorded security consequence
+
+The share password is stored in cleartext in a root-only file. Two mitigations are real:
+the disk is LUKS-encrypted at rest, and the file is `0600` root-owned. One caveat is not
+mitigated and is recorded here deliberately: SP+ grants `%wheel ALL=(ALL) NOPASSWD: ALL`,
+so anyone at an unlocked session can read that file. This is the same tradeoff already
+accepted in `sudoers-sp-plus`, now with a stored network credential behind it. If that
+becomes unacceptable, the sudoers decision is the thing to revisit, not the mount.
