@@ -1,193 +1,65 @@
-#!/usr/bin/python3
-"""Fin — the SP+ assistant, as a terminal program.
+#!/usr/bin/bash
+# Fin -- the SP+ assistant.
+#
+# Fin used to be a four-item menu over a narrow RPC allowlist. Christopher ruled
+# that too restrictive on 2026-08-27: on an image-mode bootc system the real
+# containment is architectural -- /usr is read-only, every change lands in a new
+# deployment, and a bad state is one `bootc rollback` away -- so caging the
+# assistant on top of that buys little and costs the advisor an assistant that
+# can actually help. Fin is now the Pi agent, branded, with the vetted playbooks
+# kept as a skill rather than as the whole of the product.
+set -u
 
-Fin is a front-end over the SP+ RPC service on 127.0.0.1:8765. It cannot do
-anything the RPC does not already allow: the service exposes a fixed allowlist
-of methods, verifies a playbook's sha256 before running it, and requires an
-explicit approval id first. Fin adds no privileges of its own -- it is the
-friendly face on a boundary that stays narrow on purpose.
-"""
-import json
-import os
-import sys
-import urllib.error
-import urllib.request
+BANNER=/usr/libexec/sp-plus/fin-banner
+PROMPT=/usr/share/sp-plus/fin/system-prompt.md
+SKILLS=/usr/share/sp-plus/fin/skills
+SYSTEM_ENV=/etc/sp-plus/fin.env
+USER_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/sp-plus/fin.env"
 
-ENDPOINT = os.environ.get("SPPLUS_ENDPOINT", "http://127.0.0.1:8765")
-BOLD, DIM, CYAN, RED, GREEN, OFF = (
-    "\033[1m", "\033[2m", "\033[36m", "\033[31m", "\033[32m", "\033[0m"
-)
+BOLD=$'\033[1m'; DIM=$'\033[2m'; OFF=$'\033[0m'
 
-# Fin's mark is a school of ichthys, the way the fish appear in "The Chosen":
-# some slate blue, some grey, swimming both ways. The large fish is drawn once
-# facing right and mirrored at runtime rather than stored twice, because a
-# braille cell has to be flipped dot by dot (columns 1/2/3/7 swap with 4/5/6/8)
-# and a hand-reversed copy silently rots the moment the art is edited.
-BLUE, GREY = 74, 249
+# The key is read from the machine first, then from the advisor's own config.
+# Neither is in the image: the ISO must never carry a credential.
+[ -r "$SYSTEM_ENV" ] && . "$SYSTEM_ENV"
+[ -r "$USER_ENV" ] && . "$USER_ENV"
 
-FISH_RIGHT = """\
-⠀⠀⠀⠀⠀⠀⣀⣤⣤⣶⣶⣾⠿⠿⢿⣶⣶⣦⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⣴⡦
-⠀⠀⢀⣤⣴⡿⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠿⣷⣦⣄⠀⠀⣠⣾⠟⠁
-⣀⣴⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⣷⣾⡿⠋⠀⠀
-⠈⠻⣿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⠿⠻⣷⣄⠀⠀
-⠀⠀⠈⠙⠻⢿⣦⣤⣄⣀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣴⣾⠿⠛⠉⠀⠀⠈⢿⣧⡀
-⠀⠀⠀⠀⠀⠀⠉⠙⠛⠻⠿⠿⠿⠿⠿⠿⠿⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⢹⡗"""
+have_key() { [ -n "${ANTHROPIC_API_KEY:-}" ]; }
 
+first_run_key() {
+    printf '\n  %sFin needs a key before it can talk.%s\n' "$BOLD" "$OFF"
+    printf '  %sPaste the key from your SP+ welcome email. It is stored on this\n' "$DIM"
+    printf '  machine only, readable by you alone, and never leaves it.%s\n\n' "$OFF"
+    printf '  Key (or press Enter to skip): '
+    # -s so a key is never left on screen or in scrollback.
+    IFS= read -r -s key || key=
+    printf '\n'
+    [ -z "$key" ] && return 1
+    install -d -m 0700 "$(dirname "$USER_ENV")"
+    ( umask 077; printf 'ANTHROPIC_API_KEY=%s\n' "$key" > "$USER_ENV" )
+    chmod 0600 "$USER_ENV"
+    export ANTHROPIC_API_KEY="$key"
+    printf '  %sSaved. Fin is ready.%s\n' "$BOLD" "$OFF"
+    return 0
+}
 
-def _mirror_cell(ch):
-    """Flip one braille cell horizontally: dots 1,2,3,7 swap with 4,5,6,8."""
-    if not "\u2800" <= ch <= "\u28ff":
-        return ch
-    bits = ord(ch) - 0x2800
-    out = 0
-    for lo, hi in ((0, 3), (1, 4), (2, 5), (6, 7)):
-        if bits & (1 << lo):
-            out |= 1 << hi
-        if bits & (1 << hi):
-            out |= 1 << lo
-    return chr(0x2800 + out)
+[ -x "$BANNER" ] && "$BANNER"
+printf '  %sFin%s — your SP+ assistant\n' "$BOLD" "$OFF"
 
+if ! have_key; then
+    first_run_key || {
+        printf '\n  %sWithout a key Fin cannot answer questions, but the repair steps\n'  "$DIM"
+        printf '  still work. Run:  spplus-fix printer%s\n\n' "$OFF"
+        exit 1
+    }
+fi
 
-def _mirror(art):
-    return "\n".join("".join(_mirror_cell(c) for c in reversed(line))
-                     for line in art.split("\n"))
-
-
-def school():
-    """Lay the fish out on a canvas so they overlap without erasing each other."""
-    width, height = 72, 10
-    glyph = [[" "] * width for _ in range(height)]
-    shade = [[None] * width for _ in range(height)]
-
-    def place(art, row, col, colour):
-        for dr, line in enumerate(art.split("\n")):
-            for dc, ch in enumerate(line):
-                if ch in ("\u2800", " "):
-                    continue          # an empty braille cell must not punch a hole
-                r, c = row + dr, col + dc
-                if 0 <= r < height and 0 <= c < width:
-                    glyph[r][c], shade[r][c] = ch, colour
-
-    left = _mirror(FISH_RIGHT)
-    # Two big fish, and a shoal of small ones above and below them swimming both
-    # ways. Rows 0-1 and 8-9 are kept clear of the big fish so nothing collides.
-    place(FISH_RIGHT, 2, 0, BLUE)
-    place(left, 2, 40, GREY)
-    for row, col, fish, colour in (
-        (0,  6, "><>", BLUE), (0, 30, "<><", GREY), (0, 58, "><>", BLUE),
-        (1, 18, "<><", GREY), (1, 46, "><>", BLUE), (1, 66, "<><", GREY),
-        (8, 12, "<><", GREY), (8, 38, "><>", BLUE), (8, 62, "<><", GREY),
-        (9,  2, "><>", BLUE), (9, 26, "<><", GREY), (9, 52, "><>", BLUE),
-    ):
-        place(fish, row, col, colour)
-
-    lines = []
-    for r in range(height):
-        line, cur = "", None
-        for c in range(width):
-            if shade[r][c] != cur:
-                if cur is not None:
-                    line += OFF
-                cur = shade[r][c]
-                if cur is not None:
-                    line += f"\033[38;5;{cur}m"
-            line += glyph[r][c]
-        if cur is not None:
-            line += OFF
-        lines.append(line.rstrip())
-    return "\n".join(lines)
-
-
-def call(method, params=None):
-    body = json.dumps({"method": method, "params": params or {}}).encode()
-    req = urllib.request.Request(
-        ENDPOINT + "/api/rpc", data=body, headers={"Content-Type": "application/json"}
-    )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode())
-    if not payload.get("ok"):
-        raise RuntimeError(payload.get("error", "the service refused that request"))
-    return payload.get("result", {})
-
-
-def show(label, payload):
-    print(f"\n{BOLD}{label}{OFF}")
-    print(json.dumps(payload, indent=2, sort_keys=True))
-
-
-def guarded(fn):
-    try:
-        fn()
-    except urllib.error.URLError as exc:
-        print(
-            f"\n{RED}Fin cannot reach the SP+ service.{OFF}\n"
-            f"  {DIM}{exc}{OFF}\n"
-            "  Check it with:  systemctl status sp-plus.service"
-        )
-    except Exception as exc:  # noqa: BLE001 - a TUI must never traceback at a user
-        print(f"\n{RED}That did not work:{OFF} {exc}")
-
-
-def do_status():
-    show("This machine", call("get_printer_state"))
-
-
-def do_diagnose():
-    show("What Fin thinks is wrong", call("diagnose_printer"))
-
-
-def do_fix():
-    print(
-        f"\n{BOLD}Fin is about to run the printer-reconnect playbook.{OFF}\n"
-        "It is a fixed, signed set of steps. Fin cannot change what it does."
-    )
-    if input("Type yes to continue: ").strip().lower() != "yes":
-        print("Nothing was changed.")
-        return
-    approval = call("approve_remediation")
-    show("Approved", approval)
-    show(
-        "Result",
-        call("run_remediation", {"approval_id": approval.get("approval_id")}),
-    )
-
-
-def do_history():
-    show("What has happened on this machine", call("report"))
-
-
-MENU = [
-    ("1", "How is this machine doing?", do_status),
-    ("2", "Something is wrong with my printer", do_diagnose),
-    ("3", "Fix the printer", do_fix),
-    ("4", "What has Fin done before?", do_history),
-]
-
-
-def main():
-    print(school())
-    print(f"  {BOLD}Fin{OFF} — your SP+ assistant")
-    print(f"  {DIM}Fin only runs a small set of approved, signed actions.{OFF}")
-    while True:
-        print()
-        for key, label, _ in MENU:
-            print(f"  {BOLD}{key}{OFF}  {label}")
-        print(f"  {BOLD}q{OFF}  Leave")
-        try:
-            choice = input("\nWhat would you like to do? ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            return 0
-        if choice in {"q", "quit", "exit"}:
-            print(f"\n{GREEN}Fin is here whenever you need it.{OFF}\n")
-            return 0
-        for key, _, fn in MENU:
-            if choice == key:
-                guarded(fn)
-                break
-        else:
-            print(f"{DIM}Pick a number from the list, or q to leave.{OFF}")
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+export ANTHROPIC_API_KEY
+# --approve is deliberate: without it Fin asks about trusting project files in a
+# home directory the advisor owns anyway, which is a question they cannot answer.
+exec /usr/bin/pi \
+    --provider anthropic \
+    --model "${FIN_MODEL:-claude-sonnet-5}" \
+    --append-system-prompt "$PROMPT" \
+    --skill "$SKILLS" \
+    --approve \
+    "$@"

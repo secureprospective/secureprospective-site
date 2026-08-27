@@ -1,0 +1,36 @@
+#!/usr/bin/bash
+# The vetted repair playbooks, without the agent.
+#
+# Fin needs a key to hold a conversation. The repairs do not -- they are a fixed
+# sequence against the local service. This is what an advisor runs when the key
+# has not been set up yet, and it is also the thing Fin's `printer` skill drives.
+set -u
+RPC=http://127.0.0.1:8765/api/rpc
+BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; OFF=$'\033[0m'
+
+rpc() { curl -sS -XPOST "$RPC" -H 'Content-Type: application/json' -d "$1"; }
+field() { python3 -c 'import json,sys; print(json.load(sys.stdin).get("result",{}).get(sys.argv[1],""))' "$2" <<<"$1"; }
+
+case "${1:-}" in
+  printer)
+    printf '\n%sLooking at the printer.%s\n' "$BOLD" "$OFF"
+    d=$(rpc '{"method":"diagnose_printer"}') || { printf '%sFin cannot reach the SP+ service. Try: systemctl status sp-plus%s\n' "$RED" "$OFF"; exit 1; }
+    printf '  %s\n\n' "$(field "$d" summary)"
+    printf 'Run the repair? It reconnects the printer and records what it did. [yes/no] '
+    read -r a
+    [ "$a" = yes ] || { printf 'Nothing was changed.\n'; exit 0; }
+    id=$(field "$(rpc '{"method":"approve_remediation"}')" approval_id)
+    r=$(rpc "{\"method\":\"run_remediation\",\"params\":{\"approval_id\":\"$id\"}}")
+    printf '  %s\n' "$(field "$r" message)"
+    v=$(rpc '{"method":"verify_printer"}')
+    if [ "$(field "$v" verified)" = True ]; then
+      printf '  %sVerified — a test page went through.%s\n\n' "$BOLD" "$OFF"
+    else
+      printf '  %sThe repair ran but did not verify. Call support.%s\n\n' "$RED" "$OFF"; exit 1
+    fi
+    ;;
+  *)
+    printf 'Usage: spplus-fix printer\n\n  %sRepairs SP+ knows how to make on its own.%s\n' "$DIM" "$OFF"
+    exit 2
+    ;;
+esac

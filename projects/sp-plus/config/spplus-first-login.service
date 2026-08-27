@@ -1,0 +1,14 @@
+[Unit]
+Description=Apply the SP+ look and feel on an advisor's first login (DN-24)
+PartOf=graphical-session.target
+After=plasma-workspace.target
+ConditionPathExists=!%S/sp-plus/first-login-theme-applied
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-first-login
+# A theme that fails to apply must never cost the advisor their desktop.
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=plasma-workspace.target

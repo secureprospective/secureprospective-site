@@ -1,0 +1,47 @@
+#!/usr/bin/bash
+# DN-24: make a fresh install look like the machine we demo.
+#
+# /etc/xdg/kdeglobals NAMES the SP+ look-and-feel, but naming is not applying.
+# plasmashell reads LookAndFeelPackage for its colours and widget style only;
+# the panel layout and the wallpaper come from the package's layouts/*.js and
+# its [Wallpaper] default, and NOTHING re-reads those unless the look-and-feel
+# is explicitly applied. So a fresh advisor account booted to Fedora's default
+# wallpaper and Fedora's default favourites, while the machine we had themed by
+# hand looked correct -- the gap that made DN-24.
+#
+# This runs once per user, inside the live Plasma session (it needs the session
+# bus and a running plasmashell to talk to), then drops a stamp so it never
+# fights the advisor's own choices afterwards.
+set -u
+
+LNF=org.secureprospective.spplus.windows11.dark
+WALLPAPER=/usr/share/sp-plus/branding/sp-plus-wallpaper.png
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
+
+[ -e "$STAMP" ] && { echo "spplus-first-login: already applied, nothing to do"; exit 0; }
+
+# plasma-apply-* are D-Bus clients: plasmashell has to be answering before they
+# will do anything. The unit is ordered after plasma-workspace.target, but that
+# target is reached before plasmashell has claimed its name, so wait for the
+# name rather than for the target. busctl is used rather than qdbus because the
+# image ships no qdbus at all -- checked, it is not in the Plasma package set.
+for _ in $(seq 1 60); do
+    busctl --user list --no-legend --no-pager 2>/dev/null \
+        | grep -q '^org\.kde\.plasmashell\b' && break
+    sleep 1
+done
+
+# Plasma installs these under /usr/sbin, which is not reliably on a user
+# session's PATH. Call them by path.
+rc=0
+/usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || rc=1
+[ -r "$WALLPAPER" ] && { /usr/sbin/plasma-apply-wallpaperimage "$WALLPAPER" || rc=1; }
+
+if [ "$rc" -ne 0 ]; then
+    echo "spplus-first-login: theme did not apply cleanly; leaving the stamp off so the next login retries"
+    exit 1
+fi
+
+install -d -m 0700 "$(dirname "$STAMP")"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"
+echo "spplus-first-login: applied $LNF and the SP+ wallpaper"

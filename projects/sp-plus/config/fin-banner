@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+"""Fin's mark, printed above the Pi TUI at launch.
+
+Split out of the old menu-driven fin so the art survives Fin becoming a real
+agent. It is a separate program on purpose: the launcher is shell, and this is
+the one part of Fin that has to be Python because a braille cell has to be
+flipped dot by dot.
+"""
+import sys
+
+BOLD, DIM, CYAN, RED, GREEN, OFF = (
+    "\033[1m", "\033[2m", "\033[36m", "\033[31m", "\033[32m", "\033[0m"
+)
+
+# Fin's mark is a school of ichthys, the way the fish appear in "The Chosen":
+# some slate blue, some grey, swimming both ways. The large fish is drawn once
+# facing right and mirrored at runtime rather than stored twice, because a
+# braille cell has to be flipped dot by dot (columns 1/2/3/7 swap with 4/5/6/8)
+# and a hand-reversed copy silently rots the moment the art is edited.
+BLUE, GREY = 74, 249
+
+FISH_RIGHT = """\
+⠀⠀⠀⠀⠀⠀⣀⣤⣤⣶⣶⣾⠿⠿⢿⣶⣶⣦⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⣴⡦
+⠀⠀⢀⣤⣴⡿⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠿⣷⣦⣄⠀⠀⣠⣾⠟⠁
+⣀⣴⡿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⣷⣾⡿⠋⠀⠀
+⠈⠻⣿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⠿⠻⣷⣄⠀⠀
+⠀⠀⠈⠙⠻⢿⣦⣤⣄⣀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣴⣾⠿⠛⠉⠀⠀⠈⢿⣧⡀
+⠀⠀⠀⠀⠀⠀⠉⠙⠛⠻⠿⠿⠿⠿⠿⠿⠿⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⢹⡗"""
+
+
+def _mirror_cell(ch):
+    """Flip one braille cell horizontally: dots 1,2,3,7 swap with 4,5,6,8."""
+    if not "\u2800" <= ch <= "\u28ff":
+        return ch
+    bits = ord(ch) - 0x2800
+    out = 0
+    for lo, hi in ((0, 3), (1, 4), (2, 5), (6, 7)):
+        if bits & (1 << lo):
+            out |= 1 << hi
+        if bits & (1 << hi):
+            out |= 1 << lo
+    return chr(0x2800 + out)
+
+
+def _mirror(art):
+    return "\n".join("".join(_mirror_cell(c) for c in reversed(line))
+                     for line in art.split("\n"))
+
+
+def school():
+    """Lay the fish out on a canvas so they overlap without erasing each other."""
+    width, height = 72, 10
+    glyph = [[" "] * width for _ in range(height)]
+    shade = [[None] * width for _ in range(height)]
+
+    def place(art, row, col, colour):
+        for dr, line in enumerate(art.split("\n")):
+            for dc, ch in enumerate(line):
+                if ch in ("\u2800", " "):
+                    continue          # an empty braille cell must not punch a hole
+                r, c = row + dr, col + dc
+                if 0 <= r < height and 0 <= c < width:
+                    glyph[r][c], shade[r][c] = ch, colour
+
+    left = _mirror(FISH_RIGHT)
+    # Two big fish, and a shoal of small ones above and below them swimming both
+    # ways. Rows 0-1 and 8-9 are kept clear of the big fish so nothing collides.
+    place(FISH_RIGHT, 2, 0, BLUE)
+    place(left, 2, 40, GREY)
+    for row, col, fish, colour in (
+        (0,  6, "><>", BLUE), (0, 30, "<><", GREY), (0, 58, "><>", BLUE),
+        (1, 18, "<><", GREY), (1, 46, "><>", BLUE), (1, 66, "<><", GREY),
+        (8, 12, "<><", GREY), (8, 38, "><>", BLUE), (8, 62, "<><", GREY),
+        (9,  2, "><>", BLUE), (9, 26, "<><", GREY), (9, 52, "><>", BLUE),
+    ):
+        place(fish, row, col, colour)
+
+    lines = []
+    for r in range(height):
+        line, cur = "", None
+        for c in range(width):
+            if shade[r][c] != cur:
+                if cur is not None:
+                    line += OFF
+                cur = shade[r][c]
+                if cur is not None:
+                    line += f"\033[38;5;{cur}m"
+            line += glyph[r][c]
+        if cur is not None:
+            line += OFF
+        lines.append(line.rstrip())
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    sys.stdout.write(school() + "\n")
