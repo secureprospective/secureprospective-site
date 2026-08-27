@@ -19,7 +19,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
         plymouth plymouth-scripts plymouth-plugin-script \
         libreoffice-writer libreoffice-calc libreoffice-impress \
-        google-carlito-fonts google-caladea-fonts google-tinos-fonts \
+        google-carlito-fonts google-crosextra-caladea-fonts google-tinos-fonts \
         libreoffice-draw libreoffice-base libreoffice-math \
         okular dolphin ark gwenview spectacle kate kcalc \
         keepassxc thunderbird system-config-printer \
