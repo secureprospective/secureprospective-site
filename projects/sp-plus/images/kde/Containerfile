@@ -276,8 +276,8 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && desktop-file-validate /usr/share/applications/flameshot-capture.desktop \
  && desktop-file-validate /etc/xdg/autostart/flameshot-daemon.desktop \
  && grep -q '^_launch=Print,none,Take Screenshot$' /etc/xdg/kglobalshortcutsrc \
- && grep -A2 '^\[services\]\[org.flameshot.Flameshot.desktop\]' /etc/xdg/kglobalshortcutsrc \
-      | grep -q '^_launch=none,none' \
+ && awk '/^\[services\]\[org.flameshot.Flameshot.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
+      /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' \
  && grep -q '^Exec=flameshot gui$' /usr/share/applications/flameshot-capture.desktop \
  && HOME=/tmp/ffh fastfetch --config /etc/skel/.config/fastfetch/config.jsonc \
       --pipe > /dev/null \
