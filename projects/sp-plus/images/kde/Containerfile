@@ -292,6 +292,14 @@ RUN set -eux; \
       'Plymouth.SetMessageFunction(display_message_callback);' \
       > /usr/share/plymouth/themes/sp-plus/sp-plus.script; \
     ln -sf sp-plus/sp-plus.plymouth /usr/share/plymouth/themes/default.plymouth; \
+    # The symlink alone is NOT enough, and this is the second half of DN-15. dracut's
+    # plymouth module asks plymouth's OWN tooling which theme is default, and that
+    # reads /etc/plymouth/plymouthd.conf -- which still said bgrt. So dracut shipped
+    # bgrt's plugin (two-step.so) and left script.so out, and the initramfs had a
+    # script theme with no interpreter. Set the theme the supported way so the
+    # tooling agrees with the symlink, and assert it before dracut runs.
+    plymouth-set-default-theme sp-plus; \
+    test "$(plymouth-set-default-theme)" = "sp-plus"; \
     grep -rlis fedora /usr/share/plymouth/themes/*/*.plymouth 2>/dev/null \
       | while read -r t; do sed -i 's/[Ff]edora/SP+/g' "$t"; done; \
     kernel=$(ls -1 /usr/lib/modules | head -1); \
