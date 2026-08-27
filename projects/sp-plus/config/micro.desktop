@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Text Editor
+GenericName=Edit a text file
+Comment=A simple editor. Ctrl+S saves, Ctrl+Q quits.
+Exec=micro %F
+Icon=accessories-text-editor
+Terminal=true
+MimeType=text/plain;
+Categories=Utility;TextEditor;
+Keywords=text;editor;micro;notepad;

@@ -16,7 +16,10 @@ log() { printf '%s spplus-relabel: %s\n' "$(date -u +%FT%TZ)" "$1"; }
 [ -f "$FC" ] || { log "no file_contexts at $FC -- nothing to do"; exit 0; }
 
 rc=0
-for path in /etc /var; do
+# /etc is what gates login. /var/home is what gates the session once logged in.
+# Deliberately NOT the whole of /var: on a 12-year-old spinning disk a full /var
+# relabel can take minutes at boot, and a machine that looks hung is its own defect.
+for path in /etc /var/home; do
     [ -d "$path" ] || continue
     if setfiles -F "$FC" "$path" >/dev/null 2>&1; then
         log "relabelled $path"

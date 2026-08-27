@@ -21,6 +21,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         libreoffice-writer libreoffice-calc \
         okular dolphin ark gwenview spectacle kate kcalc \
         keepassxc thunderbird system-config-printer \
+        micro flameshot kitty \
         plasma-systemsettings plasma-workspace \
  && dnf clean all
 
@@ -59,6 +60,10 @@ COPY config/brave-policies.json  /etc/brave/policies/managed/sp-plus.json
 # advisor should see the machine talking back, not a browser window.
 COPY config/fin         /usr/libexec/sp-plus/fin
 COPY config/fin.desktop /usr/share/applications/fin.desktop
+# micro ships no launcher of its own -- it is a terminal editor. On a machine built
+# for people who have never used Linux, an application with no way to open it does
+# not exist. Give it one, named for what it does rather than what it is called.
+COPY config/micro.desktop /usr/share/applications/micro.desktop
 # DN-17: the first-boot password helper used to be written by the kickstart %post
 # into /usr/libexec. On a bootc system /usr is image content, so %post could not
 # create it and the installed machine had NO unit at all — not a failed one, an
@@ -77,6 +82,7 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && python3 -m py_compile /usr/libexec/sp-plus/fin \
  && chmod 0644 /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/fin.desktop \
+ && desktop-file-validate /usr/share/applications/micro.desktop \
  && test -x /usr/bin/konsole \
  && chmod 0750 /usr/libexec/spplus-relabel \
  && bash -n /usr/libexec/spplus-relabel \
