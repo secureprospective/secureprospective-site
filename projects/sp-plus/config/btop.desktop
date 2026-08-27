@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=System Monitor
+GenericName=See what this computer is doing
+Comment=Live view of processor, memory, network and disks. Press q to quit.
+Exec=kitty --class btop --title "System Monitor" -e btop
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
+StartupWMClass=btop
+Keywords=monitor;system;cpu;memory;performance;task;slow;

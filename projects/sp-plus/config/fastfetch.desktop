@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=About This Computer
+GenericName=Summary of this machine
+Comment=Model, memory, storage and how long it has been running
+Exec=kitty --class fastfetch --title "About This Computer" --hold -e fastfetch
+Icon=computer
+Terminal=false
+Categories=System;
+StartupWMClass=fastfetch
+Keywords=about;system;info;specs;computer;memory;storage;

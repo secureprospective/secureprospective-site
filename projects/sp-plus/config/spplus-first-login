@@ -42,6 +42,23 @@ if [ "$rc" -ne 0 ]; then
     exit 1
 fi
 
+# flameshot's savePath has to be an absolute path, so it cannot be shipped in
+# /etc/skel -- that file is copied verbatim into whatever home the wizard
+# creates. Point it at a real Screenshots folder now that $HOME is known.
+SHOTS="$HOME/Pictures/Screenshots"
+FLAMESHOT="${XDG_CONFIG_HOME:-$HOME/.config}/flameshot/flameshot.ini"
+if [ -w "$FLAMESHOT" ] || [ ! -e "$FLAMESHOT" ]; then
+    install -d "$SHOTS"
+    install -d "$(dirname "$FLAMESHOT")"
+    if grep -q '^savePath=' "$FLAMESHOT" 2>/dev/null; then
+        sed -i "s#^savePath=.*#savePath=$SHOTS#" "$FLAMESHOT"
+    else
+        # Append under [General], which /etc/skel's copy always has.
+        printf 'savePath=%s\n' "$SHOTS" >> "$FLAMESHOT"
+    fi
+    echo "spplus-first-login: screenshots will be saved to $SHOTS"
+fi
+
 install -d -m 0700 "$(dirname "$STAMP")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"
 echo "spplus-first-login: applied $LNF and the SP+ wallpaper"

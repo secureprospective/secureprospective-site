@@ -1,0 +1,27 @@
+# SP+ global shortcut defaults.
+#
+# Print Screen opens flameshot instead of Spectacle. Both ship; flameshot is the
+# one an advisor is pointed at because it drops straight into a drag-a-box
+# annotate-and-copy flow, which is what someone sending a screenshot to support
+# actually needs.
+#
+# KConfig reads this as a DEFAULTS layer under XDG_CONFIG_DIRS, so anything the
+# advisor rebinds later in System Settings wins over it and is not overwritten.
+#
+# Each value is "current,default,friendly name". Spectacle's bindings are set to
+# `none` for current while their upstream default is kept in the second field,
+# so System Settings still shows Spectacle's own defaults as restorable.
+
+[services][org.flameshot.Flameshot.desktop]
+_k_friendly_name=Flameshot
+_launch=Print,none,Take a screenshot
+
+[services][org.kde.spectacle.desktop]
+_k_friendly_name=Spectacle
+_launch=none,Print,Launch Spectacle
+ActiveWindowScreenShot=none,Meta+Print,Capture Active Window
+CurrentMonitorScreenShot=none,none,Capture Current Monitor
+FullScreenScreenShot=none,Shift+Print,Capture Entire Desktop
+OpenWithoutScreenshot=none,none,Launch Spectacle without capturing
+RectangularRegionScreenShot=none,Meta+Shift+Print,Capture Rectangular Region
+WindowUnderCursorScreenShot=none,Meta+Ctrl+Print,Capture Window Under Cursor

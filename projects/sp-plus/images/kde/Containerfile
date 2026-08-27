@@ -237,6 +237,45 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
  && test ! -e /etc/sp-plus/fin.env \
  && echo "FIN_AGENT_OK pi $(/usr/bin/pi --version) ships as Fin, no key in the image"
 
+# ---- 4c. the three tools an advisor's helper reaches for ----
+# btop and fastfetch are new; flameshot was already installed but shipped with
+# stock defaults, which on a fresh machine means a tray icon nobody finds, an
+# update nag, and a save location the advisor is asked about every time.
+#
+# Per-user defaults go through /etc/skel because DN-13 means SP+ ships no human
+# account at all -- the account only exists once the wizard creates it, and
+# useradd copies /etc/skel into it at that moment.
+COPY config/skel/                 /etc/skel/
+COPY config/btop-themes/          /usr/share/btop/themes/
+COPY config/btop.desktop          /usr/share/applications/btop.desktop
+COPY config/fastfetch.desktop     /usr/share/applications/fastfetch.desktop
+COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
+
+RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
+ && dnf clean all \
+ && test -x /usr/bin/btop \
+ && test -x /usr/bin/fastfetch \
+ && test -x /usr/bin/flameshot \
+ && chmod 0644 /usr/share/applications/btop.desktop \
+      /usr/share/applications/fastfetch.desktop \
+      /etc/xdg/kglobalshortcutsrc \
+ && desktop-file-validate /usr/share/applications/btop.desktop \
+ && desktop-file-validate /usr/share/applications/fastfetch.desktop \
+ && test -f /usr/share/btop/themes/sp-plus.theme \
+ && grep -q '^color_theme = "/usr/share/btop/themes/sp-plus.theme"$' \
+      /etc/skel/.config/btop/btop.conf \
+ && test -f /etc/skel/.config/fastfetch/logo-sp-plus.txt \
+ && HOME=/tmp/ffh fastfetch --config /etc/skel/.config/fastfetch/config.jsonc \
+      --pipe > /dev/null \
+ && install -d /tmp/fsh/.config/flameshot \
+ && cp /etc/skel/.config/flameshot/flameshot.ini /tmp/fsh/.config/flameshot/ \
+ && HOME=/tmp/fsh flameshot config --check 2>&1 | tee /tmp/fscheck \
+ && grep -q 'No errors detected' /tmp/fscheck \
+ && ! grep -q 'Unrecognized setting' /tmp/fscheck \
+ && grep -q '^_launch=Print,none,' /etc/xdg/kglobalshortcutsrc \
+ && rm -rf /tmp/ffh /tmp/fsh /tmp/fscheck \
+ && echo "TOOLS_OK btop $(btop --version | grep -oE '[0-9.]+$'), fastfetch, flameshot configured out of the box"
+
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
 # already owns /etc/systemd/system/display-manager.service. sddm is installed and its
 # unit file ships, but enabling it here fails outright:

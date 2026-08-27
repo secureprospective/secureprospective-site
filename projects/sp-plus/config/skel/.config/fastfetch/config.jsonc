@@ -1,0 +1,35 @@
+// SP+ defaults for fastfetch.
+//
+// The labels are deliberately in plain English rather than the usual
+// Kernel/DE/WM/Shell terms. SP+ is built for advisors who have never used
+// Linux, and a summary they cannot read is not a summary. The technical
+// modules are still here, just named for what they tell you.
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "type": "file",
+        "source": "/etc/skel/.config/fastfetch/logo-sp-plus.txt",
+        "color": { "1": "blue", "2": "yellow" },
+        "padding": { "top": 1, "right": 3 }
+    },
+    "display": {
+        "separator": "  ",
+        "color": { "keys": "blue", "title": "yellow" }
+    },
+    "modules": [
+        "break",
+        { "type": "title", "format": "{user-name} on SP+" },
+        "break",
+        { "type": "os",       "key": "System    " },
+        { "type": "host",     "key": "Computer  " },
+        { "type": "cpu",      "key": "Processor " },
+        { "type": "memory",   "key": "Memory    " },
+        { "type": "disk",     "key": "Storage   ", "folders": "/" },
+        { "type": "display",  "key": "Screen    " },
+        { "type": "uptime",   "key": "Running   " },
+        { "type": "packages", "key": "Software  " },
+        "break",
+        { "type": "custom", "format": "\u001b[90m  Secure Prospective Advisor OS\u001b[0m" },
+        "break"
+    ]
+}
