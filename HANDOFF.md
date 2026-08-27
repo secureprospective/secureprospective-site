@@ -2,11 +2,11 @@
 
 ## 2026-08-27 — SP+ Calm KDE theme bundle added
 
-- **Baton:** Bee — 2026-08-27
+- **Baton:** ClaudeBox — 2026-08-27
 - **Where it stands:** Added committed theme-only candidate in `projects/sp-plus/theme/sp-plus-calm/` (commit `ed314a9`). It has Plasma 6 Global Theme light/dark packages, Plasma styles, complete color palettes, original Aurorae controls, Paper-Mono-Dark + JetBrains Mono defaults, GTK 3/4 bridge examples, native Breeze Qt fallback, and a logo-only 7680x4320 wallpaper. Research and the integration boundary are in `projects/sp-plus/theme/SPPLUS-CALM-RESEARCH.md` and `theme/sp-plus-calm/INSTALL-MANIFEST.md`.
 - **Gates:** `projects/sp-plus/theme/tools/validate-spplus-calm.sh` passes 8/8; shell/Python syntax, desktop-file validation, and SVG XML validation pass. The 8K wallpaper was visually inspected from the generated preview.
 - **Build boundary:** The active ISO/QEMU work was not touched. The modified `projects/sp-plus/images/kde/Containerfile` was deliberately left unstaged. No ISO build was started or changed by this lane.
-- **Next move:** After the current ISO cycle is safe, integrate the bundle in the image owner’s Containerfile, install `paper-icon-theme` and `jetbrains-mono-fonts`, and run the documented VM inspection gates for both themes, KWin Aurorae, Brave/GTK, lock/unlock, and HiDPI.
+- **Next move:** After the current ISO cycle is safe, ClaudeBox integrates the bundle in the image owner’s Containerfile, installs `paper-icon-theme` and `jetbrains-mono-fonts`, and runs the documented VM inspection gates for both themes, KWin Aurorae, Brave/GTK, lock/unlock, and HiDPI.
 - **Blocked on:** Plasma 6 VM validation and image integration. The theme bundle is complete as a source artifact, not yet installed in the ISO.
 - **Tried and rejected:** Reusing or modifying the existing Windows Modern bundle; the new candidate is isolated to avoid the active ISO/theme lane. A custom lockscreen and third-party Qt widget fork were rejected as update-sensitive; native Plasma/Breeze fallback is safer until VM evidence exists.
 
