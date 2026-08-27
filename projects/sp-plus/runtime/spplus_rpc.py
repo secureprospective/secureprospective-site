@@ -152,6 +152,37 @@ def report() -> dict[str, Any]:
     }
 
 
+# --- approval registry -------------------------------------------------------
+# run_remediation used to accept ANY non-empty approval_id: the check was
+# `if not approval_id: raise`, a presence test, not an authenticity test. So
+# {"approval_id": "x"} ran the playbook without a user ever having approved it,
+# which defeats the point of having an approval step. Found by probing the
+# running service on 2026-08-27.
+#
+# Approvals are now single-use and expiring. They live in memory on purpose:
+# an approval must not survive a restart of the service, because the human who
+# granted it is not necessarily still sitting there.
+APPROVAL_TTL_SECONDS = 600
+_ISSUED_APPROVALS: dict[str, float] = {}
+
+
+def issue_approval() -> str:
+    approval_id = str(uuid.uuid4())
+    _ISSUED_APPROVALS[approval_id] = time.time()
+    return approval_id
+
+
+def consume_approval(approval_id: str) -> None:
+    """Spend an approval, or refuse. Raises ValueError with a reason."""
+    if not approval_id:
+        raise ValueError("explicit approval is required")
+    granted_at = _ISSUED_APPROVALS.pop(approval_id, None)
+    if granted_at is None:
+        raise ValueError("that approval is not recognised")
+    if time.time() - granted_at > APPROVAL_TTL_SECONDS:
+        raise ValueError("that approval has expired")
+
+
 def rpc(method: str, params: dict[str, Any]) -> dict[str, Any]:
     if method == "health":
         return {"ok": True, "service": "sp-plus-rpc", "fixture": FIXTURE}
@@ -163,13 +194,16 @@ def rpc(method: str, params: dict[str, Any]) -> dict[str, Any]:
         event("diagnosis_requested", {"provider": diagnosis["provider"], "snapshot": snapshot})
         return diagnosis
     if method == "approve_remediation":
-        approval_id = str(uuid.uuid4())
+        approval_id = issue_approval()
         event("remediation_approved", {"approval_id": approval_id, "playbook": "printer-reconnect"})
         return {"approval_id": approval_id, "playbook": "printer-reconnect"}
     if method == "run_remediation":
         approval_id = str(params.get("approval_id", ""))
-        if not approval_id:
-            raise ValueError("explicit approval is required")
+        try:
+            consume_approval(approval_id)
+        except ValueError:
+            event("remediation_blocked", {"reason": "approval not recognised"})
+            raise
         trusted, digest = verify_playbook()
         if not trusted:
             event("remediation_blocked", {"reason": "playbook integrity check failed", "sha256": digest})
