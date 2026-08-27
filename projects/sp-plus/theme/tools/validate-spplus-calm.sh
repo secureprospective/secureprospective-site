@@ -55,7 +55,7 @@ for p in sorted((root / 'color-schemes').glob('*.colors')) + sorted((root / 'des
 
 for p in (root / 'look-and-feel').glob('*/contents/defaults'):
     text = p.read_text()
-    for needle in ('ColorScheme=SPPlusCalm', 'Theme=Paper-Mono-Dark', 'font=JetBrains Mono', 'Image=SPPlus-Calm', 'theme=__aurorae__svg__spplus-calm-'):
+    for needle in ('ColorScheme=SPPlusCalm', 'Theme=Paper-Mono-Dark', 'font=Noto Sans', 'Image=SPPlus-Calm', 'theme=__aurorae__svg__spplus-calm-'):
         if needle not in text: errors.append(f'missing {needle!r} in {p.relative_to(root)}')
     if '[kwinrc][DesktopSwitcher]' in text or '[kwinrc][WindowSwitcher]' in text:
         errors.append(f'unsafe Plasma 5 tabbox defaults in {p.relative_to(root)}')

@@ -672,16 +672,19 @@ COPY theme/sp-plus-calm/wallpapers/SPPlus-Calm/ /usr/share/wallpapers/SPPlus-Cal
 # kvantum supplies the widget style the theme's defaults select. Without it Qt apps
 # fall back and the theme looks half-applied in System Settings.
 # kvantum supplies the widget style the Windows 11 theme selects. paper-icon-theme
-# and jetbrains-mono-fonts are SP+ Calm's declared runtime dependencies: Calm names
-# Paper-Mono-Dark icons and the JetBrains Mono family, and without them the shipped
-# DEFAULT theme half-applies -- stock icons and a silent font fallback -- which is
-# the exact "looks broken on first boot" failure DN-24 was raised about.
+# and jetbrains-mono-fonts are SP+ Calm's runtime dependencies. Calm names
+# Paper-Mono-Dark icons, and without them the shipped DEFAULT theme half-applies --
+# stock icons and a silent font fallback -- the exact "looks broken on first boot"
+# failure DN-24 was raised about. The UI face is now Noto Sans (already in the
+# image); JetBrains Mono stays installed for the terminal and code contexts, where
+# a monospace face is the right tool rather than the wrong one.
 RUN dnf install -y --setopt=install_weak_deps=False \
       kvantum paper-icon-theme jetbrains-mono-fonts \
  && dnf clean all \
  && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
  && test -d /usr/share/icons/Paper-Mono-Dark \
+ && fc-list : family | grep -qi 'Noto Sans' \
  && fc-list : family | grep -qi 'JetBrains Mono' \
  && echo "CALM_DEPS_OK $(rpm -q paper-icon-theme jetbrains-mono-fonts | tr '\n' ' ')"
 
