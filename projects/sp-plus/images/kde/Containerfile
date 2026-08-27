@@ -86,12 +86,14 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
  && for p in firefox firefox-langpacks glibc-all-langpacks mariadb-server \
       google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
       google-noto-serif-cjk-vf-fonts \
-      nvidia-gpu-firmware; do \
+      nvidia-gpu-firmware \
+      plasma-welcome plasma-welcome-fedora; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
     dnf clean all; \
     rpm -q glibc-langpack-en || exit 1; \
-    for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware; do \
+    for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware \
+             plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
     rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
@@ -419,6 +421,7 @@ RUN printf '%s\n' \
       '' \
       '[KDE]' \
       'widgetStyle=kvantum-dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
       > /etc/xdg/kdeglobals \
  && printf '%s\n' \
       '[Theme]' \
@@ -432,6 +435,31 @@ RUN printf '%s\n' \
  && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark \
  && test -f /usr/share/color-schemes/WindowsModernDark.colors \
  && test -d /usr/share/aurorae/themes/windows-modern-dark-aurorae
+
+# ---- 7. DN-17: the first screen an advisor ever sees ----
+# plasma-setup is the account-creation wizard, and with DN-13 (no pre-created
+# account) it is the FIRST thing anyone sees after installing. Stock, its headline
+# reads "Welcome to Plasma Desktop" -- it names KDE, not SP+, to a user who has
+# never heard of either. That headline is compiled into plasma-setup's QML
+# resources; there is no config key for it. The supported override is the gettext
+# catalog: the installed system runs LANG="en_US.UTF-8" (Anaconda writes
+# /etc/locale.conf) and upstream ships no en_US catalog, so ours is loaded.
+# Only the strings that name Plasma to the user are rebranded.
+#
+# plasma-setup itself is NOT removed and must never be: it is the only path by
+# which the advisor's account comes into existence. Its sibling plasma-welcome
+# (the "tour Plasma" app) IS removed in the trim above -- a product tour of KDE is
+# the wrong second screen for SP+.
+COPY branding/locale/org.kde.plasmasetup.mo \
+     /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo
+RUN test -s /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && grep -q 'Welcome to<br/><b>SP+</b>' \
+      /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && grep -q 'Plasma Desktop' \
+      /usr/share/locale/en_US/LC_MESSAGES/org.kde.plasmasetup.mo \
+ && test -x /usr/libexec/plasma-setup \
+ && systemctl is-enabled plasma-setup.service \
+ && echo "DN17_BRANDING_OK en_US catalog installed, plasma-setup still enabled"
 
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1

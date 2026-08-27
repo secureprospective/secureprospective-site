@@ -1,0 +1,30 @@
+# SP+ branding overrides for Plasma Setup.
+#
+# Plasma Setup's welcome headline is compiled into its QML resources, so it cannot
+# be patched with a config file. The supported way to change it is the gettext
+# catalog: the installed system runs with LANG="en_US.UTF-8" (Anaconda writes
+# /etc/locale.conf), upstream ships no en_US catalog, so this one is loaded and
+# these msgids are overridden. Only strings that name Plasma to the user are
+# touched; everything else falls through to the compiled-in English.
+#
+# DN-17: without this the FIRST screen an advisor ever sees reads
+# "Welcome to Plasma Desktop" on a stock wallpaper. Never remove this file.
+msgid ""
+msgstr ""
+"Project-Id-Version: sp-plus\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_US\n"
+
+msgid "Welcome to<br/><b>Plasma Desktop</b>"
+msgstr "Welcome to<br/><b>SP+</b>"
+
+msgid "Make Plasma yours"
+msgstr "Make SP+ yours"
+
+msgid "Plasma Setup"
+msgstr "SP+ Setup"
+
+msgid "Remove the Plasma Setup autologin configuration."
+msgstr "Remove the SP+ Setup autologin configuration."
