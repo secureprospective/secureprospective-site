@@ -3,7 +3,7 @@
 # described in projects/sp-plus/Containerfile, which the sanctioned build never built.
 # The two are merged here. Build context is projects/sp-plus/.
 #   sudo podman build -t localhost/sp-plus-kde:spike -f images/kde/Containerfile .
-# Fedora 44 everywhere (the old file said 43). DN-13: the advisor account ships LOCKED.
+# Fedora 44 everywhere. DN-13 is satisfied absolutely: NO human account ships at all.
 FROM quay.io/fedora/fedora-kinoite:44
 
 # ---- 1. platform + advisor application suite (spb-manifest, spb-appmanifest) ----
@@ -37,12 +37,16 @@ RUN curl -fsSLo /etc/yum.repos.d/brave-browser.repo \
  && dnf install -y brave-browser \
  && dnf clean all
 
-# ---- 3. the advisor account — created LOCKED (DN-13, non-negotiable) ----
-# No password ships in this image. spplus-firstboot-password.service is what gives
-# the advisor a credential, on the physical console, at first boot.
-RUN useradd --create-home --groups wheel --shell /bin/bash advisor \
- && passwd -l advisor \
- && install -d -o advisor -g advisor /var/lib/sp-plus
+# ---- 3. the SP+ service account ----
+# SP+ ships NO human account. The person installing creates their own user in the
+# installer, like any other OS. A pre-populated 'advisor' account was confusing in a
+# real install -- it showed up in Anaconda and on the login screen for no reason.
+# The SP+ service still needs an identity, so it gets a SYSTEM account: no login
+# shell, no password, UID below 1000 so it never appears on a login screen.
+RUN useradd --system --home-dir /var/lib/sp-plus --shell /sbin/nologin spplus \
+ && install -d -o spplus -g spplus /var/lib/sp-plus \
+ && ! getent passwd advisor \
+ && test "$(getent passwd spplus | cut -d: -f3)" -lt 1000
 
 # ---- 4. the SP+ runtime ----
 COPY runtime/   /usr/libexec/sp-plus/
@@ -62,8 +66,6 @@ COPY config/fin.desktop /usr/share/applications/fin.desktop
 # content now, and %post only writes the enable symlink under /etc.
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
-COPY config/spplus-firstboot-password         /usr/libexec/spplus-firstboot-password
-COPY config/spplus-firstboot-password.service /usr/lib/systemd/system/spplus-firstboot-password.service
 
 RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
@@ -76,10 +78,6 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && chmod 0644 /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/fin.desktop \
  && test -x /usr/bin/konsole \
- && chmod 0750 /usr/libexec/spplus-firstboot-password \
- && systemctl enable spplus-firstboot-password.service \
- && test -L /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service \
- && bash -n /usr/libexec/spplus-firstboot-password \
  && chmod 0750 /usr/libexec/spplus-relabel \
  && bash -n /usr/libexec/spplus-relabel \
  && systemctl enable spplus-relabel.service \

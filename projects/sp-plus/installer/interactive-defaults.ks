@@ -19,7 +19,7 @@ printf 'SP+ storage: selected /dev/%s\n' "$disk" >&2
 
 # A random root hash makes the Root Account spoke explicitly configured while
 # shipping no usable root password. Root remains inaccessible until the field
-# operator deliberately sets a password through the advisor account.
+# operator deliberately sets one. Nobody logs in as root on this system.
 root_hash="$(head -c 48 /dev/urandom | base64 -w0 | openssl passwd -6 -stdin)"
 [ -n "$root_hash" ] || { echo "SP+ accounts: failed to generate root hash" >&2; exit 1; }
 
@@ -41,12 +41,10 @@ EOF
 # encrypted storage.
 bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike --target-imgref ghcr.io/secureprospective/sp-plus-kde:edge
 
-# Explicitly settle the user spoke without embedding a password. The advisor
-# account is usable after a password is assigned, and its persistent home is
-# created below on /var/home. The generated root hash is not a known credential.
-# The account is deliberately locked in the image. A first-boot systemd unit
-# below prompts the advisor on the local console and sets the password they choose.
-user --name=advisor --groups=wheel --shell=/bin/bash --homedir=/var/home/advisor --lock
+# No account is declared here, deliberately. SP+ ships no human account at all:
+# the person installing creates their own user in the installer's user spoke, the
+# same as any other operating system. The generated root hash above is not a known
+# credential to anyone.
 
 # Anaconda copies the installer command line into the installed boot entry. Keep
 # the installer-only SELinux and serial-console workarounds out of the target.
@@ -150,20 +148,7 @@ if ! ln -sfn /usr/lib/systemd/system/graphical.target /etc/systemd/system/defaul
     post_failure "SP+ post FAILED: could not set installed default.target to graphical.target"
 fi
 
-# Give every declared local account a persistent home. The advisor home is
-# checked explicitly because SDDM otherwise accepts a password and loops back.
-if ! getent passwd advisor >/dev/null 2>&1; then
-    post_failure "SP+ post FAILED: advisor account is absent in installed passwd database"
-else
-    advisor_home="$(getent passwd advisor | cut -d: -f6)"
-    if ! mkdir -p "$advisor_home" \
-        || ! chown advisor:advisor "$advisor_home" \
-        || ! chmod 700 "$advisor_home"; then
-        post_failure "SP+ post FAILED: could not create advisor home $advisor_home"
-    else
-        command -v restorecon >/dev/null 2>&1 && restorecon -RF "$advisor_home" || true
-    fi
-fi
+# Give every account the installer created a persistent, correctly-owned home.
 while IFS=: read -r name _ uid gid _ home shell; do
     case "$home" in
         /home/*)
@@ -176,21 +161,8 @@ while IFS=: read -r name _ uid gid _ home shell; do
     esac
 done < /etc/passwd
 
-# The shipped account has no credential. The helper and its unit are IMAGE
-# content (see images/kde/Containerfile) because /usr is read-only on a bootc
-# system and %post could not create them there — cycle10 installed with NO unit
-# present at all. All %post does now is confirm the image shipped them and make
-# sure the enable symlink exists under /etc, which IS writable.
-if [ ! -x /usr/libexec/spplus-firstboot-password ]; then
-    post_failure "SP+ post FAILED: image is missing /usr/libexec/spplus-firstboot-password"
-elif [ ! -f /usr/lib/systemd/system/spplus-firstboot-password.service ]; then
-    post_failure "SP+ post FAILED: image is missing spplus-firstboot-password.service"
-elif ! install -d -m 0755 /etc/systemd/system/multi-user.target.wants; then
-    post_failure "SP+ post FAILED: could not create multi-user.target.wants"
-elif ! ln -sfn /usr/lib/systemd/system/spplus-firstboot-password.service \
-    /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service; then
-    post_failure "SP+ post FAILED: could not enable first-boot password unit"
-fi
+# Nothing to enable here any more: SP+ ships no human account, so there is no
+# first-boot password prompt. The user creates their own account in the installer.
 
 if [ "$post_failures" -gt 0 ]; then
     printf 'SP+ post: %s independent concern(s) failed; see %s/%%post-failed\n' \

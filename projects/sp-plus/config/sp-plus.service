@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=advisor
-Group=advisor
+User=spplus
+Group=spplus
 ExecStart=/usr/bin/python3 /usr/libexec/sp-plus/spplus_rpc.py
 Restart=on-failure
 RestartSec=2

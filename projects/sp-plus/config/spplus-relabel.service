@@ -3,7 +3,7 @@ Description=SP+ first-boot SELinux relabel of /etc and /var (DN-16)
 ConditionPathExists=!/var/lib/spplus/relabeled
 DefaultDependencies=no
 After=local-fs.target
-Before=systemd-user-sessions.service display-manager.service spplus-firstboot-password.service
+Before=systemd-user-sessions.service display-manager.service
 Before=shutdown.target
 Conflicts=shutdown.target
 
