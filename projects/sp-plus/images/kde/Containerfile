@@ -65,7 +65,7 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
     | awk '{print $1}' > /usr/libexec/sp-plus/playbooks/printer-reconnect.json.sha256 \
  && systemctl enable sp-plus.service \
  && systemctl enable cups.service \
- && systemctl enable firewalld.service
+ && systemctl enable firewalld.service \
  && chmod 0644 /usr/share/applications/sp-plus-assistant.desktop \
  && desktop-file-validate /usr/share/applications/sp-plus-assistant.desktop \
  && grep -q "127.0.0.1:8765" /usr/share/applications/sp-plus-assistant.desktop \
