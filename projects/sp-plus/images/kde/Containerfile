@@ -60,6 +60,8 @@ COPY config/fin.desktop /usr/share/applications/fin.desktop
 # create it and the installed machine had NO unit at all — not a failed one, an
 # absent one (cycle10 boot log: zero mentions of spplus-firstboot). It is image
 # content now, and %post only writes the enable symlink under /etc.
+COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
+COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 COPY config/spplus-firstboot-password         /usr/libexec/spplus-firstboot-password
 COPY config/spplus-firstboot-password.service /usr/lib/systemd/system/spplus-firstboot-password.service
 
@@ -77,7 +79,11 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && chmod 0750 /usr/libexec/spplus-firstboot-password \
  && systemctl enable spplus-firstboot-password.service \
  && test -L /etc/systemd/system/multi-user.target.wants/spplus-firstboot-password.service \
- && bash -n /usr/libexec/spplus-firstboot-password
+ && bash -n /usr/libexec/spplus-firstboot-password \
+ && chmod 0750 /usr/libexec/spplus-relabel \
+ && bash -n /usr/libexec/spplus-relabel \
+ && systemctl enable spplus-relabel.service \
+ && test -L /etc/systemd/system/sysinit.target.wants/spplus-relabel.service
 
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
 # already owns /etc/systemd/system/display-manager.service. sddm is installed and its

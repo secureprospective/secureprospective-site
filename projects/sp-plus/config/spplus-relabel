@@ -1,0 +1,48 @@
+#!/bin/bash
+set -u
+# DN-16: every login fails under Enforcing because /etc is unlabeled_t -- PAM cannot
+# read /etc/passwd or /etc/nsswitch.conf, so a CORRECT password is rejected. This is
+# the login loop Christopher hit by hand, twice, on his own machines.
+#
+# The kickstart has relabelled in %post since T-13 and it has never once been observed
+# working. The reason is structural: %post acts on the deployment, but a bootc system
+# composes the runtime /etc as a three-way merge at first boot, AFTER %post is gone.
+# Labels applied to the deployment do not survive that merge. So relabel here, on the
+# running system, before anything tries to authenticate.
+STAMP=/var/lib/spplus/relabeled
+FC=/etc/selinux/targeted/contexts/files/file_contexts
+log() { printf '%s spplus-relabel: %s\n' "$(date -u +%FT%TZ)" "$1"; }
+
+[ -f "$FC" ] || { log "no file_contexts at $FC -- nothing to do"; exit 0; }
+
+rc=0
+for path in /etc /var; do
+    [ -d "$path" ] || continue
+    if setfiles -F "$FC" "$path" >/dev/null 2>&1; then
+        log "relabelled $path"
+    else
+        log "setfiles FAILED on $path"
+        rc=1
+    fi
+done
+
+# Verify the files whose missing label is what actually breaks login. Do not assume:
+# a survey that says "all labelled" has been wrong on this defect before, which is why
+# the kernel AVC log is the authority. This check is a floor, not a proof.
+for path in /etc/passwd /etc/shadow /etc/nsswitch.conf; do
+    [ -e "$path" ] || continue
+    ctx=$(ls -Zd "$path" 2>/dev/null | awk '{print $1}')
+    case "$ctx" in
+        *unlabeled*|"?"|"") log "STILL UNLABELED after relabel: $path ($ctx)"; rc=1 ;;
+        *) log "ok $path $ctx" ;;
+    esac
+done
+
+mkdir -p /var/lib/spplus 2>/dev/null
+if [ "$rc" -eq 0 ]; then
+    date -u +%FT%TZ > "$STAMP"
+    log "complete"
+else
+    log "completed WITH FAILURES -- not stamping, will retry next boot"
+fi
+exit "$rc"
