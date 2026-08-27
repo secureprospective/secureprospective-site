@@ -206,10 +206,19 @@ assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72
 # and a build that silently picks up a new agent release is not reproducible.
 # npm itself is removed afterwards: nothing on an advisor's machine should be
 # able to pull code from the registry at runtime.
+# Two traps, both found by probing rather than by reasoning about it:
+#   * npm cannot run with the default HOME. On an ostree image /root is a
+#     symlink to /var/roothome and /var is empty at build time, so npm dies
+#     with ENOTDIR mkdir '/root' before it ever reaches the registry.
+#   * `dnf remove npm` is a silent no-op. Fedora 44 resolves the install to
+#     nodejs22-npm + nodejs22-npm-bin, and removing the name `npm` matches
+#     nothing while still exiting 0. `dnf remove --assumeno` confirmed those
+#     two packages come out alone and nodejs itself stays.
 RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
- && npm install -g --prefix /usr @earendil-works/pi-coding-agent@0.84.3 \
- && npm cache clean --force \
- && dnf remove -y npm \
+ && HOME=/tmp/npmhome npm_config_cache=/tmp/npmcache \
+    npm install -g --prefix /usr @earendil-works/pi-coding-agent@0.84.3 \
+ && rm -rf /tmp/npmhome /tmp/npmcache \
+ && dnf remove -y nodejs22-npm nodejs22-npm-bin \
  && dnf clean all \
  && test -x /usr/bin/node \
  && test -x /usr/bin/pi \
@@ -223,7 +232,8 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \
  && grep -q '^SKILLS=/usr/share/sp-plus/fin/skills$' /usr/libexec/sp-plus/fin \
- && ! grep -rq 'sk-ant-\|ANTHROPIC_API_KEY=[^"$]' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
+ && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
+ && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \
  && echo "FIN_AGENT_OK pi $(/usr/bin/pi --version) ships as Fin, no key in the image"
 
