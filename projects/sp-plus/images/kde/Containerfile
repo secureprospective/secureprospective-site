@@ -431,6 +431,17 @@ RUN printf '%s\n' \
       '[org.kde.kdecoration2]' \
       'library=org.kde.kwin.aurorae' \
       'theme=__aurorae__svg__windows-modern-dark-aurorae' \
+      '' \
+      '# SP+ ships on laptops with real keys. kwin otherwise launches' \
+      '# plasma-keyboard -- the ONSCREEN keyboard -- because its desktop file' \
+      '# carries X-KDE-Wayland-VirtualKeyboard=true. Measured on the cycle20' \
+      '# guest it cost 266 MB resident for something no advisor will ever tap.' \
+      '# An empty InputMethod stops kwin selecting one. The PACKAGE is left' \
+      '# installed on purpose: dnf remove --assumeno showed it takes' \
+      '# plasma-desktop, plasma-workspace, plasma-setup and sddm with it.' \
+      '[Wayland]' \
+      'InputMethod=' \
+      'VirtualKeyboardEnabled=false' \
       > /etc/xdg/kwinrc \
  && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark \
  && test -f /usr/share/color-schemes/WindowsModernDark.colors \
