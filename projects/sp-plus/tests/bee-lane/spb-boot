@@ -7,6 +7,22 @@
 set -e
 EXTRA="$1"
 [ -f "$D/disk.qcow2" ] || die "no installed disk at $D/disk.qcow2"
+# ONE WRITER PER MONITOR SOCKET. A reaped spb-boot leaves setsid'd children alive --
+# the GRUB key-hammer and the vmtype typist. They outlive their qemu, and when the next
+# run recreates the SAME socket path they type into the NEW VM. cycle32 booted with
+# "console=tty1" and " console=ttyS0,115200" interleaved character-by-character and a
+# dropped keystroke that corrupted load_video into eload_video, and GRUB refused to boot.
+# Take an exclusive lock so two runs of the same cycle can never overlap, and reap any
+# orphaned writer still pointed at this cycle's sockets before starting.
+exec 9>"$SPB_ISO_DIR/.spb-boot-$CYCLE.lock"
+# NB: every long-lived child below closes fd 9 (9>&-). qemu and the setsid'd
+# writers inherit open fds, and an inheriting qemu holds this lock for its whole
+# life, locking out the very next run.
+flock -n 9 || die "another spb-boot for $CYCLE is running (or its writers are); refusing to overlap"
+pkill -f "socat - UNIX-CONNECT:$BMON" 2>/dev/null || true
+pkill -f "UNIX-CONNECT:$D/bserial.sock" 2>/dev/null || true
+pkill -f "cat $D/bserialpty" 2>/dev/null || true
+sleep 1
 pkill -F "$D/qemu.pid" 2>/dev/null || true
 pkill -F "$D/boot.pid" 2>/dev/null || true
 sleep 2
@@ -33,7 +49,7 @@ qemu-system-x86_64 \
   -device qemu-xhci,id=xhci -device usb-tablet,bus=xhci.0 \
   -serial unix:"$D/bserial.sock",server,nowait \
   -monitor unix:"$BMON",server,nowait \
-  -netdev user,id=n0,hostfwd=tcp::2299-:22 -device virtio-net-pci,netdev=n0 &
+  -netdev user,id=n0,hostfwd=tcp::${SSHPORT}-:22 -device virtio-net-pci,netdev=n0 9>&- &
 echo $! > "$D/boot.pid"
 
 # --- HALT GRUB. The countdown is 1 SECOND and GRUB only appears AFTER several
@@ -42,14 +58,14 @@ echo $! > "$D/boot.pid"
 # for the actual menu. v3 hammers CONTINUOUSLY in the background across the whole
 # POST+menu window, so whenever the menu appears there are keys arriving.
 for i in $(seq 1 200); do [ -S "$BMON" ] && break; sleep 0.05; done
-setsid bash -c 'for i in $(seq 1 1200); do echo "sendkey end" | socat - UNIX-CONNECT:'"$BMON"' >/dev/null 2>&1; done' >/dev/null 2>&1 &
+setsid bash -c 'for i in $(seq 1 1200); do echo "sendkey end" | socat - UNIX-CONNECT:'"$BMON"' >/dev/null 2>&1; done' >/dev/null 2>&1 9>&- &
 HAMMER=$!
 
 # attach the serial capture while the hammer runs
 sleep 1
-setsid socat UNIX-CONNECT:"$D/bserial.sock" PTY,link="$D/bserialpty",raw,echo=0 >/dev/null 2>&1 &
+setsid socat UNIX-CONNECT:"$D/bserial.sock" PTY,link="$D/bserialpty",raw,echo=0 >/dev/null 2>&1 9>&- &
 sleep 2
-setsid bash -c "cat $D/bserialpty > $D/bserial.log" >/dev/null 2>&1 &
+setsid bash -c "cat $D/bserialpty > $D/bserial.log" >/dev/null 2>&1 9>&- &
 P="$D/bserialpty"
 
 # wait until the menu is actually on screen and held, then stop hammering

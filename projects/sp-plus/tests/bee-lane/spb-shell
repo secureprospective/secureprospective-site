@@ -6,9 +6,16 @@
 P="$D/bserialpty"; L="$D/bserial.log"
 [ -e "$P" ] || die "no serial pty — run spb-boot first"
 printf '\n' > "$P"; sleep 2
+# SP+ ships NO account at all now (DN-13 absolute), so there is nothing to log in as
+# until the lane creates one with spb-mkuser. SPB_USER names that account; it is a
+# lane-only test identity and never ships. If it does not exist on the guest the
+# login fails, the gate returns nothing, and the gate fails loudly on silence --
+# which is correct, because a gate that cannot reach the guest has measured nothing.
 if tail -3 "$L" | grep -qa "login:"; then
-  printf 'root\n' > "$P"; sleep 3
-  printf '%s\n' "$LUKS_PASS" > "$P"; sleep 5
+  printf '%s\n' "${SPB_USER:-spbtest}" > "$P"; sleep 3
+  printf '%s\n' "$LUKS_PASS" > "$P"; sleep 6
+  printf 'sudo -S -p "" -i\n' > "$P"; sleep 2
+  printf '%s\n' "$LUKS_PASS" > "$P"; sleep 4
 fi
 # The console ECHOES the command line before running it. A marker written
 # plainly into that line therefore appears in the echo IMMEDIATELY, the wait
@@ -28,5 +35,15 @@ for i in $(seq 1 60); do
   if grep -a "$mark" "$L" | grep -qav '""'; then break; fi
   sleep 2
 done
-sleep 1
+# The marker can land in the log BEFORE the command's own output has flushed
+# through the pty. A fixed 1s sleep sometimes cut the RPC health JSON off, and
+# the gate then reported FAIL for a service that was demonstrably up. Wait for
+# the log to go quiet instead of guessing at a duration.
+prev=-1
+for _ in $(seq 1 10); do
+  sleep 0.5
+  now=$(stat -c%s "$L")
+  [ "$now" = "$prev" ] && break
+  prev=$now
+done
 tail -c +$((before+1)) "$L"

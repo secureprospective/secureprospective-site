@@ -35,7 +35,36 @@ done
 # session's PATH. Call them by path.
 rc=0
 /usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || rc=1
-[ -r "$WALLPAPER" ] && { /usr/sbin/plasma-apply-wallpaperimage "$WALLPAPER" || rc=1; }
+
+# --- Wallpaper. ORDER IS NOT ENOUGH, AND EXIT 0 IS NOT PROOF. ------------------
+# --resetLayout makes plasmashell reload its layout ASYNCHRONOUSLY. On cycle32 the
+# wallpaper call returned "Successfully set the wallpaper for all desktops", this
+# unit exited 0 and wrote its journal line -- and the advisor still got Fedora's
+# red/purple default, because the reload flushed plasmashell's cached config over
+# our write afterwards. The layout won simply by landing last.
+# So: wait for plasmashell to come BACK on the bus after the reset, then apply,
+# then READ THE CONFIG BACK. Trust the file, never the exit code.
+APPLETSRC="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
+if [ -r "$WALLPAPER" ]; then
+    for _ in $(seq 1 60); do
+        busctl --user list --no-legend --no-pager 2>/dev/null \
+            | grep -q '^org\.kde\.plasmashell\b' && break
+        sleep 1
+    done
+    wp_ok=0
+    for attempt in 1 2 3; do
+        sleep 3
+        /usr/sbin/plasma-apply-wallpaperimage "$WALLPAPER" || continue
+        sleep 2
+        if grep -qF "$WALLPAPER" "$APPLETSRC" 2>/dev/null; then
+            wp_ok=1
+            echo "spplus-first-login: wallpaper verified in the desktop config on attempt $attempt"
+            break
+        fi
+        echo "spplus-first-login: wallpaper reported success but did not stick; retrying"
+    done
+    [ "$wp_ok" -eq 1 ] || rc=1
+fi
 
 if [ "$rc" -ne 0 ]; then
     echo "spplus-first-login: theme did not apply cleanly; leaving the stamp off so the next login retries"

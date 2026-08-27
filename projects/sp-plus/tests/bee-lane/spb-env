@@ -13,6 +13,10 @@ D="$SPB_ISO_DIR/$CYCLE"
 MON="$D/monitor.sock"        # install-phase monitor
 BMON="$D/boot-monitor.sock"  # boot-phase monitor
 LUKS_PASS=spplus-test        # DISPOSABLE test credential. Never in the ISO or the repo.
+# One VM per port. Two cycles booted at once collided on 2299 and the second qemu
+# died with "Could not set up host forwarding rule". Derive a default from the cycle
+# number so parallel cycles never fight; SPB_SSHPORT still overrides.
+SSHPORT="${SPB_SSHPORT:-$((2200 + $(printf "%s" "$CYCLE" | tr -dc "0-9" | tail -c 2)))}"
 mon() { echo "$1" | socat - UNIX-CONNECT:"$2" >/dev/null 2>&1; }
 key() { mon "sendkey $1" "${2:-$MON}"; sleep "${KEYDELAY:-0.4}"; }
 die() { echo "SPB-FAIL: $*" >&2; exit 1; }
