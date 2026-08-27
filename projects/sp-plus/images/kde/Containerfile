@@ -414,6 +414,7 @@ RUN dnf install -y --setopt=install_weak_deps=False kvantum \
 RUN printf '%s\n' \
       '[General]' \
       'ColorScheme=WindowsModernDark' \
+      'TerminalApplication=kitty' \
       'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
       '' \
       '[Icons]' \
@@ -580,6 +581,100 @@ RUN printf '%s\n' \
  && grep -q 'kargs = \["rhgb", "quiet"\]' \
       /usr/lib/bootc/kargs.d/10-sp-plus-splash.toml \
  && echo "DN15_KARGS_OK rhgb quiet staged for the installed cmdline"
+
+# ---- 11. default applications that actually exist ----
+# Measured, not assumed. Resolving each type in XDG order against the real image
+# BEFORE this layer gave:
+#   x-scheme-handler/https  -> org.kde.falkon.desktop   exists=False
+#   x-scheme-handler/mailto -> org.kde.kmail2.desktop   exists=False
+#   text/plain              -> org.kde.kate.desktop     exists=True
+#   inode/directory, application/pdf, image/png         exists=True
+#
+# So the real breakage is narrower than Fedora's GNOME-era
+# /usr/share/applications/mimeapps.list first suggests: that file does point at
+# firefox, gedit, Nautilus, Evince and eog, none of which ship here, but KDE's
+# kde-mimeapps.list sits above it and already answers folders, PDFs and images
+# correctly. What is genuinely broken is the two that matter most on a demo --
+# CLICKING A WEB LINK and CLICKING A MAILTO both resolve to programs that do not
+# exist, so nothing happens at all.
+#
+# text/plain is remapped too, for a different reason: Kate exists but is the
+# developer editor, and this file hides it from the menu. Opening a .txt should
+# land in KWrite, which the advisor can actually find again.
+#
+# Fixed at the sysadmin level. Per the XDG association spec the lookup order is
+# $XDG_CONFIG_DIRS/<desktop>-mimeapps.list, then $XDG_CONFIG_DIRS/mimeapps.list,
+# and only then the $XDG_DATA_DIRS copies -- so /etc/xdg/kde-mimeapps.list wins
+# inside the Plasma session and /etc/xdg/mimeapps.list covers everything else.
+# Both are written, with identical content, so neither path can fall through to
+# the broken lists. The vendor files in /usr/share are left untouched.
+RUN printf '%s\n' \
+      '[Default Applications]' \
+      'x-scheme-handler/http=brave-browser.desktop' \
+      'x-scheme-handler/https=brave-browser.desktop' \
+      'x-scheme-handler/about=brave-browser.desktop' \
+      'x-scheme-handler/unknown=brave-browser.desktop' \
+      'text/html=brave-browser.desktop' \
+      'application/xhtml+xml=brave-browser.desktop' \
+      'x-scheme-handler/mailto=net.thunderbird.Thunderbird.desktop' \
+      'message/rfc822=net.thunderbird.Thunderbird.desktop' \
+      'text/plain=org.kde.kwrite.desktop' \
+      'inode/directory=org.kde.dolphin.desktop' \
+      'application/pdf=okularApplication_pdf.desktop' \
+      'image/png=org.kde.gwenview.desktop' \
+      'image/jpeg=org.kde.gwenview.desktop' \
+      'image/gif=org.kde.gwenview.desktop' \
+      'image/webp=org.kde.gwenview.desktop' \
+      'image/svg+xml=org.kde.gwenview.desktop' \
+      > /etc/xdg/mimeapps.list \
+ && cp /etc/xdg/mimeapps.list /etc/xdg/kde-mimeapps.list \
+ && for f in /etc/xdg/mimeapps.list /etc/xdg/kde-mimeapps.list; do \
+      grep -q '^x-scheme-handler/https=brave-browser.desktop$' "$f" \
+        || { echo "MIME FAILED: https not mapped in $f"; exit 1; }; \
+    done \
+ && for d in brave-browser net.thunderbird.Thunderbird org.kde.kwrite \
+             org.kde.dolphin okularApplication_pdf org.kde.gwenview; do \
+      test -e "/usr/share/applications/$d.desktop" \
+        || { echo "MIME FAILED: handler $d does not exist"; exit 1; }; \
+    done \
+ && grep -q '^TerminalApplication=kitty$' /etc/xdg/kdeglobals \
+ && test -x /usr/bin/kitty \
+ && echo "MIME_OK defaults point at applications that exist"
+
+# ---- 12. Brave's first run, on a financial advisor's machine ----
+# Clicking the browser must land on a web page, not on onboarding. Stock Brave
+# opens a welcome flow, nags to become the default browser, offers to save
+# passwords in competition with the KeePassXC we ship, and surfaces Rewards,
+# Wallet and VPN -- crypto promotion is the wrong thing to put in front of an
+# advisor's clients. Brave reads Chromium enterprise policy from
+# /etc/brave/policies/managed, which the package already creates.
+#
+# Caveat recorded honestly: brave-browser issue #45106 reports Rewards, Wallet
+# and AI Chat still appearing despite policy on some builds. Treat this as
+# best-effort suppression, NOT as a guarantee, and check brave://policy on the
+# demo machine before standing in front of anyone.
+RUN printf '%s\n' \
+      '{' \
+      '  "BraveRewardsDisabled": true,' \
+      '  "BraveWalletDisabled": true,' \
+      '  "BraveVPNDisabled": true,' \
+      '  "BraveAIChatEnabled": false,' \
+      '  "BraveNewsDisabled": true,' \
+      '  "BraveTalkDisabled": true,' \
+      '  "TorDisabled": true,' \
+      '  "BraveP3AEnabled": false,' \
+      '  "BraveStatsPingEnabled": false,' \
+      '  "BraveWebDiscoveryEnabled": false,' \
+      '  "MetricsReportingEnabled": false,' \
+      '  "PromotionalTabsEnabled": false,' \
+      '  "DefaultBrowserSettingEnabled": false,' \
+      '  "PasswordManagerEnabled": false,' \
+      '  "AutofillCreditCardEnabled": false,' \
+      '  "BookmarkBarEnabled": true' \
+      '}' \
+      > /etc/brave/policies/managed/sp-plus.json \
+ && python3 -c "import json,sys; d=json.load(open('/etc/brave/policies/managed/sp-plus.json')); sys.exit(0 if d['BraveRewardsDisabled'] and d['PromotionalTabsEnabled'] is False else 1)" \
+ && echo "BRAVE_POLICY_OK $(python3 -c "import json; print(len(json.load(open('/etc/brave/policies/managed/sp-plus.json'))))") policies, valid JSON"
 
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1
