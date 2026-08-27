@@ -176,10 +176,10 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && python3 -m py_compile /usr/libexec/sp-plus/fin \
  && python3 -c "import re; src=open('/usr/libexec/sp-plus/fin').read().split('def call(')[0]; \
 m={}; exec(src,m); a=m['school']();  \
-assert len(a.split(chr(10)))==8 and '38;5;74' in a and '38;5;249' in a; \
-assert a.count('><>')==2 and a.count('<><')==2; \
-assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=70" \
- && echo "FIN_SCHOOL_OK Fin's ichthys school renders: 8 lines, <=70 cols, blue+grey" \
+assert len(a.split(chr(10)))==10 and '38;5;74' in a and '38;5;249' in a; \
+assert a.count('><>')==6 and a.count('<><')==6; \
+assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72" \
+ && echo "FIN_SCHOOL_OK Fin's ichthys shoal renders: 10 lines, <=72 cols, 12 small fish, blue+grey" \
  && chmod 0644 /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/fin.desktop \
  && desktop-file-validate /usr/share/applications/micro.desktop \
