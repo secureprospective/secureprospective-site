@@ -58,24 +58,6 @@ RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
 # called itself localhost while the gate stayed green. It is set in the kickstart
 # instead (network --hostname=sp-plus), which is the installer's job anyway.
 
-# ---- 2b2. standard system groups must exist in /etc/group ----
-# On the first boot of every SP+ install, 55 errors: "Failed to resolve group" for
-# audio, disk, kvm, video, lp and tss. Those groups live only in /usr/lib/group, which
-# is reachable through the altfiles NSS module, and early systemd-tmpfiles and udev
-# cannot see them -- so device nodes fall back to root ownership. lp and audio decide
-# whether printing and sound work. Materialise the standard groups into /etc/group,
-# keeping the entries the image already added there and never duplicating a name.
-RUN awk -F: 'NR==FNR{seen[$1]=1; next} !($1 in seen)' /etc/group /usr/lib/group \
-      >> /etc/group.new \
- && cat /etc/group /etc/group.new > /etc/group.merged \
- && mv /etc/group.merged /etc/group \
- && rm -f /etc/group.new \
- && for g in audio disk kvm video lp tss wheel spplus; do \
-      grep -q "^$g:" /etc/group || { echo "GROUP MISSING: $g"; exit 1; }; \
-    done \
- && test "$(cut -d: -f1 /etc/group | sort | uniq -d | wc -l)" -eq 0 \
- && echo "GROUPS_OK count=$(grep -c . /etc/group)"
-
 # ---- 2c. trim ----
 # Audited against `dnf repoquery --whatrequires` on the built image; each of these is
 # required by nothing else that ships. Firefox is dead weight beside Brave (only its
@@ -110,6 +92,27 @@ RUN useradd --system --home-dir /var/lib/sp-plus --shell /sbin/nologin spplus \
  && install -d -o spplus -g spplus /var/lib/sp-plus \
  && ! getent passwd advisor \
  && test "$(getent passwd spplus | cut -d: -f3)" -lt 1000
+
+# ---- 3b. standard system groups must exist in /etc/group ----
+# Runs AFTER the spplus account is created: an earlier placement asserted on a group
+# that did not exist yet and failed the build with "GROUP MISSING: spplus".
+# On the first boot of every SP+ install, 55 errors: "Failed to resolve group" for
+# audio, disk, kvm, video, lp and tss. Those groups live only in /usr/lib/group, which
+# is reachable through the altfiles NSS module, and early systemd-tmpfiles and udev
+# cannot see them -- so device nodes fall back to root ownership. lp and audio decide
+# whether printing and sound work. Materialise the standard groups into /etc/group,
+# keeping the entries the image already added there and never duplicating a name.
+RUN awk -F: 'NR==FNR{seen[$1]=1; next} !($1 in seen)' /etc/group /usr/lib/group \
+      >> /etc/group.new \
+ && cat /etc/group /etc/group.new > /etc/group.merged \
+ && mv /etc/group.merged /etc/group \
+ && rm -f /etc/group.new \
+ && for g in audio disk kvm video lp tss wheel spplus; do \
+      grep -q "^$g:" /etc/group || { echo "GROUP MISSING: $g"; exit 1; }; \
+    done \
+ && test "$(cut -d: -f1 /etc/group | sort | uniq -d | wc -l)" -eq 0 \
+ && echo "GROUPS_OK count=$(grep -c . /etc/group)"
+
 
 # ---- 4. the SP+ runtime ----
 COPY runtime/   /usr/libexec/sp-plus/
