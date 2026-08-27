@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SP+ Welcome
+Comment=Set up your Secure Prospective work computer
+Exec=/usr/bin/spplus-welcome
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=Office;Utility;Settings;
+StartupNotify=true

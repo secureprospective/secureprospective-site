@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SP+ Welcome</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- THESIS: A first-run control room, not a polite wizard. OWN-WORLD: Secure Prospective blue, silver, yellow, square rules, ticker field, and hard registration offsets. STORY: an advisor sees their protected work desk take shape, then handles one honest task at a time. FIRST VIEWPORT: a blue route rail, an animated silver briefing field, a large welcome statement, and a seven-stop manifest, with the action anchored at lower right. FORM: corporate badge x transit signage x financial ledger x storm shelter x vault, code-led, seed pinned by the SP+ brand brief. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
+  <main class="app-shell" aria-label="SP+ Welcome setup">
+    <aside class="route-rail" aria-label="Setup progress">
+      <div class="brand-block"><span class="brand-mark" aria-hidden="true">SP+</span><span class="brand-name">SECURE PROSPECTIVE</span></div>
+      <div class="rail-rule"></div>
+      <p class="route-caption" id="route-caption">WELCOME / 01 OF 07</p>
+      <nav class="route-list" aria-label="Setup steps">
+        <button class="route current" data-go="0"><b>01</b><span>Welcome</span></button>
+        <button class="route" data-go="1"><b>02</b><span>Choose the look</span></button>
+        <button class="route" data-go="2"><b>03</b><span>Know your way around</span></button>
+        <button class="route" data-go="3"><b>04</b><span>Office connections</span></button>
+        <button class="route" data-go="4"><b>05</b><span>Bring Fin into your work</span></button>
+        <button class="route" data-go="5"><b>06</b><span>Optional tools + store</span></button>
+        <button class="route" data-go="6"><b>07</b><span>Ready to work</span></button>
+      </nav>
+      <div class="rail-foot"><span class="signal-dot" aria-hidden="true"></span><span>BUILT FOR THE WORK<br>BEHIND THE ADVICE.</span></div>
+    </aside>
+
+    <section class="work-area">
+      <div class="topline"><span id="topline-place">SP+ WELCOME</span><span>LOCAL SETUP / NO DATA SENT</span></div>
+      <section class="screens" aria-live="polite">
+        <article class="screen welcome-screen active" data-screen="0" aria-labelledby="welcome-title">
+          <div class="hero-field" aria-hidden="true"><canvas id="hero-fx-canvas"></canvas></div>
+          <div class="welcome-copy">
+            <h1 id="welcome-title">YOUR NEW<br>WORK DESK<br>IS READY.</h1>
+            <p>SP+ keeps your files, tools and Fin close at hand without asking you to learn Linux first.</p>
+          </div>
+          <div class="welcome-manifest" aria-label="What Welcome can prepare">
+            <div><span>YOUR ROUTE</span><strong>7 SMALL STEPS</strong></div>
+            <div><span>START HERE</span><strong>THE ESSENTIALS</strong></div>
+            <div><span>YOUR CONTROL</span><strong>SKIP ANY TIME</strong></div>
+          </div>
+          <div class="welcome-side-note"><span class="signal-square"></span><p>Nothing changes until you choose it. Each connection tells you plainly whether it is ready or still a stub.</p></div>
+        </article>
+
+        <article class="screen gallery-screen" data-screen="1" aria-labelledby="look-title">
+          <header class="page-title theme-page-title"><div><h1 id="look-title">CHOOSE THE LOOK<br>YOU WORK IN.</h1><p>Start with a complete desktop theme. SP+ Calm Dark is set up as the comfortable default. Fine tune only if you want to.</p></div><div class="title-stamp"><span>RECOMMENDED</span><strong>SP+ CALM DARK</strong></div></header>
+          <section class="theme-choice" aria-labelledby="theme-choice-heading">
+            <div class="choice-head"><h2 id="theme-choice-heading">PICK A COMPLETE THEME.</h2><p>One selection sets its own wallpaper and colour palette defaults.</p></div>
+            <div class="theme-gallery" role="radiogroup" aria-label="Global desktop theme choices">
+              <button class="theme-card selected" role="radio" aria-checked="true" data-theme="SP+ Calm Dark" data-preview="scheme evidence" data-default-wallpaper="Calm graphite" data-default-palette="Blue-cyan focus" data-installed="true"><img src="assets/spplus-calm-dark.png" alt="SP+ Calm Dark graphite window study with blue-cyan focus glow"><span class="theme-meta"><b>SP+ CALM DARK</b><small>Recommended default</small></span><i>SELECTED</i></button>
+              <button class="theme-card" role="radio" aria-checked="false" data-theme="SP+ Calm Light" data-preview="scheme evidence" data-default-wallpaper="Calm light" data-default-palette="Blue-cyan focus" data-installed="true"><img src="assets/spplus-calm-light.png" alt="SP+ Calm Light window study"><span class="theme-meta"><b>SP+ CALM LIGHT</b><small>Installed companion</small></span></button>
+              <button class="theme-card" role="radio" aria-checked="false" data-theme="SP+ Windows 11 Dark" data-preview="desktop preview" data-default-wallpaper="SP+ wallpaper" data-default-palette="Windows dark" data-installed="true"><img src="assets/windows11-dark.jpg" alt="SP+ Windows 11 Dark desktop preview"><span class="theme-meta"><b>WINDOWS 11 DARK</b><small>Installed desktop preview</small></span></button>
+              <button class="theme-card" role="radio" aria-checked="false" data-theme="SP+ Windows 11 Light" data-preview="desktop preview" data-default-wallpaper="SP+ wallpaper" data-default-palette="Windows light" data-installed="true"><img src="assets/windows11-light.jpg" alt="SP+ Windows 11 Light desktop preview"><span class="theme-meta"><b>WINDOWS 11 LIGHT</b><small>Installed desktop preview</small></span></button>
+            </div>
+            <p class="preview-note"><strong>Preview record:</strong> Windows 11 uses the shipped Plasma desktop previews. Calm uses its shipped graphite colour-scheme evidence. A full Calm desktop preview is not available in this draft, so one has not been drawn.</p>
+            <div class="stock-theme-list" aria-label="Other installed global themes without a desktop preview"><span>OTHER INSTALLED THEMES, NO PREVIEW DRAWN</span><button class="stock-theme" data-theme="Breeze" data-default-wallpaper="system default" data-default-palette="Breeze">BREEZE</button><button class="stock-theme" data-theme="Breeze Dark" data-default-wallpaper="system default" data-default-palette="Breeze dark">BREEZE DARK</button><button class="stock-theme" data-theme="Fedora Dark" data-default-wallpaper="system default" data-default-palette="Fedora dark">FEDORA DARK</button></div>
+          </section>
+          <section class="theme-adjustments" aria-labelledby="adjustments-title">
+            <div class="adjustment-intro"><span>OPTIONAL TUNING</span><h2 id="adjustments-title">MAKE THE CHOSEN THEME YOURS.</h2><p id="theme-detail">SP+ Calm Dark is selected with its graphite wallpaper and blue-cyan focus palette.</p></div>
+            <fieldset class="adjustment-group"><legend>WALLPAPER</legend><div class="adjustment-options" role="radiogroup" aria-label="Wallpaper adjustment"><button class="adjustment-option selected" role="radio" aria-checked="true" data-adjustment="wallpaper" data-value="Theme default">THEME DEFAULT</button><button class="adjustment-option" role="radio" aria-checked="false" data-adjustment="wallpaper" data-value="Calm graphite">CALM GRAPHITE</button></div></fieldset>
+            <fieldset class="adjustment-group"><legend>COLOUR PALETTE</legend><div class="adjustment-options" role="radiogroup" aria-label="Colour palette adjustment"><button class="adjustment-option selected" role="radio" aria-checked="true" data-adjustment="palette" data-value="Theme default">THEME DEFAULT</button><button class="adjustment-option" role="radio" aria-checked="false" data-adjustment="palette" data-value="Blue-cyan focus">BLUE-CYAN FOCUS</button></div></fieldset>
+          </section>
+          <div class="ledger-callout theme-boundary"><span>DRAFT BOUNDARY</span><p id="theme-boundary">Selection is recorded in Welcome only. Applying a Plasma theme is a STUB until the theme config is read back and verified.</p></div>
+        </article>
+
+        <article class="screen map-screen" data-screen="2" aria-labelledby="map-title">
+          <header class="page-title split-title"><div><h1 id="map-title">KNOW YOUR<br>WAY AROUND.</h1><p>Your desktop is your map. Applications opens tools. Files holds documents and shared folders. Settings changes the computer. Help stays inside Welcome.</p></div><div class="map-key"><span>DESKTOP MAP</span><b>APPS / FILES / SETTINGS</b></div></header>
+          <div class="map-stage">
+            <section class="desktop-map" aria-label="Desktop guide"><div class="map-window map-files"><span>FILES</span><b>Documents<br>Shared folders</b></div><div class="map-window map-fin"><span>FIN</span><b>Work assistant<br>Open when ready</b></div><div class="map-dock"><span class="dock-active">APPLICATIONS</span><span>FILES</span><span>SETTINGS</span><span>HELP</span></div></section>
+            <section class="help-station" aria-label="Help tree"><div class="help-head"><div><span>IN-APP HELP</span><h2 id="help-heading">CHOOSE A TRAIL.</h2></div><button class="text-button" id="help-home">RETURN TO TRAILS</button></div><p class="help-lede" id="help-lede">Open a card, follow the breadcrumbs, then return to setup when you are ready.</p><div class="breadcrumbs" id="breadcrumbs" aria-label="Help location"></div><div id="help-content" class="help-content"></div></section>
+          </div>
+        </article>
+
+        <article class="screen office-screen" data-screen="3" aria-labelledby="office-title">
+          <header class="page-title"><div><h1 id="office-title">CONNECT THIS<br>COMPUTER TO<br>THE OFFICE.</h1><p>Three independent jobs. Finish one, skip another and return whenever it suits your practice.</p></div><div class="title-stamp"><span>NO SURPRISES</span><strong>ONE JOB AT A TIME</strong></div></header>
+          <div class="office-grid">
+            <section class="office-lane"><div class="lane-title"><span>01 / OFFICE FOLDER</span><b>STUB</b></div><p>Connect once and it will be there after you restart.</p><div class="form-grid"><label>Server name<input aria-label="Server name" placeholder="Example: files.office.local"></label><label>Folder name<input aria-label="Folder name" placeholder="Example: Shared"></label><label>Office username<input aria-label="Office username" placeholder="Your office username"></label><label>Folder password<input type="password" aria-label="Folder password" placeholder="Not your computer login"></label></div><label class="checkline"><input type="checkbox" checked> Save securely for this computer</label><button class="secondary-action stub-action" data-stub="Office folder check">CHECK THIS FOLDER</button></section>
+            <section class="office-lane"><div class="lane-title"><span>02 / PRINTER</span><b>STUB</b></div><p>We will check the computer first, then print one test page.</p><div class="lane-spacer"></div><button class="secondary-action stub-action" data-stub="Printer test">PRINT A TEST PAGE</button><button class="text-button stub-action" data-stub="Printer deferred">I'LL DO THIS LATER</button></section>
+            <section class="office-lane"><div class="lane-title"><span>03 / EMAIL</span><b>STUB</b></div><p>Choose the account your practice uses for email.</p><fieldset><legend class="sr-only">Email provider</legend><label class="radio-line"><input type="radio" name="email" checked> Google Workspace</label><label class="radio-line"><input type="radio" name="email"> Microsoft 365</label><label class="radio-line"><input type="radio" name="email"> Other account</label></fieldset><div class="lane-spacer"></div><button class="secondary-action stub-action" data-stub="Email connection">CONNECT THIS ACCOUNT</button><button class="text-button stub-action" data-stub="Email deferred">I'LL DO THIS LATER</button></section>
+          </div>
+          <div class="ledger-callout"><span>DRAFT BOUNDARY</span><p>No credentials, mounts, printer changes or account sign-ins happen in this draft. The field copy is here so the production job can be built and verified honestly.</p></div>
+        </article>
+
+        <article class="screen fin-screen" data-screen="4" aria-labelledby="fin-title">
+          <header class="page-title"><div><h1 id="fin-title">BRING FIN<br>INTO YOUR WORK.</h1><p>Fin can help summarise, organise and revise documents. You remain responsible for the advice and final decision.</p></div><div class="title-stamp"><span>YOUR CONTROL</span><strong>YOU DECIDE WHAT TO SHARE</strong></div></header>
+          <div class="fin-stage"><section class="fin-brief"><div class="fin-index">FIN / START HERE</div><h2>FIN OPENS<br>WITHOUT ASKING<br>FOR A KEY.</h2><p>If no provider is connected, Fin will tell you to type <code>/login</code> and choose a provider. There is no welcome email and nothing to paste.</p><button class="primary-action stub-action" data-stub="Fin launch and /login handoff">OPEN FIN <span>→</span></button></section><section class="fin-ledger"><div><span>CONNECTION</span><strong>CHOOSE A PROVIDER<br>WHEN FIN ASKS</strong></div><div><span>SAFE FIRST TRY</span><strong>USE A NON-SENSITIVE<br>DOCUMENT FIRST</strong></div><div><span>STARTING PROMPT</span><strong>WHAT ARE THE THREE THINGS<br>I NEED TO KNOW?</strong></div><p>Fin launch is a labelled stub in this draft. No provider is selected and no external window opens.</p></section></div>
+        </article>
+
+        <article class="screen tools-screen" data-screen="5" aria-labelledby="tools-title">
+          <header class="page-title"><div><h1 id="tools-title">OPTIONAL TOOLS.<br>YOUR CALL.</h1><p>Two useful additions, plus the software library when you want to explore. An open store is not a practice-approved list.</p></div><div class="title-stamp"><span>RUNTIME INSTALLS</span><strong>NO IMAGE CHANGE</strong></div></header>
+          <div class="tool-register"><section class="tool-row"><span class="tool-index">01</span><div><h2>BITWARDEN</h2><p>A password manager for work logins.</p></div><div class="tool-detail">FLATHUB<br>com.bitwarden.desktop</div><div class="tool-state">RUNTIME INSTALL<br><small>STUB</small></div><button class="secondary-action stub-action" data-stub="Bitwarden install">ADD BITWARDEN</button></section><section class="tool-row"><span class="tool-index">02</span><div><h2>SIGNAL DESKTOP</h2><p>A private way to reach a client or colleague when email is the wrong channel.</p></div><div class="tool-detail">FLATHUB<br>org.signal.Signal</div><div class="tool-state">RUNTIME INSTALL<br><small>STUB</small></div><button class="secondary-action stub-action" data-stub="Signal Desktop install">ADD SIGNAL</button></section></div>
+          <section class="discover-strip"><div><span>03 / BROWSE EVERYTHING</span><h2>THE SOFTWARE LIBRARY IS OPEN.</h2><p>Discover, Flatpak and its backend are already on this computer. The open Flathub source is not configured yet. Set it up, verify it, then browse Discover.</p></div><button class="primary-action stub-action" data-stub="Flathub setup and Discover">SET UP AND BROWSE <span>→</span></button></section>
+          <div class="ledger-callout"><span>USE WITH CARE</span><p>Check an app with your practice before using it for client work. No install or remote setup is performed here.</p></div>
+        </article>
+
+        <article class="screen done-screen" data-screen="6" aria-labelledby="done-title">
+          <div class="done-field"><div class="done-mark">SP+</div><div><h1 id="done-title">READY<br>TO WORK.</h1><p>Anything you skipped is still available from SP+ Welcome.</p></div></div>
+          <section class="handoff-register" aria-label="Setup handoff"><div><span>YOUR LOOK</span><strong id="final-theme">SP+ CALM DARK / SELECTED</strong></div><div><span>OFFICE CONNECTIONS</span><strong>INDEPENDENT / RETURN WHEN READY</strong></div><div><span>FIN</span><strong>READY AFTER YOU CONNECT IT</strong></div><div><span>OPTIONAL TOOLS</span><strong>NOT ADDED IN THIS DRAFT</strong></div></section>
+          <div class="finish-line"><p>You can reopen this from Applications › SP+ Welcome.</p><label class="checkline"><input type="checkbox" id="no-show"> Do not show this setup again</label></div>
+        </article>
+      </section>
+      <footer class="controls"><button class="text-button" id="skip">I'LL DO THIS LATER</button><div class="status" role="status" id="status">READY WHEN YOU ARE.</div><div class="nav-actions"><button class="secondary-action" id="back">BACK</button><button class="primary-action" id="next">LET'S MAKE IT MINE <span>→</span></button></div></footer>
+    </section>
+  </main>
+  <script src="hero.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
