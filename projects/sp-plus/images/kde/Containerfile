@@ -192,6 +192,13 @@ RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
  && ln -sf ../libexec/sp-plus/fin /usr/bin/fin \
  && test -x /usr/bin/fin \
  && bash -n /usr/libexec/sp-plus/fin \
+# Fin must open its TUI unconditionally. An earlier build asked the advisor to
+# paste a key "from your SP+ welcome email" and exited when they skipped it, so
+# an advisor without a key never saw Fin. Assert the prompt is gone (outside
+# comments) and that the /login guidance is present.
+ && ! grep -v '^[[:space:]]*#' /usr/libexec/sp-plus/fin | grep -qi 'welcome email' \
+ && ! grep -q 'first_run_key' /usr/libexec/sp-plus/fin \
+ && grep -q '/login' /usr/libexec/sp-plus/fin \
  && python3 -m py_compile /usr/libexec/sp-plus/fin-banner \
  && python3 -c "import re,subprocess; \
 a=subprocess.run(['/usr/libexec/sp-plus/fin-banner'],capture_output=True,text=True,check=True).stdout.rstrip(chr(10)); \

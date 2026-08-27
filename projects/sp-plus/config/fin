@@ -26,23 +26,6 @@ BOLD=$'\033[1m'; DIM=$'\033[2m'; OFF=$'\033[0m'
 
 have_key() { [ -n "${ANTHROPIC_API_KEY:-}" ]; }
 
-first_run_key() {
-    printf '\n  %sFin needs a key before it can talk.%s\n' "$BOLD" "$OFF"
-    printf '  %sPaste the key from your SP+ welcome email. It is stored on this\n' "$DIM"
-    printf '  machine only, readable by you alone, and never leaves it.%s\n\n' "$OFF"
-    printf '  Key (or press Enter to skip): '
-    # -s so a key is never left on screen or in scrollback.
-    IFS= read -r -s key || key=
-    printf '\n'
-    [ -z "$key" ] && return 1
-    install -d -m 0700 "$(dirname "$USER_ENV")"
-    ( umask 077; printf 'ANTHROPIC_API_KEY=%s\n' "$key" > "$USER_ENV" )
-    chmod 0600 "$USER_ENV"
-    export ANTHROPIC_API_KEY="$key"
-    printf '  %sSaved. Fin is ready.%s\n' "$BOLD" "$OFF"
-    return 0
-}
-
 TIPS=/usr/libexec/sp-plus/fin-tips
 
 # Coaching tips are the advisor's to control, so the switches come before
@@ -69,22 +52,13 @@ esac
 [ -x "$BANNER" ] && "$BANNER"
 printf '  %sFin%s — your SP+ assistant\n' "$BOLD" "$OFF"
 
-if ! have_key; then
-    first_run_key || {
-        printf '\n  %sWithout a key Fin cannot answer questions, but the repair steps\n'  "$DIM"
-        printf '  still work. Run:  spplus-fix printer%s\n\n' "$OFF"
-        exit 1
-    }
-fi
-
-export ANTHROPIC_API_KEY
-
-# One coaching tip, at most, at the start of a session. It is shown only after
-# the key is settled: a tip is useless to an advisor Fin cannot yet answer.
-# "Try it" hands the tip straight to Fin as the opening request, which is the
-# whole point -- the advisor learns by having the work done, not by reading.
+# Decide the opening request BEFORE any flags are prepended, so that $# still
+# reflects what the advisor actually typed.
 TIP_CHOICE=""
-if [ -x "$TIPS" ] && [ $# -eq 0 ]; then
+if [ -x "$TIPS" ] && [ $# -eq 0 ] && have_key; then
+    # One coaching tip, at most, per session, and only when Fin can actually
+    # answer it. "Try it" hands the tip straight to Fin as the opening request:
+    # the advisor learns by having the work done, not by reading about it.
     TIP_FILE=$(mktemp) || TIP_FILE=""
     if [ -n "$TIP_FILE" ]; then
         if "$TIPS" show "$TIP_FILE"; then TIP_CHOICE=$(cat "$TIP_FILE"); fi
@@ -92,11 +66,24 @@ if [ -x "$TIPS" ] && [ $# -eq 0 ]; then
     fi
 fi
 [ -n "$TIP_CHOICE" ] && set -- "$TIP_CHOICE"
+
+# Fin must ALWAYS open. Nothing is asked of the advisor before the TUI loads:
+# earlier builds prompted for a key pasted "from your SP+ welcome email" and quit
+# when it was skipped, so an advisor with no key never saw Fin at all. If there
+# is no key, say how to connect and let Pi's own /login handle it -- and do not
+# force a provider, or Pi cannot offer the choice.
+if have_key; then
+    export ANTHROPIC_API_KEY
+    set -- --provider anthropic --model "${FIN_MODEL:-claude-sonnet-5}" "$@"
+else
+    printf '\n  %sFin is not connected to a provider yet.%s\n' "$BOLD" "$OFF"
+    printf '  %sType %s/login%s%s in Fin and pick a provider to sign in to.%s\n\n' \
+        "$DIM" "$OFF$BOLD" "$OFF" "$DIM" "$OFF"
+fi
+
 # --approve is deliberate: without it Fin asks about trusting project files in a
 # home directory the advisor owns anyway, which is a question they cannot answer.
 exec /usr/bin/pi \
-    --provider anthropic \
-    --model "${FIN_MODEL:-claude-sonnet-5}" \
     --append-system-prompt "$PROMPT" \
     --skill "$SKILLS" \
     --prompt-template "$PROMPTS" \
