@@ -127,6 +127,85 @@ echo "=== 9. STORAGE LAYOUT ==="
 df -hT -x tmpfs -x devtmpfs 2>/dev/null | sed 's/^/    /'
 echo
 
+echo "=== 10a. SP+ CALM THEME (DN-27: the shipped default look) ==="
+# The build gates prove the FILES are installed. Only a booted machine can prove
+# the look was APPLIED, which is the DN-24 distinction: naming a look-and-feel in
+# kdeglobals is not applying it. Read the user's own config, not /etc.
+CALM=org.secureprospective.spplus.calm.dark
+r calm_lnf_installed "$([ -d /usr/share/plasma/look-and-feel/$CALM ] && echo yes || echo no)" \
+  "$([ -d /usr/share/plasma/look-and-feel/$CALM ] && echo OK || echo PROBLEM)"
+r calm_colors_installed "$([ -f /usr/share/color-schemes/SPPlusCalmDark.colors ] && echo yes || echo no)" \
+  "$([ -f /usr/share/color-schemes/SPPlusCalmDark.colors ] && echo OK || echo PROBLEM)"
+r calm_wallpaper_ladder "$(ls /usr/share/wallpapers/SPPlus-Calm/contents/images/ 2>/dev/null | wc -l)" ""
+r paper_icons "$([ -d /usr/share/icons/Paper-Mono-Dark ] && echo yes || echo no)" \
+  "$([ -d /usr/share/icons/Paper-Mono-Dark ] && echo OK || echo PROBLEM)"
+for face in "Noto Sans" "IBM Plex Sans" "JetBrains Mono"; do
+  key="font_$(echo "$face" | tr 'A-Z ' 'a-z_')"
+  if fc-list : family 2>/dev/null | grep -qi "$face"; then r "$key" present OK; else r "$key" MISSING PROBLEM; fi
+done
+# Aurorae must carry no trace of the retired Mars-coral accent.
+if grep -rqi 'ff704c\|c4462e\|9d3d2a' /usr/share/aurorae/themes/spplus-calm-*/ 2>/dev/null; then
+  r calm_orange_residue found PROBLEM
+else
+  r calm_orange_residue none OK
+fi
+# Per-user application. Absence here is the DN-24 failure, not a cosmetic nit.
+U_KDEGLOBALS="$HOME/.config/kdeglobals"
+if [ -r "$U_KDEGLOBALS" ]; then
+  applied=$(grep -m1 '^LookAndFeelPackage=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
+  scheme=$(grep -m1 '^ColorScheme=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
+  [ "$applied" = "$CALM" ] && r calm_applied_to_user "$applied" OK || r calm_applied_to_user "${applied:-none}" PROBLEM
+  [ "$scheme" = "SPPlusCalmDark" ] && r calm_scheme_applied "$scheme" OK || r calm_scheme_applied "${scheme:-none}" PROBLEM
+else
+  r calm_applied_to_user unreadable UNKNOWN
+fi
+APPLETS="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
+if [ -r "$APPLETS" ]; then
+  grep -q 'SPPlus-Calm' "$APPLETS" && r calm_wallpaper_applied yes OK || r calm_wallpaper_applied no PROBLEM
+else
+  r calm_wallpaper_applied unreadable UNKNOWN
+fi
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
+r first_login_stamp "$([ -e "$STAMP" ] && cat "$STAMP" || echo absent)" ""
+echo
+
+echo "=== 10b. SHARE DISCOVERY, STORE, AND WELCOME (DN-26) ==="
+# wsdd has never been watched reaching active on a booted machine. The drop-in
+# clears an upstream BindsTo=smb.service that would otherwise make it unstartable,
+# and quotes OPTIONS so systemd does not split on spaces and drop --no-host,
+# which would put wsdd in HOST mode advertising the advisor to the office network.
+wsdd_state=$(systemctl is-active wsdd.service 2>/dev/null || echo unknown)
+[ "$wsdd_state" = active ] && r wsdd_active "$wsdd_state" OK || r wsdd_state_bad "$wsdd_state" PROBLEM
+if [ "$ROOT" = yes ]; then
+  # --no-host must be in the RUNNING process, not merely in the drop-in file.
+  if pgrep -a -f '[w]sdd' >/dev/null 2>&1; then
+    pgrep -a -f '[w]sdd' | grep -q -- '--no-host' \
+      && r wsdd_no_host_live yes OK || r wsdd_no_host_live NO PROBLEM
+  else
+    r wsdd_no_host_live no_process PROBLEM
+  fi
+else
+  r wsdd_no_host_live "$(systemctl show wsdd.service -p Environment --value 2>/dev/null | grep -q -- '--no-host' && echo in_unit_env || echo NOT_SET)" SKIPPED_NEEDS_ROOT
+fi
+r wsdd_listener "$(ss -lntup 2>/dev/null | grep -c '127.0.0.1:5357')" ""
+r flathub_vendor_file "$([ -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo ] && echo yes || echo no)" \
+  "$([ -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo ] && echo OK || echo PROBLEM)"
+r flathub_remote_live "$(flatpak remotes --columns=name 2>/dev/null | grep -cx flathub)" ""
+r discover_present "$(command -v plasma-discover >/dev/null && echo yes || echo no)" ""
+r welcome_binary "$([ -x /usr/bin/spplus-welcome ] && echo yes || echo no)" ""
+r welcome_desktop "$([ -f /usr/share/applications/org.secureprospective.spplus.welcome.desktop ] && echo yes || echo no)" ""
+r welcome_autostart_skel "$([ -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop ] && echo yes || echo no)" ""
+r fin_on_path "$(command -v fin >/dev/null && echo yes || echo no)" \
+  "$(command -v fin >/dev/null && echo OK || echo PROBLEM)"
+# Print Screen must reach Flameshot, not Spectacle. cycle35 fix, unproven on hardware.
+KGS="$HOME/.config/kglobalshortcutsrc"
+if [ -r "$KGS" ]; then
+  grep -q '^_launch=.*Print' "$KGS" 2>/dev/null && r printscreen_bound_flameshot yes OK || r printscreen_bound_flameshot no PROBLEM
+else
+  r printscreen_bound_flameshot unreadable UNKNOWN
+fi
+echo
+
 echo "=== 10. HARDWARE (expected to differ QEMU vs Dell - not a defect) ==="
 r cpu_model "$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo | sed 's/^ //')" ""
 r cpu_threads "$(nproc)" ""
