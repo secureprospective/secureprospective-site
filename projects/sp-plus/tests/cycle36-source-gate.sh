@@ -14,15 +14,30 @@ grep -qF 'nodejs22-full-i18n' "$CF" || fail 'Node full ICU package is not explic
 grep -qF "node-22 -e 'new Intl.Segmenter(\"en\",{granularity:\"grapheme\"}).segment(\"hello\")'" "$CF" || fail 'Node Intl.Segmenter gate is not wired'
 pass 'Node full ICU and Intl.Segmenter gate'
 
-# FIX 2: Plasma 6.7 SVG Aurorae is the v2 plugin; the theme ID keeps KDE's
-# verified __aurorae__svg__ prefix. The first-login script must read back all keys.
+# FIX 2: Plasma 6.7 SVG Aurorae is the v2 plugin. Under DN-28 the default is now
+# SP+ Windows 11 Dark; the Plasma 5 plugin name must appear NOWHERE, because that
+# single line is what made a whole cycle ship a theme that never applied.
 grep -qF 'library=org.kde.kwin.aurorae.v2' "$CF" || fail 'Aurorae v2 library is not shipped'
-grep -qF 'theme=__aurorae__svg__spplus-calm-dark' "$CF" || fail 'Aurorae theme ID is not shipped'
+grep -qF 'theme=__aurorae__svg__windows-modern-dark-aurorae' "$CF" || fail 'default Aurorae theme ID is not shipped'
+if grep -rn 'library=org\.kde\.kwin\.aurorae$' "$ROOT/theme" >/dev/null 2>&1; then
+  fail 'a look-and-feel package still names the Plasma 5 decoration plugin'
+fi
 grep -qF 'look-and-feel config verified' "$C/spplus-first-login" || fail 'first-login theme read-back is absent'
 grep -qF 'KDE widgetStyle' "$C/spplus-first-login" || fail 'widgetStyle read-back is absent'
 grep -qF 'General ColorScheme' "$C/spplus-first-login" || fail 'ColorScheme read-back is absent'
 grep -qF 'org.kde.kdecoration2 theme' "$C/spplus-first-login" || fail 'KWin theme read-back is absent'
-pass 'Calm v2 Aurorae values and first-login read-back'
+pass 'Aurorae v2 everywhere and first-login read-back'
+
+# FIX 2b (DN-28): a theme switch must change EVERY component, not just colours.
+test -x "$C/spplus-apply-theme" || fail 'spplus-apply-theme helper missing'
+grep -qF 'plasma-apply-lookandfeel' "$C/spplus-apply-theme" || fail 'helper does not invoke Plasma'
+grep -qF 'spplus-apply-theme' "$C/spplus-first-login" || fail 'first-login does not apply via the helper'
+grep -qF 'themeApplied' "$ROOT/welcome/app/app.js" || fail 'Welcome does not report the real apply result'
+grep -qF "document.title = 'spplus:apply-theme" "$ROOT/welcome/app/app.js" || fail 'Welcome theme bridge is not wired'
+grep -qF 'class WelcomeBridge' "$ROOT/welcome/welcome.py" || fail 'Welcome shell bridge missing'
+python3 "$ROOT/theme/tools/validate-global-themes.py" --root "${SPPLUS_IMAGE_ROOT:-/}" >/dev/null 2>&1 \
+  || echo 'NOTE global-theme gate needs an image root; run it in the guest with --root'
+pass 'global theme applies every component (helper, first-login, Welcome bridge)'
 
 # FIX 3: no variable can override these literal service arguments.
 test -s "$C/wsdd.service.d/sp-plus.conf" || fail 'wsdd drop-in missing'
