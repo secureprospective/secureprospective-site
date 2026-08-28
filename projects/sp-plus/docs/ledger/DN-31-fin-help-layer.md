@@ -86,8 +86,21 @@ architecture does not cover. Guardrails therefore concentrate on the advisor's f
 machine state, and stay relaxed about `/usr`. This is the opposite of where instinct puts
 them.
 
-*Not yet re-verified on a running guest. Standard ostree behaviour. The next install must
-assert it.*
+**Verified 2026-08-28 on the running `spplus-uefi` guest.** Evidence, not recall:
+
+- The stateroot `/ostree/deploy/default/` contains `deploy/`, `var/` and `backing/`.
+  **`var` is a sibling of `deploy/`, not a child of any deployment.** A rollback selects a
+  different entry under `deploy/`; `var` is not part of that selection and is untouched.
+- `/home` is a symlink to `/var/home`, so **the advisor's documents live inside that shared
+  `var`** and are equally unaffected by a rollback.
+- `/etc` **is** per-deployment: `/ostree/deploy/default/deploy/<checksum>.0/etc` exists.
+  So a rollback does restore that deployment's `/etc`, subject to the usual three-way merge
+  of local changes. The record does not claim otherwise, but the asymmetry matters: `/etc`
+  is partly protected, `/var` and `/home` are not at all.
+- The root filesystem mounts as `composefs ... ro`, confirming the read-only image.
+
+The practical consequence stands and is now evidence-backed: **rollback is not a recovery
+path for anything the advisor owns.**
 
 ### 6. Fin is cloud-first, so the read boundary is a data-egress boundary
 
