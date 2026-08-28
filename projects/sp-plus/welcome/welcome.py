@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 from urllib.parse import parse_qs, urlparse
-from PySide6.QtCore import QSettings, QTimer, QUrl
+from PySide6.QtCore import QSettings, QThread, QTimer, QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -26,8 +26,49 @@ APP_URL = QUrl.fromLocalFile(str(ROOT / 'app' / 'index.html'))
 # without needing to write into the immutable /usr.
 APPLY_THEME = os.environ.get('SPPLUS_APPLY_THEME',
                              '/usr/libexec/spplus-apply-theme')
+FIN = os.environ.get('SPPLUS_FIN', '/usr/libexec/sp-plus/fin')
 
-class WelcomeBridge:
+
+class AskWorker(QThread):
+    """Run Fin away from Qt's UI thread and return a display-safe result."""
+
+    result_ready = Signal(object, object)
+
+    def __init__(self, question):
+        super().__init__()
+        self.question = question
+
+    def run(self):
+        try:
+            result = subprocess.run([FIN, '--ask', self.question],
+                                    capture_output=True, text=True, timeout=120)
+            answer = (result.stdout or '').strip()
+            if result.returncode == 0 and answer:
+                payload = {'ok': True, 'answer': answer, 'reason': ''}
+            elif result.returncode != 0:
+                output = (result.stdout or '').strip()
+                reason = f'Fin stopped before answering (exit code {result.returncode}).'
+                if output == 'Fin is not connected yet.':
+                    reason = output
+                payload = {'ok': False, 'answer': '', 'reason': reason}
+            else:
+                payload = {'ok': False, 'answer': '', 'reason': 'Fin returned no answer.'}
+        except subprocess.TimeoutExpired:
+            payload = {'ok': False, 'answer': '',
+                       'reason': 'Fin took too long to answer.'}
+        except OSError:
+            payload = {'ok': False, 'answer': '',
+                       'reason': 'Fin is not available on this computer.'}
+        except subprocess.SubprocessError:
+            payload = {'ok': False, 'answer': '',
+                       'reason': 'Fin could not be started.'}
+        except Exception:
+            payload = {'ok': False, 'answer': '',
+                       'reason': 'Fin could not answer.'}
+        self.result_ready.emit(self, payload)
+
+
+class WelcomeBridge(QObject):
     """Carries requests from the page to the desktop over the window title.
 
     Navigating to a custom scheme is not usable here: QtWebEngine resolves the
@@ -40,7 +81,9 @@ class WelcomeBridge:
     PREFIX = 'spplus:'
 
     def __init__(self, view):
+        super().__init__()
         self.view = view
+        self._ask_workers = set()
         view.titleChanged.connect(self.on_title)
 
     def on_title(self, title):
@@ -52,6 +95,24 @@ class WelcomeBridge:
             theme = (params.get('theme') or [''])[0]
             if theme:
                 self.apply_theme(theme)
+        elif parsed.path == 'ask':
+            question = (params.get('q') or [''])[0].strip()
+            if question:
+                self.ask(question)
+
+    def ask(self, question):
+        worker = AskWorker(question)
+        self._ask_workers.add(worker)
+        worker.result_ready.connect(self._ask_finished)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    @Slot(object, object)
+    def _ask_finished(self, worker, payload):
+        self._ask_workers.discard(worker)
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.answered({encoded})')
 
     def apply_theme(self, theme_id):
         try:

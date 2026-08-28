@@ -7,12 +7,41 @@
   const status = document.getElementById('status');
   const caption = document.getElementById('route-caption');
   const topline = document.getElementById('topline-place');
+  const askForm = document.getElementById('ask-form');
+  const askInput = document.getElementById('ask-fin');
+  const askSubmit = document.getElementById('ask-submit');
+  const askFeedback = document.getElementById('ask-feedback');
+  let askTimer = null;
   let current = 0;
   let selectedTheme = 'SP+ CALM DARK';
   let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
   const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
   const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
   function announce(message, kind=''){ status.textContent = message; status.dataset.kind = kind; }
+  function showAskFeedback(message, kind) {
+    askFeedback.hidden = false;
+    askFeedback.dataset.kind = kind || '';
+    askFeedback.textContent = message;
+  }
+  function finishAsk(result) {
+    if (askTimer) { clearTimeout(askTimer); askTimer = null; }
+    askInput.disabled = false;
+    askSubmit.disabled = false;
+    askForm.setAttribute('aria-busy', 'false');
+    document.title = 'SP+ Welcome';
+    if (result && result.ok && result.answer) {
+      showAskFeedback(result.answer, 'answer');
+      announce('FIN ANSWERED YOUR QUESTION.');
+      return;
+    }
+    const reason = (result && result.reason) || 'Fin did not return an answer.';
+    if (reason === 'Fin is not connected yet.') {
+      showAskFeedback(`${reason} Open Fin from Applications, type /login, and pick a provider.`, 'error');
+    } else {
+      showAskFeedback(`${reason} Try again. If it keeps happening, open Fin from Applications.`, 'error');
+    }
+    announce('FIN COULD NOT ANSWER.','stub');
+  }
   function go(index) {
     current = Math.max(0, Math.min(6, index));
     screens.forEach((screen,i) => { screen.classList.toggle('active',i===current); screen.setAttribute('aria-hidden', i===current ? 'false' : 'true'); });
@@ -47,6 +76,23 @@
   }));
   document.querySelectorAll('.stub-action').forEach(button => button.addEventListener('click', () => announce(`${button.dataset.stub.toUpperCase()} IS A STUB. NO SYSTEM CHANGE WAS MADE.`, 'stub')));
   document.getElementById('no-show').addEventListener('change', event => { localStorage.setItem('spplus-welcome-no-show', event.target.checked ? 'true' : 'false'); announce(event.target.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.'); });
+  askForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const question = askInput.value.trim();
+    if (!question) {
+      showAskFeedback('Type a question first, then choose ASK FIN.', 'error');
+      announce('TYPE A QUESTION FOR FIN FIRST.','stub');
+      askInput.focus();
+      return;
+    }
+    askInput.disabled = true;
+    askSubmit.disabled = true;
+    askForm.setAttribute('aria-busy', 'true');
+    showAskFeedback('FIN IS THINKING. YOUR QUESTION WAS RECEIVED.', 'pending');
+    announce('FIN IS THINKING. YOUR QUESTION WAS RECEIVED.');
+    document.title = 'spplus:ask?q=' + encodeURIComponent(question);
+    askTimer = setTimeout(() => finishAsk({ok:false, reason:'Fin did not respond.'}), 125000);
+  });
 
   const categories = {
     'Start here':'First five minutes and your map.',
@@ -88,6 +134,8 @@
         announce('THAT THEME COULD NOT BE APPLIED. THE DESKTOP WAS LEFT AS IT WAS.', 'stub');
         if (detail) detail.textContent = 'The desktop was left unchanged. Detail: ' + ((result && result.detail) || 'no detail reported') + '.';
       }
-    }, go, helpDepth };
+    },
+    answered: finishAsk,
+    go, helpDepth };
   go(0);
 })();

@@ -18,8 +18,17 @@ async function handlerFor(file, toolName) {
 // we probe, because it gives an unambiguous signal without a terminal.
 const ctx = { hasUI: false, cwd: '/home/advisor' };
 
-const BASH = (process.env.SPPLUS_EXT_DIR || '/usr/share/sp-plus/fin/extensions') + '/spplus-guardrails.ts';
-const PATHS = (process.env.SPPLUS_EXT_DIR || '/usr/share/sp-plus/fin/extensions') + '/spplus-workspace.ts';
+// Prefer the installed copy (that is what actually runs on an advisor
+// machine). Fall back to the repo source so the gate runs on a build host
+// too, instead of silently erroring out and being mistaken for a skip.
+import { existsSync } from 'node:fs';
+import { dirname, resolve as rpath } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const INSTALLED = '/usr/share/sp-plus/fin/extensions';
+const SOURCE = rpath(dirname(fileURLToPath(import.meta.url)), '..', 'config', 'fin-extensions');
+const EXT_DIR = process.env.SPPLUS_EXT_DIR || (existsSync(INSTALLED) ? INSTALLED : SOURCE);
+const BASH = EXT_DIR + '/spplus-guardrails.ts';
+const PATHS = EXT_DIR + '/spplus-workspace.ts';
 
 const mustBlock = [
   ['rm -rf /home/advisor/Documents', 'deletes client documents'],
