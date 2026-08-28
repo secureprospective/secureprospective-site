@@ -328,7 +328,15 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && test -f /usr/share/sp-plus/fin/system-prompt.md \
  && test -f /usr/share/sp-plus/fin/skills/printer/SKILL.md \
  && test -f /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
- && test -f /usr/share/sp-plus/fin/extensions/spplus-protected-paths.ts \
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-workspace.ts \
+# Fin writes in exactly one directory and nowhere else. It must EXIST before
+# Fin first runs, or the first thing an advisor asks for fails on a missing
+# path rather than on the rule. Under Documents so it is backed up with their
+# work and obvious in a file manager, never hidden in a dotfile.
+ && mkdir -p /etc/skel/Documents/Fin \
+ && test -d /etc/skel/Documents/Fin \
+ && grep -q '"Documents", "Fin"' /usr/share/sp-plus/fin/extensions/spplus-workspace.ts \
+ && grep -q "realpathSync" /usr/share/sp-plus/fin/extensions/spplus-workspace.ts \
  && grep -q -- '--extension' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-protected-paths' /usr/libexec/sp-plus/fin \

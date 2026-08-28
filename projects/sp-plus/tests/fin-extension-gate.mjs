@@ -18,8 +18,8 @@ async function handlerFor(file, toolName) {
 // we probe, because it gives an unambiguous signal without a terminal.
 const ctx = { hasUI: false, cwd: '/home/advisor' };
 
-const BASH = process.env.SPPLUS_EXT_DIR ? process.env.SPPLUS_EXT_DIR + '/spplus-guardrails.ts' : '/usr/share/sp-plus/fin/extensions/spplus-guardrails.ts';
-const PATHS = process.env.SPPLUS_EXT_DIR ? process.env.SPPLUS_EXT_DIR + '/spplus-protected-paths.ts' : '/usr/share/sp-plus/fin/extensions/spplus-protected-paths.ts';
+const BASH = (process.env.SPPLUS_EXT_DIR || '/usr/share/sp-plus/fin/extensions') + '/spplus-guardrails.ts';
+const PATHS = (process.env.SPPLUS_EXT_DIR || '/usr/share/sp-plus/fin/extensions') + '/spplus-workspace.ts';
 
 const mustBlock = [
   ['rm -rf /home/advisor/Documents', 'deletes client documents'],
@@ -72,21 +72,32 @@ const mustAllow = [
 // reason. (It did, first run.)
 import { homedir } from 'node:os';
 const H = homedir();
+// WRITE CONFINEMENT. Christophers rule: Fin writes in exactly one directory.
+// Asserted in both directions, and with the escapes that make a lexical check
+// insufficient -- .. traversal and a symlinked parent.
+import { mkdirSync, symlinkSync, rmSync } from 'node:fs';
+const WS = `${H}/Documents/Fin`;
+mkdirSync(WS, { recursive: true });
+// a symlink inside the workspace pointing out of it: the realistic escape
+const ESCAPE = `${WS}/escape-hatch`;
+try { rmSync(ESCAPE, { force: true }); } catch {}
+try { symlinkSync(`${H}/.ssh`, ESCAPE, 'dir'); } catch {}
+
 const mustBlockPaths = [
-  [`${H}/.thunderbird/abc.default/prefs.js`, 'mail profile'],
-  [`${H}/.ssh/id_ed25519`, 'ssh key'],
-  [`${H}/.mozilla/firefox/profiles.ini`, 'browser profile'],
-  [`${H}/.local/share/kwalletd/kdewallet.kwl`, 'password wallet'],
-  ['/etc/sp-plus/shares/office.cred', 'share credential'],
-  [`${H}/Vault.kdbx`, 'password database'],
-  ['/etc/fstab', 'boot-critical file'],
+  [`${H}/.ssh/authorized_keys`, 'ssh keys'],
+  [`${H}/.thunderbird/prefs.js`, 'mail profile'],
+  [`${H}/.bashrc`, 'a shell startup file'],
+  [`${H}/Documents/client-notes.md`, 'a client document outside the workspace'],
+  ['/etc/sp-plus/shares/office.cred', 'a share credential'],
   ['/etc/sudoers', 'the sudo policy'],
-  [`${H}/.config/sp-plus/fin.env`, 'provider key'],
+  [`${H}/Documents/Fin/../../.ssh/id_ed25519`, 'dot-dot traversal out of the workspace'],
+  [`${ESCAPE}/id_ed25519`, 'a symlinked parent escaping the workspace'],
+  [`${H}/.env`, 'an environment file'],
 ];
 const mustAllowPaths = [
-  [`${H}/Documents/notes.md`, 'an ordinary document'],
-  [`${H}/.config/kdeglobals`, 'a desktop setting'],
-  [`${H}/.local/share/applications/x.desktop`, 'a launcher entry'],
+  [`${WS}/report.py`, 'a one-off tool in the workspace'],
+  [`${WS}/nested/deep/app.js`, 'a nested file in the workspace'],
+  [`${WS}/draft.md`, 'a draft in the workspace'],
 ];
 
 let fail = 0, pass = 0;
@@ -109,19 +120,23 @@ for (const [cmd, why] of mustAllow) {
   ok ? pass++ : fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${why}\n        ${cmd}${ok ? '' : `\n        BLOCKED: ${r.reason}`}`);
 }
-console.log('\n=== PATHS: MUST BLOCK ===');
+console.log('\n=== WRITES: MUST BLOCK (everything outside Documents/Fin) ===');
 for (const [p, why] of mustBlockPaths) {
   const r = await run(paths, { toolName: 'write', input: { path: p } });
   const ok = r && r.block === true;
   ok ? pass++ : fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${why} -- ${p}`);
 }
-console.log('\n=== PATHS: MUST ALLOW ===');
+console.log('\n=== WRITES: MUST ALLOW (inside Documents/Fin) ===');
 for (const [p, why] of mustAllowPaths) {
   const r = await run(paths, { toolName: 'write', input: { path: p } });
   const ok = r === null;
   ok ? pass++ : fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${why} -- ${p}`);
 }
+// The escape symlink points at ~/.ssh. Never leave that lying in a home
+// directory just because a test made it.
+try { rmSync(ESCAPE, { force: true }); } catch {}
+
 console.log(`\nRESULT pass=${pass} fail=${fail}`);
 process.exit(fail ? 1 : 0);

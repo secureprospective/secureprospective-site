@@ -97,6 +97,6 @@ exec /usr/bin/pi \
     --skill "$SKILLS" \
     --prompt-template "$PROMPTS" \
     --extension "$EXTENSIONS/spplus-guardrails.ts" \
-    --extension "$EXTENSIONS/spplus-protected-paths.ts" \
+    --extension "$EXTENSIONS/spplus-workspace.ts" \
     --approve \
     "$@"
