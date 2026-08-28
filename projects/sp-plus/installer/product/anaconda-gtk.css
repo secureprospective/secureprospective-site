@@ -1,0 +1,21 @@
+/* SP+ installer product.img override. */
+@define-color anaconda_bg_color #0033A0;
+
+.logo-sidebar {
+    background-image: none;
+    background-color: @anaconda_bg_color;
+}
+
+.logo,
+.product-logo {
+    background-image: url('pixmaps/sidebar-logo.png');
+    background-position: 50% 20px;
+    background-repeat: no-repeat;
+    background-color: transparent;
+}
+
+AnacondaSpokeWindow #nav-box {
+    background-color: @anaconda_bg_color;
+    background-image: none;
+    color: white;
+}

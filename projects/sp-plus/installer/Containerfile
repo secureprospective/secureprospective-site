@@ -67,6 +67,10 @@ RUN chmod 0755 /usr/local/bin/bootc
 # ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees,
 # and it is a separate image with its own Fedora art. Build context is
 # projects/sp-plus/, so COPY paths above are prefixed with installer/.
+# Lorax's bootc-generic-iso template packages this directory as images/product.img.
+# The same source tree is also reproducibly archived by build-product-img.sh for
+# static inspection without starting an ISO build.
+COPY installer/product/ /usr/share/lorax/product/
 COPY branding/ /usr/share/sp-plus/branding/
 
 RUN printf '%s\n' \
@@ -87,31 +91,6 @@ RUN printf '%s\n' \
  && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue \
  && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue.net
 
-# Anaconda pixmaps and every visible fedora-logos surface, enumerated from rpm.
-RUN set -eux; \
-    ICON=/usr/share/sp-plus/branding/sp-plus-icon-512.png; \
-    LOCK=/usr/share/sp-plus/branding/sp-plus-lockup.png; \
-    B64=$(base64 -w0 "$ICON"); \
-    mksvg() { printf '%s\n' \
-      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">' \
-      "<image width=\"512\" height=\"512\" xlink:href=\"data:image/png;base64,${B64}\"/>" \
-      '</svg>' > "$1"; }; \
-    install -d /usr/share/icons/hicolor/scalable/apps /usr/share/pixmaps; \
-    mksvg /usr/share/icons/hicolor/scalable/apps/sp-plus-logo-icon.svg; \
-    cp "$ICON" /usr/share/pixmaps/sp-plus-logo-icon.png; \
-    P=/usr/share/anaconda/pixmaps; \
-    [ -d "$P" ] && { cp -f "$LOCK" "$P/sidebar-logo.png"; cp -f "$LOCK" "$P/anaconda_header.png"; }; \
-    if rpm -q fedora-logos >/dev/null 2>&1; then \
-      rpm -ql fedora-logos \
-        | grep -E '/(plymouth|sddm|pixmaps|anaconda)/|icons/hicolor/(scalable|256x256|512x512)/' \
-        | while read -r f; do \
-            [ -f "$f" ] || continue; \
-            rm -f "$f"; \
-            case "$f" in \
-              *.svg) mksvg "$f" ;; \
-              *)     cp -f "$ICON" "$f" ;; \
-            esac; \
-          done; \
-    fi; \
-    find /usr/share/anaconda/pixmaps/rnotes -type f \( -name '*.png' -o -name '*.jpg' \) \
-      -exec cp -f "$LOCK" {} \; 2>/dev/null || true
+# Installer artwork is supplied through product.img above. Do not replace
+# Anaconda or fedora-logos pixmaps in the installer root: this build's CSS
+# disables those stock pixmap paths, and product.img is the supported override.
