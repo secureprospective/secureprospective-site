@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+# SP+ Discover backend policy: Flatpak for applications and rpm-ostree for the
+# immutable base. PackageKit is intentionally not enabled on this bootc image.
+exec /usr/bin/plasma-discover --backends flatpak,rpm-ostree "$@"

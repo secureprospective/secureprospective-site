@@ -32,6 +32,15 @@ class WelcomeWindow(QMainWindow):
         super().resizeEvent(event)
         QTimer.singleShot(0, self.sync_shell_height)
 
+    def closeEvent(self, event):
+        # QMainWindow.close() only hides this window by default. That left the
+        # autostart process and its QWebEngine renderer resident after the
+        # advisor closed Welcome. Closing the window is the end of this app.
+        event.accept()
+        self.view.setUrl(QUrl())
+        self.view.deleteLater()
+        QApplication.quit()
+
     def sync_shell_height(self):
         if self.view.url().isValid():
             self.view.page().runJavaScript(f"document.documentElement.style.setProperty('--shell-height', '{self.view.height()}px')")
@@ -79,14 +88,17 @@ def main():
     parser.add_argument('--screenshots', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--reset-no-show', action='store_true')
+    parser.add_argument('--self-test-close', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--help-depth', type=int, choices=(1, 2), default=0, help='capture Everyday work or its LibreOffice article')
     args = parser.parse_args()
     app = QApplication(sys.argv)
     app.setApplicationName('SP+ Welcome')
     if args.reset_no_show:
         QSettings('Secure Prospective', 'SP+ Welcome').clear()
-    window = WelcomeWindow(args.force or args.screenshots, args.screen, args.screenshots, args.help_depth)
+    window = WelcomeWindow(args.force or args.screenshots or args.self_test_close, args.screen, args.screenshots, args.help_depth)
     window.showMaximized()
+    if args.self_test_close:
+        QTimer.singleShot(1000, window.close)
     return app.exec()
 
 if __name__ == '__main__':

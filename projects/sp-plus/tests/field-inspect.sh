@@ -8,6 +8,7 @@ r() { printf '%-34s %-22s %s\n' "$1" "$2" "$3"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 ROOT=no; [ "$(id -u)" = 0 ] && ROOT=yes
 SECURITY_FAIL=0
+PRODUCT_FAIL=0
 
 echo "############ SP+ FIELD INSPECTION v1 ############"
 echo "# schema=1  run_as_root=$ROOT"
@@ -154,16 +155,37 @@ U_KDEGLOBALS="$HOME/.config/kdeglobals"
 if [ -r "$U_KDEGLOBALS" ]; then
   applied=$(grep -m1 '^LookAndFeelPackage=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
   scheme=$(grep -m1 '^ColorScheme=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
-  [ "$applied" = "$CALM" ] && r calm_applied_to_user "$applied" OK || r calm_applied_to_user "${applied:-none}" PROBLEM
-  [ "$scheme" = "SPPlusCalmDark" ] && r calm_scheme_applied "$scheme" OK || r calm_scheme_applied "${scheme:-none}" PROBLEM
+  [ "$applied" = "$CALM" ] && r calm_applied_to_user "$applied" OK || { r calm_applied_to_user "${applied:-none}" PROBLEM; PRODUCT_FAIL=1; }
+  [ "$scheme" = "SPPlusCalmDark" ] && r calm_scheme_applied "$scheme" OK || { r calm_scheme_applied "${scheme:-none}" PROBLEM; PRODUCT_FAIL=1; }
 else
   r calm_applied_to_user unreadable UNKNOWN
+  PRODUCT_FAIL=1
+fi
+KWINRC="$HOME/.config/kwinrc"
+if [ -r "$KWINRC" ]; then
+  calm_library=$(awk -F= '/^\[org\.kde\.kdecoration2\]/{f=1;next} /^\[/{f=0} f&&$1=="library"{print $2;exit}' "$KWINRC")
+  calm_theme=$(awk -F= '/^\[org\.kde\.kdecoration2\]/{f=1;next} /^\[/{f=0} f&&$1=="theme"{print $2;exit}' "$KWINRC")
+  [ "$(grep -m1 '^widgetStyle=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)" = "Breeze" ] \
+    && r calm_widget_style Breeze OK \
+    || { r calm_widget_style "$(grep -m1 '^widgetStyle=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)" PROBLEM; PRODUCT_FAIL=1; }
+  [ "$calm_library" = "org.kde.kwin.aurorae.v2" ] \
+    && r calm_decoration_library "$calm_library" OK \
+    || { r calm_decoration_library "${calm_library:-none}" PROBLEM; PRODUCT_FAIL=1; }
+  [ "$calm_theme" = "__aurorae__svg__spplus-calm-dark" ] \
+    && r calm_decoration_theme "$calm_theme" OK \
+    || { r calm_decoration_theme "${calm_theme:-none}" PROBLEM; PRODUCT_FAIL=1; }
+else
+  r calm_widget_style unreadable UNKNOWN
+  r calm_decoration_library unreadable UNKNOWN
+  r calm_decoration_theme unreadable UNKNOWN
+  PRODUCT_FAIL=1
 fi
 APPLETS="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
 if [ -r "$APPLETS" ]; then
-  grep -q 'SPPlus-Calm' "$APPLETS" && r calm_wallpaper_applied yes OK || r calm_wallpaper_applied no PROBLEM
+  grep -q 'SPPlus-Calm' "$APPLETS" && r calm_wallpaper_applied yes OK || { r calm_wallpaper_applied no PROBLEM; PRODUCT_FAIL=1; }
 else
   r calm_wallpaper_applied unreadable UNKNOWN
+  PRODUCT_FAIL=1
 fi
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
 r first_login_stamp "$([ -e "$STAMP" ] && cat "$STAMP" || echo absent)" ""
@@ -175,17 +197,22 @@ echo "=== 10b. SHARE DISCOVERY, STORE, AND WELCOME (DN-26) ==="
 # and quotes OPTIONS so systemd does not split on spaces and drop --no-host,
 # which would put wsdd in HOST mode advertising the advisor to the office network.
 wsdd_state=$(systemctl is-active wsdd.service 2>/dev/null || echo unknown)
-[ "$wsdd_state" = active ] && r wsdd_active "$wsdd_state" OK || r wsdd_state_bad "$wsdd_state" PROBLEM
+[ "$wsdd_state" = active ] && r wsdd_active "$wsdd_state" OK || { r wsdd_state_bad "$wsdd_state" PROBLEM; PRODUCT_FAIL=1; }
 if [ "$ROOT" = yes ]; then
   # --no-host must be in the RUNNING process, not merely in the drop-in file.
   if pgrep -a -f '[w]sdd' >/dev/null 2>&1; then
     pgrep -a -f '[w]sdd' | grep -q -- '--no-host' \
-      && r wsdd_no_host_live yes OK || r wsdd_no_host_live NO PROBLEM
+      && r wsdd_no_host_live yes OK || { r wsdd_no_host_live NO PROBLEM; SECURITY_FAIL=1; PRODUCT_FAIL=1; }
   else
     r wsdd_no_host_live no_process PROBLEM
+    SECURITY_FAIL=1; PRODUCT_FAIL=1
   fi
 else
-  r wsdd_no_host_live "$(systemctl show wsdd.service -p Environment --value 2>/dev/null | grep -q -- '--no-host' && echo in_unit_env || echo NOT_SET)" SKIPPED_NEEDS_ROOT
+  # A user-context unit/environment check is not evidence about the running
+  # command line. This security gate must fail closed instead of going green by
+  # reporting SKIPPED_NEEDS_ROOT.
+  r wsdd_no_host_live cannot_check_without_root PROBLEM
+  SECURITY_FAIL=1; PRODUCT_FAIL=1
 fi
 r wsdd_listener "$(ss -lntup 2>/dev/null | grep -c '127.0.0.1:5357')" ""
 r flathub_vendor_file "$([ -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo ] && echo yes || echo no)" \
@@ -206,6 +233,62 @@ else
 fi
 echo
 
+echo "=== 10c. RUNTIME FIX GATES (cycle36) ==="
+if have node-22; then
+  if node-22 -e 'new Intl.Segmenter("en",{granularity:"grapheme"}).segment("hello")' >/dev/null 2>&1; then
+    r node_intl_segmenter works OK
+  else
+    r node_intl_segmenter segfault_or_failed PROBLEM
+    PRODUCT_FAIL=1
+  fi
+else
+  r node_intl_segmenter node-22_missing PROBLEM
+  PRODUCT_FAIL=1
+fi
+if [ -s /etc/xdg/kscreenlockerrc ]; then
+  lock_effective=$(kreadconfig6 --file kscreenlockerrc --include-globals --group Daemon --key Autolock --default true --type bool 2>/dev/null || echo unreadable)
+  case "$lock_effective" in
+    false|False|FALSE) r lock_default_shipped present OK; r lock_autolock_effective false OK ;;
+    *) r lock_default_shipped present OK; r lock_autolock_effective "${lock_effective:-unreadable}" PROBLEM; PRODUCT_FAIL=1 ;;
+  esac
+else
+  r lock_default_shipped missing PROBLEM
+  r lock_autolock_effective missing PROBLEM
+  PRODUCT_FAIL=1
+fi
+if have sensors && sensors --version >/dev/null 2>&1; then
+  r lm_sensors_runtime present OK
+else
+  r lm_sensors_runtime missing_or_broken PROBLEM
+  PRODUCT_FAIL=1
+fi
+DISCOVER_WRAPPER=/usr/bin/spplus-discover
+if [ -x "$DISCOVER_WRAPPER" ] \
+   && grep -q -- '--backends flatpak,rpm-ostree' "$DISCOVER_WRAPPER" \
+   && grep -q '^Exec=/usr/bin/spplus-discover %F$' /usr/share/applications/org.kde.discover.desktop 2>/dev/null \
+   && test -e /usr/lib64/qt6/plugins/discover/flatpak-backend.so \
+   && test -e /usr/lib64/qt6/plugins/discover/rpm-ostree-backend.so \
+   && test ! -e /usr/lib64/qt6/plugins/discover/packagekit-backend.so; then
+  r discover_backends flatpak,rpm-ostree OK
+else
+  r discover_backends mismatch PROBLEM
+  PRODUCT_FAIL=1
+fi
+# The GUI close gate is intentionally explicit: field-inspect is also run over
+# SSH, where no desktop environment is inherited. Run it from the real desktop
+# session with SPPLUS_RUN_GUI_GATES=1; the standalone gate fails on any inability.
+if [ "${SPPLUS_RUN_GUI_GATES:-0}" = 1 ]; then
+  if /usr/libexec/sp-plus/welcome/welcome-close-gate.sh; then
+    r welcome_close_gate exited OK
+  else
+    r welcome_close_gate resident_or_failed PROBLEM
+    PRODUCT_FAIL=1
+  fi
+else
+  r welcome_close_gate run_with_SPPLUS_RUN_GUI_GATES UNKNOWN
+fi
+echo
+
 echo "=== 10. HARDWARE (expected to differ QEMU vs Dell - not a defect) ==="
 r cpu_model "$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo | sed 's/^ //')" ""
 r cpu_threads "$(nproc)" ""
@@ -220,6 +303,10 @@ r uptime "$(uptime -p 2>/dev/null)" ""
 r machine_id "$(cat /etc/machine-id 2>/dev/null)" ""
 echo "############ END ############"
 if [ "$SECURITY_FAIL" -ne 0 ]; then
-  echo "FIELD INSPECTION: SECURITY GATE FAIL (SELinux/encryption properties require remediation)" >&2
+  echo "FIELD INSPECTION: SECURITY GATE FAIL (SELinux/encryption/runtime security properties require remediation)" >&2
+  exit 1
+fi
+if [ "$PRODUCT_FAIL" -ne 0 ]; then
+  echo "FIELD INSPECTION: PRODUCT GATE FAIL (a shipped behavior is missing or unverified)" >&2
   exit 1
 fi

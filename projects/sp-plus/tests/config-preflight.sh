@@ -119,6 +119,14 @@ else
   ok "fastfetch config has no raw ESC byte"
 fi
 
+# P-10  cycle36 source gate: every confirmed defect must have its actual fix and
+# an executing assertion wired into the image or installed-system gate.
+if "$REPO/projects/sp-plus/tests/cycle36-source-gate.sh"; then
+  ok "cycle36 fixes have source/runtime gates"
+else
+  bad "cycle36 source gate failed" "do not build while any cycle36 fix or gate is absent"
+fi
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

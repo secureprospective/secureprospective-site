@@ -17,6 +17,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         xdg-desktop-portal-kde \
         udisks2 \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
+        lm_sensors \
         plymouth plymouth-scripts plymouth-plugin-script \
         libreoffice-writer libreoffice-calc libreoffice-impress \
         google-carlito-fonts google-crosextra-caladea-fonts google-tinos-fonts \
@@ -108,28 +109,23 @@ RUN chmod 0700 /etc/skel/.ssh \
 #     new is exposed and firewalld needs no new rule.
 RUN dnf install -y --setopt=install_weak_deps=False wsdd \
  && dnf clean all \
- && mkdir -p /usr/lib/systemd/system/wsdd.service.d \
- && printf '%s\n' \
-      '[Unit]' \
-      '# SP+ is an SMB client and ships no smb.service; the upstream BindsTo would' \
-      '# leave this unit permanently unstartable. Empty value resets the list.' \
-      'BindsTo=' \
-      '' \
-      '[Service]' \
-      '# Discovery only. --no-host keeps this machine undiscoverable; --listen binds the' \
-      '# result socket to localhost so no port is opened to the network.' \
-      '# The value MUST be quoted. Unquoted, systemd splits on spaces and reads' \
-      '# --no-host and --listen as further assignments, discards them, and wsdd comes' \
-      '# up in host mode advertising the advisor to the office network. Verified: an' \
-      '# unquoted line produced "Invalid environment assignment, ignoring: --no-host".' \
-      'Environment="OPTIONS=--discovery --no-host --listen 127.0.0.1:5357"' \
-      > /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
- && systemctl enable wsdd.service \
+ && install -d /usr/lib/systemd/system/wsdd.service.d
+
+# The RPM's EnvironmentFile is intentionally not trusted for security flags. This
+# drop-in clears ExecStart and carries the discovery policy literally.
+COPY config/wsdd.service.d/ /usr/lib/systemd/system/wsdd.service.d/
+
+RUN systemctl enable wsdd.service \
  && test -L /etc/systemd/system/multi-user.target.wants/wsdd.service \
- && ! grep -q '^BindsTo=smb' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
- && grep -q -- '--discovery' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && test -s /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && grep -q '^BindsTo=$' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && grep -q '^ExecStart=$' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && grep -qF -- 'ExecStart=/usr/bin/wsdd --shortlog --chroot=/run/wsdd --discovery --no-host --listen 127.0.0.1:5357' \
+      /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && ! grep -q '\$OPTIONS' /usr/lib/systemd/system/wsdd.service.d/sp-plus.conf \
+ && systemd-analyze verify wsdd.service \
  && test -x /usr/bin/wsdd \
- && echo "WSDD_OK $(rpm -q wsdd)"
+ && echo "WSDD_OK $(rpm -q wsdd) literal hardening flags"
 
 # ---- 2b. identity ----
 # The hostname is NOT set here. /etc/hostname is bind-mounted by podman during a build,
@@ -313,16 +309,19 @@ assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72
 #     nodejs22-npm + nodejs22-npm-bin, and removing the name `npm` matches
 #     nothing while still exiting 0. `dnf remove --assumeno` confirmed those
 #     two packages come out alone and nodejs itself stays.
-RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
+RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18n \
  && HOME=/tmp/npmhome npm_config_cache=/tmp/npmcache \
     npm install -g --prefix /usr @earendil-works/pi-coding-agent@0.84.3 \
  && rm -rf /tmp/npmhome /tmp/npmcache \
  && dnf remove -y nodejs22-npm nodejs22-npm-bin \
  && dnf clean all \
  && test -x /usr/bin/node \
+ && test -x /usr/bin/node-22 \
  && test -x /usr/bin/pi \
  && test ! -e /usr/bin/npm \
+ && /usr/bin/node-22 -e 'new Intl.Segmenter("en",{granularity:"grapheme"}).segment("hello")' \
  && /usr/bin/pi --version | grep -q '^0\.84\.3$' \
+ && echo "NODE_INTL_OK node-22 Intl.Segmenter" \
  && chmod 0755 /usr/libexec/spplus-fix \
  && bash -n /usr/libexec/spplus-fix \
  && test -f /usr/share/sp-plus/fin/system-prompt.md \
@@ -334,6 +333,9 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \
+ && test -x /usr/bin/sensors \
+ && /usr/bin/sensors --version >/dev/null \
+ && echo "SENSORS_OK lm_sensors installed for System Monitor" \
  && chmod 0755 /usr/libexec/sp-plus/fin-tips \
  && bash -n /usr/libexec/sp-plus/fin-tips \
  && test "$(cat /usr/share/sp-plus/fin/tips/*.tips | grep -cE '^[a-z0-9]+-[0-9]+')" -eq 20 \
@@ -700,8 +702,20 @@ COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/
 # The .flatpakrepo is committed rather than curled at build time so the GPG key we
 # ship is auditable in git history and the build stays reproducible offline.
 COPY config/flatpak/flathub.flatpakrepo /usr/share/flatpak/remotes.d/flathub.flatpakrepo
+COPY config/spplus-discover /usr/bin/spplus-discover
 
-RUN test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
+RUN chmod 0755 /usr/bin/spplus-discover \
+ && test -x /usr/bin/spplus-discover \
+ && grep -q -- '--backends flatpak,rpm-ostree' /usr/bin/spplus-discover \
+ && sed -i \
+      -e 's#^Exec=plasma-discover %F$#Exec=/usr/bin/spplus-discover %F#' \
+      -e 's#^Exec=plasma-discover %U$#Exec=/usr/bin/spplus-discover %U#' \
+      -e 's#^Exec=plasma-discover --mode update$#Exec=/usr/bin/spplus-discover --mode update#' \
+      /usr/share/applications/org.kde.discover.desktop /usr/share/applications/org.kde.discover.flatpak.desktop \
+ && grep -q '^Exec=/usr/bin/spplus-discover %F$' /usr/share/applications/org.kde.discover.desktop \
+ && grep -q '^Exec=/usr/bin/spplus-discover --mode update$' /usr/share/applications/org.kde.discover.desktop \
+ && test ! -e /usr/lib64/qt6/plugins/discover/packagekit-backend.so \
+ && test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
  && grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
  && grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
  && echo "FLATHUB_OK vendor remote shipped in the image"
@@ -768,7 +782,7 @@ RUN printf '%s\n' \
       > /etc/xdg/plasmarc \
  && printf '%s\n' \
       '[org.kde.kdecoration2]' \
-      'library=org.kde.kwin.aurorae' \
+      'library=org.kde.kwin.aurorae.v2' \
       'theme=__aurorae__svg__spplus-calm-dark' \
       '' \
       '# SP+ ships on laptops with real keys. kwin otherwise launches' \
@@ -785,6 +799,8 @@ RUN printf '%s\n' \
  && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark \
  && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.light \
  && test -f /usr/share/color-schemes/SPPlusCalmDark.colors \
+ && grep -q '^library=org.kde.kwin.aurorae.v2$' /etc/xdg/kwinrc \
+ && grep -q '^theme=__aurorae__svg__spplus-calm-dark$' /etc/xdg/kwinrc \
  && test -d /usr/share/aurorae/themes/spplus-calm-dark \
  && test -d /usr/share/plasma/desktoptheme/spplus-calm-dark \
  && test -d /usr/share/wallpapers/SPPlus-Calm/contents/images \
@@ -807,6 +823,7 @@ RUN printf '%s\n' \
 # itself so it never overwrites choices the advisor makes later.
 COPY config/spplus-first-login         /usr/libexec/spplus-first-login
 COPY config/spplus-first-login.service /usr/lib/systemd/user/spplus-first-login.service
+COPY config/kscreenlockerrc            /etc/xdg/kscreenlockerrc
 
 RUN chmod 0755 /usr/libexec/spplus-first-login \
  && install -d /usr/lib/systemd/user/plasma-workspace.target.wants \
@@ -818,6 +835,8 @@ RUN chmod 0755 /usr/libexec/spplus-first-login \
  && test -x /usr/sbin/plasma-apply-lookandfeel \
  && test -x /usr/sbin/plasma-apply-wallpaperimage \
  && test -r /usr/share/sp-plus/branding/sp-plus-wallpaper.png \
+ && test -s /etc/xdg/kscreenlockerrc \
+ && grep -q '^Autolock=false$' /etc/xdg/kscreenlockerrc \
  && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
  && grep -q '^Image=SPPlus-Calm$' \
       /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/defaults \
@@ -840,6 +859,7 @@ RUN chmod 0755 /usr/libexec/spplus-first-login \
 # is not and would have silently become generic sans.
 COPY welcome/app/        /usr/libexec/sp-plus/welcome/app/
 COPY welcome/welcome.py  /usr/libexec/sp-plus/welcome/welcome.py
+COPY tests/welcome-close-gate.sh /usr/libexec/sp-plus/welcome/welcome-close-gate.sh
 COPY welcome/org.secureprospective.spplus.welcome.desktop \
      /usr/share/applications/org.secureprospective.spplus.welcome.desktop
 
@@ -857,7 +877,10 @@ RUN printf '%s\n' \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
  && test -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
  && desktop-file-validate /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
+ && chmod 0755 /usr/libexec/sp-plus/welcome/welcome-close-gate.sh \
  && python3 -m py_compile /usr/libexec/sp-plus/welcome/welcome.py \
+ && grep -q 'def closeEvent' /usr/libexec/sp-plus/welcome/welcome.py \
+ && grep -q -- '--self-test-close' /usr/libexec/sp-plus/welcome/welcome.py \
  && python3 -c "import json,sys; json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json'))" \
  && python3 -c "import PySide6.QtWebEngineWidgets" \
  && ! grep -rqlP '\xe2\x80\x94' /usr/libexec/sp-plus/welcome/app/ \

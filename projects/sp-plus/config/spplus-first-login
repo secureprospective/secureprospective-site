@@ -37,8 +37,47 @@ done
 
 # Plasma installs these under /usr/sbin, which is not reliably on a user
 # session's PATH. Call them by path.
+#
+# The command's exit code is not proof. Plasma applies the package asynchronously,
+# and a plasmashell reload can flush stale values back over the user config. Read the
+# resulting files back and retry until the actual values agree with the package.
+KDEGLOBALS="${XDG_CONFIG_HOME:-$HOME/.config}/kdeglobals"
+KWINRC="${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc"
+config_value() {
+    local file="$1" section="$2" key="$3"
+    [ -r "$file" ] || return 1
+    awk -F= -v wanted="[$section]" -v key="$key" '
+        $0 == wanted { in_section=1; next }
+        /^\[/ { in_section=0 }
+        in_section && $1 == key { print substr($0, index($0, "=") + 1); exit }
+    ' "$file"
+}
+theme_config_ok() {
+    [ "$(config_value "$KDEGLOBALS" General ColorScheme)" = "SPPlusCalmDark" ] && \
+    [ "$(config_value "$KDEGLOBALS" KDE widgetStyle)" = "Breeze" ] && \
+    [ "$(config_value "$KWINRC" org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
+    [ "$(config_value "$KWINRC" org.kde.kdecoration2 theme)" = "__aurorae__svg__spplus-calm-dark" ]
+}
+
 rc=0
-/usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || rc=1
+theme_ok=0
+for attempt in 1 2 3; do
+    apply_rc=0
+    /usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || apply_rc=1
+    for _ in $(seq 1 60); do
+        busctl --user list --no-legend --no-pager 2>/dev/null \
+            | grep -q '^org\\.kde\\.plasmashell\\b' && break
+        sleep 1
+    done
+    sleep 2
+    if [ "$apply_rc" -eq 0 ] && theme_config_ok; then
+        theme_ok=1
+        echo "spplus-first-login: look-and-feel config verified on attempt $attempt"
+        break
+    fi
+    echo "spplus-first-login: look-and-feel reported success but config did not verify; retrying"
+done
+[ "$theme_ok" -eq 1 ] || rc=1
 
 # --- Wallpaper. ORDER IS NOT ENOUGH, AND EXIT 0 IS NOT PROOF. ------------------
 # --resetLayout makes plasmashell reload its layout ASYNCHRONOUSLY. On cycle32 the
@@ -49,6 +88,7 @@ rc=0
 # So: wait for plasmashell to come BACK on the bus after the reset, then apply,
 # then READ THE CONFIG BACK. Trust the file, never the exit code.
 APPLETSRC="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
+wp_ok=1
 if [ -d "$WALLPAPER" ] || [ -r "$WALLPAPER" ]; then
     for _ in $(seq 1 60); do
         busctl --user list --no-legend --no-pager 2>/dev/null \
@@ -70,7 +110,7 @@ if [ -d "$WALLPAPER" ] || [ -r "$WALLPAPER" ]; then
     [ "$wp_ok" -eq 1 ] || rc=1
 fi
 
-if [ "$rc" -ne 0 ]; then
+if [ "$rc" -ne 0 ] || [ "$theme_ok" -ne 1 ] || [ "$wp_ok" -ne 1 ]; then
     echo "spplus-first-login: theme did not apply cleanly; leaving the stamp off so the next login retries"
     exit 1
 fi

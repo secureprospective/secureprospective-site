@@ -20,7 +20,7 @@ name=spplus-calm-dark
 Image=SPPlus-Calm
 
 [kwinrc][org.kde.kdecoration2]
-library=org.kde.kwin.aurorae
+library=org.kde.kwin.aurorae.v2
 theme=__aurorae__svg__spplus-calm-dark
 
 [kcminputrc][Mouse]
