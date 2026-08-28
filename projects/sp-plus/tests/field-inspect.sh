@@ -223,7 +223,19 @@ effective() {
   # effective <file> <group> <key>
   kreadconfig6 --file "$1" --group "$2" --key "$3" 2>/dev/null
 }
-if have kreadconfig6; then
+# These read the ADVISOR'S OWN session config. Run under sudo they read root's
+# config instead and report false PROBLEMs against a correct machine -- observed
+# 2026-08-28, where a root run said theme_cursor=none on a guest whose cursor
+# theme was applied. Root cannot answer a per-user question, so say so rather
+# than guess. Run this script as the advisor to judge the theme; elevate only
+# for the storage and daemon checks.
+if [ "$ROOT" = yes ]; then
+  for _k in theme_applied_to_user theme_scheme_applied theme_icons_applied \
+            theme_widget_style theme_plasma_theme theme_cursor \
+            theme_decoration_theme theme_decoration_library; do
+    r "$_k" run_as_user_not_root SKIPPED_NEEDS_USER_SESSION
+  done
+elif have kreadconfig6; then
   applied=$(effective kdeglobals KDE LookAndFeelPackage)
   scheme=$(effective kdeglobals General ColorScheme)
   icons=$(effective kdeglobals Icons Theme)
@@ -363,7 +375,11 @@ fi
 # xdg-desktop-portal wedged the KDE backend permanently in the cycle35 guest,
 # which breaks Flatpak file pickers and screen sharing too, so this is worth
 # watching on every field run even though SP+ no longer takes that path.
-if have gdbus; then
+# Needs the user's session bus. As root there is none, and the probe then
+# reports "wedged" against a healthy machine.
+if [ "$ROOT" = yes ]; then
+  r portal_responsive run_as_user_not_root SKIPPED_NEEDS_USER_SESSION
+elif have gdbus; then
   if timeout 20 gdbus call --session --dest org.freedesktop.portal.Desktop \
        --object-path /org/freedesktop/portal/desktop \
        --method org.freedesktop.portal.Settings.ReadOne \
@@ -388,7 +404,12 @@ else
   PRODUCT_FAIL=1
 fi
 if [ -s /etc/xdg/kscreenlockerrc ]; then
-  lock_effective=$(kreadconfig6 --file kscreenlockerrc --include-globals --group Daemon --key Autolock --default true --type bool 2>/dev/null || echo unreadable)
+  # NOT --type bool. kreadconfig6 in Plasma 6.7 exits 1 and prints nothing for
+  # --type bool, so this reported lock_autolock_effective=unreadable against a
+  # machine whose /etc/xdg/kscreenlockerrc plainly says Autolock=false. Verified
+  # 2026-08-28: the identical command without --type bool returns "false" and
+  # exits 0. The case below already accepts every spelling.
+  lock_effective=$(kreadconfig6 --file kscreenlockerrc --include-globals --group Daemon --key Autolock --default true 2>/dev/null || echo unreadable)
   case "$lock_effective" in
     false|False|FALSE) r lock_default_shipped present OK; r lock_autolock_effective false OK ;;
     *) r lock_default_shipped present OK; r lock_autolock_effective "${lock_effective:-unreadable}" PROBLEM; PRODUCT_FAIL=1 ;;
