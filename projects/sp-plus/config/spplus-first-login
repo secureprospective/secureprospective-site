@@ -144,6 +144,50 @@ if [ -w "$FLAMESHOT" ] || [ ! -e "$FLAMESHOT" ]; then
     echo "spplus-first-login: screenshots will be saved to $SHOTS"
 fi
 
+# --- Screenshot portal permission (DN-29). ------------------------------------
+# Print Screen runs `flameshot gui`. Flameshot is a third-party app, so on
+# Wayland it captures through xdg-desktop-portal, and the KDE backend puts up
+# "Allow Apps to Take Screenshots?" the first time and BLOCKS until a human
+# answers. An advisor must not meet a permission prompt the first time they press
+# Print Screen, so grant it once, here, in the live session.
+#
+# Measured on the cycle36 guest 2026-08-28: with the grant absent the dialog
+# blocks indefinitely, which is what cycle35 misread as the portal wedging. With
+# the grant written exactly as below and no dialog pending, `flameshot gui` opens
+# its overlay immediately and no prompt appears. Verified by host-side screenshot,
+# not by an exit code.
+#
+# NOTE ON SCOPE, deliberately recorded: the app id is the EMPTY string. That is
+# what the portal itself writes when a human clicks Allow here, because it cannot
+# identify an unsandboxed app. It is therefore a BLANKET screenshot grant for
+# unsandboxed applications, not a Flameshot-specific one. SP+ ships a curated
+# application set and no human account by default (DN-13), but this is a real
+# widening of what a compromised desktop app could do silently, and it is the
+# price of Print Screen working out of the box.
+grant_screenshot_permission() {
+    have_gdbus=0
+    command -v gdbus >/dev/null 2>&1 && have_gdbus=1
+    [ "$have_gdbus" -eq 1 ] || { echo "spplus-first-login: gdbus missing; screenshot permission not granted"; return 1; }
+
+    gdbus call --session \
+        --dest org.freedesktop.impl.portal.PermissionStore \
+        --object-path /org/freedesktop/impl/portal/PermissionStore \
+        --method org.freedesktop.impl.portal.PermissionStore.SetPermission \
+        screenshot true screenshot "" "['yes']" >/dev/null 2>&1 || return 1
+
+    # Read it back. The call returning 0 is not proof the entry is there.
+    gdbus call --session \
+        --dest org.freedesktop.impl.portal.PermissionStore \
+        --object-path /org/freedesktop/impl/portal/PermissionStore \
+        --method org.freedesktop.impl.portal.PermissionStore.Lookup \
+        screenshot screenshot 2>/dev/null | grep -q "'yes'"
+}
+if grant_screenshot_permission; then
+    echo "spplus-first-login: screenshot portal permission granted; Print Screen will not prompt"
+else
+    echo "spplus-first-login: could not grant the screenshot portal permission; Print Screen will prompt once"
+fi
+
 install -d -m 0700 "$(dirname "$STAMP")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"
 echo "spplus-first-login: applied $LNF and the SP+ wallpaper"

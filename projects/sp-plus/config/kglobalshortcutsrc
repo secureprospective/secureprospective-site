@@ -1,19 +1,30 @@
 # SP+ global shortcut defaults.
 #
-# Print Screen runs /usr/libexec/spplus-screenshot, which is Spectacle in region
-# mode: drag a box, the picture lands in the clipboard and is saved.
+# Print Screen runs flameshot-capture.desktop, whose Exec is `flameshot gui`.
+# Christopher's call, 2026-08-28: "flameshot gui needs to work out of the box for
+# the next build" and Print Screen is the key it must answer to.
 #
-# It is NOT Flameshot, and that is a reversal of the cycle35 intent. Flameshot is
-# a third-party app, so on Wayland it can only capture through
-# xdg-desktop-portal. In the cycle35 guest a portal Screenshot request wedged
-# xdg-desktop-portal-kde permanently and deterministically -- proven by restart
-# bisection -- which takes Flatpak file pickers and screen sharing down with it
-# and leaves the advisor no recovery short of logging out. Spectacle talks to
-# KWin over a private first-party protocol and never touches the portal, so it
-# cannot hit that failure at all. See docs/ledger/DEFECT-portal-screenshot-wedge.md.
+# THIS REVERSES the earlier decision in this cycle, which gave Print Screen to
+# the Spectacle wrapper because a portal Screenshot request was believed to wedge
+# xdg-desktop-portal-kde permanently. That belief is now REFUTED, measured on the
+# cycle36 guest 2026-08-28 with host-side screenshots:
 #
-# Flameshot stays installed and in the menu for annotation work. It simply does
-# not own the Print Screen key.
+#   - Flameshot never wedged anything. The portal answered before, during and
+#     after every launch.
+#   - What actually happens is the KDE portal's "Allow Apps to Take Screenshots?"
+#     dialog, which BLOCKS waiting for a human. Over ssh nobody clicks, so it
+#     looked like a hang. That is almost certainly what cycle35 recorded as a
+#     permanent wedge.
+#   - Once the permission is granted, `flameshot gui` opens its capture overlay
+#     immediately and writes a real file. Measured: a 955978-byte PNG.
+#
+# So the advisor never sees that dialog, spplus-first-login pre-grants the
+# screenshot permission in the portal permission store. Print Screen without that
+# grant would put a permission prompt in front of an advisor on day one.
+#
+# The Spectacle wrapper at /usr/libexec/spplus-screenshot stays installed and in
+# the menu. It is the fallback that needs no portal at all, and it is what to
+# rebind to if the portal ever does misbehave on real hardware.
 #
 # KConfig reads this as a DEFAULTS layer under XDG_CONFIG_DIRS, so anything the
 # advisor rebinds later in System Settings wins over it and is not overwritten.
@@ -23,9 +34,18 @@
 # still said Print, and when kglobalacceld seeded a new user's own
 # kglobalshortcutsrc it honoured that declared default and reclaimed the key.
 
-[services][spplus-screenshot.desktop]
+[services][flameshot-capture.desktop]
 _k_friendly_name=Take Screenshot
+# Exec=flameshot gui. This is the ONLY flameshot desktop file safe to bind: the
+# other one's main Exec is a bare `flameshot`, which starts the daemon instead of
+# capturing.
 _launch=Print,Print,Take Screenshot
+
+[services][spplus-screenshot.desktop]
+_k_friendly_name=Take Screenshot with Spectacle
+# The portal-free fallback. Installed and in the menu, deliberately unbound now
+# that Print Screen belongs to Flameshot.
+_launch=none,none,Take Screenshot with Spectacle
 
 [services][org.flameshot.Flameshot.desktop]
 _k_friendly_name=Flameshot
@@ -35,16 +55,10 @@ _k_friendly_name=Flameshot
 # disabledTrayIcon=true) and looked broken.
 _launch=none,none,Flameshot
 
-[services][flameshot-capture.desktop]
-_k_friendly_name=Take Screenshot with Flameshot
-# Available from the menu, deliberately unbound. See the portal defect above.
-_launch=none,none,Take Screenshot with Flameshot
-
 [services][org.kde.spectacle.desktop]
 _k_friendly_name=Spectacle
-# Spectacle's own launcher and capture actions stay unbound: Print Screen goes
-# through the SP+ wrapper so the advisor gets region-select straight to the
-# clipboard rather than Spectacle's full GUI window.
+# Spectacle's own launcher and capture actions stay unbound so nothing competes
+# with Print Screen.
 _launch=none,none,Launch Spectacle
 ActiveWindowScreenShot=none,none,Capture Active Window
 CurrentMonitorScreenShot=none,none,Capture Current Monitor

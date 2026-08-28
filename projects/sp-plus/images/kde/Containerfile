@@ -451,9 +451,9 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && test -x /usr/bin/spectacle \
  && grep -q '^Exec=/usr/libexec/spplus-screenshot$' /usr/share/applications/spplus-screenshot.desktop \
  && grep -qF 'spectacle -r -b -c -o' /usr/libexec/spplus-screenshot \
- && awk '/^\[services\]\[spplus-screenshot.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
+ && awk '/^\[services\]\[flameshot-capture.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
       /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=Print,Print,' \
- && for g in org.flameshot.Flameshot.desktop flameshot-capture.desktop org.kde.spectacle.desktop; do \
+ && for g in org.flameshot.Flameshot.desktop spplus-screenshot.desktop org.kde.spectacle.desktop; do \
       awk -v grp="[services][$g]" '$0==grp{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
         /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' || exit 1; \
     done \

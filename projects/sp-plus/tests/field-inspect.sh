@@ -330,14 +330,41 @@ KGS="$HOME/.config/kglobalshortcutsrc"
 group_launch() {
   awk -v grp="[services][$1]" '$0==grp{f=1;next} /^\[/{f=0} f&&/^_launch=/{print;exit}' "$2" 2>/dev/null
 }
+# Print Screen belongs to flameshot-capture.desktop (Exec=flameshot gui) as of
+# 2026-08-28. The Spectacle wrapper stays installed as the portal-free fallback
+# but is deliberately unbound.
 if [ -r "$KGS" ]; then
-  case "$(group_launch spplus-screenshot.desktop "$KGS")" in
-    _launch=Print*) r printscreen_bound_spplus_wrapper yes OK ;;
-    '')             r printscreen_bound_spplus_wrapper group_absent PROBLEM; PRODUCT_FAIL=1 ;;
-    *)              r printscreen_bound_spplus_wrapper not_print PROBLEM; PRODUCT_FAIL=1 ;;
+  case "$(group_launch flameshot-capture.desktop "$KGS")" in
+    _launch=Print*) r printscreen_bound_flameshot yes OK ;;
+    '')             r printscreen_bound_flameshot group_absent PROBLEM; PRODUCT_FAIL=1 ;;
+    *)              r printscreen_bound_flameshot not_print PROBLEM; PRODUCT_FAIL=1 ;;
   esac
 else
-  r printscreen_bound_spplus_wrapper unreadable UNKNOWN
+  r printscreen_bound_flameshot unreadable UNKNOWN
+fi
+
+# The advisor must never meet "Allow Apps to Take Screenshots?" on day one.
+# Flameshot captures through xdg-desktop-portal, whose KDE backend BLOCKS on that
+# dialog until a human answers. spplus-first-login pre-grants the permission; if
+# the grant is missing, Print Screen appears to hang the first time it is pressed,
+# which is exactly what cycle35 misdiagnosed as the portal wedging.
+#
+# The app id is the empty string because the portal cannot identify an
+# unsandboxed app. That is what it writes itself when a human clicks Allow.
+if [ "$ROOT" = yes ]; then
+  r screenshot_portal_permission run_as_user_not_root SKIPPED_NEEDS_USER_SESSION
+elif have gdbus; then
+  _perm=$(timeout 15 gdbus call --session \
+      --dest org.freedesktop.impl.portal.PermissionStore \
+      --object-path /org/freedesktop/impl/portal/PermissionStore \
+      --method org.freedesktop.impl.portal.PermissionStore.Lookup \
+      screenshot screenshot 2>/dev/null)
+  case "$_perm" in
+    *"'yes'"*) r screenshot_portal_permission granted OK ;;
+    *)         r screenshot_portal_permission "absent -- Print Screen will prompt" PROBLEM; PRODUCT_FAIL=1 ;;
+  esac
+else
+  r screenshot_portal_permission gdbus_missing UNKNOWN
 fi
 
 # BEHAVIOUR, not presence: take a real capture and require a real file. Region
