@@ -14,6 +14,7 @@ BANNER=/usr/libexec/sp-plus/fin-banner
 PROMPT=/usr/share/sp-plus/fin/system-prompt.md
 SKILLS=/usr/share/sp-plus/fin/skills
 PROMPTS=/usr/share/sp-plus/fin/prompts
+EXTENSIONS=/usr/share/sp-plus/fin/extensions
 SYSTEM_ENV=/etc/sp-plus/fin.env
 USER_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/sp-plus/fin.env"
 
@@ -83,9 +84,19 @@ fi
 
 # --approve is deliberate: without it Fin asks about trusting project files in a
 # home directory the advisor owns anyway, which is a question they cannot answer.
+# --approve waives Pi's own confirmations, so the guardrail extensions below are
+# the only thing standing between the model and an irreversible action. They are
+# loaded explicitly by path because /usr is read-only and Pi's discovery looks in
+# the advisor's home, which the image cannot write to. See DN-31 decision 7.
+#
+# SCOPE, stated plainly: these gate the bash, write and edit TOOLS. Fin holds
+# unprompted root, so they stop accidents and casual mistakes, NOT a determined
+# or hijacked model. They are a floor, not a boundary.
 exec /usr/bin/pi \
     --append-system-prompt "$PROMPT" \
     --skill "$SKILLS" \
     --prompt-template "$PROMPTS" \
+    --extension "$EXTENSIONS/spplus-guardrails.ts" \
+    --extension "$EXTENSIONS/spplus-protected-paths.ts" \
     --approve \
     "$@"

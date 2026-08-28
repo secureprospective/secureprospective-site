@@ -224,6 +224,7 @@ COPY config/fin-skills/          /usr/share/sp-plus/fin/skills/
 COPY config/fin-tips             /usr/libexec/sp-plus/fin-tips
 COPY config/fin-tip-catalogue/   /usr/share/sp-plus/fin/tips/
 COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
+COPY config/fin-extensions/      /usr/share/sp-plus/fin/extensions/
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
@@ -326,6 +327,13 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && bash -n /usr/libexec/spplus-fix \
  && test -f /usr/share/sp-plus/fin/system-prompt.md \
  && test -f /usr/share/sp-plus/fin/skills/printer/SKILL.md \
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-protected-paths.ts \
+ && grep -q -- '--extension' /usr/libexec/sp-plus/fin \
+ && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
+ && grep -q 'spplus-protected-paths' /usr/libexec/sp-plus/fin \
+ && grep -q 'sends an email' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && echo "FIN_GUARDRAILS_OK 2 extensions loaded by path; sudo deliberately NOT gated" \
  && grep -q 'image-mode' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \
