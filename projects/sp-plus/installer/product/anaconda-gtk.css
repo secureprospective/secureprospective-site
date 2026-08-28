@@ -1,21 +1,40 @@
-/* SP+ installer product.img override. */
-@define-color anaconda_bg_color #0033A0;
+/* SP+ installer branding.
+ *
+ * Loaded through Anaconda's supported custom_stylesheet hook, declared in
+ * /etc/anaconda/conf.d/10-sp-plus.conf. Anaconda layers this sheet OVER its own
+ * /usr/share/anaconda/anaconda-gtk.css at STYLE_PROVIDER_PRIORITY_CUSTOM, so
+ * this file is an override fragment and must never be a wholesale replacement:
+ * the stock sheet carries the rest of the installer's styling.
+ *
+ * Do NOT rely on redefining @anaconda_bg_color to recolour stock rules. In GTK3
+ * a colour defined here is scoped to this provider, so the stock sheet's own
+ * rules keep resolving against the stock #2f4265. Every rule we want changed is
+ * therefore restated in full below with our own colour.
+ *
+ * Image paths are absolute on purpose. A relative url() resolves against the
+ * directory of the CSS file that contains it, and this sheet does not live
+ * beside Anaconda's pixmaps.
+ */
 
+@define-color spplus_blue #0033A0;
+
+/* Stock defines this as a placeholder "to be filled by a product-specific
+ * logo", which is exactly what we are doing. */
 .logo-sidebar {
     background-image: none;
-    background-color: @anaconda_bg_color;
+    background-color: @spplus_blue;
 }
 
 .logo,
 .product-logo {
-    background-image: url('pixmaps/sidebar-logo.png');
+    background-image: url('/usr/share/anaconda/pixmaps/sp-plus/sidebar-logo.png');
     background-position: 50% 20px;
     background-repeat: no-repeat;
     background-color: transparent;
 }
 
 AnacondaSpokeWindow #nav-box {
-    background-color: @anaconda_bg_color;
+    background-color: @spplus_blue;
     background-image: none;
     color: white;
 }

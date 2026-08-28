@@ -64,15 +64,56 @@ RUN cp -a /usr/bin/bootc /usr/bin/bootc-real
 COPY installer/bootc-wrapper.sh /usr/local/bin/bootc
 RUN chmod 0755 /usr/local/bin/bootc
 
-# ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees,
-# and it is a separate image with its own Fedora art. Build context is
-# projects/sp-plus/, so COPY paths above are prefixed with installer/.
-# Lorax's bootc-generic-iso template packages this directory as images/product.img.
-# The same source tree is also reproducibly archived by build-product-img.sh for
-# static inspection without starting an ISO build.
-COPY installer/product/ /usr/share/lorax/product/
+# ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees.
+#
+# This block previously copied installer/product/ to /usr/share/lorax/product/ on
+# the belief that "Lorax's bootc-generic-iso template packages this directory as
+# images/product.img". That is FALSE for this build path and the branding was
+# inert for every cycle up to and including 36. The ISO is produced by osbuild's
+# image-builder-cli, not by lorax; nothing collects /usr/share/lorax/, and the
+# finished ISO contains no images/product.img at all -- verified by listing the
+# ISO with xorriso. The visible symptom was an installer that called itself
+# "ANACONDA BLUESKY INSTALLATION", wore a red PRE-RELEASE / TESTING banner and
+# painted its sidebar Fedora's stock #2f4265 instead of SP+ #0033A0, measured
+# from a host-side virsh screenshot.
+#
+# The installer container root IS the installer runtime root, so branding is
+# installed to the paths Anaconda actually reads, and nothing depends on an
+# overlay image being assembled:
+#
+#   /.buildstamp                     pyanaconda/core/product.py reads exactly
+#                                    "/.buildstamp" (or $PRODBUILDPATH). With no
+#                                    buildstamp it falls back to Product=anaconda,
+#                                    Version=bluesky, IsFinal=false, which is
+#                                    character-for-character what shipped.
+#                                    IsFinal=True also clears the beta banner via
+#                                    window.set_beta(not is_final).
+#   conf.d/10-sp-plus.conf           declares custom_stylesheet, the SUPPORTED
+#                                    override hook. Anaconda layers it OVER its
+#                                    own sheet, so the stock styling survives.
+#   pixmaps/sp-plus/                 our art, in its own subdirectory. Stock
+#                                    Anaconda and fedora-logos pixmaps are still
+#                                    NOT overwritten, per the original note.
+COPY installer/product/.buildstamp /.buildstamp
+COPY installer/product/anaconda-gtk.css /usr/share/sp-plus/branding/installer/anaconda-gtk.css
+COPY installer/product/pixmaps/ /usr/share/anaconda/pixmaps/sp-plus/
 COPY branding/ /usr/share/sp-plus/branding/
 
+RUN install -d /etc/anaconda/conf.d \
+ && printf '%s\n' \
+      '# SP+ installer branding. See installer/Containerfile for why this is the' \
+      '# supported hook and product.img is not.' \
+      '[User Interface]' \
+      'custom_stylesheet = /usr/share/sp-plus/branding/installer/anaconda-gtk.css' \
+      > /etc/anaconda/conf.d/10-sp-plus.conf \
+ && chmod 0644 /etc/anaconda/conf.d/10-sp-plus.conf /.buildstamp \
+ && test -f /usr/share/sp-plus/branding/installer/anaconda-gtk.css \
+ && test -f /usr/share/anaconda/pixmaps/sp-plus/sidebar-logo.png \
+ && test -f /usr/share/anaconda/anaconda-gtk.css \
+ && echo "DN19_BRANDING_FILES_OK"
+
+# SP+ identity for the installer environment. Anaconda reads ID and VARIANT_ID
+# from here to detect its profile, and shows PRETTY_NAME in several places.
 RUN printf '%s\n' \
       'NAME="SP+"' \
       'VERSION="1.0"' \
@@ -89,8 +130,35 @@ RUN printf '%s\n' \
       > /usr/lib/os-release \
  && ln -sf ../usr/lib/os-release /etc/os-release \
  && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue \
- && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue.net
+ && printf '%s\n' '\\S' 'Kernel \\r on an \\m (\\l)' '' > /etc/issue.net \
+ && grep -q '^ID=sp-plus$' /usr/lib/os-release \
+ && echo "DN19_OSRELEASE_OK"
 
-# Installer artwork is supplied through product.img above. Do not replace
-# Anaconda or fedora-logos pixmaps in the installer root: this build's CSS
-# disables those stock pixmap paths, and product.img is the supported override.
+# Behaviour gate, not a presence gate. This runs Anaconda's OWN product and
+# configuration code and asserts what the installer will actually display.
+#
+# It replicates the real startup sequence from /usr/sbin/anaconda, which calls
+# set_from_defaults(), then set_from_detected_profile() with the os-release ID
+# and VARIANT_ID, then set_from_files() for /etc/anaconda/conf.d/. Simply
+# importing `conf` yields defaults only, and an earlier version of this gate did
+# exactly that and reported an empty stylesheet -- a flaw in the test, not the
+# config. A gate that does not walk the real path is worth nothing.
+#
+# NOTE: profile detection matches os_id EXACTLY, with no ID_LIKE fallback, so
+# ID=sp-plus currently matches no profile and Anaconda uses none. That is a real
+# open question recorded for Christopher, not something this gate should paper
+# over. The assertions below therefore hold true either way: the conf.d drop
+# directory is read last and wins regardless of which profile is selected.
+#
+# The stylesheet is parsed by the real GTK CSS parser, which needs no display,
+# so a syntax error in our branding cannot reach the ISO.
+COPY installer/branding-gate.py /usr/libexec/sp-plus-installer-branding-gate.py
+RUN python3 /usr/libexec/sp-plus-installer-branding-gate.py
+
+# Do not replace Anaconda or fedora-logos pixmaps in the installer root. SP+ art
+# lives in its own pixmaps/sp-plus/ subdirectory and is referenced by absolute
+# path from our stylesheet, so the stock files stay untouched.
+#
+# NOTE: installer/build-product-img.sh builds a product.img that nothing in this
+# build path consumes. It is left in place rather than deleted, but it is dead
+# tooling until an ISO is built by lorax.
