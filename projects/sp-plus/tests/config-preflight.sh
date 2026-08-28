@@ -62,9 +62,23 @@ done
 [ $SH_OK -eq 1 ] && ok "all shell helpers parse" || bad "a shell helper has a syntax error" "see above"
 
 # P-4  sudoers must parse, or the installed system loses admin access entirely
-visudo -cf "$C/sudoers-sp-plus" >/dev/null 2>&1 \
-  && ok "sudoers-sp-plus parses" \
-  || bad "sudoers-sp-plus is invalid" "a bad sudoers file locks admin out of the installed machine"
+# visudo lives in /usr/sbin, which is not on a non-root user's PATH. Calling it
+# bare made this gate report "sudoers-sp-plus is invalid" and print DO NOT BUILD
+# on a file that parses perfectly -- the reason was the caller's PATH, not the
+# file. Resolve it explicitly. If it genuinely cannot be found the gate still
+# fails closed, because an unparsed sudoers really can lock admin out, but it now
+# says which of the two happened. 2026-08-28.
+_visudo=""
+for _v in visudo /usr/sbin/visudo /sbin/visudo; do
+  command -v "$_v" >/dev/null 2>&1 && { _visudo="$_v"; break; }
+done
+if [ -z "$_visudo" ]; then
+  bad "sudoers-sp-plus unverified" "visudo not found, so the sudoers file could not be parsed"
+elif "$_visudo" -cf "$C/sudoers-sp-plus" >/dev/null 2>&1; then
+  ok "sudoers-sp-plus parses"
+else
+  bad "sudoers-sp-plus is invalid" "a bad sudoers file locks admin out of the installed machine"
+fi
 
 # P-5  LibreOffice defaults: well-formed XML, required filter NAMES present, and no
 # internal type name used as an actual value. Comments are stripped first -- prose
