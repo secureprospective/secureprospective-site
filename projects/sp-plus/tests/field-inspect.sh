@@ -71,8 +71,18 @@ if [ "$ROOT" = yes ] && have cryptsetup; then
     SECURITY_FAIL=1
   fi
 else
-  r luks_version absent PROBLEM
-  SECURITY_FAIL=1
+  # Without root, cryptsetup cannot read the LUKS header -- but lsblk still
+  # names the crypto_LUKS devices. Reporting "absent" here failed the whole
+  # security gate on a guest whose root and /var/home were both correct LUKS2,
+  # purely because the advisor is not root. Report what is genuinely unknown
+  # rather than asserting the disk is unencrypted. 2026-08-28.
+  _luks_seen=$(lsblk -pnro NAME,FSTYPE 2>/dev/null | awk '$2=="crypto_LUKS"' | wc -l)
+  if [ "${_luks_seen:-0}" -gt 0 ]; then
+    r luks_version "${_luks_seen} crypto_LUKS present, version needs root" UNKNOWN
+  else
+    r luks_version absent PROBLEM
+    SECURITY_FAIL=1
+  fi
 fi
 echo
 
