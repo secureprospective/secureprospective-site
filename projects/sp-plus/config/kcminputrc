@@ -1,0 +1,17 @@
+# SP+ system-wide cursor default (DN-28).
+#
+# The look-and-feel package declares cursorTheme in its contents/defaults and
+# spplus-apply-theme does write it into the user's kcminputrc. It does not
+# survive. On the cycle36 UEFI guest, spplus-first-login verified the cursor
+# successfully on attempt 1 and ~/.config/kcminputrc was ABSENT moments later:
+# something in session startup truncates that file after the unit exits, and
+# plasma-apply-lookandfeel --resetLayout was seen truncating it to zero bytes
+# outright. No amount of retrying inside first-login can win a race it finishes
+# before.
+#
+# So ship the cursor as a system default instead, the same way this image ships
+# kscreenlockerrc. A wiped user file then falls back to this one and the advisor
+# still gets the right pointer. Verified 2026-08-28: with no user kcminputrc at
+# all, kreadconfig6 returns breeze_cursors from this file.
+[Mouse]
+cursorTheme=breeze_cursors

@@ -66,7 +66,15 @@ theme_config_ok() {
     [ "$(effective kdeglobals General ColorScheme)" = "WindowsModernDark" ] && \
     [ "$(effective kdeglobals KDE widgetStyle)" = "kvantum-dark" ] && \
     [ "$(effective kwinrc org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
-    [ "$(effective kwinrc org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ]
+    [ "$(effective kwinrc org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ] && \
+    cursor_ok
+}
+# The cursor is the one component the theme loop used to leave behind. cycle36
+# shipped with kcminputrc absent entirely on a fresh login, so the advisor got
+# the stock cursor while every other component was correct, and the gate above
+# passed because it never looked. Checked on the cascade like the rest.
+cursor_ok() {
+    [ "$(effective kcminputrc Mouse cursorTheme)" = "breeze_cursors" ]
 }
 
 rc=0
@@ -199,6 +207,32 @@ if grant_screenshot_permission; then
 else
     echo "spplus-first-login: could not grant the screenshot portal permission; Print Screen will prompt once"
 fi
+
+# --- Cursor. WRITTEN LAST, BECAUSE EARLY SESSION STARTUP WIPES IT. ------------
+# spplus-apply-theme does write kcminputrc:Mouse:cursorTheme from the package
+# defaults, and in a settled session that write sticks -- verified surviving 40s
+# in first-login's exact order on the cycle36 UEFI guest, 2026-08-28. But on a
+# real first login the file came back absent every time: something in early
+# session startup truncates kcminputrc to zero bytes AFTER this unit's write.
+# plasma-apply-lookandfeel --resetLayout was observed truncating it outright.
+# So re-assert the cursor at the very end, once the session has settled, and
+# verify it on the cascade rather than trusting the write. Same shape as the
+# wallpaper fix above, and for the same underlying reason: last writer wins.
+for attempt in 1 2 3; do
+    if cursor_ok; then
+        echo "spplus-first-login: cursor verified on attempt $attempt"
+        break
+    fi
+    kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
+    # Tell the running session, otherwise the config is right and the pointer is
+    # still the old one until the next login.
+    if command -v gdbus >/dev/null 2>&1; then
+        gdbus emit --session --object-path /KGlobalSettings \
+            --signal org.kde.KGlobalSettings.notifyChange 5 0 >/dev/null 2>&1 || true
+    fi
+    sleep 3
+done
+cursor_ok || { echo "spplus-first-login: cursor theme did not stick; advisor has the stock pointer"; rc=1; }
 
 install -d -m 0700 "$(dirname "$STAMP")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"

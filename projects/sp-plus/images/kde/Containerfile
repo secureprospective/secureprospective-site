@@ -870,6 +870,7 @@ RUN printf '%s\n' \
 COPY config/spplus-first-login         /usr/libexec/spplus-first-login
 COPY config/spplus-first-login.service /usr/lib/systemd/user/spplus-first-login.service
 COPY config/kscreenlockerrc            /etc/xdg/kscreenlockerrc
+COPY config/kcminputrc                 /etc/xdg/kcminputrc
 
 RUN chmod 0755 /usr/libexec/spplus-first-login \
  && install -d /usr/lib/systemd/user/plasma-workspace.target.wants \
@@ -883,6 +884,9 @@ RUN chmod 0755 /usr/libexec/spplus-first-login \
  && test -r /usr/share/sp-plus/branding/sp-plus-wallpaper.png \
  && test -s /etc/xdg/kscreenlockerrc \
  && grep -q '^Autolock=false$' /etc/xdg/kscreenlockerrc \
+ && test -s /etc/xdg/kcminputrc \
+ && grep -q '^cursorTheme=breeze_cursors$' /etc/xdg/kcminputrc \
+ && test -d /usr/share/icons/breeze_cursors \
  && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
  && grep -q '^Image=SPPlus-Calm$' \
       /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
