@@ -3,3 +3,11 @@ artifacts/
 docs/
 tests/
 scripts/
+
+# tests/ is excluded wholesale because the build context must not carry the test
+# suite into the image. welcome-close-gate.sh is the one exception: it is a gate
+# that runs against the INSTALLED system, so it has to ship, and it stays under
+# tests/ because it is a test and must keep reading like one. Verified with a
+# scratch build that this negation re-includes exactly this file and nothing
+# else from tests/.
+!tests/welcome-close-gate.sh
