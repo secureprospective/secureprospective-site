@@ -39,24 +39,34 @@ done
 # session's PATH. Call them by path.
 #
 # The command's exit code is not proof. Plasma applies the package asynchronously,
-# and a plasmashell reload can flush stale values back over the user config. Read the
-# resulting files back and retry until the actual values agree with the package.
+# and a plasmashell reload can flush stale values back over the user config. Read
+# the resulting configuration back and retry until it agrees with the package.
+#
+# READ THE EFFECTIVE VALUE, NOT THE USER FILE. This verification used to awk the
+# user's ~/.config/kdeglobals directly and it reported failure on a machine where
+# the theme was applied perfectly -- observed on the cycle36 guest 2026-08-28,
+# where the unit retried three times, gave up, and withheld its stamp while every
+# component was in fact correct.
+#
+# The reason is KConfig's cascade. Setting a key whose new value already equals
+# the current EFFECTIVE value is a no-op: KConfig writes nothing, because there
+# is nothing to override. SP+ ships these very values in /etc/xdg/kdeglobals and
+# /etc/xdg/kwinrc, so the user file legitimately stays silent on exactly the keys
+# we were testing, while the fonts and the button layout -- which have no system
+# default -- did land. Absence from the user file means agreement, not failure.
+#
+# kreadconfig6 resolves the whole cascade, which is what Plasma itself reads.
 KDEGLOBALS="${XDG_CONFIG_HOME:-$HOME/.config}/kdeglobals"
 KWINRC="${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc"
-config_value() {
-    local file="$1" section="$2" key="$3"
-    [ -r "$file" ] || return 1
-    awk -F= -v wanted="[$section]" -v key="$key" '
-        $0 == wanted { in_section=1; next }
-        /^\[/ { in_section=0 }
-        in_section && $1 == key { print substr($0, index($0, "=") + 1); exit }
-    ' "$file"
+effective() {
+    # effective <file> <group> <key>
+    kreadconfig6 --file "$1" --group "$2" --key "$3" 2>/dev/null
 }
 theme_config_ok() {
-    [ "$(config_value "$KDEGLOBALS" General ColorScheme)" = "WindowsModernDark" ] && \
-    [ "$(config_value "$KDEGLOBALS" KDE widgetStyle)" = "kvantum-dark" ] && \
-    [ "$(config_value "$KWINRC" org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
-    [ "$(config_value "$KWINRC" org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ]
+    [ "$(effective kdeglobals General ColorScheme)" = "WindowsModernDark" ] && \
+    [ "$(effective kdeglobals KDE widgetStyle)" = "kvantum-dark" ] && \
+    [ "$(effective kwinrc org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
+    [ "$(effective kwinrc org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ]
 }
 
 rc=0

@@ -128,63 +128,149 @@ echo "=== 9. STORAGE LAYOUT ==="
 df -hT -x tmpfs -x devtmpfs 2>/dev/null | sed 's/^/    /'
 echo
 
-echo "=== 10a. SP+ CALM THEME (DN-27: the shipped default look) ==="
+echo "=== 10a. SP+ GLOBAL THEMES (DN-28: stock + vendored set, Calm withdrawn) ==="
+# DN-28 WITHDREW the custom SP+ Calm global theme. SP+ now ships stock and
+# vendored themes, and the SP+ wallpapers are explicitly KEPT.
+#
+# This section used to assert Calm was installed and applied. Those assertions
+# became false the moment DN-28 landed, and they reported five PROBLEMs against
+# a correct cycle36 install on 2026-08-28. A test that asserts a withdrawn
+# decision is not a failing test, it is a lying one. Retargeted to the shipped
+# set.
+#
 # The build gates prove the FILES are installed. Only a booted machine can prove
-# the look was APPLIED, which is the DN-24 distinction: naming a look-and-feel in
+# a look was APPLIED, which is the DN-24 distinction: naming a look-and-feel in
 # kdeglobals is not applying it. Read the user's own config, not /etc.
-CALM=org.secureprospective.spplus.calm.dark
-r calm_lnf_installed "$([ -d /usr/share/plasma/look-and-feel/$CALM ] && echo yes || echo no)" \
-  "$([ -d /usr/share/plasma/look-and-feel/$CALM ] && echo OK || echo PROBLEM)"
-r calm_colors_installed "$([ -f /usr/share/color-schemes/SPPlusCalmDark.colors ] && echo yes || echo no)" \
-  "$([ -f /usr/share/color-schemes/SPPlusCalmDark.colors ] && echo OK || echo PROBLEM)"
-r calm_wallpaper_ladder "$(ls /usr/share/wallpapers/SPPlus-Calm/contents/images/ 2>/dev/null | wc -l)" ""
+SHIPPED_THEMES="org.secureprospective.spplus.windows11.light
+org.secureprospective.spplus.windows11.dark
+org.kde.breezedark.desktop
+Nordic
+Catppuccin-Mocha
+org.kde.breeze.desktop
+com.github.vinceliuice.Orchis
+Catppuccin-Latte"
+
+_present=0
+_missing=""
+for t in $SHIPPED_THEMES; do
+  if [ -d "/usr/share/plasma/look-and-feel/$t" ]; then
+    _present=$((_present+1))
+  else
+    _missing="$_missing $t"
+  fi
+done
+if [ "$_present" -eq 8 ]; then
+  r themes_installed "8/8" OK
+else
+  r themes_installed "$_present/8 missing:$_missing" PROBLEM
+  PRODUCT_FAIL=1
+fi
+
+# BEHAVIOUR: run the real validator against the running root. It checks that
+# every theme declares every component key AND that each value resolves to an
+# asset actually present, which is what makes a switch change everything.
+if [ -x /usr/libexec/spplus-validate-global-themes ]; then
+  _vout="$(python3 /usr/libexec/spplus-validate-global-themes --root / 2>&1)"
+  _verr="$(printf '%s' "$_vout" | sed -n 's/.*errors=\([0-9]*\).*/\1/p' | tail -1)"
+  if [ "$_verr" = "0" ]; then
+    r theme_validator_errors 0 OK
+  else
+    r theme_validator_errors "${_verr:-unparseable}" PROBLEM
+    PRODUCT_FAIL=1
+  fi
+else
+  r theme_validator_errors validator_missing PROBLEM
+  PRODUCT_FAIL=1
+fi
+
+# DN-28: the withdrawn Calm theme must be GONE, not merely unused.
+if [ -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark ] \
+   || [ -f /usr/share/color-schemes/SPPlusCalmDark.colors ]; then
+  r calm_withdrawn no PROBLEM
+  PRODUCT_FAIL=1
+else
+  r calm_withdrawn yes OK
+fi
+
+# DN-28 explicitly KEEPS the SP+ wallpapers.
+r wallpaper_ladder "$(ls /usr/share/wallpapers/SPPlus-Calm/contents/images/ 2>/dev/null | wc -l)" ""
 r paper_icons "$([ -d /usr/share/icons/Paper-Mono-Dark ] && echo yes || echo no)" \
   "$([ -d /usr/share/icons/Paper-Mono-Dark ] && echo OK || echo PROBLEM)"
+# Papirus-Dark is a SEPARATE Fedora package. Three shipped themes name it, and
+# its absence failed the cycle36 build at step 79.
+r papirus_dark_icons "$([ -d /usr/share/icons/Papirus-Dark ] && echo yes || echo no)" \
+  "$([ -d /usr/share/icons/Papirus-Dark ] && echo OK || echo PROBLEM)"
 for face in "Noto Sans" "IBM Plex Sans" "JetBrains Mono"; do
   key="font_$(echo "$face" | tr 'A-Z ' 'a-z_')"
   if fc-list : family 2>/dev/null | grep -qi "$face"; then r "$key" present OK; else r "$key" MISSING PROBLEM; fi
 done
-# Aurorae must carry no trace of the retired Mars-coral accent.
-if grep -rqi 'ff704c\|c4462e\|9d3d2a' /usr/share/aurorae/themes/spplus-calm-*/ 2>/dev/null; then
-  r calm_orange_residue found PROBLEM
-else
-  r calm_orange_residue none OK
-fi
+
 # Per-user application. Absence here is the DN-24 failure, not a cosmetic nit.
-U_KDEGLOBALS="$HOME/.config/kdeglobals"
-if [ -r "$U_KDEGLOBALS" ]; then
-  applied=$(grep -m1 '^LookAndFeelPackage=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
-  scheme=$(grep -m1 '^ColorScheme=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)
-  [ "$applied" = "$CALM" ] && r calm_applied_to_user "$applied" OK || { r calm_applied_to_user "${applied:-none}" PROBLEM; PRODUCT_FAIL=1; }
-  [ "$scheme" = "SPPlusCalmDark" ] && r calm_scheme_applied "$scheme" OK || { r calm_scheme_applied "${scheme:-none}" PROBLEM; PRODUCT_FAIL=1; }
+#
+# READ THE EFFECTIVE VALUE, NOT THE USER FILE. This section used to awk
+# ~/.config/kdeglobals and ~/.config/kwinrc directly, and on 2026-08-28 it
+# reported theme_applied_to_user=none against a cycle36 guest whose theme was
+# applied perfectly in every component.
+#
+# KConfig cascades. Setting a key whose value already equals the current
+# EFFECTIVE value writes nothing, because there is nothing to override, and SP+
+# ships exactly these values in /etc/xdg/kdeglobals and /etc/xdg/kwinrc. So the
+# user file is legitimately silent on the keys worth testing, while keys with no
+# system default -- the fonts, the titlebar button layout -- do appear there.
+# Absence from the user file means agreement, not failure. kreadconfig6 resolves
+# the cascade, which is what Plasma itself reads.
+effective() {
+  # effective <file> <group> <key>
+  kreadconfig6 --file "$1" --group "$2" --key "$3" 2>/dev/null
+}
+if have kreadconfig6; then
+  applied=$(effective kdeglobals KDE LookAndFeelPackage)
+  scheme=$(effective kdeglobals General ColorScheme)
+  icons=$(effective kdeglobals Icons Theme)
+  style=$(effective kdeglobals KDE widgetStyle)
+  deco_library=$(effective kwinrc org.kde.kdecoration2 library)
+  deco_theme=$(effective kwinrc org.kde.kdecoration2 theme)
+  plasma_theme=$(effective plasmarc Theme name)
+  cursor=$(effective kcminputrc Mouse cursorTheme)
+
+  if printf '%s\n' $SHIPPED_THEMES | grep -qx "$applied"; then
+    r theme_applied_to_user "$applied" OK
+  else
+    r theme_applied_to_user "${applied:-none}" PROBLEM
+    PRODUCT_FAIL=1
+  fi
+
+  # EVERY component must have moved, not just the colours. That is the whole
+  # point of DN-28 and of spplus-apply-theme.
+  for pair in "theme_scheme_applied:$scheme" "theme_icons_applied:$icons" \
+              "theme_widget_style:$style" "theme_plasma_theme:$plasma_theme" \
+              "theme_cursor:$cursor" "theme_decoration_theme:$deco_theme"; do
+    _k="${pair%%:*}"; _v="${pair#*:}"
+    if [ -n "$_v" ]; then r "$_k" "$_v" OK; else r "$_k" none PROBLEM; PRODUCT_FAIL=1; fi
+  done
+
+  # The one-line defect that made a whole cycle of themes silently fail: the
+  # Plasma 5 plugin name. Plasma 6.7 needs the .v2 suffix. Other libraries are
+  # legitimate, because the stock Breeze themes do not use Aurorae at all.
+  if [ "$deco_library" = "org.kde.kwin.aurorae" ]; then
+    r theme_decoration_library "$deco_library (Plasma 5 plugin; needs .v2)" PROBLEM
+    PRODUCT_FAIL=1
+  elif [ -n "$deco_library" ]; then
+    r theme_decoration_library "$deco_library" OK
+  else
+    r theme_decoration_library none PROBLEM
+    PRODUCT_FAIL=1
+  fi
 else
-  r calm_applied_to_user unreadable UNKNOWN
+  r theme_applied_to_user kreadconfig6_missing PROBLEM
   PRODUCT_FAIL=1
 fi
-KWINRC="$HOME/.config/kwinrc"
-if [ -r "$KWINRC" ]; then
-  calm_library=$(awk -F= '/^\[org\.kde\.kdecoration2\]/{f=1;next} /^\[/{f=0} f&&$1=="library"{print $2;exit}' "$KWINRC")
-  calm_theme=$(awk -F= '/^\[org\.kde\.kdecoration2\]/{f=1;next} /^\[/{f=0} f&&$1=="theme"{print $2;exit}' "$KWINRC")
-  [ "$(grep -m1 '^widgetStyle=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)" = "Breeze" ] \
-    && r calm_widget_style Breeze OK \
-    || { r calm_widget_style "$(grep -m1 '^widgetStyle=' "$U_KDEGLOBALS" 2>/dev/null | cut -d= -f2)" PROBLEM; PRODUCT_FAIL=1; }
-  [ "$calm_library" = "org.kde.kwin.aurorae.v2" ] \
-    && r calm_decoration_library "$calm_library" OK \
-    || { r calm_decoration_library "${calm_library:-none}" PROBLEM; PRODUCT_FAIL=1; }
-  [ "$calm_theme" = "__aurorae__svg__spplus-calm-dark" ] \
-    && r calm_decoration_theme "$calm_theme" OK \
-    || { r calm_decoration_theme "${calm_theme:-none}" PROBLEM; PRODUCT_FAIL=1; }
-else
-  r calm_widget_style unreadable UNKNOWN
-  r calm_decoration_library unreadable UNKNOWN
-  r calm_decoration_theme unreadable UNKNOWN
-  PRODUCT_FAIL=1
-fi
+
 APPLETS="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
 if [ -r "$APPLETS" ]; then
-  grep -q 'SPPlus-Calm' "$APPLETS" && r calm_wallpaper_applied yes OK || { r calm_wallpaper_applied no PROBLEM; PRODUCT_FAIL=1; }
+  grep -q 'SPPlus' "$APPLETS" && r wallpaper_applied yes OK || { r wallpaper_applied no PROBLEM; PRODUCT_FAIL=1; }
 else
-  r calm_wallpaper_applied unreadable UNKNOWN
+  r wallpaper_applied unreadable UNKNOWN
   PRODUCT_FAIL=1
 fi
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
@@ -246,14 +332,28 @@ fi
 # mode needs a human, so the probe uses fullscreen; it exercises the identical
 # KWin path, which is the thing that has to work.
 if have spectacle; then
-  _shot="$(mktemp -u /tmp/spplus-printscreen-probe-XXXX.png)"
-  if timeout 30 spectacle -f -b -n -o "$_shot" >/dev/null 2>&1 && [ -s "$_shot" ]; then
-    r screenshot_capture_works "$(stat -c%s "$_shot") bytes" OK
+  # Spectacle needs the user's compositor. Run over a bare ssh pipe with no
+  # WAYLAND_DISPLAY it ABORTS, and the probe then reported no_image against a
+  # machine where Print Screen works perfectly -- observed 2026-08-28, where the
+  # same binary produced a 113529-byte PNG once pointed at the session. That is
+  # the same display artifact class as plasma-apply-lookandfeel --list dumping
+  # core over ssh. A missing session is NOT a product failure, so say so instead
+  # of crying wolf.
+  _xdg="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  _wl="${WAYLAND_DISPLAY:-$(ls "$_xdg" 2>/dev/null | grep -E '^wayland-[0-9]+$' | head -1)}"
+  if [ -z "$_wl" ]; then
+    r screenshot_capture_works no_session SKIPPED_NEEDS_SESSION
   else
-    r screenshot_capture_works no_image PROBLEM
-    PRODUCT_FAIL=1
+    _shot="$(mktemp -u /tmp/spplus-printscreen-probe-XXXX.png)"
+    if XDG_RUNTIME_DIR="$_xdg" WAYLAND_DISPLAY="$_wl" QT_QPA_PLATFORM=wayland \
+         timeout 30 spectacle -f -b -n -o "$_shot" >/dev/null 2>&1 && [ -s "$_shot" ]; then
+      r screenshot_capture_works "$(stat -c%s "$_shot") bytes" OK
+    else
+      r screenshot_capture_works no_image PROBLEM
+      PRODUCT_FAIL=1
+    fi
+    rm -f "$_shot"
   fi
-  rm -f "$_shot"
 else
   r screenshot_capture_works spectacle_missing PROBLEM
   PRODUCT_FAIL=1
