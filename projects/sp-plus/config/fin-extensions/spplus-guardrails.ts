@@ -33,7 +33,7 @@
  * blocked outright rather than waved through.
  *
  * SCOPE LIMIT, stated so nobody mistakes this for a sandbox: this covers the
- * `bash` tool. `spplus-protected-paths.ts` covers the write and edit tools.
+ * `bash` tool. `spplus-workspace.ts` covers the write and edit tools.
  * Neither is a substitute for a sandbox, and a sufficiently creative command
  * will get past both. This raises the floor; it does not close the room.
  */

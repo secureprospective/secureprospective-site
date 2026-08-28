@@ -339,7 +339,7 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q "realpathSync" /usr/share/sp-plus/fin/extensions/spplus-workspace.ts \
  && grep -q -- '--extension' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
- && grep -q 'spplus-protected-paths' /usr/libexec/sp-plus/fin \
+ && grep -q 'spplus-workspace' /usr/libexec/sp-plus/fin \
  && grep -q 'sends an email' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
  && echo "FIN_GUARDRAILS_OK 2 extensions loaded by path; sudo deliberately NOT gated" \
  && grep -q 'image-mode' /usr/share/sp-plus/fin/system-prompt.md \
