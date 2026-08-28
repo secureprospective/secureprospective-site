@@ -107,8 +107,8 @@ fi
 
 # P-8  desktop entries must validate or KDE ignores them without saying so
 desktop-file-validate "$C/flameshot-capture.desktop" 2>/dev/null \
-  && desktop-file-validate "$C/flameshot-daemon.desktop" 2>/dev/null \
-  && ok "flameshot desktop entries validate" \
+  && desktop-file-validate "$C/spplus-screenshot.desktop" 2>/dev/null \
+  && ok "screenshot desktop entries validate" \
   || bad "a flameshot desktop entry is invalid" "KDE drops invalid entries silently"
 
 # P-9  fastfetch config must carry escapes in the JSON backslash-u form, never as a

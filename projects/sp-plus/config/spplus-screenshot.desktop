@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Take Screenshot
+Comment=Drag a box; the picture is copied and saved
+Exec=/usr/libexec/spplus-screenshot
+Icon=spectacle
+Terminal=false
+NoDisplay=true

@@ -383,7 +383,18 @@ COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
 # /etc/xdg binding and Print Screen still opened Spectacle.
 COPY config/skel/.config/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc
 COPY config/flameshot-capture.desktop /usr/share/applications/flameshot-capture.desktop
-COPY config/flameshot-daemon.desktop  /etc/xdg/autostart/flameshot-daemon.desktop
+# Print Screen runs Spectacle in region mode through this wrapper, NOT Flameshot.
+# Flameshot can only capture via xdg-desktop-portal on Wayland, and a portal
+# Screenshot request wedges xdg-desktop-portal-kde permanently -- taking Flatpak
+# file pickers and screen sharing down with it. Spectacle uses a private KWin
+# protocol and cannot hit that. docs/ledger/DEFECT-portal-screenshot-wedge.md
+COPY config/spplus-screenshot         /usr/libexec/spplus-screenshot
+COPY config/spplus-screenshot.desktop /usr/share/applications/spplus-screenshot.desktop
+# The Flameshot daemon is deliberately NOT autostarted any more. It existed to
+# make Print Screen instant, and Print Screen no longer goes to Flameshot. Left
+# running it costs ~16 MB per session and issues a portal registration at login
+# for no benefit. bird, the reference Fedora KDE machine where Flameshot works,
+# runs no daemon either. Flameshot still launches normally from the menu.
 
 # starship is not in the Fedora 44 repositories ("No matching packages" checked
 # on cycle33), so it comes from upstream pinned by version AND sha256. An
@@ -433,12 +444,21 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && fc-match Caladea | grep -qi caladea \
  && fc-match Tinos   | grep -qi tinos \
  && desktop-file-validate /usr/share/applications/flameshot-capture.desktop \
- && desktop-file-validate /etc/xdg/autostart/flameshot-daemon.desktop \
- && grep -q '^_launch=Print,none,Take Screenshot$' /etc/xdg/kglobalshortcutsrc \
- && awk '/^\[services\]\[org.flameshot.Flameshot.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
-      /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' \
- && awk '/^\[services\]\[org.kde.spectacle.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
-      /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' \
+ && chmod 0755 /usr/libexec/spplus-screenshot \
+ && bash -n /usr/libexec/spplus-screenshot \
+ && desktop-file-validate /usr/share/applications/spplus-screenshot.desktop \
+ && test ! -e /etc/xdg/autostart/flameshot-daemon.desktop \
+ && test -x /usr/bin/spectacle \
+ && grep -q '^Exec=/usr/libexec/spplus-screenshot$' /usr/share/applications/spplus-screenshot.desktop \
+ && grep -qF 'spectacle -r -b -c -o' /usr/libexec/spplus-screenshot \
+ && awk '/^\[services\]\[spplus-screenshot.desktop\]$/{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
+      /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=Print,Print,' \
+ && for g in org.flameshot.Flameshot.desktop flameshot-capture.desktop org.kde.spectacle.desktop; do \
+      awk -v grp="[services][$g]" '$0==grp{f=1;next} /^\[/{f=0} f&&/^_launch=/{print}' \
+        /etc/xdg/kglobalshortcutsrc | grep -q '^_launch=none,none' || exit 1; \
+    done \
+ && ! grep -qE '^(ActiveWindow|FullScreen|RectangularRegion|WindowUnderCursor|CurrentMonitor)ScreenShot=.*Print' \
+      /etc/xdg/kglobalshortcutsrc \
  && cmp -s /etc/xdg/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc \
  && grep -q '^Exec=flameshot gui$' /usr/share/applications/flameshot-capture.desktop \
  && HOME=/tmp/ffh fastfetch --config /etc/skel/.config/fastfetch/config.jsonc \
@@ -669,7 +689,7 @@ RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
     test -e /etc/xdg/autostart/powerdevil.desktop; \
     test -e /etc/xdg/autostart/polkit-kde-authentication-agent-1.desktop; \
     test ! -e /etc/xdg/autostart/baloo_file.desktop; \
-    test -e /etc/xdg/autostart/flameshot-daemon.desktop; \
+    test ! -e /etc/xdg/autostart/flameshot-daemon.desktop; \
     echo "AUTOSTART_OK count=$(ls /etc/xdg/autostart/ | wc -l)"
 
 # ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Print Screen for SP+: drag a box, it is in the clipboard AND saved.
+#
+# This uses Spectacle rather than Flameshot deliberately. Spectacle talks to KWin
+# over a private first-party protocol; every third-party screenshot tool has to go
+# through xdg-desktop-portal instead. In the cycle35 guest a portal Screenshot
+# request wedged xdg-desktop-portal-kde permanently and deterministically, which
+# takes down Flatpak file pickers and screen sharing along with it, with nothing
+# the advisor could do but log out. See
+# docs/ledger/DEFECT-portal-screenshot-wedge.md.
+#
+# Flameshot stays installed and in the menu for annotation work; it simply does
+# not own the Print Screen key.
+set -euo pipefail
+
+# Match the folder XDG already uses for pictures, falling back sensibly when the
+# advisor's locale names it something else.
+pictures="$(xdg-user-dir PICTURES 2>/dev/null || true)"
+[ -n "$pictures" ] || pictures="$HOME/Pictures"
+shots="$pictures/Screenshots"
+mkdir -p "$shots"
+
+# -r region, -b no GUI window, -c copy to clipboard. With -o it both copies and
+# saves, which is the behaviour an advisor expects: paste it into an email now,
+# find it again later.
+exec spectacle -r -b -c -o "$shots/Screenshot_$(date +%F_%H-%M-%S).png" "$@"

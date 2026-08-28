@@ -224,12 +224,54 @@ r welcome_desktop "$([ -f /usr/share/applications/org.secureprospective.spplus.w
 r welcome_autostart_skel "$([ -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop ] && echo yes || echo no)" ""
 r fin_on_path "$(command -v fin >/dev/null && echo yes || echo no)" \
   "$(command -v fin >/dev/null && echo OK || echo PROBLEM)"
-# Print Screen must reach Flameshot, not Spectacle. cycle35 fix, unproven on hardware.
+# Print Screen must reach the SP+ Spectacle wrapper. The old check here grepped
+# for '^_launch=.*Print' anywhere in the file, which Spectacle's OWN bindings also
+# match -- it passed while Print Screen was broken. Read the binding out of the
+# right group, then prove a capture actually happens.
 KGS="$HOME/.config/kglobalshortcutsrc"
+group_launch() {
+  awk -v grp="[services][$1]" '$0==grp{f=1;next} /^\[/{f=0} f&&/^_launch=/{print;exit}' "$2" 2>/dev/null
+}
 if [ -r "$KGS" ]; then
-  grep -q '^_launch=.*Print' "$KGS" 2>/dev/null && r printscreen_bound_flameshot yes OK || r printscreen_bound_flameshot no PROBLEM
+  case "$(group_launch spplus-screenshot.desktop "$KGS")" in
+    _launch=Print*) r printscreen_bound_spplus_wrapper yes OK ;;
+    '')             r printscreen_bound_spplus_wrapper group_absent PROBLEM; PRODUCT_FAIL=1 ;;
+    *)              r printscreen_bound_spplus_wrapper not_print PROBLEM; PRODUCT_FAIL=1 ;;
+  esac
 else
-  r printscreen_bound_flameshot unreadable UNKNOWN
+  r printscreen_bound_spplus_wrapper unreadable UNKNOWN
+fi
+
+# BEHAVIOUR, not presence: take a real capture and require a real file. Region
+# mode needs a human, so the probe uses fullscreen; it exercises the identical
+# KWin path, which is the thing that has to work.
+if have spectacle; then
+  _shot="$(mktemp -u /tmp/spplus-printscreen-probe-XXXX.png)"
+  if timeout 30 spectacle -f -b -n -o "$_shot" >/dev/null 2>&1 && [ -s "$_shot" ]; then
+    r screenshot_capture_works "$(stat -c%s "$_shot") bytes" OK
+  else
+    r screenshot_capture_works no_image PROBLEM
+    PRODUCT_FAIL=1
+  fi
+  rm -f "$_shot"
+else
+  r screenshot_capture_works spectacle_missing PROBLEM
+  PRODUCT_FAIL=1
+fi
+
+# The portal must still answer afterwards. A screenshot request through
+# xdg-desktop-portal wedged the KDE backend permanently in the cycle35 guest,
+# which breaks Flatpak file pickers and screen sharing too, so this is worth
+# watching on every field run even though SP+ no longer takes that path.
+if have gdbus; then
+  if timeout 20 gdbus call --session --dest org.freedesktop.portal.Desktop \
+       --object-path /org/freedesktop/portal/desktop \
+       --method org.freedesktop.portal.Settings.ReadOne \
+       org.freedesktop.appearance color-scheme >/dev/null 2>&1; then
+    r portal_responsive yes OK
+  else
+    r portal_responsive wedged PROBLEM
+  fi
 fi
 echo
 

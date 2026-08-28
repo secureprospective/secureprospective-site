@@ -58,17 +58,38 @@ So this is **not** proof that Flameshot is broken on hardware. The most probable
 differentiator is the guest's software-rendered virtio GPU, given the EGL failure
 stamped at the moment of the request. It cannot be confirmed from the guest.
 
-## Status
+## Resolution (Christopher, 2026-08-28)
 
-OPEN, needs Christopher's decision. Two honest options:
+Print Screen goes to Spectacle region mode. Flameshot stays installed and in the
+menu for annotation; it no longer owns the key.
 
-1. **Bind Print Screen to `spectacle -r -b -c`** — region select, no GUI window,
-   straight to clipboard. First-party KWin path, so it never touches the portal
-   and cannot wedge it. Flameshot stays installed and in the menu for annotation.
-2. **Keep Flameshot on Print Screen.** It works on bird, so it will probably work
-   on advisor hardware, but where the portal does wedge the advisor loses Print
-   Screen *and* every file dialog until they log out, with no way to recover.
+Shipped as `config/spplus-screenshot`, a wrapper running
+`spectacle -r -b -c -o <Pictures>/Screenshots/Screenshot_<timestamp>.png`. With
+`-o` present, `-c` both copies to the clipboard AND saves, which is the behaviour
+the previous Flameshot config aimed at: paste it into an email now, find it again
+later.
 
-Either way the field check must change: `field-inspect.sh` line 230 greps for
-`^_launch=.*Print`, which Spectacle's own lines also match, and which only proves
-a config line exists rather than that pressing the key produces a picture.
+**Verified in the guest, driven through the real UI:**
+
+- The region overlay appears with annotation tools and an Accept bar — the same
+  shape of flow as Flameshot, on the first-party path.
+- Completing a capture produced `Screenshot_2026-08-28_08-54-59.png`, 1,162,491
+  bytes, and left `image/png` on the clipboard.
+- `field-inspect` reports `screenshot_capture_works 319475 bytes OK` and
+  `portal_responsive yes OK`.
+
+The Flameshot daemon autostart was removed with it. It existed only to make Print
+Screen instant, cost about 16 MB per session, and issued a portal registration at
+login for no remaining benefit. bird runs no daemon either. Its absence is now
+asserted in the build.
+
+## The check that hid this
+
+`field-inspect.sh` grepped `^_launch=.*Print` across the whole file, which
+Spectacle's own binding lines match. It passed for cycle35 while Print Screen was
+broken. Demonstrated during this work: with nothing bound to the SP+ wrapper, that
+pattern still matched 2 lines.
+
+It is replaced by a group-scoped read plus a real capture. Both were negative
+tested: removing the group reports `group_absent PROBLEM`, and binding the wrong
+key reports `not_print PROBLEM`.

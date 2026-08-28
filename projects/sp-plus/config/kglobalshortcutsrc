@@ -1,40 +1,54 @@
 # SP+ global shortcut defaults.
 #
-# Print Screen opens flameshot instead of Spectacle. Both ship; flameshot is the
-# one an advisor is pointed at because it drops straight into a drag-a-box
-# annotate-and-copy flow, which is what someone sending a screenshot to support
-# actually needs.
+# Print Screen runs /usr/libexec/spplus-screenshot, which is Spectacle in region
+# mode: drag a box, the picture lands in the clipboard and is saved.
+#
+# It is NOT Flameshot, and that is a reversal of the cycle35 intent. Flameshot is
+# a third-party app, so on Wayland it can only capture through
+# xdg-desktop-portal. In the cycle35 guest a portal Screenshot request wedged
+# xdg-desktop-portal-kde permanently and deterministically -- proven by restart
+# bisection -- which takes Flatpak file pickers and screen sharing down with it
+# and leaves the advisor no recovery short of logging out. Spectacle talks to
+# KWin over a private first-party protocol and never touches the portal, so it
+# cannot hit that failure at all. See docs/ledger/DEFECT-portal-screenshot-wedge.md.
+#
+# Flameshot stays installed and in the menu for annotation work. It simply does
+# not own the Print Screen key.
 #
 # KConfig reads this as a DEFAULTS layer under XDG_CONFIG_DIRS, so anything the
 # advisor rebinds later in System Settings wins over it and is not overwritten.
 #
-# Each value is "current,default,friendly name". Spectacle's bindings are set to
-# `none` for current while their upstream default is kept in the second field,
-# so System Settings still shows Spectacle's own defaults as restorable.
+# Each value is "current,default,friendly name". BOTH fields must be set for the
+# bindings we suppress: cycle34 shipped a suppressed binding whose second field
+# still said Print, and when kglobalacceld seeded a new user's own
+# kglobalshortcutsrc it honoured that declared default and reclaimed the key.
+
+[services][spplus-screenshot.desktop]
+_k_friendly_name=Take Screenshot
+_launch=Print,Print,Take Screenshot
 
 [services][org.flameshot.Flameshot.desktop]
 _k_friendly_name=Flameshot
-# NOT bound to Print. This file's main Exec is a bare `flameshot`, which starts
-# the daemon rather than taking a screenshot -- a [services] binding always
-# fires the main Exec and never a desktop action. Bound here, Print Screen
-# started an invisible daemon (SP+ sets disabledTrayIcon=true) and looked broken.
-_launch=none,none,Take a screenshot
+# This file's main Exec is a bare `flameshot`, which starts the daemon rather
+# than taking a screenshot -- a [services] binding always fires the main Exec and
+# never a desktop action. Bound to Print it started an invisible daemon (SP+ sets
+# disabledTrayIcon=true) and looked broken.
+_launch=none,none,Flameshot
 
 [services][flameshot-capture.desktop]
-_k_friendly_name=Take Screenshot
-_launch=Print,none,Take Screenshot
+_k_friendly_name=Take Screenshot with Flameshot
+# Available from the menu, deliberately unbound. See the portal defect above.
+_launch=none,none,Take Screenshot with Flameshot
 
-# Spectacle's _launch DEFAULT was Print (the second field is the default, the
-# first is the active binding). cycle34 shipped flameshot bound to Print here
-# and Print Screen still opened Spectacle on the installed system: when
-# kglobalacceld seeds a new user's own kglobalshortcutsrc it honours that
-# declared default, so Spectacle reclaimed the key. Both fields must be none.
 [services][org.kde.spectacle.desktop]
 _k_friendly_name=Spectacle
+# Spectacle's own launcher and capture actions stay unbound: Print Screen goes
+# through the SP+ wrapper so the advisor gets region-select straight to the
+# clipboard rather than Spectacle's full GUI window.
 _launch=none,none,Launch Spectacle
-ActiveWindowScreenShot=none,Meta+Print,Capture Active Window
+ActiveWindowScreenShot=none,none,Capture Active Window
 CurrentMonitorScreenShot=none,none,Capture Current Monitor
-FullScreenScreenShot=none,Shift+Print,Capture Entire Desktop
+FullScreenScreenShot=none,none,Capture Entire Desktop
 OpenWithoutScreenshot=none,none,Launch Spectacle without capturing
-RectangularRegionScreenShot=none,Meta+Shift+Print,Capture Rectangular Region
-WindowUnderCursorScreenShot=none,Meta+Ctrl+Print,Capture Window Under Cursor
+RectangularRegionScreenShot=none,none,Capture Rectangular Region
+WindowUnderCursorScreenShot=none,none,Capture Window Under Cursor
