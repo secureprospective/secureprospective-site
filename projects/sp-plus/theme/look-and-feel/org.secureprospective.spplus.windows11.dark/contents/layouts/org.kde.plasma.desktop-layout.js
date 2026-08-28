@@ -15,6 +15,28 @@ for (var screen = 0; screen < screenCount; ++screen) {
     var start = panel.addWidget("org.kde.plasma.kickoff");
     start.currentConfigGroup = ["General"];
     start.writeConfig("icon", "start-here");
+    // Curate Favorites. Left alone, Kickoff seeds Plasma's stock favourites,
+    // which put Konsole in front of the advisor on the cycle36 UEFI guest even
+    // though the build sets NoDisplay=true on it -- Kickoff pins by desktop id
+    // and does not consult NoDisplay. SP+ ships no admin account (DN-13), so a
+    // terminal in Favorites is the wrong front door.
+    //
+    // Favorites live in the kactivitymanagerd database, not here. This key is
+    // only the one-time migration seed, consumed when Kickoff first sets
+    // favoritesPortedToKAstats=true. Writing it into a session that has already
+    // ported does nothing -- confirmed on the guest, where the flag flipped back
+    // to true on the next plasmashell start and the stock list survived. It has
+    // to be set at layout time, before Kickoff ever initialises, which is here.
+    start.writeConfig("favorites", [
+        "applications:brave-browser.desktop",
+        "applications:net.thunderbird.Thunderbird.desktop",
+        "applications:fin.desktop",
+        "applications:org.kde.dolphin.desktop",
+        "applications:libreoffice-writer.desktop",
+        "applications:org.kde.okular.desktop",
+        "applications:org.keepassxc.KeePassXC.desktop"
+    ].join(","));
+    start.writeConfig("favoritesPortedToKAstats", "false");
 
     var tasks = panel.addWidget("org.kde.plasma.icontasks");
     tasks.currentConfigGroup = ["General"];

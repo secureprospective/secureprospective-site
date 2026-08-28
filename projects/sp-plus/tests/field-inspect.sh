@@ -306,20 +306,19 @@ echo "=== 10b. SHARE DISCOVERY, STORE, AND WELCOME (DN-26) ==="
 # which would put wsdd in HOST mode advertising the advisor to the office network.
 wsdd_state=$(systemctl is-active wsdd.service 2>/dev/null || echo unknown)
 [ "$wsdd_state" = active ] && r wsdd_active "$wsdd_state" OK || { r wsdd_state_bad "$wsdd_state" PROBLEM; PRODUCT_FAIL=1; }
-if [ "$ROOT" = yes ]; then
-  # --no-host must be in the RUNNING process, not merely in the drop-in file.
-  if pgrep -a -f '[w]sdd' >/dev/null 2>&1; then
-    pgrep -a -f '[w]sdd' | grep -q -- '--no-host' \
-      && r wsdd_no_host_live yes OK || { r wsdd_no_host_live NO PROBLEM; SECURITY_FAIL=1; PRODUCT_FAIL=1; }
-  else
-    r wsdd_no_host_live no_process PROBLEM
-    SECURITY_FAIL=1; PRODUCT_FAIL=1
-  fi
+# --no-host must be in the RUNNING process, not merely in the drop-in file.
+# This used to demand root and fail closed otherwise, which failed the security
+# gate on a correct machine every time field-inspect was run the way the docs
+# say to run it -- as the advisor. It does not need root: /proc is mounted
+# without hidepid, so the advisor can read wsdd's own command line. Confirmed on
+# the cycle36 UEFI guest, where the unprivileged read returned the full line
+# including --no-host. Still fails closed: no visible process, or a process
+# without --no-host, is a security failure either way.
+if pgrep -a -f '[w]sdd' >/dev/null 2>&1; then
+  pgrep -a -f '[w]sdd' | grep -q -- '--no-host' \
+    && r wsdd_no_host_live yes OK || { r wsdd_no_host_live NO PROBLEM; SECURITY_FAIL=1; PRODUCT_FAIL=1; }
 else
-  # A user-context unit/environment check is not evidence about the running
-  # command line. This security gate must fail closed instead of going green by
-  # reporting SKIPPED_NEEDS_ROOT.
-  r wsdd_no_host_live cannot_check_without_root PROBLEM
+  r wsdd_no_host_live no_process PROBLEM
   SECURITY_FAIL=1; PRODUCT_FAIL=1
 fi
 r wsdd_listener "$(ss -lntup 2>/dev/null | grep -c '127.0.0.1:5357')" ""
