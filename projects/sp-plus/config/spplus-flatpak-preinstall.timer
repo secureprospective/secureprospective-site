@@ -1,0 +1,22 @@
+[Unit]
+Description=Install the SP+ base Flatpak applications shortly after boot (DN-26)
+
+[Timer]
+# Deliberately a timer, not WantedBy=multi-user.target. A target waits for the
+# units wanted by it, and the first run of this pulls roughly a gigabyte of
+# freedesktop runtime, so wiring it into a target would hold the advisor at a
+# black screen on first boot.
+#
+# Two triggers, on purpose. OnBootSec catches the first boot. OnCalendar catches
+# a machine that was offline then, and Persistent= makes it run on the next boot
+# if that daily slot was missed -- which is the whole point for a laptop that is
+# shut at 5pm. Persistent= applies ONLY to calendar timers, so an OnUnitActiveSec
+# schedule here would silently never re-converge: systemd showed NEXT as empty
+# with that spelling on the cycle36 guest.
+OnBootSec=90s
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

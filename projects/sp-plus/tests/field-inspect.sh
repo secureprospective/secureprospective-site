@@ -325,6 +325,37 @@ r wsdd_listener "$(ss -lntup 2>/dev/null | grep -c '127.0.0.1:5357')" ""
 r flathub_vendor_file "$([ -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo ] && echo yes || echo no)" \
   "$([ -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo ] && echo OK || echo PROBLEM)"
 r flathub_remote_live "$(flatpak remotes --columns=name 2>/dev/null | grep -cx flathub)" ""
+# Zoom ships as a declared Flatpak, deployed by a timer, not baked into the
+# image -- /var/lib/flatpak is machine state on a bootc system. So the
+# DECLARATION and the timer are the product; the deployed app is the outcome,
+# and on a machine that has not had network since install it is legitimately
+# not there yet. Fail on a missing declaration or a dead timer. Do not fail on
+# an unconverged machine, or this becomes another check that reports a product
+# defect for a condition the product did not cause.
+_zoom_decl=/usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall
+if [ -s "$_zoom_decl" ] && grep -q '^Branch=stable$' "$_zoom_decl"; then
+  r zoom_declared yes OK
+else
+  r zoom_declared "missing or has no Branch" PROBLEM; PRODUCT_FAIL=1
+fi
+_pre_timer=$(systemctl is-active spplus-flatpak-preinstall.timer 2>/dev/null || echo unknown)
+[ "$_pre_timer" = active ] && r flatpak_preinstall_timer active OK \
+  || { r flatpak_preinstall_timer "$_pre_timer" PROBLEM; PRODUCT_FAIL=1; }
+if flatpak info us.zoom.Zoom >/dev/null 2>&1; then
+  r zoom_installed "$(flatpak info --show-ref us.zoom.Zoom 2>/dev/null)" OK
+  if [ -e /var/lib/flatpak/exports/share/applications/us.zoom.Zoom.desktop ]; then
+    r zoom_desktop_exported yes OK
+  else
+    r zoom_desktop_exported no PROBLEM; PRODUCT_FAIL=1
+  fi
+else
+  _pre_result=$(systemctl show -p Result --value spplus-flatpak-preinstall.service 2>/dev/null)
+  if [ "$_pre_result" = success ]; then
+    r zoom_installed "absent although preinstall reported success" PROBLEM; PRODUCT_FAIL=1
+  else
+    r zoom_installed "not converged yet (preinstall result=${_pre_result:-never-run})" UNKNOWN
+  fi
+fi
 r discover_present "$(command -v plasma-discover >/dev/null && echo yes || echo no)" ""
 r welcome_binary "$([ -x /usr/bin/spplus-welcome ] && echo yes || echo no)" ""
 r welcome_desktop "$([ -f /usr/share/applications/org.secureprospective.spplus.welcome.desktop ] && echo yes || echo no)" ""

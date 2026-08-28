@@ -727,6 +727,32 @@ COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/
 # The .flatpakrepo is committed rather than curled at build time so the GPG key we
 # ship is auditable in git history and the build stays reproducible offline.
 COPY config/flatpak/flathub.flatpakrepo /usr/share/flatpak/remotes.d/flathub.flatpakrepo
+
+# --- Zoom, and the base Flatpak set (DN-26). ----------------------------------
+# Declared here, deployed at runtime. A Flatpak cannot be baked into the image:
+# the system installation lives in /var/lib/flatpak, which is machine state on a
+# bootc system, not image content. So the image ships the DECLARATION and a
+# timer converges the machine onto it.
+#
+# Nothing in Fedora triggers `flatpak preinstall` on its own -- there is no
+# flatpak preinstall unit in this image, checked on the cycle36 guest -- so SP+
+# has to run it. It is a timer rather than a unit wanted by a target because the
+# first run pulls roughly a gigabyte of freedesktop runtime, and a target waits
+# for the units wanted by it. Wiring this into multi-user.target would hold the
+# advisor at a black screen on first boot.
+COPY config/flatpak/preinstall.d/ /usr/share/flatpak/preinstall.d/
+COPY config/spplus-flatpak-preinstall.service /usr/lib/systemd/system/spplus-flatpak-preinstall.service
+COPY config/spplus-flatpak-preinstall.timer   /usr/lib/systemd/system/spplus-flatpak-preinstall.timer
+
+RUN systemctl enable spplus-flatpak-preinstall.timer \
+ && test -L /etc/systemd/system/timers.target.wants/spplus-flatpak-preinstall.timer \
+ && test -s /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
+ && grep -q '^\[Flatpak Preinstall us.zoom.Zoom\]$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
+ && grep -q '^Branch=stable$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
+ && test -x /usr/bin/flatpak \
+ && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
+ && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
+ && echo "FLATPAK_PREINSTALL_OK zoom declared, timer enabled"
 COPY config/spplus-discover /usr/bin/spplus-discover
 
 RUN chmod 0755 /usr/bin/spplus-discover \

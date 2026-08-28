@@ -1,0 +1,16 @@
+[Unit]
+Description=Install the SP+ base Flatpak applications (DN-26)
+Documentation=man:flatpak-preinstall(1)
+After=network-online.target
+Wants=network-online.target
+ConditionPathIsDirectory=/usr/share/flatpak/preinstall.d
+
+[Service]
+Type=oneshot
+# Idempotent: once the refs are deployed this exits immediately, so running it
+# on a schedule costs nothing and re-converges a machine that was offline on
+# first boot.
+ExecStart=/usr/bin/flatpak preinstall --system --noninteractive -y
+# A first boot with no network must not be a failed unit the advisor sees.
+SuccessExitStatus=0 1
+TimeoutStartSec=3600

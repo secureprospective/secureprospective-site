@@ -1,0 +1,18 @@
+# SP+ base Flatpak applications (DN-26).
+#
+# Zoom ships as a Flatpak rather than a layered RPM on purpose. Zoom enforces a
+# minimum client version and refuses connections from older clients. /usr is
+# read-only on an image-mode system, so a layered Zoom RPM could never update
+# itself: it would sit frozen at whatever the build baked in until a whole new
+# SP+ image shipped, and would eventually stop connecting entirely. A Flatpak
+# updates on its own schedule. Zoom also publishes no yum repository, only a
+# standalone RPM behind a moving "latest" URL, so the Brave pattern does not
+# transfer.
+#
+# Branch is NOT optional. Omit it and flatpak defaults to the "master" branch,
+# which does not exist for this app, and preinstall silently reports
+# "Nothing to do". Observed on the cycle36 UEFI guest, 2026-08-28.
+[Flatpak Preinstall us.zoom.Zoom]
+Branch=stable
+IsRuntime=false
+Install=true
