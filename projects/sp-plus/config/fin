@@ -35,14 +35,12 @@ if [ "${1:-}" = "--ask" ]; then
         printf 'Fin needs one question.\n'
         exit 2
     fi
-    if ! have_key; then
+    if ! have_key && [ ! -s "$HOME/.pi/agent/auth.json" ]; then
         printf 'Fin is not connected yet.\n'
         exit 1
     fi
-    export ANTHROPIC_API_KEY
     exec /usr/bin/pi \
         -p \
-        --provider anthropic --model "${FIN_MODEL:-claude-sonnet-5}" \
         --append-system-prompt "$PROMPT" \
         --skill "$SKILLS" \
         --prompt-template "$PROMPTS" \
