@@ -359,9 +359,14 @@ elif have gdbus; then
       --object-path /org/freedesktop/impl/portal/PermissionStore \
       --method org.freedesktop.impl.portal.PermissionStore.Lookup \
       screenshot screenshot 2>/dev/null)
+  # Must be the app id the Print Screen shortcut actually runs under. Matching
+  # a bare 'yes' passed on a guest where the grant sat on the empty app id and
+  # 'flameshot-capture' was recorded as 'no', so Print Screen died with
+  # "Unable to capture screen" while this check reported OK. 2026-08-28.
   case "$_perm" in
-    *"'yes'"*) r screenshot_portal_permission granted OK ;;
-    *)         r screenshot_portal_permission "absent -- Print Screen will prompt" PROBLEM; PRODUCT_FAIL=1 ;;
+    *"'flameshot-capture': ['yes']"*) r screenshot_portal_permission granted OK ;;
+    *"'flameshot-capture': ['no']"*)  r screenshot_portal_permission "denied for flameshot-capture -- Print Screen fails silently" PROBLEM; PRODUCT_FAIL=1 ;;
+    *)  r screenshot_portal_permission "absent for flameshot-capture -- Print Screen will prompt" PROBLEM; PRODUCT_FAIL=1 ;;
   esac
 else
   r screenshot_portal_permission gdbus_missing UNKNOWN

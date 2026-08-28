@@ -169,18 +169,30 @@ grant_screenshot_permission() {
     command -v gdbus >/dev/null 2>&1 && have_gdbus=1
     [ "$have_gdbus" -eq 1 ] || { echo "spplus-first-login: gdbus missing; screenshot permission not granted"; return 1; }
 
-    gdbus call --session \
-        --dest org.freedesktop.impl.portal.PermissionStore \
-        --object-path /org/freedesktop/impl/portal/PermissionStore \
-        --method org.freedesktop.impl.portal.PermissionStore.SetPermission \
-        screenshot true screenshot "" "['yes']" >/dev/null 2>&1 || return 1
+    # The portal keys this permission by the requesting process's app id, which
+    # it derives from that process's systemd app scope. When KWin launches the
+    # Print Screen shortcut, Flameshot lands in app-flameshot-capture@.service
+    # and asks as app id "flameshot-capture" -- NOT as the empty app id. A grant
+    # on "" alone therefore does nothing for the key press, and any earlier
+    # denial recorded against "flameshot-capture" makes the capture fail
+    # silently with "Unable to capture screen". Grant every id the shipped
+    # launchers can produce, and overwrite a stale "no". Proven on the cycle36
+    # UEFI guest, 2026-08-28.
+    for app in "" flameshot-capture flameshot org.flameshot.Flameshot spplus-screenshot; do
+        gdbus call --session \
+            --dest org.freedesktop.impl.portal.PermissionStore \
+            --object-path /org/freedesktop/impl/portal/PermissionStore \
+            --method org.freedesktop.impl.portal.PermissionStore.SetPermission \
+            screenshot true screenshot "$app" "['yes']" >/dev/null 2>&1 || return 1
+    done
 
-    # Read it back. The call returning 0 is not proof the entry is there.
+    # Read it back. The call returning 0 is not proof the entry is there, and
+    # the id that actually matters is the one the shortcut runs under.
     gdbus call --session \
         --dest org.freedesktop.impl.portal.PermissionStore \
         --object-path /org/freedesktop/impl/portal/PermissionStore \
         --method org.freedesktop.impl.portal.PermissionStore.Lookup \
-        screenshot screenshot 2>/dev/null | grep -q "'yes'"
+        screenshot screenshot 2>/dev/null | grep -q "'flameshot-capture': \['yes'\]"
 }
 if grant_screenshot_permission; then
     echo "spplus-first-login: screenshot portal permission granted; Print Screen will not prompt"
