@@ -53,6 +53,51 @@ repair every time KWin's decoration API moves — which is precisely what bit us
 - Whether the SP+ Calm **colour schemes** survive as selectable schemes even though
   the global theme goes.
 
-## Status
+## The shipped set (Christopher's list, 2026-08-28)
 
-Nothing removed yet. Awaiting Christopher's list of themes to ship.
+Fedora and Breeze defaults are kept. SP+ Welcome leads with the Windows themes,
+then offers three dark and three light chosen for productivity.
+
+| # | Welcome order | Look-and-feel id | Source |
+|---|---|---|---|
+| 1 | Windows Light | `org.secureprospective.spplus.windows11.light` | SP+ |
+| 2 | Windows Dark (default) | `org.secureprospective.spplus.windows11.dark` | SP+ |
+| 3 | Breeze Dark | `org.kde.breezedark.desktop` | stock Plasma |
+| 4 | Nordic Dark | `Nordic` | vendored |
+| 5 | Catppuccin Mocha | `Catppuccin-Mocha` | vendored |
+| 6 | Breeze Light | `org.kde.breeze.desktop` | stock Plasma |
+| 7 | Orchis Light | `com.github.vinceliuice.Orchis` | vendored |
+| 8 | Catppuccin Latte | `Catppuccin-Latte` | vendored |
+
+## The partial-switch defect: root cause
+
+Reported as "it's just changing the colors and not the window decorations,
+backgrounds, fonts, and icon themes". Reproduced and measured in the cycle35
+guest.
+
+The Welcome picker was not applying anything at all: `welcome.py` had no bridge
+of any kind, and the theme cards only set CSS classes.
+
+The deeper cause is in Plasma itself. `plasma-apply-lookandfeel -a` applies the
+colour scheme and leaves every other component to the running session. The
+control experiment settles it: stock Breeze Dark, whose `defaults` file is
+complete and correctly formatted, writes exactly the same partial result. So the
+package format was never at fault.
+
+`config/spplus-apply-theme` closes it by reading the chosen package's own
+`defaults` and writing every declared key, then notifying each component. Plasma
+runs FIRST, because `-a` resets user config keys and silently discarded writes
+made before it.
+
+## Status: DONE, pending the cycle36 build
+
+Verified in the cycle35 guest on 2026-08-28:
+
+- All 8 themes apply all 8 components, driven through the real Welcome app.
+- `validate-global-themes.py --root <repo staging>`: **themes=8/8 errors=0**.
+- All 7 Welcome screens fit 1366x768 with no overflow.
+- Host-side `virsh screenshot` confirms live rendering, including the decoration
+  change that never used to happen (Catppuccin's round buttons vs Windows'
+  square ones).
+
+Nothing has been built. The build is the only unproven step.
