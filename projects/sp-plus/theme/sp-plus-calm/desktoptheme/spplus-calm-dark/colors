@@ -4,7 +4,7 @@
 [Colors:Button]
 BackgroundAlternate=25,29,36
 BackgroundNormal=30,35,43
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189
@@ -18,7 +18,7 @@ ForegroundVisited=206,163,228
 [Colors:Complementary]
 BackgroundAlternate=25,29,36
 BackgroundNormal=17,20,25
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189
@@ -32,7 +32,7 @@ ForegroundVisited=206,163,228
 [Colors:Header]
 BackgroundAlternate=25,29,36
 BackgroundNormal=17,20,25
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189
@@ -46,7 +46,7 @@ ForegroundVisited=206,163,228
 [Colors:Header][Inactive]
 BackgroundAlternate=25,29,36
 BackgroundNormal=25,29,36
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=170,178,189
 ForegroundInactive=170,178,189
@@ -60,7 +60,7 @@ ForegroundVisited=206,163,228
 [Colors:Selection]
 BackgroundAlternate=255,112,76
 BackgroundNormal=255,112,76
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,255,255
 ForegroundInactive=170,178,189
@@ -74,7 +74,7 @@ ForegroundVisited=206,163,228
 [Colors:Tooltip]
 BackgroundAlternate=25,29,36
 BackgroundNormal=25,29,36
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189
@@ -88,7 +88,7 @@ ForegroundVisited=206,163,228
 [Colors:View]
 BackgroundAlternate=25,29,36
 BackgroundNormal=17,20,25
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189
@@ -102,7 +102,7 @@ ForegroundVisited=206,163,228
 [Colors:Window]
 BackgroundAlternate=25,29,36
 BackgroundNormal=17,20,25
-DecorationFocus=255,112,76
+DecorationFocus=118,180,212
 DecorationHover=42,49,60
 ForegroundActive=255,145,112
 ForegroundInactive=170,178,189

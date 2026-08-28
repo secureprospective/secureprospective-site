@@ -1,5 +1,15 @@
 # Handoff
 
+## 2026-08-28 — Calm live contrast and pinstripe trial closed
+
+- **Baton:** Bee — 2026-08-28
+- **Where it stands:** Source trial is ready on `session/sp-plus-plan`: dark focused window edge is lighter blue `#76B4D4`; unselected edge is dark coral `#C4462E`; solid pinstripe is 3px; glow rows remain unchanged. Light mode has the same 3px geometry with warm active/inactive edge colors. Source was pushed to the running VM user theme and applied from the VM desktop terminal.
+- **Gates:** `projects/sp-plus/theme/tools/validate-spplus-calm.sh` PASS 13/13; `git diff --check` PASS; `org.kde.kwin.aurorae.v2` remains in both look-and-feel defaults. Host framebuffer evidence was captured for the inverse behavior and 3px stripe.
+- **Build boundary:** No image or ISO build. `fedora-test35` was not rebooted, reset, or destroyed. The trial is not visually approved; Christopher reported that the result still looked substantially unchanged.
+- **Next move:** Christopher judges the current VM/screenshot. If rejected, make one focused visual correction to the source, push, apply in the VM terminal, and capture new framebuffer evidence. If accepted, update the evidence notes, then coordinate Tom for the image build.
+- **Blocked on:** Visual acceptance. `THEME-APPROVED.md` and `THEME-APPROVED.DONE` are intentionally not present.
+- **Tried and rejected:** A literal color swap alone did not make the pinstripe legible because the opaque rows matched the graphite ground. The current trial assigns behavior colors to the solid rows while preserving the glow ramp.
+
 ## 2026-08-28 — cycle36 runtime and desktop fixes implemented
 
 - **Baton:** Bee — 2026-08-28
