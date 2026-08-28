@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "X-Plasma-APIVersion": "2",
+    "KPlugin": {
+        "Id": "Catppuccin-Latte",
+        "Name": "Catppuccin Latte",
+        "Authors": [
+            {
+                "Name": "Catppuccin"
+            }
+        ],
+        "License": "MIT",
+        "Website": "https://github.com/catppuccin/kde",
+        "Version": "1.0",
+        "EnabledByDefault": true
+    }
+}

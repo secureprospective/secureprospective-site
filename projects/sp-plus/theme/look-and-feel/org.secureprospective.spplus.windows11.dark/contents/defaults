@@ -1,30 +1,38 @@
-[kcminputrc][Mouse]
-cursorTheme=breeze_cursors
+# SP+ Windows 11 dark. Every component key below is required: a look-and-feel
+# package that omits one leaves that component unchanged when the user switches
+# theme, which is the partial-switch defect. Keep this list complete.
 
 [kdeglobals][General]
 ColorScheme=WindowsModernDark
+font=Noto Sans,10,-1,5,50,0,0,0,0,0
+menuFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+toolBarFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+activeFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=Noto Sans,9,-1,5,50,0,0,0,0,0
 
 [kdeglobals][Icons]
-Theme=windows-modern
+Theme=Papirus-Dark
 
 [kdeglobals][KDE]
 widgetStyle=kvantum-dark
 
-[kwinrc][DesktopSwitcher]
-LayoutName=org.kde.breeze.desktop
-
-[kwinrc][WindowSwitcher]
-LayoutName=org.kde.breeze.desktop
-
-[kwinrc][org.kde.kdecoration2]
-library=org.kde.kwin.aurorae
-theme=__aurorae__svg__windows-modern-dark-aurorae
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
 
 [plasmarc][Theme]
 name=Windows-modern-dark
 
 [Wallpaper]
-Image=/usr/share/sp-plus/branding/sp-plus-wallpaper.png
+Image=SPPlus-Calm
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.kwin.aurorae.v2
+theme=__aurorae__svg__windows-modern-dark-aurorae
+ButtonsOnLeft=
+ButtonsOnRight=IAX
+
+[Kvantum/kvantum.kvconfig][General]
+theme=Windows-modern
 
 [ksplashrc][KSplash]
 Theme=none

@@ -14,7 +14,7 @@
 # fights the advisor's own choices afterwards.
 set -u
 
-LNF=org.secureprospective.spplus.calm.dark
+LNF=org.secureprospective.spplus.windows11.dark
 # The wallpaper is shipped as a Plasma wallpaper PACKAGE with a resolution ladder
 # (1920x1080 through 7680x4320, JPEG). plasma-apply-wallpaperimage is handed the
 # package directory, not a single file, so Plasma picks the size that fits the
@@ -53,10 +53,10 @@ config_value() {
     ' "$file"
 }
 theme_config_ok() {
-    [ "$(config_value "$KDEGLOBALS" General ColorScheme)" = "SPPlusCalmDark" ] && \
-    [ "$(config_value "$KDEGLOBALS" KDE widgetStyle)" = "Breeze" ] && \
+    [ "$(config_value "$KDEGLOBALS" General ColorScheme)" = "WindowsModernDark" ] && \
+    [ "$(config_value "$KDEGLOBALS" KDE widgetStyle)" = "kvantum-dark" ] && \
     [ "$(config_value "$KWINRC" org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
-    [ "$(config_value "$KWINRC" org.kde.kdecoration2 theme)" = "__aurorae__svg__spplus-calm-dark" ]
+    [ "$(config_value "$KWINRC" org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ]
 }
 
 rc=0
@@ -64,6 +64,8 @@ theme_ok=0
 for attempt in 1 2 3; do
     apply_rc=0
     /usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || apply_rc=1
+    # Then force every remaining component key from the package defaults.
+    /usr/libexec/spplus-apply-theme "$LNF" >/dev/null 2>&1 || apply_rc=1
     for _ in $(seq 1 60); do
         busctl --user list --no-legend --no-pager 2>/dev/null \
             | grep -q '^org\.kde\.plasmashell\b' && break

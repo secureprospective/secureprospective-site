@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "X-Plasma-APIVersion": "2",
+    "KPlugin": {
+        "Id": "Nordic",
+        "Name": "Nordic",
+        "Authors": [
+            {
+                "Name": "EliverLara"
+            }
+        ],
+        "License": "GPL-3.0",
+        "Website": "https://github.com/EliverLara/Nordic",
+        "Version": "1.0",
+        "EnabledByDefault": true
+    }
+}

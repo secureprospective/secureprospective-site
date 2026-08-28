@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""Apply a Plasma global theme so that EVERY component changes together.
+
+`plasma-apply-lookandfeel -a` is not sufficient on its own. It applies the colour
+scheme itself, but leaves the icon theme, widget style, Plasma desktop theme,
+window decoration, cursor and fonts to be picked up by the running session. The
+result the advisor sees is a theme switch where the colours move and the window
+frames, icons and fonts do not. That is the defect this exists to close.
+
+This reads the chosen look-and-feel package's own `contents/defaults` -- the
+upstream declaration of what the theme is -- writes every key it declares into the
+correct config file, and then tells each running component to reload.
+
+Usage:  spplus-apply-theme <look-and-feel-id>
+"""
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+SEARCH = [
+    Path.home() / ".local/share/plasma/look-and-feel",
+    Path("/usr/share/plasma/look-and-feel"),
+]
+
+# A look-and-feel `defaults` file uses [configfile][Group] headers. A bare
+# [Group] header means kdeglobals.
+DEFAULT_FILE = "kdeglobals"
+
+# SP+ sets one type system across every theme it offers, so the desktop does not
+# change typeface when the advisor changes colours.
+_SANS = "Noto Sans"
+SPPLUS_FONTS = [
+    ("kdeglobals", "General", "font", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
+    ("kdeglobals", "General", "menuFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
+    ("kdeglobals", "General", "toolBarFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
+    ("kdeglobals", "General", "activeFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
+    ("kdeglobals", "General", "smallestReadableFont",
+     f"{_SANS},9,-1,5,50,0,0,0,0,0"),
+]
+
+
+def find_package(theme_id):
+    for root in SEARCH:
+        candidate = root / theme_id
+        if (candidate / "contents" / "defaults").is_file():
+            return candidate
+    return None
+
+
+def parse_defaults(path):
+    """Yield (file, group, key, value) for every declared setting."""
+    current_file, current_group = DEFAULT_FILE, None
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("["):
+            parts = [p for p in line.strip("[]").split("][")]
+            if len(parts) == 2:
+                current_file, current_group = parts
+            else:
+                # A bare group such as [Wallpaper] belongs to kdeglobals unless
+                # it is one of the pseudo-groups handled separately.
+                current_file, current_group = DEFAULT_FILE, parts[0]
+            continue
+        if "=" in line and current_group:
+            key, value = line.split("=", 1)
+            yield current_file, current_group, key.strip(), value.strip()
+
+
+def kwrite(config_file, group, key, value):
+    cmd = ["kwriteconfig6", "--file", config_file, "--group", group,
+           "--key", key, value]
+    subprocess.run(cmd, check=False)
+
+
+def notify():
+    """Tell the live session to reload each component."""
+    def dbus(*args):
+        subprocess.run(["qdbus-qt6", *args],
+                       check=False, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+
+    # Window decoration, borders and effects.
+    dbus("org.kde.KWin", "/KWin", "reconfigure")
+    # Plasma shell picks up the desktop theme from plasmarc through its own
+    # KConfigWatcher, so writing the key is enough; there is no refresh call.
+    # KDE global settings change: icons, style, fonts, colours.
+    # 0 = PaletteChanged, 1 = FontChanged, 2 = StyleChanged, 4 = IconChanged.
+    for change in (0, 1, 2, 4):
+        dbus("org.kde.KGlobalSettings", "/KGlobalSettings",
+             "org.kde.KGlobalSettings.notifyChange", str(change), "0")
+
+
+def main():
+    if len(sys.argv) != 2:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    theme_id = sys.argv[1]
+
+    package = find_package(theme_id)
+    if package is None:
+        print(f"spplus-apply-theme: no look-and-feel package named {theme_id!r}",
+              file=sys.stderr)
+        return 1
+
+    defaults = package / "contents" / "defaults"
+    applied = []
+    wallpaper = None
+
+    # Plasma goes FIRST. `plasma-apply-lookandfeel -a` resets the user's config
+    # keys back to the package's idea of default before applying, which silently
+    # discards anything written beforehand. Running it first means our explicit
+    # writes below are the last word.
+    subprocess.run(["plasma-apply-lookandfeel", "-a", theme_id],
+                   check=False, stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL)
+
+    declared = list(parse_defaults(defaults))
+
+    # Stock Plasma and Fedora themes declare no fonts at all, so switching to one
+    # would leave the previous theme's fonts in place. SP+ owns the font choice
+    # across every theme, so fill it in when the package is silent rather than
+    # patching upstream packages we do not maintain.
+    if not any(k == "font" for _, _, k, _ in declared):
+        declared.extend(SPPLUS_FONTS)
+
+    for config_file, group, key, value in declared:
+        if group == "Wallpaper" and key == "Image":
+            wallpaper = value
+            continue
+        kwrite(config_file, group, key, value)
+        applied.append(f"{config_file}:{group}:{key}={value}")
+
+    if wallpaper:
+        subprocess.run(["plasma-apply-wallpaperimage", wallpaper],
+                       check=False, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+
+    notify()
+
+    for line in applied:
+        print(f"applied {line}")
+    print(f"SPPLUS_THEME_APPLIED {theme_id} keys={len(applied)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

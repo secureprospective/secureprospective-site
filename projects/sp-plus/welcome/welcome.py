@@ -4,6 +4,10 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+import json
+import os
+import subprocess
+from urllib.parse import parse_qs, urlparse
 from PySide6.QtCore import QSettings, QTimer, QUrl
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -13,6 +17,57 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 ROOT = Path(__file__).resolve().parent
 APP_URL = QUrl.fromLocalFile(str(ROOT / 'app' / 'index.html'))
 
+# Applying a global theme has to change EVERY component together -- colours,
+# icons, widget style, Plasma theme, window decoration, cursor and fonts. That is
+# what /usr/libexec/spplus-apply-theme guarantees; plasma-apply-lookandfeel on its
+# own applies the colour scheme and leaves the rest to the session, which is the
+# partial-switch the advisor sees. Welcome must never call the bare tool.
+# Overridable so the gate can exercise the real bridge against a staged helper
+# without needing to write into the immutable /usr.
+APPLY_THEME = os.environ.get('SPPLUS_APPLY_THEME',
+                             '/usr/libexec/spplus-apply-theme')
+
+class WelcomeBridge:
+    """Carries requests from the page to the desktop over the window title.
+
+    Navigating to a custom scheme is not usable here: QtWebEngine resolves the
+    navigation itself and replaces the page, so the request never reaches the
+    shell and the advisor loses the app. Setting document.title triggers
+    titleChanged with no navigation at all, which is stable across Qt versions
+    and needs no extra JavaScript asset shipped with the app.
+    """
+
+    PREFIX = 'spplus:'
+
+    def __init__(self, view):
+        self.view = view
+        view.titleChanged.connect(self.on_title)
+
+    def on_title(self, title):
+        if not title.startswith(self.PREFIX):
+            return
+        parsed = urlparse(title[len(self.PREFIX):])
+        params = parse_qs(parsed.query)
+        if parsed.path == 'apply-theme':
+            theme = (params.get('theme') or [''])[0]
+            if theme:
+                self.apply_theme(theme)
+
+    def apply_theme(self, theme_id):
+        try:
+            result = subprocess.run([APPLY_THEME, theme_id], capture_output=True,
+                                    text=True, timeout=60)
+            ok = result.returncode == 0
+            detail = (result.stdout or result.stderr).strip().splitlines()
+            summary = detail[-1] if detail else ''
+        except (OSError, subprocess.SubprocessError) as exc:
+            ok, summary = False, str(exc)
+        # Report what actually happened; the page never assumes the click worked.
+        payload = json.dumps({'ok': ok, 'detail': summary, 'theme': theme_id})
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.themeApplied({payload})')
+
+
 class WelcomeWindow(QMainWindow):
     def __init__(self, force: bool = False, screen: int = 1, captures: bool = False, help_depth: int = 0):
         super().__init__()
@@ -21,6 +76,7 @@ class WelcomeWindow(QMainWindow):
         self.setMinimumSize(1120, 720)
         self.resize(1440, 900)
         self.view = QWebEngineView(self)
+        self.bridge = WelcomeBridge(self.view)
         settings = self.view.settings()
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, False)

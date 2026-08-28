@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "X-Plasma-APIVersion": "2",
+    "KPlugin": {
+        "Id": "com.github.vinceliuice.Orchis",
+        "Name": "Orchis Light",
+        "Authors": [
+            {
+                "Name": "vinceliuice"
+            }
+        ],
+        "License": "GPL-3.0",
+        "Website": "https://github.com/vinceliuice/Orchis-kde",
+        "Version": "1.0",
+        "EnabledByDefault": true
+    }
+}

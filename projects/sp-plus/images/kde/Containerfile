@@ -731,11 +731,33 @@ RUN chmod 0755 /usr/bin/spplus-discover \
 #
 # The Windows 11 theme above is NOT removed -- it stays as a choice in the theme
 # picker for advisors who want what they came from.
-COPY theme/sp-plus-calm/look-and-feel/  /usr/share/plasma/look-and-feel/
-COPY theme/sp-plus-calm/desktoptheme/   /usr/share/plasma/desktoptheme/
-COPY theme/sp-plus-calm/color-schemes/  /usr/share/color-schemes/
-COPY theme/sp-plus-calm/aurorae/        /usr/share/aurorae/themes/
+# DN-28 (2026-08-28): the bespoke SP+ Calm GLOBAL THEME is withdrawn. Two cycles
+# of custom look-and-feel work produced a theme that silently failed to apply --
+# our hand-authored Aurorae set still named the Plasma 5 decoration plugin after
+# KWin moved to .v2 -- and a maintained upstream theme is repaired by its own
+# maintainers across those upgrades. SP+ now offers stock and vendored themes.
+#
+# The SP+ WALLPAPERS are explicitly retained and still ship from the Calm tree.
 COPY theme/sp-plus-calm/wallpapers/SPPlus-Calm/ /usr/share/wallpapers/SPPlus-Calm/
+
+# Vendored upstream global themes, pinned and normalised. Each was shipped
+# incomplete by its author: none declared fonts, several named icon themes and
+# cursors they do not ship, Nordic carried only a Plasma 5 metadata.desktop, and
+# Catppuccin's package Id did not match its directory so Plasma could not resolve
+# it at all. theme/vendor/ holds the corrected packages; see
+# docs/ledger/DECISION-cycle36-drop-custom-global-themes.md for provenance.
+COPY theme/vendor/look-and-feel/  /usr/share/plasma/look-and-feel/
+COPY theme/vendor/aurorae/        /usr/share/aurorae/themes/
+COPY theme/vendor/color-schemes/  /usr/share/color-schemes/
+COPY theme/vendor/desktoptheme/   /usr/share/plasma/desktoptheme/
+COPY theme/vendor/cursors/        /usr/share/icons/
+
+# Applying a global theme so that EVERY component changes together is not what
+# plasma-apply-lookandfeel does on its own: it applies the colour scheme and
+# leaves icons, widget style, Plasma theme, decoration, cursor and fonts to the
+# session, which is why a theme switch used to move only the colours.
+COPY config/spplus-apply-theme /usr/libexec/spplus-apply-theme
+COPY theme/tools/validate-global-themes.py /usr/libexec/spplus-validate-global-themes
 
 # kvantum supplies the widget style the theme's defaults select. Without it Qt apps
 # fall back and the theme looks half-applied in System Settings.
@@ -749,7 +771,8 @@ COPY theme/sp-plus-calm/wallpapers/SPPlus-Calm/ /usr/share/wallpapers/SPPlus-Cal
 # the Secure Prospective body face and is needed by SP+ Welcome, which IS a brand
 # surface even though the desktop around it is not (DN-27).
 RUN dnf install -y --setopt=install_weak_deps=False \
-      kvantum paper-icon-theme jetbrains-mono-fonts ibm-plex-sans-fonts \
+      kvantum paper-icon-theme papirus-icon-theme jetbrains-mono-fonts \
+      ibm-plex-sans-fonts \
  && dnf clean all \
  && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
@@ -759,31 +782,33 @@ RUN dnf install -y --setopt=install_weak_deps=False \
  && fc-list : family | grep -qi 'JetBrains Mono' \
  && echo "CALM_DEPS_OK $(rpm -q paper-icon-theme jetbrains-mono-fonts | tr '\n' ' ')"
 
-# Make SP+ Calm (Dark) the shipped default look, system-wide rather than in
+# Ship SP+ Windows 11 Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
-# DN-27). Graphite grounds, calm dark, glow reserved for signalling focus and
-# state. Windows 11 Dark remains installed and selectable.
+# DN-28). It leads the SP+ Welcome theme picker because it is closest to what
+# advisors are arriving from, so the desktop they first see matches the choice
+# the picker recommends. Every other offered theme stays installed and
+# selectable, and Welcome is where the advisor changes it (DN-26).
 RUN printf '%s\n' \
       '[General]' \
-      'ColorScheme=SPPlusCalmDark' \
+      'ColorScheme=WindowsModernDark' \
       'TerminalApplication=kitty' \
-      'LookAndFeelPackage=org.secureprospective.spplus.calm.dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
       '' \
       '[Icons]' \
-      'Theme=Paper-Mono-Dark' \
+      'Theme=Papirus-Dark' \
       '' \
       '[KDE]' \
-      'widgetStyle=Breeze' \
-      'LookAndFeelPackage=org.secureprospective.spplus.calm.dark' \
+      'widgetStyle=kvantum-dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
       > /etc/xdg/kdeglobals \
  && printf '%s\n' \
       '[Theme]' \
-      'name=spplus-calm-dark' \
+      'name=Windows-modern-dark' \
       > /etc/xdg/plasmarc \
  && printf '%s\n' \
       '[org.kde.kdecoration2]' \
       'library=org.kde.kwin.aurorae.v2' \
-      'theme=__aurorae__svg__spplus-calm-dark' \
+      'theme=__aurorae__svg__windows-modern-dark-aurorae' \
       '' \
       '# SP+ ships on laptops with real keys. kwin otherwise launches' \
       '# plasma-keyboard -- the ONSCREEN keyboard -- because its desktop file' \
@@ -796,19 +821,13 @@ RUN printf '%s\n' \
       'InputMethod=' \
       'VirtualKeyboardEnabled=false' \
       > /etc/xdg/kwinrc \
- && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark \
- && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.light \
- && test -f /usr/share/color-schemes/SPPlusCalmDark.colors \
  && grep -q '^library=org.kde.kwin.aurorae.v2$' /etc/xdg/kwinrc \
- && grep -q '^theme=__aurorae__svg__spplus-calm-dark$' /etc/xdg/kwinrc \
- && test -d /usr/share/aurorae/themes/spplus-calm-dark \
- && test -d /usr/share/plasma/desktoptheme/spplus-calm-dark \
+ && grep -q '^theme=__aurorae__svg__windows-modern-dark-aurorae$' /etc/xdg/kwinrc \
  && test -d /usr/share/wallpapers/SPPlus-Calm/contents/images \
  && test -f /usr/share/wallpapers/SPPlus-Calm/contents/images/3840x2160.jpg \
- && test -d /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark \
- && test -f /usr/share/color-schemes/WindowsModernDark.colors \
- && test -d /usr/share/aurorae/themes/windows-modern-dark-aurorae \
- && echo "CALM_DEFAULT_OK themes=$(ls /usr/share/plasma/look-and-feel | wc -l)"
+ && test -x /usr/libexec/spplus-apply-theme \
+ && python3 /usr/libexec/spplus-validate-global-themes --root / \
+ && echo "GLOBAL_THEME_DEFAULT_OK themes=$(ls /usr/share/plasma/look-and-feel | wc -l)"
 
 # ---- 6b. DN-24: naming the look and feel is not applying it ----
 # Section 6 writes LookAndFeelPackage into /etc/xdg/kdeglobals, and that is
@@ -837,11 +856,11 @@ RUN chmod 0755 /usr/libexec/spplus-first-login \
  && test -r /usr/share/sp-plus/branding/sp-plus-wallpaper.png \
  && test -s /etc/xdg/kscreenlockerrc \
  && grep -q '^Autolock=false$' /etc/xdg/kscreenlockerrc \
- && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
+ && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
  && grep -q '^Image=SPPlus-Calm$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/defaults \
- && grep -q '^ColorScheme=SPPlusCalmDark$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.calm.dark/contents/defaults \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
+ && grep -q '^ColorScheme=WindowsModernDark$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
  && bash -n /usr/libexec/spplus-first-login \
  && echo "DN24_FIRST_LOGIN_OK look-and-feel is applied, not merely named"
 

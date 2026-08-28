@@ -30,31 +30,20 @@
   next.addEventListener('click', () => { if(current===6){ announce('WELCOME STAYS AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
   skip.addEventListener('click', () => go(current+1));
-  function resetThemeAdjustments(card) {
-    adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
-    document.querySelectorAll('.adjustment-option').forEach(option => {
-      const isDefault = option.dataset.value === 'Theme default';
-      option.classList.toggle('selected', isDefault);
-      option.setAttribute('aria-checked', isDefault ? 'true' : 'false');
-    });
-    document.getElementById('theme-detail').textContent = `${card.dataset.theme} is selected with its own ${card.dataset.defaultWallpaper} wallpaper and ${card.dataset.defaultPalette} palette.`;
-  }
-  document.querySelectorAll('.theme-card, .stock-theme').forEach(card => card.addEventListener('click', () => {
-    document.querySelectorAll('.theme-card, .stock-theme').forEach(item => { item.classList.remove('selected'); item.setAttribute('aria-checked','false'); });
+  // Applying a theme is a real system change, not a stub. The page hands the
+  // look-and-feel id to the shell over the spplus: scheme; the shell runs
+  // spplus-apply-theme, which writes EVERY component the theme declares --
+  // colours, icons, widget style, Plasma theme, window decoration, cursor and
+  // fonts -- and reports back through themeApplied(). Nothing here claims
+  // success on its own.
+  document.querySelectorAll('.theme-card').forEach(card => card.addEventListener('click', () => {
+    document.querySelectorAll('.theme-card').forEach(item => { item.classList.remove('selected'); item.setAttribute('aria-checked','false'); });
     card.classList.add('selected'); card.setAttribute('aria-checked','true');
     selectedTheme = card.dataset.theme.toUpperCase();
-    resetThemeAdjustments(card);
     document.getElementById('final-theme').textContent = `${selectedTheme} / SELECTED`;
-    announce(`${selectedTheme} SELECTED. ADJUSTMENTS RESET TO THE THEME DEFAULTS. NO DESKTOP CHANGE MADE.`, 'stub');
-  }));
-  document.querySelectorAll('.adjustment-option').forEach(option => option.addEventListener('click', () => {
-    const kind = option.dataset.adjustment;
-    document.querySelectorAll(`.adjustment-option[data-adjustment="${kind}"]`).forEach(item => {
-      item.classList.remove('selected'); item.setAttribute('aria-checked','false');
-    });
-    option.classList.add('selected'); option.setAttribute('aria-checked','true');
-    adjustments[kind] = option.dataset.value;
-    announce(`${kind.toUpperCase()} SET TO ${option.dataset.value.toUpperCase()}. THEME APPLICATION IS A STUB.`, 'stub');
+    announce(`APPLYING ${selectedTheme} TO THE WHOLE DESKTOP...`);
+    // The shell watches the title. Navigating instead would replace the page.
+    document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(card.dataset.lnf);
   }));
   document.querySelectorAll('.stub-action').forEach(button => button.addEventListener('click', () => announce(`${button.dataset.stub.toUpperCase()} IS A STUB. NO SYSTEM CHANGE WAS MADE.`, 'stub')));
   document.getElementById('no-show').addEventListener('change', event => { localStorage.setItem('spplus-welcome-no-show', event.target.checked ? 'true' : 'false'); announce(event.target.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.'); });
@@ -89,6 +78,16 @@
     const article = articles.find(item => item.category === 'Everyday work' && item.title === 'LibreOffice: your Word and Excel');
     if (article) { helpView = {kind:'article', category:'Everyday work', article}; renderHelp(); }
   }
-  window.spWelcome = { go, helpDepth };
+  window.spWelcome = {
+    themeApplied: function(result){
+      const detail = document.getElementById('theme-detail');
+      if (result && result.ok) {
+        announce(`${(result.theme||'').toUpperCase()} APPLIED. THE WHOLE DESKTOP CHANGED.`);
+        if (detail) detail.textContent = 'Applied to the desktop: colours, icons, window frames, panel, cursor and fonts all changed together.';
+      } else {
+        announce('THAT THEME COULD NOT BE APPLIED. THE DESKTOP WAS LEFT AS IT WAS.', 'stub');
+        if (detail) detail.textContent = 'The desktop was left unchanged. Detail: ' + ((result && result.detail) || 'no detail reported') + '.';
+      }
+    }, go, helpDepth };
   go(0);
 })();
