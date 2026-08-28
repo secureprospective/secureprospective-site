@@ -5,8 +5,8 @@
 // is not a summary. The technical modules are still here, named for what they
 // actually tell you.
 //
-// The logo is a 3D block SP+ -- blue lettering, gold plus, extruded to the lower
-// right so it reads as blocks sitting on a table. Four colour slots: $1 blue
+// The logo is an outlined block SP+ -- blue lettering, gold plus, drawn with a
+// box-drawing outline so the letters read as solid blocks. Four colour slots: $1 blue
 // face, $2 blue edge, $3 gold face, $4 gold edge.
 //
 // Escapes MUST be written as the JSON escape, never a raw ESC byte: fastfetch
