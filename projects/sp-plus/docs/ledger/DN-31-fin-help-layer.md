@@ -1,7 +1,8 @@
 # DN-31 — Welcome's second life: Fin as the interpretive help layer
 
-Status: **DRAFT 2026-08-28.** Not decided. Going to an independent expert panel
-(gpt-sol) before it becomes standard.
+Status: **AMENDED 2026-08-28** after panel review. See AMENDMENT 1 at the foot of this
+file, which SUPERSEDES decisions 5, 7 and the liability premise. Drafted 2026-08-28,
+reviewed by gpt-5.6-sol the same day, ruled on by Christopher the same day.
 Extends: DN-26 (SP+ Welcome owns the first screen), DN-25 (Fin plug and play).
 Depends on: `sudoers-sp-plus` (`%wheel ALL=(ALL) NOPASSWD: ALL`).
 
@@ -218,3 +219,114 @@ This is a product-truth defect, not a wording preference.
 **Nothing in this record is built.** Decision 5 describes existing shipped state. Every
 other decision is unimplemented. The two items with a hard deadline of the next ISO are
 the screen five correction and a decision on whether any of this ships disabled.
+
+---
+
+# AMENDMENT 1 — after panel review, 2026-08-28
+
+Reviewer: `gpt-5.6-sol` at high thinking, dispatched via Bee. Full review retained at
+`/root/bee-runs/20260828T190541Z_dn31-panel-review/out` on CT105 (28,996 bytes).
+Christopher ruled on the outcome the same day.
+
+The panel confirmed decision 5 independently, matching the live-guest measurement above.
+It rejected the privilege model in decisions 5 through 10 and the liability premise
+throughout. **Christopher accepted the correction.** The decisions below replace the
+originals where they conflict.
+
+## A1 — Fin runs as its own identity, and holds no sudo
+
+**Superseded:** decision 5, "Fin holds full root."
+
+Fin no longer runs as the advisor. It runs under a **distinct unprivileged identity** with
+no entry in `sudoers` and no shell path to root.
+
+**Christopher's reason, and it is a better one than the panel's.** The panel argued
+containment. Christopher argued **attribution**: *"this creates a papertrail on who made
+the mistake if a mistake happens."*
+
+That is the defect the old design could not fix. Fin ran as the advisor, so every action
+Fin took was recorded as the advisor taking it. The two were indistinguishable in the
+record, which means there was no paper trail at all -- not a weak one, none. A separate
+identity is the minimum condition for the question "who did this" to have an answer. Every
+downstream control, audit, incident response and regulatory record depends on it.
+
+**The advisor keeps their own passwordless administration.** `%wheel ALL=(ALL) NOPASSWD:
+ALL` stays for the human. It was written to stop a repair dead-ending at a password a
+non-technical owner cannot recall, and that reasoning is untouched by this change. Taking
+it from the advisor would restore the original problem and would not add one line to the
+paper trail, because the advisor was never the ambiguous actor. **Fin was.**
+
+*Interaction with DN-13, flagged not resolved:* DN-13 holds that the `spplus` service
+identity must never gain admin rights. Fin's identity must therefore be a **separate**
+identity from `spplus`, and it does not "gain admin rights" -- it gains the ability to
+*request* named operations from a broker that holds them. Confirm this reading against
+DN-13 before implementing.
+
+## A2 — Privileged work goes behind a typed broker
+
+**Superseded:** decision 7, which put the boundary inside the authority it restrained.
+
+The panel's structural finding, accepted: a gate that runs inside the process it governs
+is not a control. With root and a shell, Fin could read a protected file with `sudo cat`,
+copy it somewhere unprotected, or stop the gate.
+
+Privileged operations move to a **root-owned broker** that Fin cannot modify. It exposes
+**named, typed operations** -- "restart this allowlisted unit", "query printer status",
+"mount this configured share" -- and **never `execute(command)`**. An operation that is not
+on the list does not exist.
+
+Each brokered call records the requesting identity, the operation, its parameters, the
+result and the time. **That record is the paper trail A1 exists to produce.** The broker is
+not primarily a permission wall; it is the instrument that makes attribution possible, and
+the permission wall is a consequence of building it properly.
+
+## A3 — The liability sentence is withdrawn
+
+**Removed:** "the liability for that content sits with the advisor," and every variant.
+
+Under Regulation S-P the operator's click is not the consumer's consent, because the
+advisor is generally not the consumer whose information the file contains. Safeguarding and
+breach-notification duties remain with the practice regardless of who clicked. Consent
+remains worth collecting as an authorization control and as evidence. **It is not a
+transfer of responsibility, and the product must never claim it is.**
+
+This needs a real compliance opinion. It is outside what this project can settle from a
+model review, and it should not be treated as settled by this record.
+
+## A4 — The guardrail extensions are demoted, not removed
+
+`config/fin-extensions/spplus-guardrails.ts` and `spplus-protected-paths.ts` (commit
+`f2b5507`, 49/49 on `tests/fin-extension-gate.mjs`) were written before this amendment,
+when Fin held root. Under A1 and A2 they are **no longer the boundary**. They remain as a
+second layer that catches accidents and mistakes cheaply.
+
+Their one inversion needs revisiting once the broker exists: they deliberately **do not**
+gate `sudo`, because sudo was Fin's job. Under A1 Fin has no sudo at all, so that carve-out
+becomes dead weight rather than a deliberate allowance.
+
+## A5 — No offline fallback is required. Ruled.
+
+The panel raised that cloud-first help fails during the network outages an advisor most
+needs help with. **Christopher ruled this is not a product obligation.** An advisor facing
+an outage either funds local inference hardware or calls someone, and a network-level
+outage is on the far side of the hardware-and-network line this product deliberately draws.
+They would have called for that class of problem regardless. Recorded so it is not
+reopened as an oversight.
+
+## Carried forward, unresolved
+
+These panel findings were not ruled on and remain open:
+
+1. **Indirect prompt injection.** A crafted email or document can carry instructions aimed
+   at Fin. A1 and A2 shrink the blast radius enormously but do not address parsing
+   untrusted content in a context that also holds tools. This is now the largest unhandled
+   risk in the design.
+2. **Filenames should be treated as content**, not metadata. The panel went further than
+   the record's own flag and recommends local identifiers with the real name revealed only
+   under the same authorization as contents.
+3. **Egress.** A read gate is not an egress control. Data can leave by DNS, URL, telemetry,
+   crash report or command argument.
+4. **Decision 6 contradicts decision 9** on whether mail is per item or account scoped.
+   Drafting error, still unfixed.
+5. **Screen five may be false today.** Fin already uses cloud inference, so the "no data
+   sent" claim may be wrong on the shipped product rather than only after this design lands.
