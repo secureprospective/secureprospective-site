@@ -966,6 +966,24 @@ RUN printf '%s\n' \
  && grep -q 'def closeEvent' /usr/libexec/sp-plus/welcome/welcome.py \
  && grep -q -- '--self-test-close' /usr/libexec/sp-plus/welcome/welcome.py \
  && python3 -c "import json,sys; json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json'))" \
+ && W=/usr/libexec/sp-plus/welcome/app/index.html \
+# The header claims LOCAL SETUP / NO DATA SENT on every screen. Verified
+# 2026-08-28: that is TRUE today -- the only fetch in the payload is the local
+# help-data.json, there is no remote src or href, and welcome.py sets
+# LocalContentCanAccessRemoteUrls False. It stops being true the moment the ask
+# box wires Welcome to cloud Fin. Nobody will remember to change a header in a
+# different file on that day, so the two are coupled here instead of in memory.
+ && if grep -q 'id="ask-fin"' "$W"; then \
+      grep -q "NO DATA SENT" "$W" \
+        && { echo "WELCOME FAILED: the ask box ships but the header still claims NO DATA SENT"; exit 1; }; \
+      echo "WELCOME_EGRESS_OK ask box present, no-data claim withdrawn"; \
+    else \
+      grep -q "NO DATA SENT" "$W" \
+        || { echo "WELCOME FAILED: no ask box, so the NO DATA SENT claim should still stand"; exit 1; }; \
+      echo "WELCOME_EGRESS_OK no ask box, no-data claim is true"; \
+    fi \
+ && ! grep -qE 'src="http|href="http' "$W" \
+ && grep -q "LocalContentCanAccessRemoteUrls, False" /usr/libexec/sp-plus/welcome/welcome.py \
  && python3 -c "import PySide6.QtWebEngineWidgets" \
  && ! grep -rqlP '\xe2\x80\x94' /usr/libexec/sp-plus/welcome/app/ \
  && if [ -f /usr/libexec/sp-plus/welcome/app/fonts/Primal.ttf ]; then \
