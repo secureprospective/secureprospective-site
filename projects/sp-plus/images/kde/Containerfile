@@ -381,7 +381,13 @@ COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
 # layer; kglobalacceld writes a per-user kglobalshortcutsrc at first login and
 # does not reliably inherit from it, which is why cycle34 shipped a correct
 # /etc/xdg binding and Print Screen still opened Spectacle.
-COPY config/skel/.config/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc
+# SAME SOURCE FILE as /etc/xdg above, deliberately. There used to be a second
+# copy at config/skel/.config/kglobalshortcutsrc that had to stay byte-identical,
+# enforced by the `cmp -s` below. It drifted the moment Print Screen was
+# rebound and failed the build at step 52. Two files that must be identical is
+# a trap, not a safeguard; one source cannot drift from itself. The cmp stays
+# as a cheap guard in case anyone splits them again.
+COPY config/kglobalshortcutsrc /etc/skel/.config/kglobalshortcutsrc
 COPY config/flameshot-capture.desktop /usr/share/applications/flameshot-capture.desktop
 # Print Screen runs Spectacle in region mode through this wrapper, NOT Flameshot.
 # Flameshot can only capture via xdg-desktop-portal on Wayland, and a portal
