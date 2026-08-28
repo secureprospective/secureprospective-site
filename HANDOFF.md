@@ -1,5 +1,15 @@
 # Handoff
 
+## 2026-08-28 — cycle36 runtime and desktop fixes implemented
+
+- **Baton:** Bee — 2026-08-28
+- **Where it stands:** Implemented FIX 1-7 in commit `be4ae98` on `session/sp-plus-plan`: full ICU plus Intl gate; Plasma 6.7 Aurorae v2 and first-login read-back/retry; literal wsdd hardening drop-in; `/etc/xdg/kscreenlockerrc`; Welcome close/exit behavior and live close gate; `lm_sensors`; Discover Flatpak/rpm-ostree launcher policy. FIX 8 was investigated from the real desktop session and did not reproduce, so no fix was added.
+- **Gates:** `tests/cycle36-source-gate.sh` PASS; `tests/config-preflight.sh` PASS 13/13; shell/Python syntax and `git diff --check` PASS. Old installed VM field inspection intentionally FAILed on the pre-fix defects, proving the new checks surface them. Full report and sentinel are in `/home/chris/sp-plus-bee/`.
+- **Build boundary:** No ISO or image build started. `fedora-test35` was not rebooted, reset, or reconfigured.
+- **Next move:** Christopher decides when to build. After a rebuilt image exists, run the installed-system field gate as root, `tests/welcome-close-gate.sh` from the real desktop session, and inspect Discover/Calm visually.
+- **Blocked on:** Post-fix image build and fresh installed-system verification.
+- **Tried and rejected:** No FIX 8 polkit change; the real-session `firewall-config` launch remained normal, so the report records the SSH-context authorization error as a test artifact.
+
 ## 2026-08-27 — SP+ Calm KDE theme bundle added
 
 - **Baton:** ClaudeBox — 2026-08-27
