@@ -790,12 +790,14 @@ COPY theme/tools/validate-global-themes.py /usr/libexec/spplus-validate-global-t
 # the Secure Prospective body face and is needed by SP+ Welcome, which IS a brand
 # surface even though the desktop around it is not (DN-27).
 RUN dnf install -y --setopt=install_weak_deps=False \
-      kvantum paper-icon-theme papirus-icon-theme jetbrains-mono-fonts \
+      kvantum paper-icon-theme papirus-icon-theme papirus-icon-theme-dark \
+      jetbrains-mono-fonts \
       ibm-plex-sans-fonts \
  && dnf clean all \
  && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
  && test -d /usr/share/icons/Paper-Mono-Dark \
+ && test -d /usr/share/icons/Papirus-Dark \
  && fc-list : family | grep -qi 'Noto Sans' \
  && fc-list : family | grep -qi 'IBM Plex Sans' \
  && fc-list : family | grep -qi 'JetBrains Mono' \
