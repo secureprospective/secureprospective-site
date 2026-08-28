@@ -1,3 +1,20 @@
+> **REFUTED — 2026-08-28. There is no portal wedge. Do not retest this.**
+>
+> The portal was answering correctly the whole time. It was denying a request
+> that had been recorded as denied: `xdg-desktop-portal` keys the screenshot
+> permission by the caller's app id, and `flameshot-capture` was stored as
+> `no` while the grant sat on the empty app id. Flipping that one entry made
+> Print Screen work with no prompt, on the same machine, with no portal
+> restart.
+>
+> The timeouts recorded below were a blocking permission dialog and, later,
+> stale dialogs that do not close when the requesting process is killed. The
+> `libEGL ... dri2` line is noise present on every Flatpak and Qt launch in
+> this guest, including ones that work.
+>
+> Kept for the refutations in it, which are still sound. See
+> `DN-30-screenshot-portal-app-id.md` for what was actually wrong.
+
 # Print Screen / Flameshot: the portal backend wedges
 
 Investigated 2026-08-28 in the cycle35 guest `fedora-test35`. Christopher's note:
