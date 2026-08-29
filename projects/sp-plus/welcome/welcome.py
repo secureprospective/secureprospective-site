@@ -40,6 +40,8 @@ FLATPAK = os.environ.get('SPPLUS_FLATPAK', '/usr/bin/flatpak')
 SUDO = os.environ.get('SPPLUS_SUDO', '/usr/bin/sudo')
 DISCOVER = os.environ.get('SPPLUS_DISCOVER', '/usr/bin/plasma-discover')
 TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
+SELFTEST_SHARE_UP = os.environ.get('SPPLUS_SELFTEST_SHARE_UP', '127.0.0.1')
+SELFTEST_SHARE_DOWN = os.environ.get('SPPLUS_SELFTEST_SHARE_DOWN', '203.0.113.1')
 MACHINE_DOC = os.environ.get('SPPLUS_MACHINE_DOC', '/var/lib/sp-plus/THIS-MACHINE.md')
 FLATPAK_APP_NAMES = {
     'com.bitwarden.desktop': 'Bitwarden',
@@ -781,33 +783,203 @@ class WelcomeWindow(QMainWindow):
         self._capture_index += 1
         QTimer.singleShot(100, self._capture_screen)
 
+# ---------------------------------------------------------------------------
+# HEADLESS SELF-TEST (DN-38)
+#
+# WHY THIS EXISTS. Four separate QC dispatches tried to drive this page through
+# the live Wayland session over ssh and produced twenty-four UNVERIFIED results
+# and no findings. The wall was identical every time: you cannot reliably script
+# a QtWebEngine window through someone else's compositor from a remote shell.
+#
+# So the app tests itself. This drives the SAME bridge verbs the page triggers,
+# through the SAME handlers, and reports the SAME payloads the page would render
+# -- it does not reimplement them, which would test a copy instead of the thing.
+#
+# It deliberately does NOT run verbs that spawn a GUI application or mutate the
+# advisor's desktop (launch-fin, browse-store, connect-email, install,
+# apply-theme). Those are reported as REQUIRES-HUMAN rather than silently
+# skipped, because a QC report that hides what it did not test is worse than one
+# that admits it.
+class SelfTest(QObject):
+    """Drive the bridge verbs in-process and report what the page would show."""
+
+    # Verbs whose result is computable without spawning a window or changing
+    # the running desktop.
+    SAFE = ('check-computer', 'check-share-reachable', 'check-share-unreachable',
+            'print-test')
+
+    # What a CORRECT machine reports. An error path is SUPPOSED to return
+    # ok:false -- calling that a failed test would make the report lie.
+    # None means "no expectation; print it and let a human judge".
+    EXPECT = {'check-computer': True, 'check-share-reachable': True,
+              'check-share-unreachable': False, 'print-test': None,
+              'ask': True}
+    # Real verbs, deliberately not automated. Named so the report is honest.
+    REQUIRES_HUMAN = {
+        'apply-theme': 'changes the live desktop appearance',
+        'launch-fin': 'opens the Fin window',
+        'browse-store': 'opens Discover',
+        'connect-email': 'opens a browser window',
+        'install': 'installs software system-wide',
+    }
+
+    def __init__(self, window, include_ask=False, timeout_ms=300000):
+        super().__init__()
+        # The verbs live on the BRIDGE, not the window. Drive the same object
+        # the page drives, so this tests the shipped path and not a copy.
+        self.window, self.include_ask = window.bridge, include_ask
+        self.timeout_ms = timeout_ms
+        self.results, self._queue, self._current = [], [], None
+        self._page = window.view.page()
+        self._real_run_js = self._page.runJavaScript
+        self._page.runJavaScript = self._intercept
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._timed_out)
+
+    # The handlers report by calling window.spWelcome.<name>(<json>). Capture
+    # that instead of executing it; everything else still runs for real.
+    def _intercept(self, js, *rest):
+        m = re.search(r'window\.spWelcome\.(\w+)\((.*)\)$', (js or '').strip(), re.S)
+        if m:
+            try:
+                payload = json.loads(m.group(2))
+            except (ValueError, TypeError):
+                # Some handlers emit a JS object literal -- {ok:false,message:'x'}
+                # with unquoted keys and single quotes -- which is not JSON, so
+                # json.loads would drop the advisor-visible message on the floor.
+                blob = m.group(2)
+                payload = {'raw': blob,
+                           'ok': bool(re.search(r'\bok\s*:\s*true\b', blob))}
+                mo = re.search(r"message\s*:\s*'((?:[^'\\]|\\.)*)'", blob)
+                if mo:
+                    payload['message'] = mo.group(1)
+            self._record(m.group(1), payload)
+            return
+        # check_share reads the password field out of the DOM before running.
+        # There is no DOM here, so answer the callback with an empty string --
+        # the credential path is a human test, not this one.
+        if rest and callable(rest[0]):
+            rest[0]('')
+            return
+        return None
+
+    def _record(self, sink, payload):
+        if self._current is None:
+            return
+        self._timer.stop()
+        ok = bool(payload.get('ok'))
+        expect = self.EXPECT.get(self._current)
+        verdict = 'REPORTED' if expect is None else ('PASS' if ok == expect else 'FAIL')
+        self.results.append({'verb': self._current, 'sink': sink, 'ok': ok,
+                             'expected_ok': expect, 'verdict': verdict,
+                             'payload': payload})
+        self._current = None
+        QTimer.singleShot(50, self._next)
+
+    def _timed_out(self):
+        if self._current is None:
+            return
+        self.results.append({'verb': self._current, 'sink': None, 'ok': False,
+                             'verdict': 'FAIL',
+                             'payload': {'message': 'TIMED OUT -- no result was '
+                                                    'reported to the page'}})
+        self._current = None
+        QTimer.singleShot(50, self._next)
+
+    def run(self):
+        self._queue = list(self.SAFE) + (['ask'] if self.include_ask else [])
+        QTimer.singleShot(1200, self._next)
+
+    def _next(self):
+        if not self._queue:
+            self._report()
+            return
+        verb = self._queue.pop(0)
+        self._current = verb
+        self._timer.start(self.timeout_ms)
+        w = self.window
+        try:
+            if verb == 'check-computer':
+                w.check_computer()
+            elif verb == 'print-test':
+                w.print_test()
+            elif verb == 'check-share-reachable':
+                # Placeholder password, never a real one: this tests whether the
+                # host is REACHABLE, not whether a credential works.
+                w.check_share(SELFTEST_SHARE_UP, 'Shared', 'tester',
+                              'selftest-not-a-real-password', False)
+            elif verb == 'check-share-unreachable':
+                w.check_share(SELFTEST_SHARE_DOWN, 'Shared', 'tester',
+                              'selftest-not-a-real-password', False)
+            elif verb == 'ask':
+                w.ask('what is 1847 + 2965')
+        except Exception as exc:                     # noqa: BLE001 - report, never crash the run
+            self._timer.stop()
+            self.results.append({'verb': verb, 'sink': None, 'ok': False, 'verdict': 'FAIL',
+                                 'payload': {'message': f'RAISED {type(exc).__name__}: {exc}'}})
+            self._current = None
+            QTimer.singleShot(50, self._next)
+
+    def _report(self):
+        self._page.runJavaScript = self._real_run_js
+        out = ['# SP+ Welcome headless self-test (DN-38)', '',
+               '| Verb | Result | Advisor-visible message |', '|---|---|---|']
+        for r in self.results:
+            msg = str(r['payload'].get('message', '')).replace('|', '\\|')[:160]
+            out.append(f"| {r['verb']} | {r.get('verdict', 'FAIL')} | {msg} |")
+        for verb, why in sorted(self.REQUIRES_HUMAN.items()):
+            out.append(f'| {verb} | REQUIRES-HUMAN | not automated: {why} |')
+        out += ['', '## Full payloads', '```json',
+                json.dumps(self.results, indent=2, ensure_ascii=True), '```']
+        print('\n'.join(out), flush=True)
+        failed = sum(1 for r in self.results if r.get('verdict') == 'FAIL')
+        QApplication.instance().exit(1 if failed else 0)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--screen', type=int, default=1, help='screen number 1-7')
     parser.add_argument('--screenshots', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--reset-no-show', action='store_true')
+    parser.add_argument('--self-test', action='store_true',
+                        help='drive the bridge verbs headlessly and print a QC report')
+    parser.add_argument('--self-test-ask', action='store_true',
+                        help='include the ask verb in --self-test (calls Fin; slow)')
     parser.add_argument('--self-test-close', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--help-depth', type=int, choices=(1, 2), default=0, help='capture Everyday work or its LibreOffice article')
     args = parser.parse_args()
     app = QApplication(sys.argv)
     app.setApplicationName('SP+ Welcome')
-    instance = SingleInstance()
-    try:
-        owns_instance = instance.acquire()
-    except RuntimeError as exc:
-        print(exc, file=sys.stderr)
-        return 1
-    if not owns_instance:
-        return 0
+    # The self-test is a QC harness, not a second copy of the app for the
+    # advisor, so it does NOT contend for the single-instance socket. That lock
+    # is exactly what blocked four consecutive QC dispatches: a Welcome already
+    # running for the logged-in user made every controlled run impossible.
+    instance = None
+    if not args.self_test:
+        instance = SingleInstance()
+        try:
+            owns_instance = instance.acquire()
+        except RuntimeError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        if not owns_instance:
+            return 0
     if args.reset_no_show:
         QSettings('Secure Prospective', 'SP+ Welcome').clear()
-    window = WelcomeWindow(args.force or args.screenshots or args.self_test_close, args.screen, args.screenshots, args.help_depth)
-    instance.activated.connect(window.raise_and_focus)
-    window.single_instance = instance
+    window = WelcomeWindow(args.force or args.screenshots or args.self_test_close or args.self_test,
+                           args.screen, args.screenshots, args.help_depth)
+    if instance is not None:
+        instance.activated.connect(window.raise_and_focus)
+        window.single_instance = instance
     window.showMaximized()
     if args.self_test_close:
         QTimer.singleShot(1000, window.close)
+    if args.self_test:
+        tester = SelfTest(window, include_ask=args.self_test_ask)
+        window._self_test = tester
+        tester.run()
     return app.exec()
 
 if __name__ == '__main__':

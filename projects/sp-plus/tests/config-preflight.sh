@@ -422,6 +422,25 @@ fi
   && ok "DN-37 screenshot capture writes somewhere writable" \
   || bad "DN-37 capture path gate failed" "capture mode would crash on every real install"
 
+# P-19  DN-38 headless self-test. Four consecutive QC dispatches tried to script
+# the live page through someone else's compositor over ssh and produced 24
+# UNVERIFIED results and no findings. The harness must (a) exist, (b) NOT contend
+# for the single-instance socket -- that lock is what blocked all four -- and
+# (c) name the verbs it does not automate rather than quietly skipping them.
+DN38P="$REPO/projects/sp-plus/welcome/welcome.py"
+DN38_OK=1
+grep -qF "'--self-test'" "$DN38P" \
+  || { DN38_OK=0; echo "       no --self-test mode"; }
+grep -qF "if not args.self_test:" "$DN38P" \
+  || { DN38_OK=0; echo "       self-test contends for the single-instance lock that blocked 4 QC runs"; }
+grep -qF "REQUIRES_HUMAN" "$DN38P" \
+  || { DN38_OK=0; echo "       self-test does not declare what it cannot automate"; }
+grep -qF "EXPECT = {" "$DN38P" \
+  || { DN38_OK=0; echo "       self-test has no expectations; an error path returning ok:false would read as a failure"; }
+[ "$DN38_OK" -eq 1 ] \
+  && ok "DN-38 headless self-test exists, bypasses the lock, and is honest about coverage" \
+  || bad "DN-38 self-test gate failed" "QC that cannot run is QC that does not happen"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
