@@ -16,10 +16,21 @@ grep -qF "DISCOVER = os.environ.get('SPPLUS_DISCOVER'" "$PY" \
   || fail 'Discover executable is not overridable'
 grep -qF 'class FlatpakInstallWorker' "$PY" \
   || fail 'Flatpak installs do not have a worker'
-grep -qF "'install', '--user', '-y', 'flathub'" "$PY" \
-  || fail 'Flatpak install is not a user install from Flathub'
-grep -qF "'info', '--user', self.app_id" "$PY" \
-  || fail 'Flatpak install is not verified with flatpak info --user'
+# DN-33: installs are SYSTEM-scope, not --user. Flathub ships as a SYSTEM remote
+# (/usr/share/flatpak/remotes.d/flathub.flatpakrepo), so a --user install fails with
+# "No remote refs found for 'flathub'". Verified on the Dell 2026-08-29: --user failed,
+# --system via sudo -n installed Bitwarden and `flatpak info --system` returned rc=0.
+grep -qF "SUDO = os.environ.get('SPPLUS_SUDO'" "$PY" \
+  || fail 'sudo executable is not overridable'
+grep -qF "'install', '--system', '-y'," "$PY" \
+  || fail 'Flatpak install is not a SYSTEM install (DN-33)'
+grep -qF "[SUDO, '-n', FLATPAK, 'install', '--system'" "$PY" \
+  || fail 'Flatpak system install does not go through sudo -n (DN-33)'
+grep -qF "'info', '--system', self.app_id" "$PY" \
+  || fail 'Flatpak install is not verified with flatpak info --system'
+if grep -qF "'install', '--user'" "$PY"; then
+  fail 'welcome.py still contains a --user flatpak install (DN-33 regression)'
+fi
 grep -qF 'class FlathubCheckWorker' "$PY" \
   || fail 'Flathub is not checked off the UI thread'
 grep -qF "'remotes', '--columns=name'" "$PY" \
