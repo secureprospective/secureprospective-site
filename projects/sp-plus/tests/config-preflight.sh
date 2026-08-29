@@ -441,6 +441,22 @@ grep -qF "EXPECT = {" "$DN38P" \
   && ok "DN-38 headless self-test exists, bypasses the lock, and is honest about coverage" \
   || bad "DN-38 self-test gate failed" "QC that cannot run is QC that does not happen"
 
+# P-20  DN-40 GVFS. Welcome's office-folder check goes through GIO and needs the
+# GVFS SMB backend to exist. It did not: verified on the Dell, `rpm -qa | grep
+# gvfs` returned nothing and GIO answered NOT_SUPPORTED, "volume doesn't
+# implement mount". A headline advisor feature that could never work.
+DN40CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN40_OK=1
+grep -qE 'dnf install .*gvfs-smb' "$DN40CF" \
+  || { DN40_OK=0; echo "       gvfs-smb is not installed in the image; the office folder check cannot work"; }
+grep -qF 'test -x /usr/libexec/gvfsd-smb' "$DN40CF" \
+  || { DN40_OK=0; echo "       no build gate proving the SMB backend binary exists"; }
+grep -qF 'DN40_GVFS_SMB_OK' "$DN40CF" \
+  || { DN40_OK=0; echo "       Containerfile has no DN-40 gate"; }
+[ "$DN40_OK" -eq 1 ] \
+  && ok "DN-40 GVFS SMB backend is installed and gated" \
+  || bad "DN-40 gvfs gate failed" "the office folder feature would ship unable to work"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

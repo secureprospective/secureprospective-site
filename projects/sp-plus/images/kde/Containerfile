@@ -918,6 +918,25 @@ RUN test -s /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
  && grep -q '^wifi.powersave=2$' /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
  && test ! -e /etc/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
  && echo "DN36_WIFI_POWERSAVE_OK shipped in /usr/lib, value 2 = disable"
+
+# ---- 5d. GVFS + the SMB backend (DN-40) -------------------------------------
+# "Connect this computer to the office" is a headline advisor feature and it
+# COULD NOT WORK. Welcome checks the share through GIO and expects GVFS to carry
+# the mount and the KDE Wallet credentials -- but GVFS was never in the image.
+# Verified on the Dell 2026-08-29: `rpm -qa | grep gvfs` returned NOTHING, there
+# was no /usr/libexec/gvfsd-smb and no smb mount definition, and GIO answered
+# every mount attempt with NOT_SUPPORTED, "volume doesn't implement mount".
+#
+# Found by the DN-38 headless self-test. Four GUI QC dispatches never reached it.
+#
+# This is a BUILD-time install, which is how all image content is added. It is
+# NOT runtime rpm-ostree layering on an installed machine -- that is what breaks
+# `bootc upgrade` and remains forbidden.
+RUN dnf install -y --setopt=install_weak_deps=False gvfs gvfs-smb \
+ && dnf clean all \
+ && test -x /usr/libexec/gvfsd-smb \
+ && test -s /usr/share/gvfs/mounts/smb.mount \
+ && echo "DN40_GVFS_SMB_OK office folder mounting is actually installed"
 COPY config/spplus-discover /usr/bin/spplus-discover
 
 RUN chmod 0755 /usr/bin/spplus-discover \
