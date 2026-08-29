@@ -1,0 +1,12 @@
+State: idle
+Deployments:
+  ostree-unverified-registry:ghcr.io/secureprospective/sp-plus-kde:edge
+                   Digest: sha256:dc85bfcd8852801c0520f13de398d5ae79f1b8bdf416941fcff6d9d5c17d5468
+                  Version: 1.0 (2026-08-29T18:53:37Z)
+                   Staged: yes
+                    Added: nodejs22-npm-1:10.9.8-1.22.23.1.2.fc44.noarch
+          LayeredPackages: npm
+
+● ostree-unverified-registry:ghcr.io/secureprospective/sp-plus-kde:edge
+                   Digest: sha256:dc85bfcd8852801c0520f13de398d5ae79f1b8bdf416941fcff6d9d5c17d5468
+                 Unlocked: transient

@@ -1,0 +1,245 @@
+#!/usr/bin/bash
+# spplus-tune -- "Make my computer better", the deterministic half.
+#
+# WHY THIS IS A SCRIPT AND NOT A SKILL. Fin is a language model with root. A
+# SKILL.md that says "look at the hardware and decide" produces a different
+# result on every machine and every run, and nothing about it can be gated by a
+# build-time test. The same argument DN-31 decision 7 made about guardrails
+# applies to implementation: a system prompt is not a mechanism. So the survey,
+# the catalogue and the machine record live HERE, deterministic and testable,
+# and Fin's job is to drive this and explain it in the advisor's language.
+#
+# WHY v1 ONLY SURVEYS. The advisor's own settings are sacred: Fin must never
+# revert or re-tune something the advisor changed themselves. Ownership cannot
+# be inferred by comparing values -- a changed value tells you THAT it changed,
+# never WHO changed it, and a review of this design enumerated ~25 ways that
+# comparison returns a wrong verdict (KDE key renames, a bootc default moving,
+# a docking station, a monitor swap, a service clamping a value, a crash between
+# the apply and the record). The escape from all of them is to never mutate
+# without explicit consent, which makes sacredness true by construction rather
+# than by detection. Mutation lands in a later version behind per-item consent;
+# this version establishes the record that consent will be recorded against.
+#
+# WHAT IT REFUSES TO DO, permanently:
+#   - install a package, layer with rpm-ostree, add a repo, build a kernel module.
+#     VERIFIED 2026-08-29 on the Dell: layering `npm` made bootc refuse outright --
+#     "Deployment contains local rpm-ostree modifications; cannot upgrade via bootc"
+#     -- and flagged the deployment `incompatible: true`. A machine that silently
+#     stops receiving updates is the worst failure this product has. Never.
+#   - weaken SELinux or the firewall.
+#   - change a setting. v1 has no apply path at all.
+set -uo pipefail
+
+DOC_DIR=/var/lib/sp-plus
+DOC="$DOC_DIR/THIS-MACHINE.md"
+SCHEMA=1
+
+die(){ printf 'spplus-tune: %s\n' "$1" >&2; exit 1; }
+
+# --- helpers ---------------------------------------------------------------
+# Values that land in the exact register must never contain a table delimiter
+# or a newline, or the register stops being parseable and the sacredness check
+# that later reads it silently sees the wrong field.
+san(){ printf '%s' "${1-}" | tr -d '\n\r' | sed 's/|/\\|/g' | cut -c1-120; }
+have(){ command -v "$1" >/dev/null 2>&1; }
+
+# --- identity --------------------------------------------------------------
+MACHINE_ID=$(cat /etc/machine-id 2>/dev/null)
+HOSTNAME=$(hostname)
+VENDOR=$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)
+MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
+BIOS="$(cat /sys/class/dmi/id/bios_version 2>/dev/null) $(cat /sys/class/dmi/id/bios_date 2>/dev/null)"
+CHASSIS=$(hostnamectl chassis 2>/dev/null)
+KERNEL=$(uname -r)
+OSREL=$(. /etc/os-release 2>/dev/null; printf '%s %s' "${NAME:-}" "${VERSION:-}")
+
+# --- deployment / update health -------------------------------------------
+# This block is the reason the whole document exists. An advisor's machine that
+# has fallen off the update path looks completely normal from the desktop.
+DEPLOY_IMG=$(bootc status --format=yaml 2>/dev/null | awk '/^  booted:/{f=1} f&&/image: [^ ]/{print $2; exit}')
+DEPLOY_DIGEST=$(rpm-ostree status 2>/dev/null | awk '/Digest:/{print $2; exit}')
+LAYERED=$(rpm-ostree status 2>/dev/null | awk -F': ' '/LayeredPackages:/{print $2; exit}')
+INCOMPAT=$(bootc status 2>/dev/null | awk -F': ' '/incompatible:/{print $2; exit}')
+UNLOCKED=$(rpm-ostree status 2>/dev/null | awk -F': ' '/Unlocked:/{print $2; exit}')
+
+UPDATE_HEALTH="OK"
+UPDATE_WHY="deployment is image-only and eligible for bootc upgrade"
+if [ -n "${LAYERED:-}" ]; then
+    UPDATE_HEALTH="BROKEN"
+    UPDATE_WHY="locally layered packages ($LAYERED) -- bootc refuses to upgrade this deployment"
+elif [ "${INCOMPAT:-false}" = "true" ]; then
+    UPDATE_HEALTH="BROKEN"
+    UPDATE_WHY="deployment marked incompatible by bootc"
+fi
+
+# --- hardware --------------------------------------------------------------
+CPU=$(awk -F': ' '/^model name/{print $2; exit}' /proc/cpuinfo 2>/dev/null)
+NCPU=$(nproc 2>/dev/null)
+MEM_MB=$(awk '/MemTotal/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null)
+ROOT_SRC=$(findmnt -no SOURCE / 2>/dev/null)
+ROOT_DISK=$(lsblk -no PKNAME "$ROOT_SRC" 2>/dev/null | head -1)
+[ -z "${ROOT_DISK:-}" ] && ROOT_DISK=$(lsblk -no NAME,TYPE 2>/dev/null | awk '$2=="disk"{print $1; exit}')
+ROTA=$(cat "/sys/block/${ROOT_DISK}/queue/rotational" 2>/dev/null)
+case "${ROTA:-}" in 1) DISK_KIND="spinning HDD";; 0) DISK_KIND="solid-state";; *) DISK_KIND="unknown";; esac
+DISC_GRAN=$(lsblk -Dno DISC-GRAN "/dev/${ROOT_DISK}" 2>/dev/null | head -1 | tr -d ' ')
+GPU=$(lspci -nn 2>/dev/null | grep -iE 'vga|3d controller' | head -1 \
+      | sed -e 's/^[0-9a-f:.]* //' -e 's/^[^:]*: //' -e 's/ *\[[0-9a-f]\{4\}:[0-9a-f]\{4\}\]//')
+BATTERY="none (desktop or AC-only)"
+for b in /sys/class/power_supply/BAT*; do
+    [ -e "$b/type" ] || continue
+    THR="no charge thresholds"
+    ls "$b" 2>/dev/null | grep -qi threshold && THR="charge thresholds present"
+    BATTERY="$(basename "$b") at $(cat "$b/capacity" 2>/dev/null)% -- $THR"
+done
+
+# --- power management ------------------------------------------------------
+# Fedora ships tuned + tuned-ppd, NOT power-profiles-daemon. Naming the wrong
+# daemon is a documented trap on this fleet (Surface Pro 7, 2026-08-17) and it
+# recurred in the first draft of this catalogue.
+POWER_MGR="none detected"
+if systemctl is-active --quiet tuned 2>/dev/null; then
+    POWER_MGR="tuned ($(tuned-adm active 2>/dev/null | sed 's/.*: //'))"
+elif systemctl is-active --quiet power-profiles-daemon 2>/dev/null; then
+    POWER_MGR="power-profiles-daemon ($(powerprofilesctl get 2>/dev/null))"
+fi
+
+# --- displays: identity is connector + EDID, never the setting name --------
+# A different monitor or a dock is a DIFFERENT SCOPE. Keying display state by
+# anything less means a laptop-panel decision gets applied to a dock output.
+DISPLAYS=""
+for c in /sys/class/drm/card*-*; do
+    [ -r "$c/status" ] || continue
+    [ "$(cat "$c/status" 2>/dev/null)" = "connected" ] || continue
+    conn=$(basename "$c" | sed 's/^card[0-9]*-//')
+    # sysfs reports st_size 0 for the EDID node even when it reads back a full
+    # 128/256-byte blob, so `[ -s ... ]` is ALWAYS false here and every display
+    # would collapse to the same "(no EDID)" scope -- which is exactly the
+    # confusion between a laptop panel and a dock output this key exists to stop.
+    # Verified on the Dell 2026-08-29: stat=0 bytes, read=128 bytes.
+    edid="(no EDID)"
+    edid_hex=$(sha256sum < "$c/edid" 2>/dev/null | cut -c1-16)
+    edid_len=$(wc -c < "$c/edid" 2>/dev/null)
+    [ "${edid_len:-0}" -gt 0 ] 2>/dev/null && edid="$edid_hex"
+    mode=$(head -1 "$c/modes" 2>/dev/null)
+    DISPLAYS="${DISPLAYS}| display:${conn} | ${edid} | ${mode:-unknown} |"$'\n'
+done
+[ -z "$DISPLAYS" ] && DISPLAYS="| (none detected -- no graphical session visible from here) | | |"$'\n'
+
+# --- network ---------------------------------------------------------------
+WIFI_IF=$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | awk -F: '$2=="wifi"{print $1; exit}')
+WIFI_PS="n/a"
+[ -n "${WIFI_IF:-}" ] && WIFI_PS=$(iw dev "$WIFI_IF" get power_save 2>/dev/null | sed 's/.*: //')
+
+# --- session ---------------------------------------------------------------
+SESSION_TYPE=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}' | while read -r s; do
+    t=$(loginctl show-session "$s" -p Type --value 2>/dev/null)
+    r=$(loginctl show-session "$s" -p Remote --value 2>/dev/null)
+    [ "$r" = "no" ] && [ "$t" != "tty" ] && { printf '%s' "$t"; break; }
+done)
+[ -z "${SESSION_TYPE:-}" ] && SESSION_TYPE="none local"
+
+# --- write the document ----------------------------------------------------
+[ "$(id -u)" -eq 0 ] || die "must run as root to write $DOC (try: sudo spplus-tune)"
+install -d -m 0755 "$DOC_DIR" || die "cannot create $DOC_DIR"
+TMP=$(mktemp "$DOC.XXXXXX") || die "cannot create temp file"
+trap 'rm -f "$TMP"' EXIT
+
+{
+cat <<HDR
+# This Machine — SP+ record
+
+**Generated by \`spplus-tune\` (schema v${SCHEMA}) at $(date -u +%FT%TZ).**
+
+This file is the machine's own record. It is written by SP+, read by Fin, and
+meant to be readable by you. It is also the first thing support should ask for.
+
+**Nothing in this version changes any setting.** \`spplus-tune\` currently only
+looks. Your own settings are yours: SP+ will never revert or re-tune something
+you changed yourself without asking you first, by name, one item at a time.
+
+## Identity
+
+| Field | Value |
+|---|---|
+| Hostname | $(san "$HOSTNAME") |
+| Machine ID | $(san "$MACHINE_ID") |
+| Vendor / model | $(san "$VENDOR $MODEL") |
+| Chassis | $(san "$CHASSIS") |
+| Firmware | $(san "$BIOS") |
+| OS | $(san "$OSREL") |
+| Kernel | $(san "$KERNEL") |
+
+## Update health — ${UPDATE_HEALTH}
+
+${UPDATE_WHY}
+
+| Field | Value |
+|---|---|
+| Image | $(san "${DEPLOY_IMG:-unknown}") |
+| Digest | $(san "${DEPLOY_DIGEST:-unknown}") |
+| Layered packages | $(san "${LAYERED:-none}") |
+| Marked incompatible | $(san "${INCOMPAT:-unknown}") |
+| /usr unlocked | $(san "${UNLOCKED:-no}") |
+
+HDR
+
+if [ "$UPDATE_HEALTH" != "OK" ]; then
+cat <<'WARN'
+> **This machine is not receiving updates.** A deployment with locally layered
+> packages is refused by `bootc upgrade`, and nothing on the desktop shows it.
+> For a machine holding client records that is a security problem, not a
+> cosmetic one. Recovery is `sudo rpm-ostree reset`, then reboot.
+
+WARN
+fi
+
+cat <<HW
+## Hardware
+
+| Field | Value |
+|---|---|
+| CPU | $(san "$CPU") (${NCPU} logical) |
+| Memory | ${MEM_MB} MB |
+| Root disk | /dev/$(san "${ROOT_DISK:-unknown}") — ${DISK_KIND} |
+| Discard granularity | $(san "${DISC_GRAN:-unknown}") |
+| Graphics | $(san "$GPU") |
+| Battery | $(san "$BATTERY") |
+| Power management | $(san "$POWER_MGR") |
+| Wi-Fi interface | $(san "${WIFI_IF:-none}") — power save: $(san "$WIFI_PS") |
+| Local session | $(san "$SESSION_TYPE") |
+
+## Displays
+
+Display settings are scoped to a specific screen. A different monitor, or the
+same laptop in a dock, is a different screen — SP+ treats it as one it has
+never seen rather than assuming your choices carry over.
+
+| Scope | EDID (first 16 hex) | Preferred mode |
+|---|---|---|
+${DISPLAYS}
+## Settings SP+ has changed
+
+| Scope | Setting | Value SP+ set | Date | State |
+|---|---|---|---|---|
+| — | — | — | — | none; this version does not change settings |
+
+## Notes
+
+- Values in the tables above are read from the running system at generation
+  time. A table is a snapshot, not a promise about the present.
+- A setting's stored value and its actual effect are not the same thing. KDE
+  settings in particular are layered (system defaults under \`/etc/xdg\`, then
+  your own under \`~/.config\`), so a file can change without behaviour changing,
+  and behaviour can change without the file moving.
+HW
+} > "$TMP"
+
+mv -f "$TMP" "$DOC" || die "cannot write $DOC"
+trap - EXIT
+chmod 0644 "$DOC"
+have restorecon && restorecon "$DOC" 2>/dev/null
+
+printf 'spplus-tune: wrote %s (%s lines)\n' "$DOC" "$(wc -l < "$DOC")"
+printf 'spplus-tune: update health = %s\n' "$UPDATE_HEALTH"
+[ "$UPDATE_HEALTH" = "OK" ] || exit 10
+exit 0
