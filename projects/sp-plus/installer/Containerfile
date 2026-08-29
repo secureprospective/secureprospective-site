@@ -62,7 +62,29 @@ RUN mkdir -p /etc/systemd/system/anaconda.service.d \
 # preserved binary through the wrapper's exec path.
 RUN cp -a /usr/bin/bootc /usr/bin/bootc-real
 COPY installer/bootc-wrapper.sh /usr/local/bin/bootc
-RUN chmod 0755 /usr/local/bin/bootc
+# The installer's progress bar. Anaconda's boss counts TASKS, and deploying the
+# bootc image is one task that eats nearly the whole install, so the bar parked
+# at about 8% for many minutes while the text kept moving. Patch Anaconda here,
+# in the image that becomes the installer runtime, so no updates.img,
+# inst.updates= or dracut overlay is involved. The script refuses to apply
+# unless every anchor matches exactly once, and the greps below fail the build
+# if a patch silently did nothing.
+COPY installer/patch-anaconda-progress.py /usr/libexec/patch-anaconda-progress.py
+RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
+ && /usr/libexec/patch-anaconda-progress.py \
+ && grep -Fq 'def steps(self):' \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
+ && grep -Fq 'step_number=step' \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
+ && grep -Fq 'queue.task_count * 100' \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
+ && grep -Fq 'self._completed_steps + step' \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
+ && python3 -m py_compile \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
+      /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
+ && find /usr/lib64/python3.14/site-packages/pyanaconda/modules -type d -name __pycache__ -exec rm -rf {} + \
+ && echo 'SP+ installer progress patch applied and verified'
 
 # ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees.
 #

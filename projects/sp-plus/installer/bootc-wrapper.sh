@@ -27,9 +27,34 @@ if [[ "${scratch_bound-}" == 1 ]]; then
     set -o pipefail
     bootc_cmd=(/usr/bin/bootc-real "$1" "$2" --skip-finalize "${@:3}")
     echo "Advisor bootc diagnostic: using supported --skip-finalize; Anaconda owns final target cleanup"
+    # Progress for the installer bar. Anaconda's patched DeployBootcTask reads
+    # SPPLUS_PROGRESS lines from this stream. Emitting our OWN token means the
+    # progress bar never depends on bootc's human-readable output staying
+    # stable. The figure is bytes actually landed on the target, which is the
+    # honest signal, measured at most once a second because bootc is chatty and
+    # this would otherwise fork df for every line it prints.
+    progress_bytes_start=$(df --output=used -B1 "$target" 2>/dev/null | tail -1 | tr -d ' ')
+    progress_bytes_start=${progress_bytes_start:-0}
+    progress_image_bytes=5000000000
+    progress_last_check=0
+    progress_pct=0
+    printf 'SPPLUS_PROGRESS 0\n'
     TMPDIR=/var/tmp "${bootc_cmd[@]}" 2>&1 | while IFS= read -r line; do
         printf '%s\n' "$line"
+        progress_now=$(date +%s)
+        if (( progress_now - progress_last_check >= 1 )); then
+            progress_last_check=$progress_now
+            progress_bytes_now=$(df --output=used -B1 "$target" 2>/dev/null | tail -1 | tr -d ' ')
+            progress_bytes_now=${progress_bytes_now:-$progress_bytes_start}
+            measured_pct=$(( (progress_bytes_now - progress_bytes_start) * 100 / progress_image_bytes ))
+            # Never go backwards, and never claim done before bootc says so.
+            (( measured_pct < progress_pct )) && measured_pct=$progress_pct
+            (( measured_pct > 99 )) && measured_pct=99
+            progress_pct=$measured_pct
+            printf 'SPPLUS_PROGRESS %d\n' "$progress_pct"
+        fi
         if [[ "$line" == *"Deploying container image...done"* ]]; then
+            printf 'SPPLUS_PROGRESS 100\n'
             mountpoint -q /var/tmp && umount /var/tmp || true
             scratch_bound=0
             echo "Advisor bootc scratch: unbound /var/tmp after image import"
