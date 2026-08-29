@@ -271,6 +271,38 @@ fi
   && ok "DN-32 tuner is survey-only, image-safe, shipped and gated" \
   || bad "DN-32 source gate failed" "the tuner must never layer packages and must read EDID by bytes"
 
+# P-14  DN-30 update-health gate. A machine that has fallen off the update path
+# looks entirely normal from the desktop -- verified on the Dell, where a layered
+# `npm` made bootc refuse to upgrade while nothing on screen changed. The check
+# must run DAILY and must be Persistent, because the machine most likely to be in
+# a bad state is the laptop that was closed at the scheduled moment.
+DN30S="$REPO/projects/sp-plus/config/spplus-update-health.service"
+DN30T="$REPO/projects/sp-plus/config/spplus-update-health.timer"
+DN30CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN30_OK=1
+for f in "$DN30S" "$DN30T"; do
+  [ -f "$f" ] || { DN30_OK=0; echo "       missing $f"; }
+done
+if [ -f "$DN30S" ] && [ -f "$DN30T" ]; then
+  # ONE implementation of the rule. A second copy of the detection logic in the
+  # unit would drift from the tuner's, and the two would disagree silently.
+  grep -q '^ExecStart=/usr/libexec/spplus-tune$' "$DN30S" \
+    || { DN30_OK=0; echo "       health unit does not reuse the tuner detector"; }
+  grep -q '^OnCalendar=daily$' "$DN30T" \
+    || { DN30_OK=0; echo "       health timer is not daily"; }
+  grep -q '^Persistent=true$' "$DN30T" \
+    || { DN30_OK=0; echo "       health timer is not Persistent; a closed laptop would skip it"; }
+fi
+grep -qF 'COPY config/spplus-update-health.service' "$DN30CF" \
+  || { DN30_OK=0; echo "       Containerfile does not ship the health unit"; }
+grep -qF 'DN30_HEALTH_GATE_OK' "$DN30CF" \
+  || { DN30_OK=0; echo "       Containerfile has no DN-30 build gate"; }
+grep -qF 'systemctl enable spplus-update-health.timer' "$DN30CF" \
+  || { DN30_OK=0; echo "       health timer is shipped but never enabled"; }
+[ "$DN30_OK" -eq 1 ] \
+  && ok "DN-30 update-health check is daily, persistent, shipped and enabled" \
+  || bad "DN-30 health gate failed" "a machine that cannot update must not fail silently"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

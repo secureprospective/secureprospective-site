@@ -1,0 +1,28 @@
+[Unit]
+Description=SP+ update health check (DN-30)
+# WHY THIS UNIT EXISTS. On 2026-08-29 an attempt to update Pi on a live machine
+# layered `npm` onto the deployment. bootc then refused to upgrade it at all --
+#   "Deployment contains local rpm-ostree modifications; cannot upgrade via bootc"
+# -- and marked the deployment `incompatible: true`. Nothing on the desktop said
+# so. The machine looked completely normal and would have quietly stopped
+# receiving updates forever.
+#
+# For a machine holding client records that is the worst failure available: not a
+# crash, which gets reported, but a silent halt to security patching. DN-30 pulls
+# an image every other Friday; this is the check that the pull can actually land.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# spplus-tune already computes update health and exits 10 when it is BROKEN.
+# Reusing it means there is exactly ONE implementation of the rule, which is the
+# whole point -- a second copy in a unit file would drift from the first.
+ExecStart=/usr/libexec/spplus-tune
+# Exit 10 is "deployment cannot be updated". Let it mark the unit failed so it
+# shows up in `systemctl --failed` and in any fleet health view, rather than
+# scrolling past in the journal.
+SuccessExitStatus=0
+
+[Install]
+WantedBy=multi-user.target

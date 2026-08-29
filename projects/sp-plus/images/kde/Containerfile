@@ -334,6 +334,23 @@ RUN set -eux; \
     grep -Fq 'UPDATE_HEALTH="BROKEN"' /usr/libexec/spplus-tune; \
     echo "DN32_TUNE_GATE_OK survey-only, no package verbs, EDID read by bytes"
 
+# DN-30 update-health gate. The tuner already computes update health and exits 10
+# when the deployment cannot be upgraded; this runs it daily so a machine that has
+# fallen off the update path is caught within 24 hours instead of sitting silently
+# broken until someone happens to look.
+COPY config/spplus-update-health.service /usr/lib/systemd/system/spplus-update-health.service
+COPY config/spplus-update-health.timer   /usr/lib/systemd/system/spplus-update-health.timer
+
+RUN set -eux; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-update-health.service; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-update-health.timer; \
+    systemctl enable spplus-update-health.timer; \
+    test -L /etc/systemd/system/timers.target.wants/spplus-update-health.timer; \
+    grep -q '^Persistent=true$' /usr/lib/systemd/system/spplus-update-health.timer; \
+    grep -q '^OnCalendar=daily$' /usr/lib/systemd/system/spplus-update-health.timer; \
+    grep -q '^ExecStart=/usr/libexec/spplus-tune$' /usr/lib/systemd/system/spplus-update-health.service; \
+    echo "DN30_HEALTH_GATE_OK daily, persistent, reuses the tuner detector"
+
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 

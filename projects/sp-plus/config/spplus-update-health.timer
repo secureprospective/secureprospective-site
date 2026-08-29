@@ -1,0 +1,18 @@
+[Unit]
+Description=Check SP+ update health daily (DN-30)
+
+[Timer]
+# DAILY, not fortnightly. DN-30 pulls an image every other Friday; if the check
+# rode that same cadence, a machine could sit un-updatable for two weeks before
+# anything noticed. Daily bounds the blind spot to 24 hours.
+OnCalendar=daily
+Persistent=true
+# The machine is a laptop that is frequently off. Without this, a machine that is
+# closed at the scheduled moment simply never runs the check -- which is exactly
+# the machine most likely to be in a bad state.
+# Do not have every advisor's machine wake and hit the registry at the same
+# second; spread the fleet across an hour.
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
