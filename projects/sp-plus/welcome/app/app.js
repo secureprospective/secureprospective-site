@@ -11,6 +11,8 @@
   const askInput = document.getElementById('ask-fin');
   const askSubmit = document.getElementById('ask-submit');
   const askFeedback = document.getElementById('ask-feedback');
+  const askFeedbackCopy = document.getElementById('ask-feedback-copy');
+  const askDismiss = document.getElementById('ask-dismiss');
   let askTimer = null;
   let current = 0;
   let selectedTheme = 'SP+ CALM DARK';
@@ -21,7 +23,17 @@
   function showAskFeedback(message, kind) {
     askFeedback.hidden = false;
     askFeedback.dataset.kind = kind || '';
-    askFeedback.textContent = message;
+    askFeedbackCopy.textContent = message;
+  }
+  function resetAskFeedback() {
+    if (askTimer) { clearTimeout(askTimer); askTimer = null; }
+    askFeedback.hidden = true;
+    askFeedback.dataset.kind = '';
+    askFeedbackCopy.textContent = '';
+    askInput.disabled = false;
+    askSubmit.disabled = false;
+    askForm.setAttribute('aria-busy', 'false');
+    document.title = 'SP+ Welcome';
   }
   function finishAsk(result) {
     if (askTimer) { clearTimeout(askTimer); askTimer = null; }
@@ -117,7 +129,8 @@
     helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>GUIDANCE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT GUIDANCE</button>':''}</div>`;
     helpContent.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>{helpView={kind:'article',category:helpView.category,article:a,page:button.dataset.page==='next'?page+1:page-1};renderHelp();}));
   }
-  document.getElementById('help-home').addEventListener('click',()=>{helpView={kind:'root'};renderHelp();});
+  askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
+  document.getElementById('help-home').addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;renderHelp();}).catch(()=>{helpContent.textContent='Help is not available in this draft.';});
   function helpDepth(depth) {
     if (depth === 1) { helpView = {kind:'category', category:'Everyday work'}; renderHelp(); return; }
