@@ -77,7 +77,10 @@ COPY installer/bootc-wrapper.sh /usr/local/bin/bootc
 # unless every anchor matches exactly once, and the greps below fail the build
 # if a patch silently did nothing.
 COPY installer/patch-anaconda-progress.py /usr/libexec/patch-anaconda-progress.py
+COPY installer/patch-anaconda-network.py /usr/libexec/patch-anaconda-network.py
 RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
+      /usr/libexec/patch-anaconda-network.py \
+ && /usr/libexec/patch-anaconda-network.py \
  && /usr/libexec/patch-anaconda-progress.py \
  && grep -Fq 'def steps(self):' \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
