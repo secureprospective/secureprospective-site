@@ -99,9 +99,9 @@ RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
  && grep -Fq 'step_number=step' \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
- && grep -Fq 'queue.task_count * 100' \
+ && grep -Fq 'SPPLUS_DEPLOY_WEIGHT = 10000' \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
- && grep -Fq 'self._completed_steps + step' \
+ && grep -Fq 'self._completed_steps + step * 100' \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
  && python3 -m py_compile \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \

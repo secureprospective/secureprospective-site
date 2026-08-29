@@ -211,6 +211,17 @@ for needle in \
 done
 grep -qF 'queue.task_count * 100' "$DN28P" \
   && { DN28_OK=0; echo '       DN-28 regressed to the equal-weight denominator'; }
+# The installer Containerfile asserts on the PATCHED anaconda source. Those
+# assertions and the patch script must describe the same design -- on cycle43
+# they did not, the stale gate still demanded 'queue.task_count * 100', and the
+# build died at STEP 17/26 after the payload image had already been built.
+DN28CF="$REPO/projects/sp-plus/installer/Containerfile"
+for needle in 'SPPLUS_DEPLOY_WEIGHT = 10000' 'self._completed_steps + step * 100'; do
+  grep -qF "$needle" "$DN28CF" \
+    || { DN28_OK=0; echo "       installer gate is stale, does not assert: $needle"; }
+done
+grep -qF 'queue.task_count * 100' "$DN28CF" \
+  && { DN28_OK=0; echo '       installer gate still demands the equal-weight denominator'; }
 [ "$DN28_OK" -eq 1 ] \
   && ok "DN-28 progress bar is weighted by real cost, not task count" \
   || bad "DN-28 source gate failed" "an unweighted bar reads as a hung install on slow hardware"
