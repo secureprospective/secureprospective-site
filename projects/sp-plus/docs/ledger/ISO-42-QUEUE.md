@@ -75,6 +75,38 @@ marked spoke and the button stayed grey. Network is the gate, conclusively.
 
 **Cannot reproduce in a normal VM** — a virtual NIC always has a link.
 
+### Fix 3 — an install can produce a system nobody can log into. QUEUED, HIGH.
+
+**Hit by Christopher on the Dell, 2026-08-29, cycle41.** The machine installed
+and booted, and he could not log in.
+
+**Cause, by design and unguarded.** The kickstart declares no account at all:
+the operator is expected to create one in Anaconda's User Creation spoke. The
+root password is a hash of 48 random bytes that is generated, used, and
+discarded — nobody knows it, deliberately. So if the User Creation spoke is
+skipped, the installed system has **zero loginable accounts** and the only
+recovery is a rescue boot.
+
+Anaconda's User Creation spoke is **optional**, and its default state reads
+"No user will be created" — confirmed in a hub screenshot taken during the
+no-NIC test.
+
+**Why this is severe for SP+ specifically:** the target user is a financial
+advisor with no terminal skills. A rescue-boot chroot is not a recovery path
+they can walk. For them this is a bricked machine.
+
+**Fix direction (needs a decision):**
+- Make user creation **mandatory** — the install must not be startable without
+  an account. Preferred: it fails safe and costs the user nothing.
+- Or have `%post` detect zero UID>=1000 accounts and fail the install loudly,
+  rather than completing into an unusable system.
+- Do **not** solve it by shipping a default account with a known password. That
+  reintroduces exactly what the random-root-hash design removed.
+
+Relevant that the current design comment claims this is "the same as any other
+operating system" — it is not. Most installers refuse to proceed without either
+a user or a usable root password. SP+ has neither.
+
 ## Already IN cycle41 and proven
 
 - Installer wireless firmware: 5 packages were missing (`iwlwifi-dvm`, `-mvm`,
