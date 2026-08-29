@@ -34,6 +34,31 @@ RUN mkdir -p /usr/lib/image-builder/bootc
 COPY installer/iso.yaml /usr/lib/image-builder/bootc/iso.yaml
 COPY installer/interactive-defaults.ks /usr/share/anaconda/interactive-defaults.ks
 
+# DN-27 GATE. A random `rootpw` in the kickstart trips pyanaconda's
+# check_admin_user_exists(), which makes the User Creation spoke optional, which
+# lets an install finish with no loginable account at all. That bricked a Dell
+# after a multi-hour install on 2026-08-29, and it had regressed from an earlier
+# build. This gate is why it cannot come back quietly.
+# DN-28 GATE. The install bar sat at 8% then sprinted, because progress was
+# sampled only when bootc printed a line and the denominator was hardcoded to
+# 5 GB against an ~11 GB payload. Confirmed three times, including on real
+# hardware. Both halves must stay fixed: a measured denominator AND a sampler
+# that runs on its own clock.
+RUN W=/usr/local/bin/bootc \
+ && ! grep -q '5000000000' "$W" \
+ && grep -q 'progress_sampler_pid' "$W" \
+ && grep -q 'SPPLUS_PAYLOAD_BYTES' "$W" \
+ && grep -q 'DN-28' "$W" \
+ && bash -n "$W" \
+ && echo "DN28_PROGRESS_GATE_OK clock-driven sampler, measured denominator"
+
+RUN K=/usr/share/anaconda/interactive-defaults.ks \
+ && ! grep -qE '^[[:space:]]*rootpw' "$K" \
+ && ! grep -qE '^[[:space:]]*user[[:space:]]' "$K" \
+ && grep -q 'spplus_admin_exists' "$K" \
+ && grep -q 'DN-27' "$K" \
+ && echo "DN27_LOGIN_GATE_OK no rootpw declared, admin guard present"
+
 RUN echo "install:x:0:0:root:/root:/usr/libexec/anaconda/run-anaconda" >> /etc/passwd \
     && echo "install::14438:0:99999:7:::" >> /etc/shadow \
     && passwd -d root \

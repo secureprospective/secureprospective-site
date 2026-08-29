@@ -25,18 +25,29 @@ disk="$(lsblk -dn -b -o NAME,TYPE,RM,RO,TRAN,SIZE \
 [ -n "$disk" ] || { echo "SP+ storage: no eligible writable non-removable disk" >&2; exit 1; }
 printf 'SP+ storage: selected /dev/%s\n' "$disk" >&2
 
-# A random root hash makes the Root Account spoke explicitly configured while
-# shipping no usable root password. Root remains inaccessible until the field
-# operator deliberately sets one. Nobody logs in as root on this system.
-root_hash="$(head -c 48 /dev/urandom | base64 -w0 | openssl passwd -6 -stdin)"
-[ -n "$root_hash" ] || { echo "SP+ accounts: failed to generate root hash" >&2; exit 1; }
+# DO NOT reintroduce a rootpw line here. See DN-27.
+#
+# SP+ used to write `rootpw --iscrypted <48 random bytes>` to make root inert.
+# It also bricked installs. pyanaconda's check_admin_user_exists() begins:
+#
+#     # any root set from kickstart is fine
+#     if self._rootpw_seen:
+#         return True
+#
+# and the User Creation spoke is `mandatory = not CheckAdminUserExists()`.
+# So declaring ANY rootpw -- even a random one nobody knows -- convinced
+# Anaconda an admin already existed, made user creation optional, and let the
+# install finish with zero usable accounts on the machine. Hit on a Dell,
+# 2026-08-29, after a multi-hour install.
+#
+# Declaring no rootpw at all leaves root locked (stronger than a random hash)
+# AND restores Anaconda's own guard, which then forces user creation.
 
 cat > /tmp/spplus-storage.ks <<EOF
 zerombr
 ignoredisk --only-use=$disk
 clearpart --all --initlabel --drives=$disk
 autopart --type=lvm --fstype=xfs --encrypted --luks-version=luks2
-rootpw --iscrypted $root_hash
 EOF
 %end
 %include /tmp/spplus-storage.ks
@@ -171,6 +182,29 @@ done < /etc/passwd
 
 # Nothing to enable here any more: SP+ ships no human account, so there is no
 # first-boot password prompt. The user creates their own account in the installer.
+
+# DN-27. Last line of defence. If we still somehow reach the end of %post with
+# no unlocked administrator, say so loudly rather than handing back a machine
+# that looks installed and cannot be logged into. The advisor who owns this
+# laptop cannot walk a rescue chroot.
+spplus_admin_exists() {
+    local name uid home shell found=0
+    while IFS=: read -r name _ uid _ _ home shell; do
+        [ "$uid" -ge 1000 ] 2>/dev/null || continue
+        [ "$uid" -lt 65000 ] 2>/dev/null || continue
+        case "$shell" in */nologin|*/false) continue ;; esac
+        # must be able to actually authenticate
+        case "$(awk -F: -v n="$name" '$1 == n { print $2 }' /etc/shadow 2>/dev/null)" in
+            ''|'!'*|'*') continue ;;
+        esac
+        found=$((found + 1))
+        printf 'SP+ accounts: administrator %s (uid %s, home %s)\n' "$name" "$uid" "$home" >&2
+    done < /etc/passwd
+    [ "$found" -gt 0 ]
+}
+if ! spplus_admin_exists; then
+    post_failure "SP+ post FAILED: no unlocked account with uid>=1000 exists. This install would produce a machine nobody can log into (DN-27)."
+fi
 
 if [ "$post_failures" -gt 0 ]; then
     printf 'SP+ post: %s independent concern(s) failed; see %s/%%post-failed\n' \
