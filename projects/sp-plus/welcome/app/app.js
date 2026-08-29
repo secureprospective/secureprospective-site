@@ -86,7 +86,161 @@
     // The shell watches the title. Navigating instead would replace the page.
     document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(card.dataset.lnf);
   }));
-  document.querySelectorAll('.stub-action').forEach(button => button.addEventListener('click', () => announce(`${button.dataset.stub.toUpperCase()} IS A STUB. NO SYSTEM CHANGE WAS MADE.`, 'stub')));
+  const toolActions = [...document.querySelectorAll('.tool-action')];
+  let activeTool = null;
+  function toolLabel(button) { return button.dataset.toolName || 'That application'; }
+  function setToolState(button, state) {
+    if (!button) return;
+    button.dataset.state = state;
+    button.disabled = state === 'working' || state === 'installed';
+    button.setAttribute('aria-busy', state === 'working' ? 'true' : 'false');
+    const stateCopy = button.closest('.tool-row')?.querySelector('.tool-state small');
+    if (stateCopy) stateCopy.textContent = ({idle:'READY', working:'ADDING...', installed:'ADDED', failed:'NOT ADDED'})[state] || 'READY';
+    button.textContent = ({idle:`ADD ${toolLabel(button).toUpperCase()}`, working:'ADDING...', installed:'ADDED', failed:`TRY ${toolLabel(button).toUpperCase()} AGAIN`})[state] || 'ADD';
+  }
+  function updateFinalTools() {
+    const ready = toolActions.filter(button => button.dataset.state === 'installed').map(toolLabel);
+    const finalTools = document.getElementById('final-tools');
+    if (finalTools) finalTools.textContent = ready.length ? `${ready.join(' / ').toUpperCase()} READY` : 'NONE ADDED YET';
+  }
+  function startToolInstall(button) {
+    if (activeTool || button.dataset.state === 'installed') return;
+    activeTool = button;
+    toolActions.forEach(item => { if (item !== button) item.disabled = true; });
+    setToolState(button, 'working');
+    announce(`ADDING ${toolLabel(button).toUpperCase()}. THIS MAY TAKE A FEW MINUTES.`);
+    document.title = 'spplus:install?app=' + encodeURIComponent(button.dataset.appId);
+  }
+  toolActions.forEach(button => {
+    setToolState(button, button.dataset.state || 'idle');
+    button.addEventListener('click', () => startToolInstall(button));
+  });
+  function finishTool(result) {
+    const button = toolActions.find(item => item.dataset.appId === (result && result.app));
+    const name = (result && result.name) || (button && toolLabel(button)) || 'That application';
+    if (button) {
+      setToolState(button, result && result.ok ? 'installed' : 'failed');
+      activeTool = null;
+      toolActions.forEach(item => { item.disabled = item.dataset.state === 'installed'; });
+    }
+    document.title = 'SP+ Welcome';
+    if (result && result.ok) {
+      announce((result.message || `${name} is ready on this computer.`).toUpperCase());
+      updateFinalTools();
+    } else {
+      announce((result && result.message) || `${name} could not be added. Your computer was left as it was.`, 'stub');
+    }
+  }
+  function finishStore(result) {
+    const button = document.querySelector('[data-store-action]');
+    if (button) button.disabled = false;
+    document.title = 'SP+ Welcome';
+    if (result && result.ok) announce(result.message || 'DISCOVER IS OPEN. WELCOME STAYS AVAILABLE.');
+    else announce((result && result.message) || 'FLATHUB IS NOT AVAILABLE. DISCOVER WAS NOT OPENED.', 'stub');
+  }
+  const deferredActions = [...document.querySelectorAll('.deferred-action')];
+  const officeState = { folder: 'NOT STARTED', printer: 'NOT STARTED', email: 'NOT STARTED' };
+  const finalOffice = document.getElementById('final-office');
+  function updateOfficeSummary() {
+    if (finalOffice) finalOffice.textContent = `${Object.entries(officeState).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' + ')} / RETURN WHEN READY`;
+  }
+  deferredActions.forEach(button => {
+    const kind = button.dataset.deferred;
+    if (localStorage.getItem(`spplus-welcome-skipped-${kind}`) === 'true') {
+      officeState[kind] = 'SKIPPED';
+      button.disabled = true;
+      button.textContent = 'SKIPPED FOR NOW';
+    }
+    button.addEventListener('click', () => {
+      officeState[kind] = 'SKIPPED';
+      localStorage.setItem(`spplus-welcome-skipped-${kind}`, 'true');
+      button.disabled = true;
+      button.textContent = 'SKIPPED FOR NOW';
+      announce(`${kind.toUpperCase()} SKIPPED. NOTHING WAS CHANGED. RETURN WHEN READY.`);
+      updateOfficeSummary();
+    });
+  });
+  updateOfficeSummary();
+  const finButton = document.getElementById('fin-launch');
+  const finResult = document.getElementById('fin-result');
+  function finishFin(result) {
+    if (finButton) finButton.disabled = false;
+    if (finResult) finResult.textContent = (result && result.message) || 'Fin could not be opened. Welcome is still available.';
+    announce((result && result.message) || 'FIN COULD NOT BE OPENED.', result && result.ok ? '' : 'stub');
+    if (result && result.ok) document.getElementById('final-fin').textContent = 'OPEN OR READY / /LOGIN IF ASKED';
+    document.title = 'SP+ Welcome';
+  }
+  finButton.addEventListener('click', () => {
+    finButton.disabled = true;
+    if (finResult) finResult.textContent = 'Opening Fin in its own window...';
+    announce('OPENING FIN. WELCOME WILL STAY AVAILABLE.');
+    document.title = 'spplus:launch-fin';
+  });
+  const emailButton = document.getElementById('email-connect');
+  const emailResult = document.getElementById('email-result');
+  function finishEmail(result) {
+    if (emailButton) emailButton.disabled = false;
+    if (result && result.ok) officeState.email = 'OPENED';
+    if (emailResult) emailResult.textContent = (result && result.message) || 'Email could not be opened.';
+    updateOfficeSummary();
+    announce((result && result.message) || 'EMAIL COULD NOT BE OPENED.', result && result.ok ? '' : 'stub');
+    document.title = 'SP+ Welcome';
+  }
+  emailButton.addEventListener('click', () => {
+    const provider = document.querySelector('input[name="email"]:checked')?.value || 'other';
+    emailButton.disabled = true;
+    if (emailResult) emailResult.textContent = 'Opening the provider page. SP+ will not ask for your email password.';
+    announce('OPENING THE PROVIDER SIGN-IN PAGE. SP+ NEVER HANDLES YOUR EMAIL PASSWORD.');
+    document.title = 'spplus:connect-email?provider=' + encodeURIComponent(provider);
+  });
+  const shareButton = document.getElementById('share-check');
+  const shareResult = document.getElementById('share-result');
+  function finishShare(result) {
+    if (shareButton) shareButton.disabled = false;
+    if (result && result.ok) officeState.folder = 'CHECKED';
+    if (shareResult) shareResult.textContent = (result && result.message) || 'The folder could not be checked.';
+    updateOfficeSummary();
+    announce((result && result.message) || 'THE FOLDER COULD NOT BE CHECKED.', result && result.ok ? '' : 'stub');
+    document.title = 'SP+ Welcome';
+  }
+  shareButton.addEventListener('click', () => {
+    const server = document.getElementById('share-server').value.trim();
+    const folder = document.getElementById('share-folder').value.trim();
+    const username = document.getElementById('share-username').value.trim();
+    if (!server || !folder || !username) {
+      announce('ENTER THE SERVER, FOLDER AND USERNAME FIRST.', 'stub');
+      if (shareResult) shareResult.textContent = 'Server, folder and username are required.';
+      return;
+    }
+    shareButton.disabled = true;
+    if (shareResult) shareResult.textContent = 'Checking the folder through the desktop connection service...';
+    announce('CHECKING THE SHARED FOLDER. NO PERMANENT MOUNT WILL BE LEFT BEHIND.');
+    const save = document.getElementById('share-save').checked;
+    document.title = 'spplus:check-share?server=' + encodeURIComponent(server) + '&folder=' + encodeURIComponent(folder) + '&username=' + encodeURIComponent(username) + '&save=' + save;
+  });
+  const printerButton = document.getElementById('printer-test');
+  const printerResult = document.getElementById('printer-result');
+  function finishPrinter(result) {
+    if (printerButton) printerButton.disabled = false;
+    if (result && result.ok) officeState.printer = 'PRINTED';
+    if (printerResult) printerResult.textContent = (result && result.message) || 'The printer test did not complete.';
+    updateOfficeSummary();
+    announce((result && result.message) || 'THE PRINTER TEST DID NOT COMPLETE.', result && result.ok ? '' : 'stub');
+    document.title = 'SP+ Welcome';
+  }
+  printerButton.addEventListener('click', () => {
+    printerButton.disabled = true;
+    if (printerResult) printerResult.textContent = 'Checking CUPS and the configured printer before submitting one page...';
+    announce('CHECKING CUPS FIRST. EXACTLY ONE PAGE WILL BE SUBMITTED IF A PRINTER IS READY.');
+    document.title = 'spplus:print-test';
+  });
+  document.querySelector('[data-store-action]').addEventListener('click', event => {
+    const button = event.currentTarget;
+    if (button.disabled) return;
+    button.disabled = true;
+    announce('CHECKING FLATHUB. DISCOVER WILL OPEN ONLY IF IT IS READY.');
+    document.title = 'spplus:browse-store';
+  });
   document.getElementById('no-show').addEventListener('change', event => { localStorage.setItem('spplus-welcome-no-show', event.target.checked ? 'true' : 'false'); announce(event.target.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.'); });
   askForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -149,6 +303,12 @@
       }
     },
     answered: finishAsk,
+    toolResult: finishTool,
+    storeResult: finishStore,
+    finResult: finishFin,
+    emailResult: finishEmail,
+    shareResult: finishShare,
+    printerResult: finishPrinter,
     go, helpDepth };
   go(0);
 })();
