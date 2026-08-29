@@ -39,18 +39,6 @@ COPY installer/interactive-defaults.ks /usr/share/anaconda/interactive-defaults.
 # lets an install finish with no loginable account at all. That bricked a Dell
 # after a multi-hour install on 2026-08-29, and it had regressed from an earlier
 # build. This gate is why it cannot come back quietly.
-# DN-28 GATE. The install bar sat at 8% then sprinted, because progress was
-# sampled only when bootc printed a line and the denominator was hardcoded to
-# 5 GB against an ~11 GB payload. Confirmed three times, including on real
-# hardware. Both halves must stay fixed: a measured denominator AND a sampler
-# that runs on its own clock.
-RUN W=/usr/local/bin/bootc \
- && ! grep -q '5000000000' "$W" \
- && grep -q 'progress_sampler_pid' "$W" \
- && grep -q 'SPPLUS_PAYLOAD_BYTES' "$W" \
- && grep -q 'DN-28' "$W" \
- && bash -n "$W" \
- && echo "DN28_PROGRESS_GATE_OK clock-driven sampler, measured denominator"
 
 RUN K=/usr/share/anaconda/interactive-defaults.ks \
  && ! grep -qE '^[[:space:]]*rootpw' "$K" \
@@ -120,6 +108,19 @@ RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
  && find /usr/lib64/python3.14/site-packages/pyanaconda/modules -type d -name __pycache__ -exec rm -rf {} + \
  && echo 'SP+ installer progress patch applied and verified'
+
+# DN-28 GATE. The install bar sat at 8% then sprinted, because progress was
+# sampled only when bootc printed a line and the denominator was hardcoded to
+# 5 GB against an ~11 GB payload. Confirmed three times, including on real
+# hardware. Both halves must stay fixed: a measured denominator AND a sampler
+# that runs on its own clock.
+RUN W=/usr/local/bin/bootc \
+ && ! grep -q '5000000000' "$W" \
+ && grep -q 'progress_sampler_pid' "$W" \
+ && grep -q 'SPPLUS_PAYLOAD_BYTES' "$W" \
+ && grep -q 'DN-28' "$W" \
+ && bash -n "$W" \
+ && echo "DN28_PROGRESS_GATE_OK clock-driven sampler, measured denominator"
 
 # ---- SP+ branding on the INSTALLER (DN-19). This is the first screen anyone sees.
 #
