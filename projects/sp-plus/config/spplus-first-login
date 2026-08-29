@@ -130,9 +130,24 @@ if [ -d "$WALLPAPER" ] || [ -r "$WALLPAPER" ]; then
     [ "$wp_ok" -eq 1 ] || rc=1
 fi
 
+# THE THEME MUST NOT GATE THE SCREENSHOT PERMISSION.
+#
+# This used to `exit 1` right here, which meant a cosmetic failure -- a wallpaper
+# that did not verify, a look-and-feel that needed a fourth attempt -- silently
+# skipped everything below: the screenshots folder, the Print Screen portal
+# grant, and the cursor. That is the defect that made Flameshot "randomly"
+# broken out of the box across many cycles. cycle38's theme happened to verify
+# on attempt 1, so Print Screen worked; cycle36's retried three times, gave up
+# here, and Print Screen met a permission prompt. Same image, same code, two
+# different advisors' experience, decided by the wallpaper.
+#
+# So: record the cosmetic failure, keep going, and decide the stamp at the end.
+# Withholding the stamp still makes the next login retry the theme, which was
+# the only thing the early exit was actually buying.
+theme_failed=0
 if [ "$rc" -ne 0 ] || [ "$theme_ok" -ne 1 ] || [ "$wp_ok" -ne 1 ]; then
-    echo "spplus-first-login: theme did not apply cleanly; leaving the stamp off so the next login retries"
-    exit 1
+    echo "spplus-first-login: theme did not apply cleanly; continuing so Print Screen is still set up, and leaving the stamp off so the next login retries"
+    theme_failed=1
 fi
 
 # flameshot's savePath has to be an absolute path, so it cannot be shipped in
@@ -233,6 +248,13 @@ for attempt in 1 2 3; do
     sleep 3
 done
 cursor_ok || { echo "spplus-first-login: cursor theme did not stick; advisor has the stock pointer"; rc=1; }
+
+# The cosmetic gate, moved down here from where it used to short-circuit the
+# screenshot setup. Everything above has now run regardless.
+if [ "$theme_failed" -ne 0 ] || [ "$rc" -ne 0 ]; then
+    echo "spplus-first-login: finished with the screenshot setup done, but the look and feel did not fully verify; no stamp, the next login retries"
+    exit 1
+fi
 
 install -d -m 0700 "$(dirname "$STAMP")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"

@@ -125,6 +125,24 @@ desktop-file-validate "$C/flameshot-capture.desktop" 2>/dev/null \
   && ok "screenshot desktop entries validate" \
   || bad "a flameshot desktop entry is invalid" "KDE drops invalid entries silently"
 
+# P-8b  the Print Screen portal grant must NOT sit behind the theme's early exit.
+# This is the defect that made Flameshot intermittently broken out of the box for
+# many cycles: spplus-first-login bailed out on a cosmetic wallpaper or
+# look-and-feel failure BEFORE granting the screenshot permission, so whether the
+# advisor met a permission prompt on their first Print Screen was decided by
+# whether the wallpaper verified. Assert the grant is reached unconditionally by
+# checking no `exit 1` stands between the theme gate and the grant.
+FL="$C/spplus-first-login"
+grant_line=$(grep -n '^if grant_screenshot_permission' "$FL" | cut -d: -f1)
+if [ -z "$grant_line" ]; then
+  bad "spplus-first-login never calls grant_screenshot_permission" "Print Screen will prompt the advisor"
+elif head -n "$grant_line" "$FL" | grep -qE '^[[:space:]]*exit 1[[:space:]]*$'; then
+  bad "an early exit precedes the screenshot grant" \
+      "a cosmetic theme failure would skip it and Print Screen would prompt"
+else
+  ok "the screenshot portal grant is reached regardless of the theme result"
+fi
+
 # P-9  fastfetch config must carry escapes in the JSON backslash-u form, never as a
 # raw ESC byte, which breaks the JSONC parser
 if grep -qP '\x1b' "$C/skel/.config/fastfetch/config.jsonc"; then
