@@ -881,6 +881,29 @@ RUN systemctl enable spplus-flatpak-preinstall.timer \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
  && echo "FLATPAK_PREINSTALL_OK zoom declared, timer enabled"
+
+# ---- 5b. Flatpak UPDATES (DN-34) --------------------------------------------
+# preinstall DEPLOYS refs; it never advances one that is already installed. So
+# without this, DN-26's whole argument for making Zoom a Flatpak -- "a Flatpak
+# updates on its own schedule" -- is false on a shipped machine. Zoom refuses
+# connections from clients below its minimum version, so the advisor's Zoom
+# silently rots until it stops working. Discover can update Flatpaks, but only
+# while a human has it open and clicks; the product frame is that everything
+# updates from stable with the advisor out of the loop.
+COPY config/spplus-flatpak-update.service /usr/lib/systemd/system/spplus-flatpak-update.service
+COPY config/spplus-flatpak-update.timer   /usr/lib/systemd/system/spplus-flatpak-update.timer
+
+RUN systemctl enable spplus-flatpak-update.timer \
+ && test -L /etc/systemd/system/timers.target.wants/spplus-flatpak-update.timer \
+ && grep -q '^ExecStart=/usr/bin/flatpak update --system --noninteractive -y$' \
+      /usr/lib/systemd/system/spplus-flatpak-update.service \
+ && grep -q '^Persistent=true$' /usr/lib/systemd/system/spplus-flatpak-update.timer \
+ && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-update.service \
+ && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-update.timer \
+ && u_pre=$(grep '^OnBootSec=' /usr/lib/systemd/system/spplus-flatpak-preinstall.timer) \
+ && u_upd=$(grep '^OnBootSec=' /usr/lib/systemd/system/spplus-flatpak-update.timer) \
+ && [ "$u_pre" != "$u_upd" ] \
+ && echo "DN34_FLATPAK_UPDATE_OK daily, persistent, staggered off preinstall"
 COPY config/spplus-discover /usr/bin/spplus-discover
 
 RUN chmod 0755 /usr/bin/spplus-discover \

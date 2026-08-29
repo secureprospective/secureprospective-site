@@ -1,0 +1,18 @@
+[Unit]
+Description=Update the SP+ Flatpak applications daily (DN-34)
+
+[Timer]
+# OnBootSec is deliberately LATER than spplus-flatpak-preinstall.timer's 90s.
+# flatpak takes an exclusive system installation lock; a preinstall and an update
+# firing together means one of them fails on the lock. Install first, then update.
+OnBootSec=15min
+OnCalendar=daily
+
+# Persistent= applies ONLY to calendar timers. A laptop shut at 5pm misses its
+# daily slot; without this it would never catch up, which is the whole point for
+# a machine that is closed more often than it is open.
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

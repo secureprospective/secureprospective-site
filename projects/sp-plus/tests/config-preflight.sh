@@ -303,6 +303,45 @@ grep -qF 'systemctl enable spplus-update-health.timer' "$DN30CF" \
   && ok "DN-30 update-health check is daily, persistent, shipped and enabled" \
   || bad "DN-30 health gate failed" "a machine that cannot update must not fail silently"
 
+# P-15  DN-34 flatpak update gate. DN-26 moved Zoom to a Flatpak on the grounds
+# that "a Flatpak updates on its own schedule". It does not: `flatpak preinstall`
+# deploys MISSING refs and never advances an installed one, and Discover only
+# updates while a human has it open and clicks. The product frame is that
+# everything updates from stable with the advisor out of the loop, so the update
+# has to be a timer in the image or DN-26's own rationale is false on a shipped
+# machine -- Zoom refuses connections below its minimum client version.
+DN34S="$REPO/projects/sp-plus/config/spplus-flatpak-update.service"
+DN34T="$REPO/projects/sp-plus/config/spplus-flatpak-update.timer"
+DN34P="$REPO/projects/sp-plus/config/spplus-flatpak-preinstall.timer"
+DN34CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN34_OK=1
+for f in "$DN34S" "$DN34T"; do
+  [ -f "$f" ] || { DN34_OK=0; echo "       missing $f"; }
+done
+if [ -f "$DN34S" ] && [ -f "$DN34T" ]; then
+  grep -q '^ExecStart=/usr/bin/flatpak update --system --noninteractive -y$' "$DN34S" \
+    || { DN34_OK=0; echo "       update unit does not run a system-scope flatpak update"; }
+  grep -q '^OnCalendar=daily$' "$DN34T" \
+    || { DN34_OK=0; echo "       flatpak update timer is not daily"; }
+  grep -q '^Persistent=true$' "$DN34T" \
+    || { DN34_OK=0; echo "       flatpak update timer is not Persistent; a closed laptop would skip it"; }
+  # flatpak takes an exclusive system installation lock. If preinstall and update
+  # fire at the same offset one of them dies on the lock, silently.
+  if [ -f "$DN34P" ]; then
+    [ "$(grep '^OnBootSec=' "$DN34T")" != "$(grep '^OnBootSec=' "$DN34P")" ] \
+      || { DN34_OK=0; echo "       update and preinstall share OnBootSec; they will collide on the flatpak lock"; }
+  fi
+fi
+grep -qF 'COPY config/spplus-flatpak-update.service' "$DN34CF" \
+  || { DN34_OK=0; echo "       Containerfile does not ship the flatpak update unit"; }
+grep -qF 'DN34_FLATPAK_UPDATE_OK' "$DN34CF" \
+  || { DN34_OK=0; echo "       Containerfile has no DN-34 build gate"; }
+grep -qF 'systemctl enable spplus-flatpak-update.timer' "$DN34CF" \
+  || { DN34_OK=0; echo "       flatpak update timer is shipped but never enabled"; }
+[ "$DN34_OK" -eq 1 ] \
+  && ok "DN-34 flatpak updates are daily, persistent, staggered, shipped and enabled" \
+  || bad "DN-34 flatpak update gate failed" "a shipped Flatpak that never updates defeats DN-26"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

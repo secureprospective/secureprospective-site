@@ -1,0 +1,31 @@
+[Unit]
+Description=Update the SP+ Flatpak applications (DN-34)
+Documentation=man:flatpak-update(1)
+After=network-online.target
+Wants=network-online.target
+ConditionPathIsDirectory=/var/lib/flatpak
+
+[Service]
+Type=oneshot
+
+# WHY THIS UNIT EXISTS.
+# DN-26 moved Zoom from a layered RPM to a Flatpak on the stated grounds that
+# "/usr is read-only on an image-mode system, so a layered Zoom RPM could never
+# update itself ... A Flatpak updates on its own schedule."
+#
+# It does not. Nothing updates a Flatpak on its own. `flatpak preinstall` only
+# DEPLOYS refs that are missing; it never advances an installed one. Discover
+# updates Flatpaks, but only while an advisor has it open and clicks -- which is
+# exactly the human in the loop this product is built to remove. Without this
+# unit the DN-26 rationale is defeated by omission: Zoom enforces a minimum
+# client version and refuses connections from older clients, so the advisor's
+# Zoom silently rots until it simply stops connecting.
+ExecStart=/usr/bin/flatpak update --system --noninteractive -y
+
+# A laptop on a slow link with a rotational disk is the design target, not the
+# edge case. The Dell test machine reads at ~46 MiB/s off a 5400-rpm HDD.
+TimeoutStartSec=3600
+
+# An advisor must never be shown a failed unit because their hotel wifi was down.
+# The next daily run re-converges. Matches spplus-flatpak-preinstall.service.
+SuccessExitStatus=0 1
