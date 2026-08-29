@@ -72,8 +72,30 @@ testing on hardware, and the Dell went offline before that was possible.
 59.8s and sda device units 53s. Slow hardware is the point of this test machine,
 but this is worth attacking.
 
-**D3 — Journal noise:** 72 × `link # is undefined!` from plasmashell, 25 ×
-legacy `metadata.desktop` theme warnings, `kwin_wayland` temporary hangs.
+**D3 — Journal noise. Triaged; one item deliberately NOT fixed.**
+
+Per boot: 72 x `link # is undefined!` (plasmashell), 25 x `Windows-modern-dark uses
+the legacy metadata.desktop`, 12 x logind/audit session reuse, 6 x kwin "main thread
+was hanging temporarily", 6 x portal registration failures. All benign; none affects
+function.
+
+*The theme warning is being left alone on purpose.* Both SP+ desktop themes
+(`theme/desktoptheme/Windows-modern-{dark,light}`) ship only `metadata.desktop`.
+Plasma 6 warns but still reads it. The obvious fix -- add `metadata.json` -- is not
+safe to do blind: those files also carry `[ContrastEffect]` and
+`[AdaptiveTransparency]` groups, and Plasma 6 PREFERS `metadata.json` when present.
+A conversion that does not carry those groups across in exactly the right schema
+would silently change the theme's transparency and contrast. That trades a verified
+appearance for log cleanliness.
+
+**If it is fixed, it must be done with `desktoptojson` (not hand-written), and the
+result compared against the current desktop side by side by a human before it ships.**
+Not a blocker. Cosmetic.
+
+**D4 — `spplus-flatpak-preinstall.service` runs 3m56s** on the Dell. It is off the
+critical path (`graphical.target` does not wait for it), but it is four minutes of
+contention on a 5400rpm disk while the advisor is trying to use a fresh desktop.
+Worth deferring further or rate-limiting.
 
 ## E. Deferred — not blocking ISO 44, blocking launch
 
