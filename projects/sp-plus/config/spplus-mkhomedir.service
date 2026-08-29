@@ -1,0 +1,14 @@
+[Unit]
+Description=SP+ create missing user home directories (DN-29)
+After=local-fs.target
+Before=display-manager.service sddm.service graphical.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-mkhomedir
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=graphical.target

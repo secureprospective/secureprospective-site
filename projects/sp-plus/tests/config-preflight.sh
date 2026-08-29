@@ -159,6 +159,62 @@ else
   bad "cycle36 source gate failed" "do not build while any cycle36 fix or gate is absent"
 fi
 
+# P-11  DN-29 source gate: all three home-creation layers and the image gate must
+# remain wired. The actual payload owner is images/kde/Containerfile; the older
+# projects/sp-plus/Containerfile is not used by the sanctioned SP+ build.
+DN29CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN29HELPER="$REPO/projects/sp-plus/config/spplus-mkhomedir"
+DN29UNIT="$REPO/projects/sp-plus/config/spplus-mkhomedir.service"
+DN29KS="$REPO/projects/sp-plus/installer/interactive-defaults.ks"
+DN29_OK=1
+for needle in \
+  'authselect create-profile sp-plus' \
+  'pam_mkhomedir.so umask=0077 silent' \
+  'authselect select custom/sp-plus' \
+  'test -f /usr/lib64/security/pam_mkhomedir.so' \
+  'COPY config/spplus-mkhomedir         /usr/libexec/spplus-mkhomedir' \
+  'COPY config/spplus-mkhomedir.service /usr/lib/systemd/system/spplus-mkhomedir.service' \
+  'DN29_HOME_GATE_OK' \
+  'systemd-analyze verify /usr/lib/systemd/system/spplus-mkhomedir.service' \
+  'systemctl enable spplus-mkhomedir.service'; do
+  grep -qF "$needle" "$DN29CF" || { DN29_OK=0; echo "       missing payload assertion: $needle"; }
+done
+for needle in \
+  'uid' '65000' '/var/home/$name' '/etc/skel' 'install -d -m 0700' \
+  'chown -R' 'restorecon -RF'; do
+  grep -qF "$needle" "$DN29HELPER" || { DN29_OK=0; echo "       missing helper behavior: $needle"; }
+done
+grep -qF 'Before=display-manager.service sddm.service graphical.target' "$DN29UNIT" \
+  || { DN29_OK=0; echo '       first-boot unit is not ordered before display manager and graphical.target'; }
+grep -qF 'WantedBy=graphical.target' "$DN29UNIT" \
+  || { DN29_OK=0; echo '       first-boot unit is not enabled through graphical.target'; }
+for needle in 'while IFS=: read -r name' 'mkdir -p "$home"' 'restorecon -RF "$home"'; do
+  grep -qF "$needle" "$DN29KS" || { DN29_OK=0; echo "       missing installer fallback: $needle"; }
+done
+[ "$DN29_OK" -eq 1 ] \
+  && ok "DN-29 all three home layers and build gate are wired" \
+  || bad "DN-29 source gate failed" "keep PAM, first-boot, installer fallback, and their build assertions together"
+
+# P-12  DN-28 source gate: the progress bar must stay WEIGHTED. DeployBootcTask is
+# ~95% of the wall clock but one of ~11 tasks, so an equal-weight denominator gives
+# it ~9% of the bar and the install looks hung on slow hardware. The weighting keys
+# off the task's name, so the patch script must also refuse to run if that changes.
+DN28P="$REPO/projects/sp-plus/installer/patch-anaconda-progress.py"
+DN28_OK=1
+for needle in \
+  "SPPLUS_DEPLOY_TASK_NAME = 'Deploy bootc'" \
+  'SPPLUS_DEPLOY_WEIGHT = 10000' \
+  'SPPLUS_DEPLOY_WEIGHT if SPPLUS_DEPLOY_TASK in _spplus_name else 100' \
+  'step_number=self._completed_steps + step * 100' \
+  'sys.exit(1)'; do
+  grep -qF "$needle" "$DN28P" || { DN28_OK=0; echo "       missing DN-28 weighting: $needle"; }
+done
+grep -qF 'queue.task_count * 100' "$DN28P" \
+  && { DN28_OK=0; echo '       DN-28 regressed to the equal-weight denominator'; }
+[ "$DN28_OK" -eq 1 ] \
+  && ok "DN-28 progress bar is weighted by real cost, not task count" \
+  || bad "DN-28 source gate failed" "an unweighted bar reads as a hung install on slow hardware"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

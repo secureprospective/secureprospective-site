@@ -17,6 +17,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         xdg-desktop-portal-kde \
         udisks2 \
         python3 curl ca-certificates jq sudo desktop-file-utils konsole \
+        authselect \
         lm_sensors \
         plymouth plymouth-scripts plymouth-plugin-script \
         libreoffice-writer libreoffice-calc libreoffice-impress \
@@ -185,6 +186,50 @@ RUN useradd --system --home-dir /var/lib/sp-plus --shell /sbin/nologin spplus \
  && install -d -o spplus -g spplus /var/lib/sp-plus \
  && ! getent passwd advisor \
  && test "$(getent passwd spplus | cut -d: -f3)" -lt 1000
+
+# ---- 3b. DN-29 Layer 1: durable first-login home creation -------------------
+# The Fedora local authselect profile's with-mkhomedir feature assumes oddjobd and
+# pam_oddjob_mkhomedir.so, but SP+ already has the direct pam_mkhomedir.so module
+# and deliberately does not need a daemon. Clone the local profile, replace only
+# that feature's module in both common session stacks, and select the custom profile.
+# login includes system-auth; Kinoite's plasmalogin stack (/etc/pam.d/kde) includes
+# password-auth, so this reaches both console and graphical sessions.
+RUN set -eux; \
+    authselect create-profile sp-plus -b local --symlink-meta --symlink-nsswitch; \
+    sed -i 's/pam_oddjob_mkhomedir.so/pam_mkhomedir.so umask=0077 silent/g' \
+        /etc/authselect/custom/sp-plus/system-auth \
+        /etc/authselect/custom/sp-plus/password-auth; \
+    authselect select custom/sp-plus with-silent-lastlog with-mdns4 with-mkhomedir --force; \
+    authselect check
+
+# ---- 3c. DN-29 Layer 2: first-boot home creation -----------------------------
+# This runs after the booted system has its actual /var, unlike installer %post.
+# It is deliberately image content: /usr is immutable on the installed bootc host.
+COPY config/spplus-mkhomedir         /usr/libexec/spplus-mkhomedir
+COPY config/spplus-mkhomedir.service /usr/lib/systemd/system/spplus-mkhomedir.service
+
+# DN-29 build gate. Keep all three runtime defenses observable in the built image:
+# direct PAM module in both common stacks, the before-graphical first-boot unit and
+# its enablement, plus authselect's own configuration validity check.
+RUN set -eux; \
+    chmod 0755 /usr/libexec/spplus-mkhomedir; \
+    bash -n /usr/libexec/spplus-mkhomedir; \
+    test -f /usr/lib64/security/pam_mkhomedir.so; \
+    command -v restorecon >/dev/null 2>&1; \
+    for f in /etc/pam.d/system-auth /etc/pam.d/password-auth; do \
+        grep -Eq '^session[[:space:]]+optional[[:space:]]+pam_mkhomedir\.so[[:space:]]+umask=0077[[:space:]]+silent$' "$f"; \
+    done; \
+    grep -Eq '^session[[:space:]]+include[[:space:]]+system-auth$' /etc/pam.d/login; \
+    for f in /etc/pam.d/kde /etc/pam.d/sddm; do \
+        grep -Eq '^session[[:space:]]+include[[:space:]]+password-auth$' "$f"; \
+    done; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-mkhomedir.service; \
+    systemctl enable spplus-mkhomedir.service; \
+    test -L /etc/systemd/system/graphical.target.wants/spplus-mkhomedir.service; \
+    grep -q '^Before=.*display-manager.service' /usr/lib/systemd/system/spplus-mkhomedir.service; \
+    grep -q '^Before=.*sddm.service' /usr/lib/systemd/system/spplus-mkhomedir.service; \
+    authselect check; \
+    echo "DN29_HOME_GATE_OK pam_mkhomedir, console+plasmalogin PAM, first-boot unit enabled"
 
 # ---- 3b. standard system groups must exist in /etc/group ----
 # Runs AFTER the spplus account is created: an earlier placement asserted on a group

@@ -89,6 +89,30 @@ replace_once(
     '        self.report_progress(_("Deploying image: {}").format(line))',
 )
 
+# --- Weighting constants. ----------------------------------------------------
+# DeployBootcTask declares 100 steps; every other task declares 1. At 100 units
+# per declared step that is 10000 vs 100, so deploy owns ~91%% of an 11-task bar
+# instead of ~9%%. If upstream ever renames the task the weighting silently
+# reverts to uniform rather than crashing -- so we refuse to patch instead.
+SPPLUS_DEPLOY_TASK_NAME = 'Deploy bootc'
+if ('return "%s"' % SPPLUS_DEPLOY_TASK_NAME) not in PAYLOAD.read_text():
+    sys.stderr.write(
+        'patch-anaconda-progress: DeployBootcTask.name is no longer %r in %s. '
+        'The DN-28 weighting keys off that name and would silently do nothing.\n'
+        % (SPPLUS_DEPLOY_TASK_NAME, PAYLOAD)
+    )
+    sys.exit(1)
+
+replace_once(
+    BOSS,
+    'log = get_module_logger(__name__)',
+    'log = get_module_logger(__name__)\n'
+    '\n'
+    '# SP+ DN-28: progress weighting. See patch-anaconda-progress.py.\n'
+    "SPPLUS_DEPLOY_TASK = '%s'\n" % SPPLUS_DEPLOY_TASK_NAME +
+    'SPPLUS_DEPLOY_WEIGHT = 10000',
+)
+
 # --- The boss: scale by 100 and forward the sub-step. -------------------------
 replace_once(
     BOSS,
@@ -110,8 +134,11 @@ replace_once(
     '        self.report_progress(message)',
     '    def _task_completed_cb(self, task):\n'
     '        """The installation task was completed."""\n'
-    '        # SP+: each task is worth 100 now, not 1.\n'
-    '        self._completed_steps += 100\n'
+    '        # SP+ DN-28: advance by this task\'s weight, not a flat 100.\n'
+    '        _spplus_name = getattr(task, "name", "") or ""\n'
+    '        self._completed_steps += (\n'
+    '            SPPLUS_DEPLOY_WEIGHT if SPPLUS_DEPLOY_TASK in _spplus_name else 100\n'
+    '        )\n'
     '        self.report_progress("", step_number=self._completed_steps)\n'
     '\n'
     '    def _progress_report_cb(self, step, message):\n'
@@ -120,17 +147,30 @@ replace_once(
     '        # task moves the bar continuously. A task contributes at most 100,\n'
     '        # so it can never run past its own boundary, and report_progress\n'
     '        # is monotonic and clamps to self.steps.\n'
-    '        step = max(0, min(100, step))\n'
+    '        # SP+ DN-28: one declared task step is worth 100 units, for the\n'
+    '        # heavy task and the cheap ones alike, so this scale is uniform.\n'
+    '        step = max(0, step)\n'
     '        self.report_progress(\n'
     '            message,\n'
-    '            step_number=self._completed_steps + step,\n'
+    '            step_number=self._completed_steps + step * 100,\n'
     '        )',
 )
 
 replace_once(
     BOSS,
     '        self._total_steps = queue.task_count',
-    '        self._total_steps = queue.task_count * 100',
+    '        # SP+ DN-28: DeployBootcTask is ~95%% of the wall clock but only one\n'
+    '        # of ~11 tasks. An equal-weight denominator gives it ~9%% of the bar,\n'
+    '        # which is arithmetically honest and useless to a human watching it.\n'
+    '        # Weight by real cost so the bar tracks time, not task count.\n'
+    '        self._total_steps = 0\n'
+    '        for _spplus_item in queue.nested_items:\n'
+    '            if isinstance(_spplus_item, TaskQueue):\n'
+    '                continue\n'
+    '            _spplus_name = getattr(_spplus_item, "name", "") or ""\n'
+    '            self._total_steps += (\n'
+    '                SPPLUS_DEPLOY_WEIGHT if SPPLUS_DEPLOY_TASK in _spplus_name else 100\n'
+    '            )',
 )
 
 print("patch-anaconda-progress: patched %s and %s" % (PAYLOAD.name, BOSS.name))

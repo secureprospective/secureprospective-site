@@ -1,0 +1,49 @@
+#!/bin/bash
+set -u
+
+# DN-29: create advisor homes after the booted system has its real /var mounted.
+# Install-time %post is retained as an opportunistic first layer, but bootc/ostree
+# can replace that deployment state before first boot. This unit is the durable
+# fallback and deliberately does not touch an existing home.
+if ! command -v restorecon >/dev/null 2>&1; then
+    printf '%s\n' 'SP+ home: restorecon is required but missing' >&2
+    exit 1
+fi
+rc=0
+while IFS=: read -r name _ uid gid _ _ shell; do
+    [ "$uid" -ge 1000 ] 2>/dev/null || continue
+    [ "$uid" -lt 65000 ] 2>/dev/null || continue
+    case "$shell" in
+        */nologin|*/false|''|/*/nologin) continue ;;
+    esac
+    [ -x "$shell" ] || continue
+    case "$name" in
+        ''|.|..|*[/[:space:]]*) continue ;;
+    esac
+
+    home="/var/home/$name"
+    [ -e "$home" ] && continue
+
+    if ! install -d -m 0700 -o "$uid" -g "$gid" "$home"; then
+        printf '%s\n' "SP+ home: could not create $home for $name" >&2
+        rc=1
+        continue
+    fi
+    if ! cp -a /etc/skel/. "$home/"; then
+        printf '%s\n' "SP+ home: could not copy /etc/skel into $home" >&2
+        rc=1
+        continue
+    fi
+    if ! chown -R "$uid:$gid" "$home" || ! chmod 0700 "$home"; then
+        printf '%s\n' "SP+ home: could not set ownership or mode on $home" >&2
+        rc=1
+        continue
+    fi
+    if ! restorecon -RF "$home"; then
+        printf '%s\n' "SP+ home: restorecon failed for $home" >&2
+        rc=1
+        continue
+    fi
+    printf '%s\n' "SP+ home: created $home for $name"
+done < /etc/passwd
+exit "$rc"
