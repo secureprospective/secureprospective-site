@@ -37,6 +37,7 @@ XDG_OPEN = os.environ.get('SPPLUS_XDG_OPEN', '/usr/bin/xdg-open')
 EMAIL_DATA_HOME = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local' / 'share')))
 CUPS_TEST_PAGE = os.environ.get('SPPLUS_CUPS_TEST_PAGE', '/usr/share/cups/data/testprint')
 FLATPAK = os.environ.get('SPPLUS_FLATPAK', '/usr/bin/flatpak')
+SUDO = os.environ.get('SPPLUS_SUDO', '/usr/bin/sudo')
 DISCOVER = os.environ.get('SPPLUS_DISCOVER', '/usr/bin/plasma-discover')
 FLATPAK_APP_NAMES = {
     'com.bitwarden.desktop': 'Bitwarden',
@@ -100,7 +101,7 @@ class FlatpakInstallWorker(QThread):
 
     def run(self):
         try:
-            existing = subprocess.run([FLATPAK, 'info', '--user', self.app_id],
+            existing = subprocess.run([FLATPAK, 'info', '--system', self.app_id],
                                       capture_output=True, text=True, timeout=30)
             if existing.returncode == 0:
                 payload = self._result(
@@ -108,9 +109,25 @@ class FlatpakInstallWorker(QThread):
                 self.result_ready.emit(self, payload)
                 return
 
-            subprocess.run([FLATPAK, 'install', '--user', '-y', 'flathub', self.app_id],
+            # SYSTEM scope, driven through `sudo -n`. This was `--user` until
+            # 2026-08-29 and every install failed with
+            #   error: No remote refs found for 'flathub'
+            # because the image ships Flathub as a SYSTEM remote only
+            # (/usr/share/flatpak/remotes.d/flathub.flatpakrepo) and the
+            # preinstall unit also uses --system. The user installation has no
+            # remote at all, so Welcome was the one component asking a scope
+            # that does not exist here. Reproduced live on the Dell for both
+            # Bitwarden and Signal.
+            #
+            # `sudo -n` rather than polkit: the advisor is in wheel with
+            # NOPASSWD, and a polkit password prompt is exactly the dead end
+            # sudoers-sp-plus argues against -- SP+ ships no account, the
+            # password is chosen once by the first-boot wizard, and a
+            # non-technical user does not reliably remember it months later.
+            subprocess.run([SUDO, '-n', FLATPAK, 'install', '--system', '-y',
+                            'flathub', self.app_id],
                            capture_output=True, text=True, timeout=1800)
-            verified = subprocess.run([FLATPAK, 'info', '--user', self.app_id],
+            verified = subprocess.run([FLATPAK, 'info', '--system', self.app_id],
                                       capture_output=True, text=True, timeout=30)
             if verified.returncode == 0:
                 payload = self._result(
