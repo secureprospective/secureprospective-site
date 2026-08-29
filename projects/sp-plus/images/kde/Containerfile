@@ -284,6 +284,56 @@ COPY config/spplus-fix    /usr/libexec/spplus-fix
 # create it and the installed machine had NO unit at all — not a failed one, an
 # absent one (cycle10 boot log: zero mentions of spplus-firstboot). It is image
 # content now, and %post only writes the enable symlink under /etc.
+# DN-32: "Make my computer better" -- the deterministic half.
+#
+# Fin drives this; it does not improvise the tuning itself. A prose skill that
+# says "look at the hardware and decide" answers differently on every machine and
+# cannot be gated here, which is the same argument DN-31 decision 7 made about
+# guardrails, applied to implementation.
+#
+# v1 SURVEYS ONLY. The advisor's own settings are sacred and ownership cannot be
+# inferred from a value comparison -- a changed value proves only THAT it changed,
+# never who changed it. So nothing is mutated without explicit per-item consent,
+# and sacredness holds by construction rather than by detection.
+COPY config/spplus-tune /usr/libexec/spplus-tune
+
+# The gate below is the load-bearing part, and it enforces two things that a
+# reviewer cannot be relied on to catch by reading.
+#
+# 1. NEVER LAYER A PACKAGE. Verified on the Dell 2026-08-29: an attempt to update
+#    Pi layered `npm`, and bootc then refused outright --
+#      "Deployment contains local rpm-ostree modifications; cannot upgrade via bootc"
+#    -- with the staged deployment marked `incompatible: true`, while the desktop
+#    looked completely normal. A machine that silently stops receiving updates is
+#    the worst failure mode a security product has. So the tuner must not contain
+#    a package-install verb at all, and this asserts that at build time.
+#
+# 2. EDID MUST BE READ, NOT STAT-ED. sysfs reports st_size 0 for the EDID node
+#    while reading back 128 bytes, so `[ -s "$c/edid" ]` is always false and every
+#    display collapses into one indistinguishable scope -- exactly the laptop-panel
+#    versus dock-output confusion that keying by EDID exists to prevent. This bug
+#    shipped in the first draft and was caught only by running on real hardware
+#    with two screens attached.
+RUN set -eux; \
+    chmod 0755 /usr/libexec/spplus-tune; \
+    bash -n /usr/libexec/spplus-tune; \
+    for verb in "dnf " "rpm-ostree install" "yum " "akmods" "flatpak install" "remote-add" "modprobe -i"; do \
+        if grep -Fq "$verb" /usr/libexec/spplus-tune; then \
+            echo "DN32 GATE FAIL: tuner contains package/repo verb: $verb" >&2; exit 1; \
+        fi; \
+    done; \
+    for verb in "setenforce" "firewall-cmd"; do \
+        if grep -Fq "$verb" /usr/libexec/spplus-tune; then \
+            echo "DN32 GATE FAIL: tuner touches SELinux or firewall: $verb" >&2; exit 1; \
+        fi; \
+    done; \
+    grep -Fq 'edid_len=$(wc -c < "$c/edid"' /usr/libexec/spplus-tune; \
+    if grep -Fq '[ -s "$c/edid" ]' /usr/libexec/spplus-tune; then \
+        echo "DN32 GATE FAIL: EDID tested with -s; sysfs reports size 0" >&2; exit 1; \
+    fi; \
+    grep -Fq 'UPDATE_HEALTH="BROKEN"' /usr/libexec/spplus-tune; \
+    echo "DN32_TUNE_GATE_OK survey-only, no package verbs, EDID read by bytes"
+
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 

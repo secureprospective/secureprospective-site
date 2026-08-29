@@ -226,6 +226,51 @@ grep -qF 'queue.task_count * 100' "$DN28CF" \
   && ok "DN-28 progress bar is weighted by real cost, not task count" \
   || bad "DN-28 source gate failed" "an unweighted bar reads as a hung install on slow hardware"
 
+# P-13  DN-32 source gate: the tuner must stay survey-only and image-safe.
+# Two failures this gate exists to stop, both of which cost real time already:
+#   1. A package-install verb anywhere in the tuner. VERIFIED on the Dell
+#      2026-08-29: layering `npm` made bootc refuse to upgrade at all and marked
+#      the deployment incompatible, while the desktop looked completely normal.
+#      A machine that silently stops receiving updates is the worst failure this
+#      product has.
+#   2. Testing the sysfs EDID node with `-s`. sysfs reports st_size 0 while the
+#      node reads back 128 bytes, so the test is always false and every display
+#      collapses into one scope -- the laptop-panel/dock confusion that keying by
+#      EDID exists to prevent. This shipped in the first draft.
+DN32T="$REPO/projects/sp-plus/config/spplus-tune"
+DN32CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN32_OK=1
+[ -f "$DN32T" ] || { DN32_OK=0; echo "       missing $DN32T"; }
+if [ -f "$DN32T" ]; then
+  bash -n "$DN32T" 2>/dev/null || { DN32_OK=0; echo "       spplus-tune does not parse"; }
+  for verb in "dnf " "rpm-ostree install" "yum " "akmods" "flatpak install" "remote-add" "setenforce" "firewall-cmd"; do
+    grep -qF "$verb" "$DN32T" \
+      && { DN32_OK=0; echo "       tuner contains a forbidden verb: $verb"; }
+  done
+  grep -qF 'edid_len=$(wc -c < "$c/edid"' "$DN32T" \
+    || { DN32_OK=0; echo "       tuner no longer reads EDID by byte count"; }
+  grep -qF '[ -s "$c/edid" ]' "$DN32T" \
+    && { DN32_OK=0; echo "       tuner tests sysfs EDID with -s; always false"; }
+  grep -qF 'UPDATE_HEALTH="BROKEN"' "$DN32T" \
+    || { DN32_OK=0; echo "       tuner lost the update-health detector"; }
+fi
+# The image must actually ship it, with its build gate. A tuner in the repo that
+# no Containerfile copies is not in the product.
+grep -qF 'COPY config/spplus-tune /usr/libexec/spplus-tune' "$DN32CF" \
+  || { DN32_OK=0; echo "       payload Containerfile does not COPY spplus-tune"; }
+grep -qF 'DN32_TUNE_GATE_OK' "$DN32CF" \
+  || { DN32_OK=0; echo "       payload Containerfile has no DN-32 build gate"; }
+# The fixture-backed unit gate must still pass.
+if [ -x "$REPO/projects/sp-plus/tests/test-update-health.sh" ]; then
+  "$REPO/projects/sp-plus/tests/test-update-health.sh" >/dev/null 2>&1 \
+    || { DN32_OK=0; echo "       test-update-health.sh fails"; }
+else
+  DN32_OK=0; echo "       missing tests/test-update-health.sh"
+fi
+[ "$DN32_OK" -eq 1 ] \
+  && ok "DN-32 tuner is survey-only, image-safe, shipped and gated" \
+  || bad "DN-32 source gate failed" "the tuner must never layer packages and must read EDID by bytes"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
