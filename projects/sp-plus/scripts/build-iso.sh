@@ -4,10 +4,10 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT"
 "$ROOT/scripts/build-container.sh"
 if command -v podman >/dev/null; then
-  podman build --pull=missing -f installer/Containerfile -t localhost/sp-plus-installer:poc installer
+  podman build --pull=missing -f installer/Containerfile -t localhost/sp-plus-installer:poc .
 else
   command -v docker >/dev/null || { echo 'Podman or Docker is required.' >&2; exit 2; }
-  docker build --pull -f installer/Containerfile -t localhost/sp-plus-installer:poc installer
+  docker build --pull -f installer/Containerfile -t localhost/sp-plus-installer:poc .
   docker save localhost/sp-plus-installer:poc -o artifacts/sp-plus-installer.tar
 fi
 "$ROOT/scripts/image-builder.sh" build \
