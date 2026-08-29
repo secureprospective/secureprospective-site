@@ -764,8 +764,19 @@ class WelcomeWindow(QMainWindow):
         QTimer.singleShot(250, self._grab_current)
 
     def _grab_current(self):
-        out = ROOT / 'screenshots'
-        out.mkdir(exist_ok=True)
+        # DN-37. This used to be ROOT/'screenshots', i.e. inside
+        # /usr/libexec/sp-plus/welcome/. /usr is READ-ONLY on an image-mode
+        # system, so capture mode raised
+        #   OSError: [Errno 30] Read-only file system
+        # on every real installation and only ever worked in a dev checkout.
+        # Found 2026-08-29 on the Dell, where it blocked the rendering QC.
+        #
+        # Note this grabs the WIDGET (self.view.grab()), not the screen, so it
+        # needs no Wayland screen-capture protocol -- which is what makes
+        # rendering QC automatable on Plasma at all (grim reports
+        # "compositor doesn't support the screen capture protocol" here).
+        out = Path(os.environ.get('SPPLUS_CAPTURE_DIR', '/tmp/spcaps'))
+        out.mkdir(parents=True, exist_ok=True)
         self.view.grab().save(str(out / f'html-screen-{self._capture_index + 1:02d}.png'))
         self._capture_index += 1
         QTimer.singleShot(100, self._capture_screen)

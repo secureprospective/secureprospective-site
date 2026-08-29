@@ -406,6 +406,22 @@ fi
   && ok "DN-32 check button is first on the Fin screen, wired, and honest about doing nothing" \
   || bad "DN-32 check button gate failed" "the advisor's first contact with Fin must not overpromise"
 
+# P-18  DN-37 capture path. /usr is read-only on an image-mode system, so the
+# screenshot mode must never write beneath ROOT (/usr/libexec/sp-plus/welcome).
+# It did, and raised "OSError: [Errno 30] Read-only file system" on every real
+# installation -- working only in a dev checkout, which is exactly the class of
+# bug that survives to a shipped ISO.
+DN37P="$REPO/projects/sp-plus/welcome/welcome.py"
+DN37_OK=1
+grep -qF "SPPLUS_CAPTURE_DIR" "$DN37P" \
+  || { DN37_OK=0; echo "       capture directory is not overridable"; }
+if grep -qF "out = ROOT / 'screenshots'" "$DN37P"; then
+  DN37_OK=0; echo "       capture writes under ROOT, which is read-only on an installed machine"
+fi
+[ "$DN37_OK" -eq 1 ] \
+  && ok "DN-37 screenshot capture writes somewhere writable" \
+  || bad "DN-37 capture path gate failed" "capture mode would crash on every real install"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
