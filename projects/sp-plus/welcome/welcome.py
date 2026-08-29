@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import re
+import socket
 import time
 from urllib.parse import parse_qs, quote, urlparse
 from PySide6.QtCore import QSettings, QThread, QTimer, QUrl, QObject, Signal, Slot
@@ -379,6 +380,98 @@ class ShareCheckWorker(QThread):
         self.password = password
         self.save_securely = save_securely
 
+    # Sentinel distinguishing "the operation never came back" from "it failed".
+    TIMED_OUT = object()
+    PROBE_TIMEOUT = float(os.environ.get('SPPLUS_SHARE_PROBE_TIMEOUT', '4'))
+    MOUNT_TIMEOUT = int(os.environ.get('SPPLUS_SHARE_MOUNT_TIMEOUT', '25'))
+
+    def _reachable(self, host, port=445):
+        """Is the SMB port actually answering? A measurement, not a guess."""
+        try:
+            with socket.create_connection((host, port), timeout=self.PROBE_TIMEOUT):
+                return True
+        except OSError:
+            return False
+
+    def _await_async(self, start, finish):
+        """Run one async GIO call to completion and return its error, or None.
+
+        GIO async calls dispatch on a GMainContext. This worker is a QThread, so
+        it pushes its OWN context as thread-default rather than driving the
+        default one, which belongs to the main thread and must not be run here.
+        Returns None on success, TIMED_OUT if it never came back, else GLib.Error.
+        """
+        from gi.repository import GLib
+        ctx = GLib.MainContext.new()
+        ctx.push_thread_default()
+        try:
+            loop = GLib.MainLoop.new(ctx, False)
+            box = {}
+
+            def done(source, result):
+                try:
+                    finish(result)
+                except Exception as exc:            # noqa: BLE001 - reported, not raised
+                    box['error'] = exc
+                finally:
+                    loop.quit()
+
+            def bail():
+                box['error'] = self.TIMED_OUT
+                loop.quit()
+                return False
+
+            GLib.timeout_add_seconds(self.MOUNT_TIMEOUT, bail)
+            start(done)
+            loop.run()
+            return box.get('error')
+        finally:
+            ctx.pop_thread_default()
+
+    @staticmethod
+    def _gerror_is(error, *codes):
+        """Match a GLib.Error by TYPED code, not by English words."""
+        try:
+            from gi.repository import Gio, GLib
+            if not isinstance(error, GLib.Error):
+                return False
+            return any(error.matches(Gio.io_error_quark(), c) for c in codes)
+        except Exception:
+            return False
+
+    def _already_mounted(self, error):
+        try:
+            from gi.repository import Gio
+            return self._gerror_is(error, Gio.IOErrorEnum.ALREADY_MOUNTED)
+        except Exception:
+            return False
+
+    def _message_for_gerror(self, error):
+        """Typed first. Substring matching is a fallback, not the mechanism.
+
+        The old code classified only by matching English words in the error
+        text, which is fragile to GIO wording and breaks entirely under
+        translation.
+        """
+        try:
+            from gi.repository import Gio
+            E = Gio.IOErrorEnum
+            if self._gerror_is(error, E.HOST_NOT_FOUND, E.HOST_UNREACHABLE,
+                               E.NETWORK_UNREACHABLE, E.CONNECTION_REFUSED,
+                               E.TIMED_OUT):
+                return ('The office server could not be reached. Check its name '
+                        'and your network connection.')
+            if self._gerror_is(error, E.PERMISSION_DENIED):
+                return 'The server answered, but the username or password was not accepted.'
+            if self._gerror_is(error, E.NOT_FOUND):
+                return ('The server was reached, but that shared folder was not '
+                        'found. Check the folder name.')
+            if self._gerror_is(error, E.FAILED_HANDLED):
+                return 'The sign-in was cancelled, so the folder was not checked.'
+        except Exception:
+            pass
+        return self._message_for_error(error)
+
     def _message_for_error(self, error):
         text = str(error).lower()
         if any(word in text for word in ('host', 'network', 'connect', 'timed out', 'unreachable')):
@@ -390,8 +483,32 @@ class ShareCheckWorker(QThread):
         return 'The folder could not be checked. Check the server, folder name and network connection.'
 
     def run(self):
+        # DN-39. The previous implementation called mount_enclosing_volume as if
+        # it were synchronous. It is ASYNC: it takes a callback, returns
+        # immediately, and its outcome is read with mount_enclosing_volume_finish.
+        # So nothing ever waited for the mount, execution fell through to
+        # find_enclosing_mount, and its "not mounted" error was substring-matched
+        # into "that shared folder was not found". A live host and an unroutable
+        # one produced the SAME sentence -- verified on the Dell against
+        # 203.0.113.1 (TEST-NET-3). An advisor whose server was down was told to
+        # check the folder name.
+        if not self.server or not self.folder:
+            self.result_ready.emit(self, {
+                'ok': False,
+                'message': 'Enter the server and folder name first.'})
+            return
+
+        # Decide reachability BEFORE any GIO error-string classification, so
+        # "cannot reach the server" is a measurement and not a guess at wording.
+        if not self._reachable(self.server):
+            self.result_ready.emit(self, {
+                'ok': False,
+                'message': f'{self.server} could not be reached on the network. '
+                           'Check the server name and that you are connected to '
+                           'the office network.'})
+            return
         try:
-            from gi.repository import Gio
+            from gi.repository import Gio, GLib
             uri = f'smb://{quote(self.server, safe=".-_~")}/{quote(self.folder, safe=".-_~")}'
             location = Gio.File.new_for_uri(uri)
             operation = Gio.MountOperation()
@@ -407,28 +524,55 @@ class ShareCheckWorker(QThread):
                 op.reply(Gio.MountOperationResult.HANDLED)
 
             operation.connect('ask-password', answer_password)
+
             mounted_before = None
             try:
                 mounted_before = location.find_enclosing_mount(None)
             except Exception:
                 pass
             mounted_here = mounted_before is None
+
             if mounted_here:
-                location.mount_enclosing_volume(Gio.MountMountFlags.NONE, operation, None)
-                mount = location.find_enclosing_mount(None)
-            else:
-                mount = mounted_before
-            if mounted_here:
-                try:
-                    mount.unmount_with_operation(Gio.MountUnmountFlags.NONE, operation, None)
-                except Exception as unmount_error:
+                err = self._await_async(
+                    lambda cb: location.mount_enclosing_volume(
+                        Gio.MountMountFlags.NONE, operation, None, cb),
+                    location.mount_enclosing_volume_finish)
+                if err is self.TIMED_OUT:
                     self.result_ready.emit(self, {
                         'ok': False,
-                        'message': 'The folder was reachable, but the temporary check mount could not be removed. Open Files to review it.'})
+                        'message': 'The server did not answer in time. It may be '
+                                   'busy or blocked by a firewall.'})
                     return
+                if err is not None and not self._already_mounted(err):
+                    self.result_ready.emit(self, {
+                        'ok': False, 'message': self._message_for_gerror(err)})
+                    return
+                try:
+                    mount = location.find_enclosing_mount(None)
+                except Exception:
+                    mount = None
+            else:
+                mount = mounted_before
+
+            left_behind = False
+            if mounted_here and mount is not None:
+                err = self._await_async(
+                    lambda cb: mount.unmount_with_operation(
+                        Gio.MountUnmountFlags.NONE, operation, None, cb),
+                    mount.unmount_with_operation_finish)
+                left_behind = err is not None
+
+            if left_behind:
+                self.result_ready.emit(self, {
+                    'ok': True,
+                    'message': 'The shared folder is reachable and the credentials '
+                               'worked, but the temporary check mount could not be '
+                               'removed. Open Files to review it.'})
+                return
             self.result_ready.emit(self, {
                 'ok': True,
-                'message': 'The shared folder is reachable and the credentials worked. No permanent mount was left behind.'})
+                'message': 'The shared folder is reachable and the credentials worked. '
+                           'No permanent mount was left behind.'})
         except Exception as error:
             self.result_ready.emit(self, {'ok': False, 'message': self._message_for_error(error)})
 
