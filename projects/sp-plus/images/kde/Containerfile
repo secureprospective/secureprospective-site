@@ -911,15 +911,21 @@ RUN printf '%s\n' \
 # itself so it never overwrites choices the advisor makes later.
 COPY config/spplus-first-login         /usr/libexec/spplus-first-login
 COPY config/spplus-first-login.service /usr/lib/systemd/user/spplus-first-login.service
+COPY config/spplus-printscreen /usr/libexec/spplus-printscreen
+COPY config/spplus-printscreen.service /usr/lib/systemd/user/spplus-printscreen.service
 COPY config/kscreenlockerrc            /etc/xdg/kscreenlockerrc
 COPY config/kcminputrc                 /etc/xdg/kcminputrc
 
-RUN chmod 0755 /usr/libexec/spplus-first-login \
+RUN chmod 0755 /usr/libexec/spplus-first-login /usr/libexec/spplus-printscreen \
  && install -d /usr/lib/systemd/user/plasma-workspace.target.wants \
  && ln -sf ../spplus-first-login.service \
       /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-first-login.service \
+ && ln -sf ../spplus-printscreen.service \
+      /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-printscreen.service \
  && test -x /usr/libexec/spplus-first-login \
+ && test -x /usr/libexec/spplus-printscreen \
  && test -L /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-first-login.service \
+ && test -L /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-printscreen.service \
  && test -f /usr/lib/systemd/user/plasma-workspace.target \
  && test -x /usr/sbin/plasma-apply-lookandfeel \
  && test -x /usr/sbin/plasma-apply-wallpaperimage \

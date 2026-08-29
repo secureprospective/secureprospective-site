@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Give the Print key to Flameshot, every login, after Spectacle has claimed it.
+
+Spectacle assigns Print to itself IN CODE at startup:
+
+    KGlobalAccel::self()->setGlobalShortcut(openAction(), Qt::Key_Print)
+
+(spectacle/src/SpectacleCore.cpp). KGlobalAccel resolves a contested key in
+favour of whichever action registered FIRST, so our declarative
+`none,none,...` entries for Spectacle in /etc/xdg/kglobalshortcutsrc are a
+DEFAULTS layer and are not authoritative against that runtime call. The result
+is a Flameshot binding that reads back correctly from the config and every
+introspection API, while the key itself has no grab and Print Screen does
+nothing. Upstream: KDE bug 484597, fixed in Plasma 6.7; this image ships 6.4.
+
+That is a startup race, which is why Print Screen has worked on some SP+ cycles
+and not others with identical configuration.
+
+So resolve the contest at runtime, after both components have registered, the
+same way System Settings would. Two details are load-bearing and were both
+found the hard way on the cycle38 guest, 2026-08-29:
+
+  * actionId is a FOUR element array
+    [componentUnique, actionUnique, componentFriendly, actionFriendly].
+    A two element form is accepted by D-Bus and silently does nothing.
+  * flags must be 4 (NoAutoloading). With flags 0 the assignment does not
+    take and the key stays unowned.
+
+Verified: with the call below, `getGlobalShortcutsByKey 16777225` returns the
+flameshot-capture tuple and a real Print keypress launches the capture overlay
+on 4 of 4 trials. Before it, 0 of 4.
+"""
+import subprocess
+import sys
+import time
+
+BUS = "org.kde.kglobalaccel"
+ROOT = "/kglobalaccel"
+PRINT_KEY = 16777225  # Qt::Key_Print
+NO_AUTOLOADING = 4
+FLAMESHOT = [
+    "flameshot-capture.desktop",
+    "_launch",
+    "Take Screenshot",
+    "Take Screenshot",
+]
+
+
+def call(path, method, *args):
+    """One gdbus call. Returns stdout, or None if the call failed."""
+    cmd = [
+        "gdbus", "call", "--session", "--dest", BUS,
+        "--object-path", path, "--method", method,
+    ]
+    cmd.extend(args)
+    try:
+        proc = subprocess.run(
+            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=15, check=True,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+        return None
+    return proc.stdout
+
+
+def as_array(values):
+    """Render a D-Bus array-of-strings literal for gdbus."""
+    return "[" + ",".join("'%s'" % v for v in values) + "]"
+
+
+def wait_for_components():
+    """Wait until kglobalaccel is answering AND Spectacle has registered.
+
+    Waiting for kglobalaccel alone is not enough. If we assign the key before
+    Spectacle registers, Spectacle registers afterwards and takes it back --
+    the very race this script exists to close.
+    """
+    for _ in range(90):
+        out = call("/component", "org.freedesktop.DBus.Introspectable.Introspect")
+        if out and "org_kde_spectacle_desktop" in out and "flameshot_capture_desktop" in out:
+            return True
+        time.sleep(1)
+    return False
+
+
+def print_owner():
+    """Who currently holds the Print key, as raw D-Bus text."""
+    return call(
+        ROOT, "org.kde.KGlobalAccel.getGlobalShortcutsByKey", str(PRINT_KEY)
+    ) or ""
+
+
+def main():
+    if not wait_for_components():
+        print("spplus-printscreen: kglobalaccel or Spectacle never registered",
+              file=sys.stderr)
+        return 1
+
+    # Settle. Spectacle's registration lands slightly after its component
+    # appears, and assigning into that window loses the key again.
+    time.sleep(3)
+
+    if "flameshot-capture.desktop" in print_owner():
+        print("spplus-printscreen: Print Screen already belongs to Flameshot")
+        return 0
+
+    result = call(
+        ROOT, "org.kde.KGlobalAccel.setShortcut",
+        as_array(FLAMESHOT), "[%d]" % PRINT_KEY, str(NO_AUTOLOADING),
+    )
+    if result is None:
+        print("spplus-printscreen: setShortcut call failed", file=sys.stderr)
+        return 1
+
+    # Read it back. The call returning a key list is not proof that the grab
+    # took; only the key lookup is.
+    for _ in range(5):
+        if "flameshot-capture.desktop" in print_owner():
+            print("spplus-printscreen: Print Screen assigned to Flameshot")
+            return 0
+        time.sleep(1)
+
+    print("spplus-printscreen: assignment did not stick; Print Screen will not "
+          "open Flameshot", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

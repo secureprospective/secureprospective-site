@@ -1,0 +1,11 @@
+[Unit]
+Description=Make Print Screen launch Flameshot (SP+)
+After=plasma-workspace.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-printscreen
+
+[Install]
+WantedBy=plasma-workspace.target
