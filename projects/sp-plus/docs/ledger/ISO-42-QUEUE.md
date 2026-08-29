@@ -14,6 +14,48 @@
 
 | # | Fix | Commit | Verified |
 |---|-----|--------|----------|
+| 1 | Anaconda bootc source: `network_required` honest about transport | uncommitted | **NO — needs no-NIC boot test** |
+| 2 | Installer progress bar: 8% hang | **NOT STARTED** | NO |
+
+### Fix 2 — the 8% progress bar. QUEUED FOR ISO 42.
+
+**Confirmed on bare metal by Christopher, 2026-08-29, watching a cycle41 install
+on the Dell.** Still hangs at 8%, then sprints to the finish. This is now the
+third independent observation (QEMU installs, cycle39, and now real hardware on
+a spinning disk). It is not a virtualisation artifact.
+
+Why it matters, in Christopher's words: a system built for non-technical people
+must not look broken while it is working. An advisor watching a dead bar on an
+old laptop will assume it has hung and power the machine off mid-install.
+
+**Two proven defects**, measured from `/var/log/anaconda/packaging.log` on a
+real install. The emitted sequence was `0, 0, 99, 100` — only 7 samples across
+a multi-minute deploy:
+
+- **A. Hardcoded denominator.** `installer/bootc-wrapper.sh` sets
+  `progress_image_bytes=5000000000` (5 GB). The real payload is ~11 GB, so the
+  computed fraction saturates and pins at the 99 clamp.
+- **B. Sampling is stdout-driven, not clock-driven.** The wrapper only samples
+  when `bootc` happens to print a line. Between prints — which is most of the
+  deploy — the bar does not move at all.
+
+Both must be fixed together. Fixing only the denominator still leaves a bar
+that lurches between long dead stretches.
+
+**REFUTED, do not retest:** PATH resolution of the wrapper, and `scratch_bound`
+fallthrough. I named both as leading suspects; real install logs disproved both.
+
+Brief written and ready: `/root/briefs/spplus-installer-progress-v3.md` (6.6 KB),
+never dispatched. Dispatch it under the **apply** harness so the fix lands:
+
+    THINKING=high /root/run-bee-apply.sh /root/briefs/spplus-installer-progress-v3.md 2700
+
+Verification must be a real install with the bar sampled over time — a source
+change alone proves nothing here.
+
+
+| # | Fix | Commit | Verified |
+|---|-----|--------|----------|
 | 1 | Anaconda bootc source: `network_required` honest about transport — local transports (`containers-storage:`, `oci:`, `oci-archive:`, `dir:`) return False | uncommitted | **NO — needs no-NIC boot test** |
 
 ### Fix 1 detail
@@ -46,7 +88,6 @@ marked spoke and the button stayed grey. Network is the gate, conclusively.
 
 | # | Item | Status |
 |---|------|--------|
-| A | Installer progress bar hangs at 8%, then sprints | Root-caused, brief written (`spplus-installer-progress-v3.md`), **never dispatched** |
 | B | Welcome has no logging at all — zero `logging` calls | Flagged; a field failure leaves no trace to ask an advisor for |
 | C | Office-folder SMB auth success path | Unproven — no test share existed |
 | D | mDNS printer discovery | Unproven — QEMU NAT carries no multicast; needs the Dell |
