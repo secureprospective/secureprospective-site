@@ -39,6 +39,8 @@ CUPS_TEST_PAGE = os.environ.get('SPPLUS_CUPS_TEST_PAGE', '/usr/share/cups/data/t
 FLATPAK = os.environ.get('SPPLUS_FLATPAK', '/usr/bin/flatpak')
 SUDO = os.environ.get('SPPLUS_SUDO', '/usr/bin/sudo')
 DISCOVER = os.environ.get('SPPLUS_DISCOVER', '/usr/bin/plasma-discover')
+TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
+MACHINE_DOC = os.environ.get('SPPLUS_MACHINE_DOC', '/var/lib/sp-plus/THIS-MACHINE.md')
 FLATPAK_APP_NAMES = {
     'com.bitwarden.desktop': 'Bitwarden',
     'org.signal.Signal': 'Signal',
@@ -217,6 +219,69 @@ class SingleInstance(QObject):
             self.activated.emit()
             socket.disconnectFromServer()
             socket.deleteLater()
+
+
+class ComputerCheckWorker(QThread):
+    """Run the survey (DN-32) and report what it found.
+
+    NAMED "check", NOT "tune", ON PURPOSE. v1 has no apply path: it looks at the
+    machine and writes the record, and it changes NOTHING. The advisor's own
+    settings are sacred (DN-32 D2) -- ownership of a setting cannot be inferred
+    by comparing values, because a changed value tells you THAT it changed and
+    never WHO changed it. So the button promises only what it does.
+
+    The tuner exits 10 when the machine has fallen off the update path. That is
+    a RESULT, not a crash: a machine that cannot update looks completely normal
+    from the desktop, which is the entire reason this check exists.
+    """
+
+    result_ready = Signal(object, object)
+
+    def run(self):
+        try:
+            if not Path(TUNE).is_file():
+                payload = {'ok': False,
+                           'message': 'The system check is not installed on this computer.'}
+                self.result_ready.emit(self, payload)
+                return
+            # Writes /var/lib/sp-plus, which the advisor does not own.
+            proc = subprocess.run([SUDO, '-n', TUNE],
+                                  capture_output=True, text=True, timeout=300)
+            healthy = proc.returncode == 0
+            broken = proc.returncode == 10
+            if not healthy and not broken:
+                payload = {'ok': False,
+                           'message': 'The check could not finish. Nothing on this computer was changed.'}
+                self.result_ready.emit(self, payload)
+                return
+
+            summary = []
+            try:
+                for line in Path(MACHINE_DOC).read_text(errors='replace').splitlines():
+                    if line.startswith('- '):
+                        summary.append(line[2:].strip())
+                    if len(summary) >= 6:
+                        break
+            except OSError:
+                summary = []
+
+            if broken:
+                payload = {'ok': True, 'healthy': False,
+                           'message': 'This computer can no longer receive updates. '
+                                      'Nothing was changed. Show this to support.',
+                           'summary': summary}
+            else:
+                payload = {'ok': True, 'healthy': True,
+                           'message': 'Fin checked this computer and it is up to date. '
+                                      'Nothing was changed.',
+                           'summary': summary}
+        except subprocess.TimeoutExpired:
+            payload = {'ok': False,
+                       'message': 'The check took too long and was stopped. Nothing was changed.'}
+        except (OSError, subprocess.SubprocessError):
+            payload = {'ok': False,
+                       'message': 'The check could not run. Nothing on this computer was changed.'}
+        self.result_ready.emit(self, payload)
 
 
 class FinLaunchWorker(QThread):
@@ -435,6 +500,7 @@ class WelcomeBridge(QObject):
         self._tool_workers = set()
         self._store_workers = set()
         self._fin_workers = set()
+        self._check_workers = set()
         self._email_workers = set()
         self._share_workers = set()
         self._printer_workers = set()
@@ -459,6 +525,8 @@ class WelcomeBridge(QObject):
                 self.install_tool(app_id)
         elif parsed.path == 'browse-store':
             self.browse_store()
+        elif parsed.path == 'check-computer':
+            self.check_computer()
         elif parsed.path == 'launch-fin':
             self.launch_fin()
         elif parsed.path == 'connect-email':
@@ -489,6 +557,20 @@ class WelcomeBridge(QObject):
         encoded = json.dumps(payload, ensure_ascii=True)
         self.view.page().runJavaScript(
             f'window.spWelcome && window.spWelcome.answered({encoded})')
+
+    def check_computer(self):
+        worker = ComputerCheckWorker()
+        self._check_workers.add(worker)
+        worker.result_ready.connect(self._check_finished)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    @Slot(object, object)
+    def _check_finished(self, worker, payload):
+        self._check_workers.discard(worker)
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.checkResult({encoded})')
 
     def launch_fin(self):
         worker = FinLaunchWorker()

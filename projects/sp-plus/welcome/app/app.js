@@ -176,6 +176,30 @@
     announce('OPENING FIN. WELCOME WILL STAY AVAILABLE.');
     document.title = 'spplus:launch-fin';
   });
+  const checkButton = document.getElementById('fin-check');
+  const checkResultEl = document.getElementById('check-result');
+  const checkSummaryEl = document.getElementById('check-summary');
+  function finishCheck(result){
+    if (checkButton) checkButton.disabled = false;
+    const msg = (result && result.message) || 'The check could not run.';
+    if (checkResultEl) checkResultEl.textContent = msg;
+    if (checkSummaryEl) {
+      checkSummaryEl.textContent = '';
+      const rows = (result && result.summary) || [];
+      rows.forEach(row => { const li = document.createElement('li'); li.textContent = row; checkSummaryEl.append(li); });
+      checkSummaryEl.hidden = rows.length === 0;
+    }
+    // A machine that cannot update looks completely normal from the desktop,
+    // so an unhealthy result must READ as a problem, not as a quiet success.
+    announce(msg.toUpperCase(), (result && result.ok && result.healthy) ? '' : 'stub');
+    document.title = 'SP+ Welcome';
+  }
+  if (checkButton) checkButton.addEventListener('click', () => {
+    checkButton.disabled = true;
+    if (checkResultEl) checkResultEl.textContent = 'Fin is looking at this computer. Nothing will be changed.';
+    announce('FIN IS CHECKING THIS COMPUTER. NOTHING WILL BE CHANGED.');
+    document.title = 'spplus:check-computer';
+  });
   const emailButton = document.getElementById('email-connect');
   const emailResult = document.getElementById('email-result');
   function finishEmail(result) {
@@ -305,6 +329,7 @@
     answered: finishAsk,
     toolResult: finishTool,
     storeResult: finishStore,
+    checkResult: finishCheck,
     finResult: finishFin,
     emailResult: finishEmail,
     shareResult: finishShare,

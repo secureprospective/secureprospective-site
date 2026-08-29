@@ -363,6 +363,49 @@ grep -qF 'DN36_WIFI_POWERSAVE_OK' "$DN36CF" \
   && ok "DN-36 wifi power saving is disabled in image content" \
   || bad "DN-36 wifi powersave gate failed" "the 7260 parks between beacons and the desktop stalls"
 
+# P-17  DN-32 "Have Fin check my Computer" -- the button and its promise.
+# The name is load-bearing. v1 SURVEYS and changes nothing, because ownership of
+# a setting cannot be inferred from its value (D2, the sacredness rule). A button
+# named "make my computer better" over a survey-only engine is a broken promise
+# on the advisor's FIRST contact with Fin, so the wording and the engine are
+# gated together: if anyone gives the tuner an apply path, this gate is where the
+# button's wording has to be revisited.
+DN32H="$REPO/projects/sp-plus/welcome/app/index.html"
+DN32J="$REPO/projects/sp-plus/welcome/app/app.js"
+DN32P="$REPO/projects/sp-plus/welcome/welcome.py"
+DN32T="$REPO/projects/sp-plus/config/spplus-tune"
+DN32_OK=1
+grep -qF 'id="fin-check"' "$DN32H" \
+  || { DN32_OK=0; echo "       the check button is not on the Fin screen"; }
+grep -qF 'HAVE FIN CHECK MY COMPUTER' "$DN32H" \
+  || { DN32_OK=0; echo "       the check button is not named 'HAVE FIN CHECK MY COMPUTER'"; }
+# It must come BEFORE "OPEN FIN": it is the advisor's first experience of Fin.
+python3 - "$DN32H" <<'PYCHK' || { DN32_OK=0; echo "       the check button is not the FIRST action on the Fin screen"; }
+import sys
+h=open(sys.argv[1]).read()
+sys.exit(0 if 0 <= h.find('id="fin-check"') < h.find('id="fin-launch"') else 1)
+PYCHK
+grep -qF "spplus:check-computer" "$DN32J" \
+  || { DN32_OK=0; echo "       the button does not invoke the check-computer verb"; }
+grep -qF "checkResult: finishCheck" "$DN32J" \
+  || { DN32_OK=0; echo "       checkResult is not registered on the spWelcome bridge"; }
+grep -qF "parsed.path == 'check-computer'" "$DN32P" \
+  || { DN32_OK=0; echo "       welcome.py does not handle the check-computer verb"; }
+# returncode 10 is "this machine cannot update" -- a RESULT, never an error.
+grep -qF "returncode == 10" "$DN32P" \
+  || { DN32_OK=0; echo "       welcome.py does not treat exit 10 as the update-broken RESULT"; }
+if [ -f "$DN32T" ]; then
+  for verb in "dnf " "rpm-ostree install" "flatpak install" "kwriteconfig"; do
+    if grep -Fq "$verb" "$DN32T"; then
+      DN32_OK=0
+      echo "       tuner gained an apply verb ($verb): the button name now overpromises"
+    fi
+  done
+fi
+[ "$DN32_OK" -eq 1 ] \
+  && ok "DN-32 check button is first on the Fin screen, wired, and honest about doing nothing" \
+  || bad "DN-32 check button gate failed" "the advisor's first contact with Fin must not overpromise"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
