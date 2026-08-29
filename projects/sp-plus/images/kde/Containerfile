@@ -904,6 +904,20 @@ RUN systemctl enable spplus-flatpak-update.timer \
  && u_upd=$(grep '^OnBootSec=' /usr/lib/systemd/system/spplus-flatpak-update.timer) \
  && [ "$u_pre" != "$u_upd" ] \
  && echo "DN34_FLATPAK_UPDATE_OK daily, persistent, staggered off preinstall"
+
+# ---- 5c. Wi-Fi power saving OFF (DN-36) -------------------------------------
+# See the header of the conf file for the measured numbers. Short version: the
+# 7260 parks between beacons and LAN latency goes from 1.4 ms to 71 ms average
+# with 125 ms spikes, which an advisor experiences as the desktop stalling.
+# /usr/lib so it is image content and survives bootc upgrade; /etc stays free
+# for a local override, which NetworkManager honours over /usr/lib.
+COPY config/networkmanager/90-spplus-wifi-powersave.conf /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf
+
+RUN test -s /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
+ && grep -q '^\[connection\]$' /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
+ && grep -q '^wifi.powersave=2$' /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
+ && test ! -e /etc/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
+ && echo "DN36_WIFI_POWERSAVE_OK shipped in /usr/lib, value 2 = disable"
 COPY config/spplus-discover /usr/bin/spplus-discover
 
 RUN chmod 0755 /usr/bin/spplus-discover \

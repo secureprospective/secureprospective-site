@@ -342,6 +342,27 @@ grep -qF 'systemctl enable spplus-flatpak-update.timer' "$DN34CF" \
   && ok "DN-34 flatpak updates are daily, persistent, staggered, shipped and enabled" \
   || bad "DN-34 flatpak update gate failed" "a shipped Flatpak that never updates defeats DN-26"
 
+# P-16  DN-36 wifi powersave. The value reads BACKWARDS: NetworkManager's
+# wifi.powersave is 0=default 1=ignore 2=disable 3=enable, so 2 disables power
+# saving and 3 would enable it. A well-meaning "fix" to 3 would silently
+# reintroduce the 71 ms / 125 ms LAN latency measured on the Dell's 7260.
+DN36F="$REPO/projects/sp-plus/config/networkmanager/90-spplus-wifi-powersave.conf"
+DN36CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN36_OK=1
+if [ -f "$DN36F" ]; then
+  grep -q '^wifi.powersave=2$' "$DN36F" \
+    || { DN36_OK=0; echo "       wifi.powersave is not 2 (2=disable; 3 would ENABLE power saving)"; }
+else
+  DN36_OK=0; echo "       missing $DN36F"
+fi
+grep -qF 'COPY config/networkmanager/90-spplus-wifi-powersave.conf /usr/lib/NetworkManager/conf.d/' "$DN36CF" \
+  || { DN36_OK=0; echo "       drop-in is not shipped into /usr/lib (it would not survive bootc upgrade)"; }
+grep -qF 'DN36_WIFI_POWERSAVE_OK' "$DN36CF" \
+  || { DN36_OK=0; echo "       Containerfile has no DN-36 build gate"; }
+[ "$DN36_OK" -eq 1 ] \
+  && ok "DN-36 wifi power saving is disabled in image content" \
+  || bad "DN-36 wifi powersave gate failed" "the 7260 parks between beacons and the desktop stalls"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
