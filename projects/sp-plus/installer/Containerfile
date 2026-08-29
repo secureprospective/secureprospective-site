@@ -18,7 +18,14 @@ RUN dnf install -y \
     xorrisofs \
     squashfs-tools \
     jq \
-    && dnf clean all
+    iwlwifi-dvm-firmware \
+    iwlwifi-mvm-firmware \
+    iwlwifi-mld-firmware \
+    iwlegacy-firmware \
+    libertas-firmware \
+    && dnf clean all \
+    && ls /usr/lib/firmware/intel/iwlwifi/ | grep -q ucode \
+    && echo "IWLWIFI_OK installer can drive Intel wireless"
 
 RUN mkdir -p /boot/efi \
     && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
