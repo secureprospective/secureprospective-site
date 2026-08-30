@@ -6,6 +6,16 @@
 # Fedora 44 everywhere. DN-13 is satisfied absolutely: NO human account ships at all.
 FROM quay.io/fedora/fedora-kinoite:44
 
+# --- Release identity (D-01). Fedora scheme: a round integer, no minor.
+# SP+ 1, SP+ 2. There is no 1.1 -- an advisor never makes an upgrade decision,
+# so a version that encodes compatibility would be ceremony nobody reads.
+# SPPLUS_BUILD is the dated mile marker: it lands in os-release as BUILD_ID and
+# is what a support conversation and a rollback target are named by, because
+# unlike a channel tag it never moves. Default 'dev' so an undated local build
+# is obviously not a release.
+ARG SPPLUS_RELEASE=1
+ARG SPPLUS_BUILD=dev
+
 # ---- 1. platform + advisor application suite (spb-manifest, spb-appmanifest) ----
 RUN dnf install -y --setopt=install_weak_deps=False \
         sddm \
@@ -626,11 +636,12 @@ RUN install -Dm644 /usr/share/sp-plus/branding/fin-icon.svg \
 # os-release: ID_LIKE=fedora is deliberate, tooling depends on it.
 RUN printf '%s\n' \
       'NAME="SP+"' \
-      'VERSION="1.0"' \
+      "VERSION=\"${SPPLUS_RELEASE}\"" \
       'ID=sp-plus' \
       'ID_LIKE=fedora' \
-      'VERSION_ID=1.0' \
-      'PRETTY_NAME="SP+ 1.0"' \
+      "VERSION_ID=${SPPLUS_RELEASE}" \
+      "BUILD_ID=${SPPLUS_BUILD}" \
+      "PRETTY_NAME=\"SP+ ${SPPLUS_RELEASE} (${SPPLUS_BUILD})\"" \
       'VARIANT="Advisor"' \
       'VARIANT_ID=advisor' \
       'ANSI_COLOR="0;38;2;180;180;190"' \
@@ -1545,6 +1556,7 @@ ENV SPPLUS_LISTEN_PORT=8765
 
 LABEL org.opencontainers.image.title="SP+" \
       org.opencontainers.image.description="SP+ Advisor OS — KDE image-mode payload" \
-      org.opencontainers.image.version="1.0"
+      org.opencontainers.image.version="${SPPLUS_RELEASE}" \
+      com.secureprospective.build="${SPPLUS_BUILD}"
 
 RUN bootc container lint

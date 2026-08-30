@@ -502,6 +502,29 @@ PYGATE
   && ok "DN-41/42 check summary is structured, styled, hidden when empty, and in the ledger column" \
   || bad "DN-41/42 summary gate failed" "the advisor either cannot read the result or reads a fragment"
 
+# P-22  D-01 release identity. Fedora scheme: a round integer, no minor, with a
+# dated mile marker. Both come from build args so a release never means editing
+# prose. A hardcoded version is the failure this catches: it silently makes
+# every build claim to be the same release, which destroys the one property
+# promotion depends on -- that a mile marker names exactly one set of bits.
+D01CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+D01_OK=1
+grep -qE '^ARG SPPLUS_RELEASE=' "$D01CF" \
+  || { D01_OK=0; echo "       no SPPLUS_RELEASE build arg; the release number is hardcoded"; }
+grep -qE '^ARG SPPLUS_BUILD=' "$D01CF" \
+  || { D01_OK=0; echo "       no SPPLUS_BUILD build arg; there is no dated mile marker"; }
+grep -qF 'BUILD_ID=${SPPLUS_BUILD}' "$D01CF" \
+  || { D01_OK=0; echo "       BUILD_ID is not in os-release; the machine cannot name its own build"; }
+grep -qE 'VERSION_ID=\$\{SPPLUS_RELEASE\}' "$D01CF" \
+  || { D01_OK=0; echo "       VERSION_ID is not from the build arg"; }
+grep -qE 'VERSION_ID=[0-9]+\.[0-9]' "$D01CF" \
+  && { D01_OK=0; echo "       VERSION_ID carries a minor version; D-01 is round integers only"; }
+grep -qE 'PRETTY_NAME="SP\+ [0-9]+\.[0-9]' "$D01CF" \
+  && { D01_OK=0; echo "       PRETTY_NAME carries a minor version; D-01 is round integers only"; }
+[ "$D01_OK" -eq 1 ] \
+  && ok "D-01 release identity is a build arg, round integer, with a dated BUILD_ID" \
+  || bad "D-01 release identity gate failed" "a mile marker that does not name exactly one build breaks promotion and rollback"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
