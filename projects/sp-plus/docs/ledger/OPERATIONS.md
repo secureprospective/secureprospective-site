@@ -409,3 +409,36 @@ goal is cutting it by most, not to zero.
 T-13 ISO (SELinux relabel fix): sha256
 `6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db`, 4,135,002,112 bytes,
 built 2026-08-26 16:04. Supersedes b04 `afc0f9c7…`. **Not yet installed or verified.**
+
+---
+
+### OP-24 — Test on the running machine, not on a fresh ISO
+
+**What happened.** Six fixes were queued behind "build ISO 44, install it, then test."
+Christopher stopped it: *"Why would we not test it on a working Dell machine that is up
+and working now, why are we going through the ISO trouble and dont even know if its a
+pile of garbage or the best thing ever?"*
+
+We switched the running Dell onto the candidate image over the LAN with `bootc switch`,
+and staged loose files into `/tmp` for anything that did not need an image at all.
+
+**The cost.** An ISO cycle is a build, a write, a reinstall and a reconfigure — about an
+hour, ending with a machine that has to be set up again before it can be used. The
+replacement loops are ~20 minutes and ~7 seconds. Within one sitting the fast loop found
+two real defects (DN-41, DN-42), neither of which needed a new image, and both of which
+would otherwise have shipped inside ISO 44 and been found by an advisor.
+
+The deeper point is the one Christopher made: the OS is largely done. What changes now is
+the supporting software, and testing supporting software by reinstalling an operating
+system is paying the largest available price for the smallest available change.
+
+**The rule.** Use the cheapest loop that can actually prove the change. Loop A (stage
+files into `/tmp`, run the copy) for app code; Loop B (`bootc switch` from the LAN
+registry) for anything in `/usr`, packages or units; an ISO only for the installer itself
+or for shipping. Full procedure and traps: `TESTING-ON-HARDWARE.md`.
+
+**Corollary, learned the same day.** A green self-test is not a working feature. Every
+automated verb passed while the result was rendering white-on-grey and unreadable; only
+Christopher clicking the button found it. Any change to what is drawn must be rendered
+and looked at — in every state, not just the populated one. `win.view.grab()` produces a
+PNG over SSH without a compositor protocol, so there is no excuse for not looking.
