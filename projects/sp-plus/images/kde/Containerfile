@@ -4,7 +4,25 @@
 # The two are merged here. Build context is projects/sp-plus/.
 #   sudo podman build -t localhost/sp-plus-kde:spike -f images/kde/Containerfile .
 # Fedora 44 everywhere. DN-13 is satisfied absolutely: NO human account ships at all.
-FROM quay.io/fedora/fedora-kinoite:44
+# PINNED BY DIGEST (D-02). A floating :44 tag moves under us: two builds of
+# identical source produced different operating systems. That breaks D-01
+# outright -- a dated mile marker is supposed to name exactly one set of bits.
+# Pinning also decides WHEN we meet an upstream change: floating, the first
+# symptom is a failed Anaconda anchor check at whatever moment Fedora rebuilds;
+# pinned, a base bump is a commit we make deliberately and then test.
+#
+# READ THIS BEFORE ASSUMING A PIN MEANS REPRODUCIBLE. Fedora garbage-collects
+# old base digests. On 2026-08-30 the digest every hardware-verified SP+ image
+# was built from had ALREADY been collected -- podman still had the bits on
+# disk, but neither recorded RepoDigest resolved on quay any more. A pin buys a
+# deliberate-bump mechanism and a window, NOT permanent reproducibility. This is
+# why D-01 promotes an existing digest of OUR OWN built image and never rebuilds
+# to promote: a mile marker often CANNOT be rebuilt from source later, because
+# its base no longer exists. If we ever need true long-term reproducibility, the
+# answer is mirroring the base into our own registry, not a longer pin.
+#
+# Bumping this digest requires a rebuild and a full re-run of the hardware gate.
+FROM quay.io/fedora/fedora-kinoite@sha256:dd672611f9ffbfab7ceff4a43c1365ce09b04d5732b8657a3d1f3fc5ffaf608f
 
 # --- Release identity (D-01). Fedora scheme: a round integer, no minor.
 # SP+ 1, SP+ 2. There is no 1.1 -- an advisor never makes an upgrade decision,

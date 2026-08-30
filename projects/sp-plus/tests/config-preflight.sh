@@ -525,6 +525,38 @@ grep -qE 'PRETTY_NAME="SP\+ [0-9]+\.[0-9]' "$D01CF" \
   && ok "D-01 release identity is a build arg, round integer, with a dated BUILD_ID" \
   || bad "D-01 release identity gate failed" "a mile marker that does not name exactly one build breaks promotion and rollback"
 
+# P-23  D-02 base images are pinned by digest. A floating :44 tag moves under us:
+# on 2026-08-30 both bases had already drifted from the digest every tested SP+
+# image was built from, so identical source produced different operating systems.
+# That breaks D-01's central promise -- a mile marker names exactly one set of
+# bits. It also decides when we meet an upstream Anaconda change: floating, the
+# first symptom is a failed patch anchor at a moment Fedora chooses.
+D02_OK=1
+for _cf in "$REPO/projects/sp-plus/images/kde/Containerfile" \
+           "$REPO/projects/sp-plus/installer/Containerfile"; do
+  _from=$(grep -m1 '^FROM ' "$_cf")
+  case "$_from" in
+    *@sha256:*) : ;;
+    *) D02_OK=0; echo "       $(basename $(dirname $_cf))/Containerfile FROM is not digest-pinned: $_from" ;;
+  esac
+done
+# The Anaconda patches are what make a base bump fail loudly instead of silently
+# installing wrong behaviour. A pin without them is half a gate.
+# Must be INVOKED, not merely COPYed. A plain filename grep matches the COPY
+# line and passes while the patch is never run -- caught by negative-testing
+# this gate on 2026-08-30.
+grep -qE '^[[:space:]]*&&[[:space:]]*/usr/libexec/patch-anaconda-network\.py' \
+  "$REPO/projects/sp-plus/installer/Containerfile" \
+  || { D02_OK=0; echo "       the network patch is not INVOKED at build time; drift will not be caught"; }
+grep -qE '^[[:space:]]*&&[[:space:]]*/usr/libexec/patch-anaconda-progress\.py' \
+  "$REPO/projects/sp-plus/installer/Containerfile" \
+  || { D02_OK=0; echo "       the progress patch is not INVOKED at build time"; }
+grep -qF 'SPPLUS_NETWORK_PATCH FAILED' "$REPO/projects/sp-plus/installer/patch-anaconda-network.py" \
+  || { D02_OK=0; echo "       the network patch no longer fails loudly on an anchor miss"; }
+[ "$D02_OK" -eq 1 ] \
+  && ok "D-02 base images are digest-pinned and the Anaconda patches still fail loudly" \
+  || bad "D-02 pin gate failed" "an unpinned base means a mile marker does not name one set of bits"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
