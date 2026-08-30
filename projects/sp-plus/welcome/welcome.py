@@ -238,6 +238,47 @@ class ComputerCheckWorker(QThread):
     from the desktop, which is the entire reason this check exists.
     """
 
+    # Left-hand column of the table rows in THIS-MACHINE.md worth showing an
+    # advisor, in the order they should appear.
+    DOC_FIELDS = ('Image', 'Layered packages', 'Memory', 'Root disk',
+                  'Wi-Fi interface', 'Power management')
+
+    @classmethod
+    def _summarise_machine_doc(cls, text):
+        """Pull advisor-readable facts out of THIS-MACHINE.md.
+
+        DN-41. The previous version harvested every line beginning "- ", which
+        in practice matched only the engineering caveats under "## Notes" --
+        and, because those are hard-wrapped, produced sentences chopped off
+        mid-clause ("... and its actual effect are not the same thing. KDE").
+        The advisor saw two truncated warnings and none of the actual state.
+        The facts live in the "## Update health" heading and in the tables, so
+        that is what this reads.
+        """
+        summary = []
+        health = re.search(r'^##\s+Update health\s*[-\u2013\u2014]+\s*(.+?)\s*$',
+                           text, re.MULTILINE)
+        if health:
+            state = health.group(1).strip()
+            summary.append('Updates: %s'
+                           % ('working' if state.upper() == 'OK' else state))
+
+        rows = {}
+        for line in text.splitlines():
+            if not line.startswith('|'):
+                continue
+            cells = [c.strip() for c in line.strip().strip('|').split('|')]
+            if len(cells) >= 2 and cells[0] and cells[0] not in ('Field', '---'):
+                rows.setdefault(cells[0], cells[1])
+
+        for key in cls.DOC_FIELDS:
+            if len(summary) >= 6:
+                break
+            value = rows.get(key)
+            if value and value not in ('-', '\u2014'):
+                summary.append('%s: %s' % (key, value))
+        return summary
+
     result_ready = Signal(object, object)
 
     def run(self):
@@ -258,13 +299,9 @@ class ComputerCheckWorker(QThread):
                 self.result_ready.emit(self, payload)
                 return
 
-            summary = []
             try:
-                for line in Path(MACHINE_DOC).read_text(errors='replace').splitlines():
-                    if line.startswith('- '):
-                        summary.append(line[2:].strip())
-                    if len(summary) >= 6:
-                        break
+                summary = self._summarise_machine_doc(
+                    Path(MACHINE_DOC).read_text(errors='replace'))
             except OSError:
                 summary = []
 
@@ -517,7 +554,22 @@ class ShareCheckWorker(QThread):
             operation.set_password(self.password)
             operation.set_password_save(save_mode)
 
+            # DN-41. GVFS re-emits ask-password on every authentication failure.
+            # Replying HANDLED with the same credentials each time is an infinite
+            # retry loop: the mount never settles, _await_async hits
+            # MOUNT_TIMEOUT, and the advisor is told the server "did not answer
+            # in time" when the truth is that their password was wrong. Answer
+            # once; ABORT the re-ask so a real GError propagates instead.
+            # Verified on the Dell 2026-08-30: GVFS itself answers in under a
+            # second ("Anonymous access denied"), so a timeout here was never
+            # the server being slow -- it was always us looping.
+            auth = {'asks': 0}
+
             def answer_password(op, _message, _default_user, _default_domain, _flags):
+                auth['asks'] += 1
+                if auth['asks'] > 1:
+                    op.reply(Gio.MountOperationResult.ABORTED)
+                    return
                 op.set_username(self.username)
                 op.set_password(self.password)
                 op.set_password_save(save_mode)
@@ -544,8 +596,17 @@ class ShareCheckWorker(QThread):
                                    'busy or blocked by a firewall.'})
                     return
                 if err is not None and not self._already_mounted(err):
-                    self.result_ready.emit(self, {
-                        'ok': False, 'message': self._message_for_gerror(err)})
+                    # A second ask-password means the credentials we supplied
+                    # were rejected; we aborted, so GIO reports FAILED_HANDLED,
+                    # which _message_for_gerror would read as "the advisor
+                    # cancelled". They did not -- the password was refused.
+                    if auth['asks'] > 1 and self._gerror_is(
+                            err, Gio.IOErrorEnum.FAILED_HANDLED):
+                        message = ('The server answered, but the username or '
+                                   'password was not accepted.')
+                    else:
+                        message = self._message_for_gerror(err)
+                    self.result_ready.emit(self, {'ok': False, 'message': message})
                     return
                 try:
                     mount = location.find_enclosing_mount(None)
@@ -955,9 +1016,21 @@ class SelfTest(QObject):
     # What a CORRECT machine reports. An error path is SUPPOSED to return
     # ok:false -- calling that a failed test would make the report lie.
     # None means "no expectation; print it and let a human judge".
-    EXPECT = {'check-computer': True, 'check-share-reachable': True,
+    EXPECT = {'check-computer': True, 'check-share-reachable': False,
               'check-share-unreachable': False, 'print-test': None,
               'ask': True}
+
+    # DN-41. check-share-reachable deliberately supplies a fake password, so it
+    # can NEVER return ok:true -- the old expectation of True was unsatisfiable
+    # and the test could only ever fail. What it actually proves is that a
+    # REACHABLE server produces a credentials verdict rather than a network
+    # one. Both cases return ok:false, so ok alone cannot tell them apart; the
+    # message is the only thing that distinguishes a working path from the
+    # timeout bug this test was written to catch.
+    EXPECT_MESSAGE = {
+        'check-share-reachable': ('was not accepted', 'was not found'),
+        'check-share-unreachable': ('could not be reached',),
+    }
     # Real verbs, deliberately not automated. Named so the report is honest.
     REQUIRES_HUMAN = {
         'apply-theme': 'changes the live desktop appearance',
@@ -1015,6 +1088,13 @@ class SelfTest(QObject):
         ok = bool(payload.get('ok'))
         expect = self.EXPECT.get(self._current)
         verdict = 'REPORTED' if expect is None else ('PASS' if ok == expect else 'FAIL')
+        wanted = self.EXPECT_MESSAGE.get(self._current)
+        if verdict == 'PASS' and wanted:
+            message = str(payload.get('message', ''))
+            if not any(w in message for w in wanted):
+                verdict = 'FAIL'
+                payload = dict(payload, selftest_note='ok matched, but the message '
+                               'was not one of: %s' % '; '.join(wanted))
         self.results.append({'verb': self._current, 'sink': sink, 'ok': ok,
                              'expected_ok': expect, 'verdict': verdict,
                              'payload': payload})
@@ -1049,8 +1129,9 @@ class SelfTest(QObject):
             elif verb == 'print-test':
                 w.print_test()
             elif verb == 'check-share-reachable':
-                # Placeholder password, never a real one: this tests whether the
-                # host is REACHABLE, not whether a credential works.
+                # Placeholder password, never a real one: this tests whether a
+                # reachable host is correctly reported as a CREDENTIAL problem
+                # rather than a network one. See EXPECT_MESSAGE.
                 w.check_share(SELFTEST_SHARE_UP, 'Shared', 'tester',
                               'selftest-not-a-real-password', False)
             elif verb == 'check-share-unreachable':
