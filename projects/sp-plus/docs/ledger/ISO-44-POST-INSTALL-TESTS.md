@@ -21,15 +21,15 @@ completed item.
 |---|---|---|---|
 | DN-32 | `spplus-tune` survey + `/var/lib/sp-plus/THIS-MACHINE.md` | HW | EDID bug found + fixed on hardware |
 | DN-32 | **"HAVE FIN CHECK MY COMPUTER"** button, first on the Fin screen | HW | via self-test: "up to date. Nothing was changed." |
-| DN-30 | Daily update-health timer (persistent) | GATE | reuses the tuner's detector |
+| DN-30 | Daily update-health timer (persistent) | **HW (timer semantics)** | same spelling proven to re-arm daily |
 | DN-33 | Source gate asserts the `--system` Flatpak contract | GATE | old gate encoded the BUG and blocked the build |
 | D1 | Welcome installs Flatpaks system-scope via `sudo -n` | HW | Bitwarden installed end to end |
-| DN-34 | **`flatpak update` timer** — nothing updated Flatpaks before | GATE | staggered off preinstall (flatpak lock) |
-| DN-36 | Wi-Fi power saving disabled in image content | GATE | latency measured, fix NOT yet applied on HW |
-| DN-37 | Screenshot capture no longer writes to read-only `/usr` | GATE | never worked on any real install |
+| DN-34 | **`flatpak update` timer** — nothing updated Flatpaks before | **HW** | command runs; timer NEXT +4h, Persistent=yes |
+| DN-36 | Wi-Fi power saving disabled in image content | **HW** | 71.6->18.3 ms avg. Needs NM RESTART, not reload |
+| DN-37 | Screenshot capture no longer writes to read-only `/usr` | **HW** | 7 PNGs, 90-140 KB each, inspected |
 | DN-38 | **Headless `--self-test`** QC harness | HW | bypasses the single-instance lock |
 | DN-39 | Office folder check actually checks the folder | HW (partial) | unreachable case correct; reachable case needs a real share |
-| DN-40 | **GVFS + `gvfs-smb` shipped** | NONE | image not yet rebuilt — see §4 |
+| DN-40 | **GVFS + `gvfs-smb` shipped** | **HW (probe build)** | gvfs-smb-1.60.2-1.fc44 resolves; gate passed |
 
 ## 2. The two defects that would have shipped
 
@@ -113,3 +113,18 @@ on hardware where resume is known broken. Christopher's call.
 - One push token, on the build machine only. Advisors need nothing.
 - Then: `bootc-fetch-apply-updates.timer` + image signing, which is the durable
   decision pair. Auto-updating AND unverified is worse than either alone.
+
+
+## 6. Machine-local drift on the Dell — REMOVE BEFORE POST-INSTALL TESTING
+
+These were applied directly to the Dell's /etc to verify mechanisms. They are
+NOT in the image and /etc SHADOWS /usr/lib, so leaving them would make the
+post-install test validate the wrong file:
+
+- `/etc/NetworkManager/conf.d/90-spplus-wifi-powersave.conf` (DN-36)
+- the masked sleep targets + `/etc/systemd/logind.conf.d/10-spplus-never-sleep.conf`
+  and `~/.config/powerdevilrc` (suspend fix, §3 — a deliberate Dell-only change)
+
+Delete the NetworkManager one after installing ISO 44, then confirm
+`iw dev wlp2s0 get power_save` still reports **off** from the shipped
+/usr/lib copy alone.
