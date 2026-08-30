@@ -94,3 +94,47 @@ Whole run: ~25s of dead hang → **7 seconds**.
 
 Not covered: a real office server with real working credentials. The success
 path still has never been exercised against live infrastructure.
+
+---
+
+# DN-42 — the summary was unreadable: white on grey
+
+Reported by Christopher at the Dell, on the shipped build: *"I clicked 'Have
+Fin check my computer' and it populated some text but i cant see most of it as
+its white on grey."*
+
+Three separate faults, none of which a green build could see.
+
+**1. `.check-summary` had no CSS rule at all.** The `<ul>` shipped unstyled, so
+it inherited `color:#fff` from `.fin-brief`.
+
+**2. It overflowed the section it lived in.** `.fin-brief` is a flex column with
+`min-height:440px` on a blue ground. Six rows plus two buttons exceed that at
+1366x768, and the excess did not clip — it rendered *outside* the blue section,
+over the silver `.screen` behind. Inherited white on `--silver`: exactly what
+Christopher saw. First attempt at a fix made the panel legible but only moved
+the overflow onto the OPEN FIN button, which was then pushed off the bottom.
+The screenshot is what showed that; the passing self-test could not.
+
+**3. `display:grid` overrides `[hidden]`.** The list carries the `hidden`
+attribute until a check runs, but a `display` declaration beats the UA
+stylesheet, so an empty bordered box rendered on arrival at the screen.
+
+**Fix.** The list moved into the `.fin-ledger` column, which is white, already
+half empty, and under no height pressure. It carries its own background and
+colour so it cannot be broken by whatever it sits on, plus an explicit
+`[hidden]` rule. Verified by screenshot on the Dell in both states: populated
+(six readable rows, both buttons visible, nothing on grey) and empty (no box).
+
+**Gate.** P-21 checks all of it: structural parsing, no `- ` harvester, the ask
+counter and ABORT, `EXPECT_MESSAGE`, the CSS rule with its own background and
+colour, the `[hidden]` rule, and that the list is inside `fin-ledger`.
+Negative-tested by reintroducing each defect; each was caught with the right
+diagnosis.
+
+## The lesson
+
+Every DN-41 verb passed while DN-42 made the result unreadable. A self-test
+proves the payload is right; it says nothing about whether a human can read it.
+Rendered output needs an eye or a screenshot, and this feature had never had
+either until Christopher clicked the button.

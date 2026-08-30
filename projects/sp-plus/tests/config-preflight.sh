@@ -457,6 +457,51 @@ grep -qF 'DN40_GVFS_SMB_OK' "$DN40CF" \
   && ok "DN-40 GVFS SMB backend is installed and gated" \
   || bad "DN-40 gvfs gate failed" "the office folder feature would ship unable to work"
 
+# P-21  DN-41/DN-42 the Fin check summary. Three ways this went wrong, all of
+# which shipped past a green build:
+#   - the summary harvested every "- " line from THIS-MACHINE.md, which matched
+#     only the wrapped caveats under ## Notes and showed advisors sentences cut
+#     mid-clause;
+#   - the list had NO css rule at all, so it inherited white from .fin-brief and
+#     rendered white-on-grey where it overflowed that section -- Christopher hit
+#     this on the Dell: "it populated some text but i cant see most of it";
+#   - display:grid overrides [hidden], so the empty box showed before any check.
+# A build cannot see any of these. These greps can.
+DN41PY="$REPO/projects/sp-plus/welcome/welcome.py"
+DN41CSS="$REPO/projects/sp-plus/welcome/app/app.css"
+DN41HTML="$REPO/projects/sp-plus/welcome/app/index.html"
+DN41_OK=1
+grep -qF '_summarise_machine_doc' "$DN41PY" \
+  || { DN41_OK=0; echo "       summary is not parsed structurally; it is scraping prose again"; }
+grep -qE "^\s*if line\.startswith\('- '\)" "$DN41PY" \
+  && { DN41_OK=0; echo "       the '- ' prose harvester is back; it only ever matched ## Notes"; }
+grep -qF 'auth[' "$DN41PY" \
+  || { DN41_OK=0; echo "       ask-password is not counted; a rejected password will loop to timeout"; }
+grep -qF 'MountOperationResult.ABORTED' "$DN41PY" \
+  || { DN41_OK=0; echo "       ask-password never aborts; same infinite retry loop as DN-41"; }
+grep -qF "EXPECT_MESSAGE" "$DN41PY" \
+  || { DN41_OK=0; echo "       self-test asserts only on ok, which cannot distinguish DN-41 from a pass"; }
+grep -qF '.check-summary{' "$DN41CSS" \
+  || { DN41_OK=0; echo "       .check-summary has no rule; it will inherit white and be unreadable"; }
+grep -qF '.check-summary[hidden]{display:none}' "$DN41CSS" \
+  || { DN41_OK=0; echo "       display:grid beats [hidden]; the empty box will show before any check"; }
+grep -qE '\.check-summary\{[^}]*background:' "$DN41CSS" \
+  || { DN41_OK=0; echo "       .check-summary has no background of its own; legibility depends on its parent"; }
+grep -qE '\.check-summary\{[^}]*color:' "$DN41CSS" \
+  || { DN41_OK=0; echo "       .check-summary has no colour of its own; it will inherit white again"; }
+python3 - "$DN41HTML" <<'PYGATE' || DN41_OK=0
+import re, sys
+html = open(sys.argv[1]).read()
+ledger = re.search(r'<section class="fin-ledger">.*?</section>', html, re.S)
+if not ledger or 'id="check-summary"' not in ledger.group(0):
+    print('       check-summary is not in the fin-ledger column; the blue brief '
+          'has no room for it at 1366x768 and it will overflow onto the screen')
+    sys.exit(1)
+PYGATE
+[ "$DN41_OK" -eq 1 ] \
+  && ok "DN-41/42 check summary is structured, styled, hidden when empty, and in the ledger column" \
+  || bad "DN-41/42 summary gate failed" "the advisor either cannot read the result or reads a fragment"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

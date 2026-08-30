@@ -55,3 +55,17 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
 .theme-meta em{color:var(--fine);font-size:9px;font-style:normal;line-height:1.3}
 .lead-gallery .theme-card .swatch{height:40px}
 .lead-gallery .theme-meta em{font-size:10px}
+
+/* DN-42: the Fin check summary. It ships as its OWN surface -- explicit
+   background and explicit colour -- rather than inheriting from .fin-brief.
+   It had no rule at all, so it inherited white; and because the six rows push
+   .fin-brief past its 440px min-height, the overflow rendered outside the blue
+   section, on the silver screen behind it. White on grey: the advisor could
+   see that something had appeared and could not read it. A panel that carries
+   its own colours cannot be broken by whatever it lands on, and the height cap
+   stops the list from growing the section in the first place. */
+.check-summary{display:grid;gap:6px;flex:0 0 auto;max-height:150px;overflow-y:auto;margin:14px 0 0;padding:12px 13px;border:var(--line);border-left:5px solid var(--yellow);background:var(--silver);color:var(--ink);list-style:none;font-size:11px;line-height:1.4}
+.check-summary li{margin:0;overflow-wrap:anywhere}
+.check-summary[hidden]{display:none}
+.fin-brief .primary-action{flex:0 0 auto}
+.fin-brief>p{flex:0 0 auto}
