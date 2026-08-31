@@ -51,7 +51,11 @@ for (var screen = 0; screen < screenCount; ++screen) {
 
     var start = panel.addWidget("org.kde.plasma.kickoff");
     start.currentConfigGroup = ["General"];
-    start.writeConfig("icon", "start-here-kde-symbolic");
+    // windows-modern ships start-here.svg (the four-pane Windows mark) but NOT
+    // start-here-kde-symbolic. Asking for the symbolic name falls through to Breeze
+    // and puts a KDE logo on the Start button of a Windows-familiar desktop --
+    // verified on the Dell. Ask for the name the theme actually provides.
+    start.writeConfig("icon", "start-here");
     start.writeConfig("favorites", spplusMenuFavorites.join(","));
     start.writeConfig("favoritesPortedToKAstats", "false");
     panelWidgets.push(start);
