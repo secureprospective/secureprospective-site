@@ -26,7 +26,6 @@
   const servicePending = { files: false, social: false };
   const serviceReady = { files: false, social: false };
   let activeSocialPlatform = null;
-  let socialOpenAction = null;
   function announce(message, kind=''){ status.textContent = message; status.dataset.kind = kind; }
   function serviceElement(service, attribute) {
     return document.querySelector(`[data-${attribute}="${service}"]`);
@@ -41,11 +40,42 @@
       control.innerHTML = `${label}${control.classList.contains('primary-action') ? ' <span>→</span>' : ''}`;
     });
   }
+  function renderPortalSyncState(state) {
+    const copy = document.querySelector('[data-portal-sync-copy]');
+    const marker = document.querySelector('[data-portal-sync-state]');
+    if (!copy || !marker) return;
+    const states = {
+      pending: [
+        'Welcome is checking the secure workspace. Browser access stays closed until it answers.',
+        'CHECKING WORKSPACE'
+      ],
+      provisioning: [
+        'The workspace is still being set up. Browser access will appear when it is ready.',
+        'WAITING FOR WORKSPACE'
+      ],
+      ready: [
+        'Workspace ready. Sync stays limited to these two folders. Use browser access if the client will not connect.',
+        'READY FOR TWO-FOLDER SYNC'
+      ],
+      unavailable: [
+        'Desktop sync and browser access are deferred until Welcome can reach the portal. Try again from the status strip.',
+        'ACCESS DEFERRED / RETRY'
+      ]
+    };
+    const [copyText, markerText] = states[state] || states.unavailable;
+    copy.textContent = copyText;
+    marker.textContent = markerText;
+  }
   function renderSocialPlatforms(platforms, state) {
     const list = document.getElementById('social-platforms');
     if (!list) return;
     list.replaceChildren();
+    const liveNote = document.querySelector('[data-social-live-note]');
+    if (liveNote) liveNote.hidden = true;
     if (state !== 'ready') {
+      document.getElementById('social-account-confirm')?.setAttribute('hidden', '');
+      document.getElementById('social-calendar-confirm')?.setAttribute('hidden', '');
+      activeSocialPlatform = null;
       const empty = document.createElement('div');
       empty.className = 'platform-empty';
       empty.textContent = state === 'provisioning'
@@ -57,6 +87,7 @@
     const declared = Array.isArray(platforms) ? platforms : [];
     const live = declared.filter(platform => platform && platform.state === 'live');
     const pending = declared.filter(platform => platform && platform.state === 'pending_review');
+    if (liveNote) liveNote.hidden = !live.some(platform => platform.id === 'bluesky');
     const order = { bluesky: 0, linkedin: 1 };
     const byPriority = (a, b) => (order[a.id] ?? 50) - (order[b.id] ?? 50);
     live.sort(byPriority).forEach(platform => {
@@ -74,6 +105,8 @@
       item.className = 'platform-pending';
       item.dataset.platform = platform.id;
       item.dataset.platformState = 'pending_review';
+      item.setAttribute('aria-disabled', 'true');
+      item.setAttribute('aria-label', `${platform.label}, coming soon`);
       const label = document.createElement('span');
       label.textContent = platform.label;
       const stateLabel = document.createElement('span');
@@ -97,11 +130,14 @@
     const stamp = serviceElement(service, 'service-stamp');
     const retry = document.querySelector(`[data-service-retry="${service}"]`);
     if (state) { state.dataset.kind = 'pending'; state.removeAttribute('data-http-status'); }
-    if (title) title.textContent = 'CHECKING SECURE WORKSPACE...';
-    if (detail) detail.textContent = 'Welcome is checking the service before it asks you to sign in.';
+    if (title) title.textContent = service === 'files' ? 'CHECKING SECURE WORKSPACE...' : 'CHECKING SOCIAL WORKSPACE...';
+    if (detail) detail.textContent = service === 'files'
+      ? 'Welcome is checking the portal before it asks you to sign in.'
+      : 'Welcome is checking the service before it offers a connection.';
     if (stamp) stamp.textContent = 'CHECKING...';
     if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
     setReadyOnlyControls(service, false);
+    if (service === 'files') renderPortalSyncState('pending');
     if (service === 'social') renderSocialPlatforms([], 'pending');
   }
   function renderServiceResult(service, payload) {
@@ -138,6 +174,7 @@
     if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
     serviceReady[service] = stateName === 'ready';
     setReadyOnlyControls(service, serviceReady[service]);
+    if (service === 'files') renderPortalSyncState(stateName);
     if (service === 'social') renderSocialPlatforms(serviceReady[service] ? payload.platforms : [], stateName);
     if (service === 'files') {
       const mailState = document.querySelector('[data-portal-mail-state]');
@@ -169,7 +206,10 @@
   }
   function openService(service, action, platform = '') {
     if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
-    socialOpenAction = { service, action, platform };
+    if ((service === 'files' && !serviceReady.files) || (service === 'social' && !serviceReady.social)) {
+      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL WORKSPACE'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
+      return;
+    }
     document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=${encodeURIComponent(action)}${platform ? `&platform=${encodeURIComponent(platform)}` : ''}`;
   }
   function startSocialConnection(button) {

@@ -1145,12 +1145,24 @@ class WelcomeBridge(QObject):
         worker = ServiceCapabilityWorker(service)
         self._service_workers.add(worker)
         worker.result_ready.connect(self._service_finished)
+        # Keep the worker in the owning set until QThread has emitted finished.
+        # result_ready is emitted at the end of run(), but a queued delivery can
+        # arrive while the thread is still unwinding. Dropping the last Python
+        # reference from _service_finished at that point destroys a live
+        # QThread and aborts the process during teardown. The bound bridge slot
+        # keeps cleanup on the Qt/UI thread rather than in the worker thread.
+        worker.finished.connect(self._service_threads_finished)
         worker.finished.connect(worker.deleteLater)
         worker.start()
 
+    @Slot()
+    def _service_threads_finished(self):
+        for worker in list(self._service_workers):
+            if not worker.isRunning():
+                self._service_workers.discard(worker)
+
     @Slot(object, object)
     def _service_finished(self, worker, payload):
-        self._service_workers.discard(worker)
         self._service_cache[worker.service] = payload
         self._send_service_result(payload)
 

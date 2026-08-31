@@ -26,7 +26,7 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .page-title{gap:24px;margin-bottom:14px}.page-title p{max-width:600px;margin-top:11px;font-size:15px;line-height:1.35}.title-stamp{margin-top:0;padding:8px 0}.controls{min-height:74px;padding-block:10px}
   .welcome-screen.active{grid-template-columns:minmax(390px,1.4fr) minmax(260px,.75fr);grid-template-rows:1fr auto;gap:18px}.welcome-copy h1{font-size:clamp(52px,5.6vw,82px)}.welcome-copy p{max-width:500px;margin-top:17px;font-size:17px;line-height:1.35}.welcome-manifest div{gap:5px;padding:14px}.welcome-manifest strong{font-size:15px}.welcome-side-note{padding-top:10px}.welcome-side-note p{font-size:10px}
   .theme-page-title{margin-bottom:9px}.theme-page-title p{max-width:610px}.theme-gallery{gap:10px}.theme-card img{height:104px}.theme-meta{padding:7px 8px}.theme-meta b{font-size:11px}.theme-meta small{font-size:9px}.choice-head h2{font-size:21px}.choice-head p{font-size:11px}.theme-adjustments{margin-top:9px;padding-top:9px}.adjustment-intro h2{font-size:19px}.adjustment-intro p{font-size:10px}.adjustment-option{min-height:30px;font-size:8px}.adjustment-group legend{margin-bottom:5px}.preview-note{margin-top:6px;font-size:9px}.theme-boundary{margin-top:7px}.theme-columns{gap:11px}.theme-column .theme-gallery{gap:6px}.theme-card .swatch{height:18px}.lead-gallery .theme-card .swatch{height:32px}.theme-meta em{font-size:8px}
-  .map-stage{min-height:0;height:calc(100% - 146px)}.desktop-map{min-height:0;padding:24px}.map-window{gap:13px}.help-station{padding:18px}.ask-form{margin-top:9px}.ask-feedback{max-height:100px}.trail-card,.article-link{min-height:69px;padding:9px}.trail-card small,.article-link small{margin-top:5px}.article-reader{max-height:210px}
+  .map-stage{min-height:0;height:calc(100% - 156px)}.desktop-map{min-height:0;padding:24px}.map-window{gap:13px}.help-station{padding:18px}.ask-form{margin-top:9px}.ask-feedback{max-height:100px}.trail-card,.article-link{min-height:69px;padding:9px}.trail-card small,.article-link small{margin-top:5px}.article-reader{max-height:210px}
   .office-screen .page-title{margin-bottom:12px}.office-screen .page-title p{max-width:540px}.office-grid{gap:11px}.office-lane{min-height:0;height:317px;padding:13px}.office-lane p{margin:11px 0;font-size:12px}.form-grid{gap:4px}.form-grid label{grid-template-columns:102px 1fr;font-size:10px}.form-grid input{padding:5px;font-size:11px}.office-lane .checkline{margin:8px 0}.office-lane fieldset{gap:7px}.office-lane .text-button{margin-top:4px}.ledger-callout{margin-top:12px;padding:9px 0}.ledger-callout p{font-size:11px;line-height:1.35}
   .fin-screen .page-title{margin-bottom:12px}.fin-stage{height:390px}.fin-brief{min-height:0;padding:22px}.fin-brief h2{font-size:clamp(34px,3.6vw,52px)}.fin-brief p{margin:16px 0;font-size:13px}.fin-ledger{padding:22px}.fin-ledger div{padding:10px 0}.fin-ledger strong{font-size:15px}.fin-ledger p{padding-top:12px;font-size:11px}
   .tools-screen .page-title{margin-bottom:12px}.tool-row{min-height:76px;padding:12px 15px;gap:13px}.tool-row h2{font-size:24px}.tool-row p{font-size:12px}.discover-strip{min-height:114px;margin-top:13px;padding:16px}.discover-strip h2{font-size:29px}.discover-strip p{margin-top:6px;font-size:12px}.tools-screen .ledger-callout{margin-top:12px}
@@ -183,7 +183,7 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
 .service-status[data-kind="unavailable"]{border-left:5px solid var(--yellow);background:#fff4b8}
 .service-status[data-kind="unavailable"] b{color:var(--ink)}
 .service-spinner{display:block;width:13px;height:13px;border:2px solid #0033a04d;border-top-color:var(--blue);border-radius:50%;animation:service-spin 850ms linear infinite}
-.service-status[data-kind="ready"] .service-spinner,.service-status[data-kind="unavailable"] .service-spinner{display:none}
+.service-status[data-kind="ready"] .service-spinner,.service-status[data-kind="unavailable"] .service-spinner{visibility:hidden;animation:none}
 @keyframes service-spin{to{transform:rotate(360deg)}}
 .portal-layout,.social-layout{display:grid;gap:10px;min-height:0;height:100%}
 .portal-layout{grid-template-columns:minmax(0,.9fr) minmax(230px,1.15fr) minmax(0,.9fr)}
@@ -226,6 +226,10 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
 .social-no-login{margin-top:9px;padding:7px 8px;border:1px solid var(--ink);background:var(--silver)}
 .social-no-login>span{color:var(--blue)}
 .social-no-login p{margin-top:4px;font-size:10px;line-height:1.25}
+.social-live-note{margin-top:8px;padding:7px 8px;border-left:4px solid var(--blue);background:#dcecff}
+.social-live-note span{display:block;color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.08em;line-height:1.1;text-transform:uppercase}
+.social-live-note p{margin-top:4px;font-size:10px;line-height:1.25}
+.social-live-note[hidden]{display:none}
 .platform-list{display:grid;gap:6px;min-height:0;margin-top:9px;overflow:hidden}
 .platform-connect{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:36px;padding:7px 10px;border:1px solid var(--ink);background:var(--white);box-shadow:var(--hard);color:var(--ink);font-size:10px;font-weight:800;letter-spacing:.06em;text-align:left;text-transform:uppercase;transition:background var(--fast),color var(--fast),transform var(--fast)}
 .platform-connect:after{content:'→';font-size:17px;line-height:1}
@@ -279,6 +283,9 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .portal-boundary{margin-top:7px;padding-top:6px}
   .portal-boundary p{font-size:9px}
   .social-no-login{margin-top:7px;padding:6px 7px}
+  .social-live-note{margin-top:6px;padding:5px 6px}
+  .social-live-note span{font-size:8px}
+  .social-live-note p{margin-top:3px;font-size:9px;line-height:1.2}
   .platform-list{margin-top:7px;gap:5px}
   .platform-connect{min-height:32px;padding:5px 8px;font-size:9px}
   .platform-pending{min-height:30px;padding:5px 8px;font-size:9px}
@@ -290,6 +297,12 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .social-attention{margin-top:7px;padding:7px}
   .social-note{padding:6px 0}
   .social-note p{font-size:9px}
+}
+@media (min-width:901px) and (max-width:1080px){
+  /* The 1024px gate is still a desktop composition. Stacking these three
+     independent office jobs creates a second page, so preserve the lane rail
+     and let each lane absorb its narrower column. */
+  .office-grid{grid-template-columns:1.3fr .85fr .85fr}
 }
 @media (min-width:901px) and (max-height:820px){
   .service-screen .page-title{margin-bottom:6px}
@@ -324,14 +337,20 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .portal-boundary p{margin-top:3px;font-size:8px;line-height:1.15}
   .portal-sync-state{padding:4px 6px;font-size:8px}
   .portal-card .secondary-action,.portal-card .primary-action{margin-top:5px;min-height:30px;font-size:8px}
+  .portal-actions .lane-title{gap:3px;white-space:nowrap}
+  .portal-actions .lane-title span{font-size:7px;letter-spacing:.04em;white-space:nowrap}
+  .portal-actions .lane-title b{padding:2px 3px;font-size:7px;white-space:nowrap}
   .portal-card .primary-action{gap:8px;padding-inline:7px}
   .social-connect-card>p,.social-proof-card>p{margin-top:5px}
   .social-no-login{margin-top:5px;padding:5px 6px}
   .social-no-login p{margin-top:3px;font-size:8px;line-height:1.15}
-  .platform-list{margin-top:5px;gap:4px}
+  .social-live-note{margin-top:4px;padding:4px 5px}
+  .social-live-note span{font-size:7px}
+  .social-live-note p{margin-top:2px;font-size:8px;line-height:1.15}
+  .platform-list{margin-top:5px;gap:3px}
   .platform-connect{min-height:28px;padding:4px 6px;font-size:8px}
   .platform-connect:after{font-size:14px}
-  .platform-pending{min-height:26px;padding:4px 6px;font-size:8px}
+  .platform-pending{min-height:22px;padding:3px 5px;font-size:8px}
   .platform-pending span:last-child{font-size:8px}
   .platform-empty{padding:6px;font-size:8px;line-height:1.2}
   .social-account-confirm{margin-top:4px;padding-top:4px;gap:3px}
