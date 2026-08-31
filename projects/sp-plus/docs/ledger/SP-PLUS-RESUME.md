@@ -172,3 +172,45 @@ What is NOT proven:
 (`io.github.jackgruber.backup`) references it and touched it at 13:46 today. Moving it
 would break Christopher's note backups, so the fix is a Joplin plugin setting, not a `mv`.
 Raised with him; left in place deliberately.
+
+## ENVIRONMENT CHANGE 2026-08-31 -- VM SSH forward made persistent
+
+The `ssh -p 2222 test@127.0.0.1` path into the `fedora-test` VM was created with a
+live `hostfwd_add` on the QEMU HMP monitor. That forward exists only in QEMU's
+memory, so it disappeared the moment QEMU restarted, and a verification run in
+flight failed with "connection refused" through no fault of its own. It had to be
+re-added by hand each time, which is friction that costs whole runs.
+
+It is now declared in the domain XML instead:
+
+```xml
+<interface type='user'>
+  <mac address='52:54:00:06:f0:fe'/>
+  <portForward proto='tcp' address='127.0.0.1'>
+    <range start='2222' to='22'/>
+  </portForward>
+  <model type='virtio'/>
+  <backend type='passt'/>
+</interface>
+```
+
+`<portForward>` is not available on the SLIRP backend. libvirt 11.3.0 rejects it
+outright with "can only be used with the 'passt' backend of interface type='user'
+or type='vhostuser'", so the backend change is required rather than incidental.
+passt was already installed and is designed for exactly this unprivileged session
+use.
+
+Two consequences to expect:
+
+- The guest address will no longer be `10.0.2.15`. That was SLIRP's fixed lease.
+  Nothing in the workflow depends on it -- the VM is reached through the forward
+  on `127.0.0.1:2222` -- but earlier notes referring to `10.0.2.15` are stale.
+- The change takes effect at the VM's NEXT boot. The running domain keeps the
+  hand-added monitor forward, which is why defining this was safe to do with a
+  verification run live against the VM.
+
+**UNPROVEN until that next boot.** The definition was accepted and reads back
+correctly, but accepted XML is not a working forward, and it has not yet been
+observed carrying an SSH session. Verify on the next start before relying on it;
+if it misbehaves, the pre-change XML is backed up in the session scratchpad as
+`fedora-test.backup-*.xml` and `virsh define` on that file restores SLIRP.
