@@ -87,12 +87,12 @@ capture() {
 
 capture org.secureprospective.spplus.windows11.dark  windows-dark      --layout
 capture org.secureprospective.spplus.windows11.light windows-light     --layout
-capture org.kde.breezedark.desktop                   breeze-dark       --no-layout
-capture org.kde.breeze.desktop                       breeze-light      --no-layout
-capture Nordic                                       nordic-dark       --no-layout
-capture com.github.vinceliuice.Orchis                orchis-light      --no-layout
-capture Catppuccin-Latte                             catppuccin-latte  --no-layout
-capture Catppuccin-Mocha                             catppuccin-mocha  --no-layout
+capture org.kde.breezedark.desktop                   breeze-dark       --layout
+capture org.kde.breeze.desktop                       breeze-light      --layout
+capture Nordic                                       nordic-dark       --layout
+capture com.github.vinceliuice.Orchis                orchis-light      --layout
+capture Catppuccin-Latte                             catppuccin-latte  --layout
+capture Catppuccin-Mocha                             catppuccin-mocha  --layout
 
 echo
 echo "=== receipts produced ==="

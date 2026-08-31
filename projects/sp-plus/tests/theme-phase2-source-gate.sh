@@ -104,6 +104,9 @@ if html.count('class="theme-card') != 8:
 for card in re.findall(r'<button class="theme-card[^>]*>', html):
     if 'data-preview=' not in card or 'data-layout-reset=' not in card:
         raise SystemExit(f'theme card lacks preview/layout receipt data: {card}')
+    layout = re.search(r'data-layout-reset=["\']([^"\']+)["\']', card)
+    if not layout or layout.group(1) != 'true':
+        raise SystemExit(f'theme card does not reset to its declared layout: {card}')
 if 'role="dialog"' not in html or 'id="preview-apply"' not in html:
     raise SystemExit('single preview confirmation surface is missing')
 if 'confirm(' in Path(sys.argv[2]).with_name('app.js').read_text(encoding='utf-8'):

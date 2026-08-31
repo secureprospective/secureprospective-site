@@ -62,6 +62,24 @@ LEGACY_CHANGE_TYPES = {
 }
 SECTION_RE = re.compile(r"^\[([^\]]+)\](?:\[([^\]]+)\])?$")
 ADD_WIDGET_RE = re.compile(r"\baddWidget\s*\(\s*['\"]([^'\"]+)['\"]\s*\)")
+STOCK_LAYOUT_TEMPLATE_RELATIVE = PurePosixPath(
+    "plasma/layout-templates/org.kde.plasma.desktop.defaultPanel/contents/layout.js"
+)
+LOAD_TEMPLATE_RE = re.compile(r"loadTemplate\s*\(\s*['\"]([^'\"]+)['\"]\s*\)")
+# This is the ordered applet sequence read back from a clean Plasma profile after
+# the built-in default-panel loader runs.  The input-method panel is conditional
+# on the system language, so it is an optional slot rather than a reason to skip
+# the live assertion.
+STOCK_CLEAN_PROFILE_PANEL: tuple[Any, ...] = (
+    "org.kde.plasma.kickoff",
+    "org.kde.plasma.pager",
+    "org.kde.plasma.icontasks",
+    "org.kde.plasma.marginsseparator",
+    {"optional": ["org.kde.plasma.kimpanel"]},
+    "org.kde.plasma.systemtray",
+    "org.kde.plasma.digitalclock",
+    "org.kde.plasma.showdesktop",
+)
 SHOW_DESKTOP_WIDGETS = (
     "org.kde.plasma.minimizeall",
     "org.kde.plasma.showdesktop",
@@ -405,6 +423,44 @@ def find_layout_script(package_path: Path) -> Optional[Path]:
     return scripts[0]
 
 
+def find_layout_template(root: Path, template_name: str) -> Optional[Path]:
+    pure_name = PurePosixPath(template_name)
+    if (
+        not template_name
+        or pure_name.name != template_name
+        or template_name in {".", ".."}
+    ):
+        raise ValidationFailure(f"unsafe Plasma layout template name: {template_name!r}")
+    relative = PurePosixPath("plasma/layout-templates") / pure_name / "contents/layout.js"
+    for data_root in data_roots(root):
+        candidate = data_root / relative
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def find_stock_layout_template(root: Path) -> Optional[Path]:
+    return find_layout_template(root, "org.kde.plasma.desktop.defaultPanel")
+
+
+def read_layout_source(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValidationFailure(f"cannot read layout script {path}: {exc}") from exc
+
+
+def executable_layout_source(text: str) -> str:
+    # Keep offsets stable while removing comments so a commented-out addWidget
+    # cannot become an expectation for the live shell.
+    return re.sub(
+        r"/\*.*?\*/|//[^\r\n]*",
+        lambda match: " " * len(match.group(0)),
+        text,
+        flags=re.S,
+    )
+
+
 def serialized_layout_object(text: str) -> Optional[dict[str, Any]]:
     marker = "var layout ="
     marker_index = text.find(marker)
@@ -427,21 +483,23 @@ def serialized_layout_object(text: str) -> Optional[dict[str, Any]]:
     return value if isinstance(value, dict) else None
 
 
-def layout_expectation(script: Path) -> dict[str, Any]:
-    try:
-        text = script.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
-        raise ValidationFailure(f"cannot read layout script {script}: {exc}") from exc
-    launcher_block = TASKBAR_LAUNCHERS_RE.search(text)
+def layout_expectation(script: Path, root: Optional[Path] = None) -> dict[str, Any]:
+    text = read_layout_source(script)
+    executable = executable_layout_source(text)
+    launcher_block = TASKBAR_LAUNCHERS_RE.search(executable)
     taskbar_launchers = (
         re.findall(r"['\"]([^'\"]+)['\"]", launcher_block.group(1))
         if launcher_block
         else None
     )
-    widget_matches = list(ADD_WIDGET_RE.finditer(text))
-    widget_ids = [match.group(1) for match in widget_matches]
+    widget_matches = list(ADD_WIDGET_RE.finditer(executable))
+    widget_ids: list[Any] = [match.group(1) for match in widget_matches]
+    if re.search(r"\blanguageId\b", executable):
+        for index, widget_id in enumerate(widget_ids):
+            if widget_id == "org.kde.plasma.kimpanel":
+                widget_ids[index] = {"optional": ["org.kde.plasma.kimpanel"]}
     if widget_ids:
-        fallback_call = SHOW_DESKTOP_ADD_WIDGET_RE.search(text)
+        fallback_call = SHOW_DESKTOP_ADD_WIDGET_RE.search(executable)
         has_guarded_show_desktop = (
             "knownWidgetTypes" in text
             and all(widget_type in text for widget_type in SHOW_DESKTOP_WIDGETS)
@@ -470,6 +528,15 @@ def layout_expectation(script: Path) -> dict[str, Any]:
             expectation["taskbar_launchers"] = taskbar_launchers
         return expectation
     serialized = serialized_layout_object(text)
+    if serialized is None and root is not None:
+        template_match = LOAD_TEMPLATE_RE.search(executable)
+        if template_match:
+            template_name = template_match.group(1)
+            template = find_layout_template(root, template_name)
+            if template is not None and template != script:
+                return layout_expectation(template, root)
+            if template_name == "org.kde.plasma.desktop.defaultPanel":
+                return stock_layout_expectation(root)
     if serialized is None:
         raise ValidationFailure(f"layout script {script} has no inspectable widget sequence")
     expected_panels: list[list[str]] = []
@@ -491,6 +558,29 @@ def layout_expectation(script: Path) -> dict[str, Any]:
     if taskbar_launchers is not None:
         expectation["taskbar_launchers"] = taskbar_launchers
     return expectation
+
+
+def stock_layout_expectation(root: Path) -> dict[str, Any]:
+    template = find_stock_layout_template(root)
+    if template is not None:
+        # The image carries the authoritative Plasma default-panel source. Parse
+        # that source instead of copying its applet order into a theme-specific
+        # branch; layout_expectation marks its language-gated IME slot optional.
+        expectation = layout_expectation(template)
+        expectation["kind"] = "stock-default-panel-template"
+        expectation["source"] = str(template)
+        return expectation
+
+    # A stripped test image may omit the template even though Plasma can still
+    # construct its built-in default panel. This last-resort expectation is the
+    # clean-profile read-back of that panel, and it remains a live D-Bus assertion
+    # rather than a permission to skip layout verification.
+    return {
+        "kind": "stock-default-panel-clean-profile",
+        "panels": [list(STOCK_CLEAN_PROFILE_PANEL)],
+        "panel_count": "exact",
+        "source": "clean-profile-readback: org.kde.plasma.desktop.defaultPanel",
+    }
 
 
 def safe_asset_value(value: str) -> str:
@@ -650,9 +740,21 @@ def build_package(log: EventLog, theme_id: str, want_layout: bool, root: Path) -
     layout_script = find_layout_script(package_path) if want_layout else None
     layout_expectation_value: Optional[dict[str, Any]] = None
     if want_layout:
-        if layout_script is None:
-            raise ValidationFailure(f"layout was requested but package has no JavaScript layout: {package_path}")
-        layout_expectation_value = layout_expectation(layout_script)
+        if layout_script is not None:
+            layout_expectation_value = layout_expectation(layout_script, root)
+        else:
+            # --resetLayout asks Plasma for its stock default when this package
+            # owns no layout. Keep that path observable and verify the resulting
+            # panel against the stock expectation just like a package script.
+            layout_expectation_value = stock_layout_expectation(root)
+            safe_emit(
+                log,
+                "layout_fallback",
+                "validate",
+                theme=theme_id,
+                reason="package has no JavaScript layout",
+                expected=layout_expectation_value,
+            )
 
     combined: list[Setting] = list(settings)
     selection = Setting(
@@ -977,6 +1079,16 @@ def ensure_session_ready(log: EventLog) -> None:
 
 def restart_plasmashell(log: EventLog, stage: str) -> None:
     systemctl = os.environ.get("SPPLUS_SYSTEMCTL", "/usr/bin/systemctl")
+    # A rapid, deliberate sequence of layout resets can trip systemd's user-unit
+    # start-rate limiter even when the shell itself is healthy. Clear only that
+    # historical failure counter before the checked restart; the restart and the
+    # D-Bus readiness poll below remain the actual health gates.
+    run_command(
+        log,
+        [systemctl, "--user", "reset-failed", "plasma-plasmashell.service"],
+        stage,
+        "reset-plasmashell-failure-limit",
+    )
     run_command(
         log,
         [systemctl, "--user", "restart", "plasma-plasmashell.service"],
@@ -1063,15 +1175,37 @@ def apply_package_state(log: EventLog, package: Package, root: Path) -> None:
 
 
 def layout_ids_match(actual: list[str], expected: list[Any]) -> bool:
-    if len(actual) != len(expected):
-        return False
-    for observed, wanted in zip(actual, expected):
+    def match_from(actual_index: int, expected_index: int) -> bool:
+        if expected_index == len(expected):
+            return actual_index == len(actual)
+        wanted = expected[expected_index]
         if isinstance(wanted, dict):
-            if observed not in wanted.get("alternatives", []):
+            optional = wanted.get("optional")
+            if isinstance(optional, list):
+                # An optional source applet may be absent on this locale, but an
+                # unexpected applet still fails the ordered sequence assertion.
+                if match_from(actual_index, expected_index + 1):
+                    return True
+                if (
+                    actual_index < len(actual)
+                    and actual[actual_index] in optional
+                    and match_from(actual_index + 1, expected_index + 1)
+                ):
+                    return True
                 return False
-        elif observed != wanted:
-            return False
-    return True
+            alternatives = wanted.get("alternatives", [])
+            return (
+                actual_index < len(actual)
+                and actual[actual_index] in alternatives
+                and match_from(actual_index + 1, expected_index + 1)
+            )
+        return (
+            actual_index < len(actual)
+            and actual[actual_index] == wanted
+            and match_from(actual_index + 1, expected_index + 1)
+        )
+
+    return match_from(0, 0)
 
 
 def parse_layout_dump(text: str) -> Optional[dict[str, Any]]:
