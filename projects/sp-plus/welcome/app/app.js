@@ -145,10 +145,20 @@
     previewKeep.disabled = false;
     setPreviewResult('Nothing changes until you apply.');
     if (resetsLayout) {
+      // Five of the eight themes ship a layout of their own. Nordic and the two
+      // Catppuccin themes do not, so applying them lays down the standard
+      // arrangement rather than one their author designed. The panel is still
+      // reset either way, which is what stops the previous theme's panel leaking
+      // through; only the wording differs, because promising "this theme's
+      // arrangement" for a theme that has none is a claim the desktop cannot keep.
+      const fromTheme = (card.dataset.panelSource || 'theme') !== 'standard';
+      const arrangement = fromTheme
+        ? "this theme's arrangement"
+        : 'the standard arrangement, because this theme does not define its own';
       fillPreviewList(previewChanges, [
         'Colours, window style and desktop theme.',
-        'Panel and pinned apps: replaced with this theme\'s arrangement.',
-        'Desktop widgets: replaced with this theme\'s arrangement.',
+        `Panel and pinned apps: replaced with ${arrangement}.`,
+        `Desktop widgets: replaced with ${arrangement}.`,
         'Splash screen: changes next time you sign in.'
       ]);
       fillPreviewList(previewUnchanged, [
