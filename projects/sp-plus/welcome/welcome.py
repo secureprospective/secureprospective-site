@@ -40,6 +40,14 @@ THEME_EVENT_LOG = os.environ.get(
         'sp-plus' / 'theme-events.jsonl'))
 THEME_JOURNAL = os.environ.get('SPPLUS_JOURNAL_COMMAND', '/usr/bin/systemd-cat')
 THEME_APPLY_TIMEOUT = float(os.environ.get('SPPLUS_THEME_APPLY_TIMEOUT', '600'))
+
+# Workers that were still running when the application quit and did not stop
+# inside the shutdown drain. Destroying a running QThread aborts the process,
+# so such a thread is parked here instead: the reference lives as long as the
+# interpreter, the thread finishes on its own, and the process exits cleanly.
+# This list should stay empty in practice; a non-empty one is a worker that
+# outran its own timeout and is worth investigating.
+_PARKED_WORKERS = []
 FIN = os.environ.get('SPPLUS_FIN', '/usr/libexec/sp-plus/fin')
 FIN_DESKTOP = os.environ.get('SPPLUS_FIN_DESKTOP', '/usr/share/applications/fin.desktop')
 GTK_LAUNCH = os.environ.get('SPPLUS_GTK_LAUNCH', '/usr/bin/gtk-launch')
@@ -837,6 +845,44 @@ class WelcomeBridge(QObject):
         self._theme_workers = set()
         view.titleChanged.connect(self.on_title)
 
+    def _worker_sets(self):
+        return (self._ask_workers, self._tool_workers, self._store_workers,
+                self._fin_workers, self._check_workers, self._email_workers,
+                self._share_workers, self._printer_workers, self._theme_workers)
+
+    @Slot()
+    def shutdown(self):
+        """Let every running worker finish before the interpreter tears down.
+
+        Every worker here is a QThread owned by this bridge. When the
+        application quits, Python drops the bridge and its worker sets; a
+        QThread object destroyed while its thread is still running makes Qt
+        abort the process with
+
+            QThread: Destroyed while thread '' is still running
+
+        followed by SIGABRT. That is the crash seen after a theme apply: the
+        apply restarts plasmashell, the shell teardown can close the Welcome
+        window mid-apply, and QApplication.quit() then races the running
+        ThemeApplyWorker. The race is real but narrow, which is why it appears
+        intermittently rather than on every apply.
+
+        The workers wrap subprocesses that carry their own time limits, so
+        there is nothing to interrupt -- the correct move is to wait for them.
+        Each is given a bound slightly past the longest worker time limit. A
+        thread that somehow outlasts even that is parked at module scope rather
+        than destroyed, because leaking one thread object is a correct program
+        that exits, and destroying it is not.
+        """
+        bound_ms = int((THEME_APPLY_TIMEOUT + 30) * 1000)
+        for workers in self._worker_sets():
+            for worker in list(workers):
+                if not worker.isRunning():
+                    continue
+                if not worker.wait(bound_ms):
+                    _PARKED_WORKERS.append(worker)
+            workers.clear()
+
     def on_title(self, title):
         if not title.startswith(self.PREFIX):
             return
@@ -1381,6 +1427,10 @@ def main():
     if instance is not None:
         instance.activated.connect(window.raise_and_focus)
         window.single_instance = instance
+    # Drain workers on every quit route -- the window's own closeEvent, the
+    # capture path, and a quit that arrives from the session -- rather than on
+    # any single one of them.
+    app.aboutToQuit.connect(window.bridge.shutdown)
     window.showMaximized()
     if args.self_test_close:
         QTimer.singleShot(1000, window.close)

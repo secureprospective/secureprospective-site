@@ -111,3 +111,42 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .preview-save{font-size:10px}
   .preview-actions{justify-content:stretch}.preview-actions button{flex:1;min-width:0}
 }
+
+/* BUG: at 1280x800 and 1024x768 the two bottom theme cards (Catppuccin Mocha
+   and Catppuccin Latte) fell outside .screens by 65px and 79px respectively.
+   .screens is overflow:hidden on this tier, so they were not scrollable into
+   view, and their centre points landed on the footer controls underneath --
+   a click on the card silently pressed "I'll do this later" or "Back".
+
+   The cause is that every row on this screen sized to its content, so the
+   screen's natural height simply exceeded the viewport it is clipped to. The
+   fix is to give the screen a real vertical hierarchy: the title, the two
+   section headings, the lead pair and the preview note keep their intrinsic
+   heights, and the three-deep card columns become the one flexible row that
+   absorbs whatever height is left. The card rows then divide that space
+   instead of overflowing it, so all eight cards are inside .screens at any
+   height without introducing a scrollbar. */
+@media (min-width:901px){
+  .gallery-screen.active{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+  .theme-choice{display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;min-height:0}
+  .theme-columns{min-height:0}
+  .theme-column{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+  .theme-column .theme-gallery{grid-template-rows:repeat(3,minmax(0,1fr));min-height:0}
+  .theme-card{min-height:0}
+}
+
+/* On a short desktop viewport the flexible row above is what gets squeezed, and
+   past a point the cards lose their descriptor line to the clip. These screens
+   are 800px and 768px tall -- the ordinary case, not an edge -- so the height
+   is bought back from the page furniture rather than from the cards, which are
+   the whole point of the screen. */
+@media (min-width:901px) and (max-height:820px){
+  .theme-page-title{margin-bottom:6px}
+  .theme-page-title h1{font-size:clamp(27px,2.9vw,38px)}
+  .theme-page-title p{margin-top:7px;font-size:12px;line-height:1.3}
+  .title-stamp{padding:4px 0}
+  .choice-head h2{font-size:17px}
+  .choice-head.split{margin-top:7px;padding-top:6px}
+  .lead-gallery .theme-card .swatch{height:24px}
+  .theme-choice{padding-top:6px}
+}
