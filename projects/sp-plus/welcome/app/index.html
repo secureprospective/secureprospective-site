@@ -8,20 +8,22 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <!-- THESIS: A first-run control room, not a polite wizard. OWN-WORLD: Secure Prospective blue, silver, yellow, square rules, ticker field, and hard registration offsets. STORY: an advisor sees their protected work desk take shape, then handles one honest task at a time. FIRST VIEWPORT: a blue route rail, an animated silver briefing field, a large welcome statement, and a seven-stop manifest, with the action anchored at lower right. FORM: corporate badge x transit signage x financial ledger x storm shelter x vault, code-led, seed pinned by the SP+ brand brief. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
+  <!-- THESIS: A first-run control room, not a polite wizard. OWN-WORLD: Secure Prospective blue, silver, yellow, square rules, ticker field, and hard registration offsets. STORY: an advisor sees their protected work desk take shape, then handles one honest task at a time. FIRST VIEWPORT: a blue route rail, an animated silver briefing field, a large welcome statement, and a nine-stop manifest, with the action anchored at lower right. FORM: corporate badge x transit signage x financial ledger x storm shelter x vault, code-led, seed pinned by the SP+ brand brief. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
   <main class="app-shell" aria-label="SP+ Welcome setup">
     <aside class="route-rail" aria-label="Setup progress">
       <div class="brand-block"><span class="brand-mark" aria-hidden="true">SP+</span><span class="brand-name">SECURE PROSPECTIVE</span></div>
       <div class="rail-rule"></div>
-      <p class="route-caption" id="route-caption">WELCOME / 01 OF 07</p>
+      <p class="route-caption" id="route-caption">WELCOME / 01 OF 09</p>
       <nav class="route-list" aria-label="Setup steps">
         <button class="route current" data-go="0"><b>01</b><span>Welcome</span></button>
         <button class="route" data-go="1"><b>02</b><span>Choose the look</span></button>
         <button class="route" data-go="2"><b>03</b><span>Know your way around</span></button>
         <button class="route" data-go="3"><b>04</b><span>Office connections</span></button>
-        <button class="route" data-go="4"><b>05</b><span>Bring Fin into your work</span></button>
-        <button class="route" data-go="5"><b>06</b><span>Optional tools + store</span></button>
-        <button class="route" data-go="6"><b>07</b><span>Ready to work</span></button>
+        <button class="route" data-go="4"><b>05</b><span>File portal</span></button>
+        <button class="route" data-go="5"><b>06</b><span>Social</span></button>
+        <button class="route" data-go="6"><b>07</b><span>Bring Fin into your work</span></button>
+        <button class="route" data-go="7"><b>08</b><span>Optional tools + store</span></button>
+        <button class="route" data-go="8"><b>09</b><span>Ready to work</span></button>
       </nav>
       <div class="rail-foot"><span class="signal-dot" aria-hidden="true"></span><span>BUILT FOR THE WORK<br>BEHIND THE ADVICE.</span></div>
     </aside>
@@ -36,7 +38,7 @@
             <p>SP+ keeps your files, tools and Fin close at hand without asking you to learn Linux first.</p>
           </div>
           <div class="welcome-manifest" aria-label="What Welcome can prepare">
-            <div><span>YOUR ROUTE</span><strong>7 SMALL STEPS</strong></div>
+            <div><span>YOUR ROUTE</span><strong>9 SMALL STEPS</strong></div>
             <div><span>START HERE</span><strong>THE ESSENTIALS</strong></div>
             <div><span>YOUR CONTROL</span><strong>SKIP ANY TIME</strong></div>
           </div>
@@ -75,19 +77,50 @@
           <div class="ledger-callout"><span>WHAT HAPPENS</span><p>Email opens the provider's webmail and leaves a launcher in Applications; SP+ never handles the email password. Folder checks use GVFS and the desktop wallet when you choose secure save. Printer checks submit one page only after CUPS is ready.</p></div>
         </article>
 
-        <article class="screen fin-screen" data-screen="4" aria-labelledby="fin-title">
+        <article class="screen service-screen portal-screen" data-screen="4" aria-labelledby="portal-title">
+          <header class="page-title"><div><h1 id="portal-title">MOVE CLIENT<br>FILES OUT OF<br>EMAIL.</h1><p>Email attachments are the risk. The File Portal gives your practice one protected place to work.</p></div><div class="title-stamp"><span>SECURE FILE PORTAL</span><strong data-service-stamp="files">CHECKING...</strong></div></header>
+          <div class="service-body" data-service-body="files">
+            <div class="service-status" data-service-state="files" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="files">CHECKING SECURE WORKSPACE...</b><p data-service-detail="files">Welcome is checking the service before it asks you to sign in.</p></div><button class="secondary-action" data-service-retry="files" type="button">RETRY</button></div>
+            <div class="portal-layout">
+              <div class="service-column portal-steps">
+                <section class="service-card portal-card"><div class="lane-title"><span>01 / WHY</span><b>REPLACE EMAIL</b></div><h2>EMAIL IS THE RISK.</h2><p>Email attachments multiply copies. Use the portal instead.</p><p class="portal-security">Your files are encrypted at rest and never travel by email.</p></section>
+                <section class="service-card portal-card"><div class="lane-title"><span>02 / SIGN IN</span><b>SINGLE USE</b></div><h2>USE YOUR ACTIVATION LINK.</h2><p>Open the single-use link when SecureProspective provides it. The portal password is separate from your SP+ and back-office passwords.</p><p class="portal-deferred" data-portal-mail-state>Activation delivery is not available yet. No email was sent.</p></section>
+                <section class="service-card portal-card"><div class="lane-title"><span>03 / TWO-FACTOR</span><b>SET UP NOW</b></div><h2>PROTECT THE CASE FILES.</h2><p>Turn on two-factor during first sign-in and store the recovery codes somewhere safe. If you skip it, the portal will ask again before client work.</p></section>
+              </div>
+              <section class="service-card portal-folders" aria-labelledby="folder-heading"><div class="lane-title"><span>04 / THE TWO FOLDERS</span><b>DO NOT MIX THESE</b></div><h2 id="folder-heading">ONE CLEAR<br>BOUNDARY.</h2><div class="folder-diagram" aria-label="Folder boundary diagram"><div class="folder-node folder-private"><span>PRIVATE/</span><strong>ONLY YOU</strong></div><div class="folder-divider" aria-hidden="true"><i></i><b>OR</b><i></i></div><div class="folder-node folder-shared"><span>SHARED — <em>YOUR NAME</em>/</span><strong>YOU + SECUREPROSPECTIVE</strong></div></div><p>Welcome configures only these two folders. It never syncs everything.</p><div class="portal-boundary"><span>ACCESS CHANGES</span><p>If your membership is disabled or removed, Welcome will say so plainly and the service session will end.</p></div></section>
+              <div class="service-column portal-actions">
+                <section class="service-card portal-card"><div class="lane-title"><span>05 / CONNECT THE DESKTOP</span><b>TWO FOLDERS ONLY</b></div><h2>SYNC WITHOUT A TOUR.</h2><p data-portal-sync-copy>Desktop sync is waiting for the secure workspace. Browser access keeps you moving; Welcome does not leave you a command list.</p><div class="portal-sync-state" data-portal-sync-state>WAITING FOR WORKSPACE</div><button class="secondary-action" id="portal-browser" type="button">OPEN BROWSER ACCESS</button><p class="lane-result" id="portal-browser-result" role="status" aria-live="polite"></p></section>
+                <section class="service-card portal-card"><div class="lane-title"><span>06 / PROVE IT</span><b>ONE REAL FILE</b></div><h2>SEE THE DOCUMENT LAND.</h2><p>Upload one real document in the portal, then confirm that it is visible. A browser upload above 100 MB returns 413; desktop sync chunks larger files.</p><button class="primary-action" id="portal-prove" data-service-ready-only="files" data-ready-label="CONFIRM DOCUMENT IS VISIBLE" type="button" disabled>WAITING FOR PORTAL <span>→</span></button><p class="lane-result" id="portal-prove-result" role="status" aria-live="polite"></p></section>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen service-screen social-screen" data-screen="5" aria-labelledby="social-title">
+          <header class="page-title"><div><h1 id="social-title">PUT SOCIAL<br>ON A SCHEDULE.</h1><p>Schedule your posts across your accounts from one place. We host it; you connect the accounts you already have.</p></div><div class="title-stamp"><span>SECURE SOCIAL</span><strong data-service-stamp="social">CHECKING...</strong></div></header>
+          <div class="service-body" data-service-body="social">
+            <div class="service-status" data-service-state="social" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="social">CHECKING SOCIAL WORKSPACE...</b><p data-service-detail="social">Welcome is checking the service before it offers a connection.</p></div><button class="secondary-action" data-service-retry="social" type="button">RETRY</button></div>
+            <div class="social-layout">
+              <section class="service-card social-connect-card"><div class="lane-title"><span>01 / FIRST ACCOUNT</span><b>LIVE OPTIONS ONLY</b></div><h2>CONNECT WHAT IS READY.</h2><p id="social-platform-lede">Connection choices appear only when the service confirms that a platform is live.</p><div class="social-no-login"><span>NO SOCIAL SIGN-IN</span><p>Your workspace is provisioned by SecureProspective and tied to your member record, not matched by email.</p></div><div class="platform-list" id="social-platforms" aria-live="polite"><div class="platform-empty">No connection choices are available until the service returns a valid setup record.</div></div><div class="social-account-confirm" id="social-account-confirm" hidden><span class="service-label">RETURN CHECK</span><b id="social-account-heading">CONFIRM THE ACCOUNT YOU CHOSE.</b><label for="social-account-name">ACCOUNT OR PAGE NAME<input id="social-account-name" type="text" maxlength="120" autocomplete="off" placeholder="The profile or page you connected"></label><div class="social-confirm-actions"><button class="primary-action" id="social-confirm-account" type="button">CONFIRM THIS ACCOUNT <span>→</span></button><button class="text-button" id="social-not-connected" type="button">NOT CONNECTED / TRY AGAIN</button></div><p class="lane-result" id="social-account-result" role="status" aria-live="polite"></p></div></section>
+              <section class="service-card social-proof-card"><div class="lane-title"><span>02 / ONE REAL POST</span><b>END WITH EVIDENCE</b></div><h2>SEE IT ON THE CALENDAR.</h2><p>Open the Social workspace, schedule one real post and check the calendar. Welcome records only your confirmation; it does not claim a post it cannot inspect.</p><button class="secondary-action" id="social-calendar-open" data-service-ready-only="social" data-ready-label="OPEN SOCIAL WORKSPACE" type="button" disabled>WAITING FOR SOCIAL WORKSPACE</button><div class="social-calendar-confirm" id="social-calendar-confirm" hidden><span>CALENDAR CHECK</span><button class="primary-action" id="social-calendar-seen" type="button">I SEE THE POST ON THE CALENDAR <span>→</span></button><p class="lane-result" id="social-calendar-result" role="status" aria-live="polite"></p></div><div class="social-attention"><span>NEEDS ATTENTION</span><p>Posts are scheduled, not guaranteed. If an outage causes a miss, review it here instead of assuming it caught up.</p></div></section>
+              <aside class="service-card social-notes"><div class="lane-title"><span>EXPECTATIONS</span><b>PLAIN LANGUAGE</b></div><div class="social-note"><span>RECONNECT BEFORE POSTING</span><p>If a platform token expires, reconnect your LinkedIn before a post fails.</p></div><div class="social-note"><span>WRONG PROFILE?</span><p>Disconnect and retry in the Social workspace if you chose the wrong page or profile.</p></div><div class="social-note"><span>NOT A COMPLIANCE ARCHIVE</span><p>Nothing here satisfies SEC Marketing Rule record-keeping.</p></div><div class="social-note social-member-note"><span>MEMBER ACCESS</span><p>If access is disabled or removed, your session ends plainly and safely. Nothing is silently retained.</p></div></aside>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen fin-screen" data-screen="6" aria-labelledby="fin-title">
           <header class="page-title"><div><h1 id="fin-title">BRING FIN<br>INTO YOUR WORK.</h1><p>Fin can help summarise, organise and revise documents. You remain responsible for the advice and final decision.</p></div><div class="title-stamp"><span>YOUR CONTROL</span><strong>YOU DECIDE WHAT TO SHARE</strong></div></header>
           <div class="fin-stage"><section class="fin-brief"><div class="fin-index">FIN / START HERE</div><h2>FIN OPENS<br>WITHOUT ASKING<br>FOR A KEY.</h2><p>If no provider is connected, Fin will tell you to type <code>/login</code> and choose a provider. There is no welcome email and nothing to paste.</p><button class="primary-action fin-action" id="fin-check" type="button">HAVE FIN CHECK MY COMPUTER <span>→</span></button><p class="lane-result" id="check-result" role="status" aria-live="polite"></p><button class="primary-action fin-action" id="fin-launch" type="button">OPEN FIN <span>→</span></button><p class="lane-result" id="fin-result" role="status" aria-live="polite"></p></section><section class="fin-ledger"><div><span>CONNECTION</span><strong>CHOOSE A PROVIDER<br>WHEN FIN ASKS</strong></div><div><span>SAFE FIRST TRY</span><strong>USE A NON-SENSITIVE<br>DOCUMENT FIRST</strong></div><div><span>STARTING PROMPT</span><strong>WHAT ARE THE THREE THINGS<br>I NEED TO KNOW?</strong></div><ul class="check-summary" id="check-summary" hidden></ul><p>Fin opens in its own window and stays open when Welcome closes.</p></section></div>
         </article>
 
-        <article class="screen tools-screen" data-screen="5" aria-labelledby="tools-title">
+        <article class="screen tools-screen" data-screen="7" aria-labelledby="tools-title">
           <header class="page-title"><div><h1 id="tools-title">OPTIONAL TOOLS.<br>YOUR CALL.</h1><p>Two useful additions, plus the software library when you want to explore. An open store is not a practice-approved list.</p></div><div class="title-stamp"><span>RUNTIME INSTALLS</span><strong>NO IMAGE CHANGE</strong></div></header>
           <div class="tool-register"><section class="tool-row"><span class="tool-index">01</span><div><h2>BITWARDEN</h2><p>A password manager for work logins.</p></div><div class="tool-detail">FLATHUB<br>com.bitwarden.desktop</div><div class="tool-state" data-state="idle">RUNTIME INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="com.bitwarden.desktop" data-tool-name="Bitwarden" data-state="idle" aria-busy="false">ADD BITWARDEN</button></section><section class="tool-row"><span class="tool-index">02</span><div><h2>SIGNAL DESKTOP</h2><p>A private way to reach a client or colleague when email is the wrong channel.</p></div><div class="tool-detail">FLATHUB<br>org.signal.Signal</div><div class="tool-state" data-state="idle">RUNTIME INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="org.signal.Signal" data-tool-name="Signal" data-state="idle" aria-busy="false">ADD SIGNAL</button></section></div>
           <section class="discover-strip"><div><span>03 / BROWSE EVERYTHING</span><h2>THE SOFTWARE LIBRARY IS OPEN.</h2><p>Discover, Flatpak and its backend are already on this computer. Flathub is configured and ready to browse. An open Flathub source is not a practice-approved list.</p></div><button class="primary-action" data-store-action>BROWSE IN DISCOVER <span>→</span></button></section>
           <div class="ledger-callout"><span>USE WITH CARE</span><p>Check an app with your practice before using it for client work. The two optional apps install only when you choose them; Discover opens the configured Flathub source.</p></div>
         </article>
 
-        <article class="screen done-screen" data-screen="6" aria-labelledby="done-title">
+        <article class="screen done-screen" data-screen="8" aria-labelledby="done-title">
           <div class="done-field"><div class="done-mark">SP+</div><div><h1 id="done-title">READY<br>TO WORK.</h1><p>Anything you skipped is still available from SP+ Welcome.</p></div></div>
           <section class="handoff-register" aria-label="Setup handoff"><div><span>YOUR LOOK</span><strong id="final-theme">SP+ CALM DARK / SELECTED</strong></div><div><span>OFFICE CONNECTIONS</span><strong id="final-office">PRINTER + EMAIL / RETURN WHEN READY</strong></div><div><span>FIN</span><strong id="final-fin">READY AFTER YOU CONNECT IT</strong></div><div><span>OPTIONAL TOOLS</span><strong id="final-tools">NONE ADDED YET</strong></div></section>
           <div class="finish-line"><p>You can reopen this from Applications › SP+ Welcome.</p><label class="checkline"><input type="checkbox" id="no-show"> Do not show this setup again</label></div>

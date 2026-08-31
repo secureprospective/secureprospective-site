@@ -17,9 +17,241 @@
   let current = 0;
   let selectedTheme = 'SP+ CALM DARK';
   let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
-  const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
-  const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
+  const screenCount = screens.length;
+  const routeCount = routes.length;
+  const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','FILE PORTAL','SOCIAL','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
+  const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
+  const serviceScreens = { files: 4, social: 5 };
+  const serviceCache = { files: null, social: null };
+  const servicePending = { files: false, social: false };
+  const serviceReady = { files: false, social: false };
+  let activeSocialPlatform = null;
+  let socialOpenAction = null;
   function announce(message, kind=''){ status.textContent = message; status.dataset.kind = kind; }
+  function serviceElement(service, attribute) {
+    return document.querySelector(`[data-${attribute}="${service}"]`);
+  }
+  function setReadyOnlyControls(service, ready) {
+    document.querySelectorAll(`[data-service-ready-only="${service}"]`).forEach(control => {
+      control.disabled = !ready;
+      control.setAttribute('aria-disabled', ready ? 'false' : 'true');
+      const label = ready
+        ? (control.dataset.readyLabel || control.textContent.replace(/\s*→\s*$/, '').trim())
+        : (service === 'files' ? 'WAITING FOR PORTAL' : 'WAITING FOR SOCIAL WORKSPACE');
+      control.innerHTML = `${label}${control.classList.contains('primary-action') ? ' <span>→</span>' : ''}`;
+    });
+  }
+  function renderSocialPlatforms(platforms, state) {
+    const list = document.getElementById('social-platforms');
+    if (!list) return;
+    list.replaceChildren();
+    if (state !== 'ready') {
+      const empty = document.createElement('div');
+      empty.className = 'platform-empty';
+      empty.textContent = state === 'provisioning'
+        ? 'Connection choices will appear when the workspace is ready.'
+        : 'No connection choices are available until the service returns a valid setup record.';
+      list.append(empty);
+      return;
+    }
+    const declared = Array.isArray(platforms) ? platforms : [];
+    const live = declared.filter(platform => platform && platform.state === 'live');
+    const pending = declared.filter(platform => platform && platform.state === 'pending_review');
+    const order = { bluesky: 0, linkedin: 1 };
+    const byPriority = (a, b) => (order[a.id] ?? 50) - (order[b.id] ?? 50);
+    live.sort(byPriority).forEach(platform => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'platform-connect';
+      button.dataset.platform = platform.id;
+      button.dataset.label = platform.label;
+      button.textContent = `CONNECT ${platform.label}`;
+      button.addEventListener('click', () => startSocialConnection(button));
+      list.append(button);
+    });
+    pending.sort(byPriority).forEach(platform => {
+      const item = document.createElement('div');
+      item.className = 'platform-pending';
+      item.dataset.platform = platform.id;
+      item.dataset.platformState = 'pending_review';
+      const label = document.createElement('span');
+      label.textContent = platform.label;
+      const stateLabel = document.createElement('span');
+      stateLabel.textContent = 'COMING SOON';
+      item.append(label, stateLabel);
+      list.append(item);
+    });
+    if (!list.children.length) {
+      const empty = document.createElement('div');
+      empty.className = 'platform-empty';
+      empty.textContent = 'No platform is live for this workspace yet. Choose Retry later.';
+      list.append(empty);
+    }
+  }
+  function renderServicePending(service) {
+    servicePending[service] = true;
+    serviceReady[service] = false;
+    const state = serviceElement(service, 'service-state');
+    const title = serviceElement(service, 'service-title');
+    const detail = serviceElement(service, 'service-detail');
+    const stamp = serviceElement(service, 'service-stamp');
+    const retry = document.querySelector(`[data-service-retry="${service}"]`);
+    if (state) { state.dataset.kind = 'pending'; state.removeAttribute('data-http-status'); }
+    if (title) title.textContent = 'CHECKING SECURE WORKSPACE...';
+    if (detail) detail.textContent = 'Welcome is checking the service before it asks you to sign in.';
+    if (stamp) stamp.textContent = 'CHECKING...';
+    if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
+    setReadyOnlyControls(service, false);
+    if (service === 'social') renderSocialPlatforms([], 'pending');
+  }
+  function renderServiceResult(service, payload) {
+    const stateName = payload && ['ready', 'provisioning', 'unavailable'].includes(payload.status)
+      ? payload.status : 'unavailable';
+    const state = serviceElement(service, 'service-state');
+    const title = serviceElement(service, 'service-title');
+    const detail = serviceElement(service, 'service-detail');
+    const stamp = serviceElement(service, 'service-stamp');
+    const retry = document.querySelector(`[data-service-retry="${service}"]`);
+    const httpStatus = payload && Number.isInteger(payload.http_status) ? String(payload.http_status) : '';
+    if (state) {
+      state.dataset.kind = stateName;
+      if (httpStatus) state.dataset.httpStatus = httpStatus; else state.removeAttribute('data-http-status');
+    }
+    if (stamp) stamp.textContent = stateName === 'ready' ? 'READY' : stateName === 'provisioning' ? 'PROVISIONING' : 'UNAVAILABLE';
+    if (stateName === 'ready') {
+      if (title) title.textContent = service === 'files' ? 'SECURE WORKSPACE READY.' : 'SOCIAL WORKSPACE READY.';
+      if (detail) detail.textContent = service === 'files'
+        ? 'Continue below. Activation email delivery is still not wired, so Welcome will not claim an email was sent.'
+        : 'Continue below. Welcome will show only the platforms the service declares live.';
+    } else if (stateName === 'provisioning') {
+      if (title) title.textContent = 'SETTING UP YOUR SECURE WORKSPACE…';
+      if (detail) detail.textContent = 'Setup is still in flight. Choose Retry when you want to check again.';
+    } else if (payload && payload.failure === 'network') {
+      if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
+      if (detail) detail.textContent = 'Connect to the internet, then choose Retry. No sign-in was requested.';
+    } else {
+      if (title) title.textContent = 'SERVICE UNAVAILABLE.';
+      if (detail) detail.textContent = payload && payload.failure === 'malformed'
+        ? 'The setup record was not valid. Try again later. No credentials were requested.'
+        : 'This service is unavailable right now. Try again. No credentials were requested.';
+    }
+    if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
+    serviceReady[service] = stateName === 'ready';
+    setReadyOnlyControls(service, serviceReady[service]);
+    if (service === 'social') renderSocialPlatforms(serviceReady[service] ? payload.platforms : [], stateName);
+    if (service === 'files') {
+      const mailState = document.querySelector('[data-portal-mail-state]');
+      if (mailState) mailState.textContent = serviceReady.files
+        ? 'Activation delivery is still not available. No email was sent.'
+        : stateName === 'provisioning'
+          ? 'Waiting for the secure workspace. Activation delivery remains deferred.'
+          : 'Activation delivery is not available yet. No email was sent.';
+    }
+  }
+  function requestServiceCapability(service, force = false) {
+    if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
+    if (!force && serviceCache[service]) {
+      renderServiceResult(service, serviceCache[service]);
+      return;
+    }
+    if (servicePending[service]) return;
+    if (force) serviceCache[service] = null;
+    renderServicePending(service);
+    document.title = `spplus:service-capabilities?service=${encodeURIComponent(service)}${force ? '&retry=1' : ''}`;
+  }
+  function finishServiceCapability(payload) {
+    const service = payload && payload.service;
+    if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
+    servicePending[service] = false;
+    serviceCache[service] = payload;
+    renderServiceResult(service, payload);
+    document.title = 'SP+ Welcome';
+  }
+  function openService(service, action, platform = '') {
+    if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
+    socialOpenAction = { service, action, platform };
+    document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=${encodeURIComponent(action)}${platform ? `&platform=${encodeURIComponent(platform)}` : ''}`;
+  }
+  function startSocialConnection(button) {
+    if (!button || !serviceReady.social) return;
+    activeSocialPlatform = { id: button.dataset.platform, label: button.dataset.label || button.textContent.replace(/^CONNECT\s+/i, '') };
+    document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = true; });
+    const panel = document.getElementById('social-account-confirm');
+    const heading = document.getElementById('social-account-heading');
+    const result = document.getElementById('social-account-result');
+    if (heading) heading.textContent = `CONFIRM THE ${activeSocialPlatform.label.toUpperCase()} ACCOUNT YOU CHOSE.`;
+    if (result) result.textContent = 'Browser launch requested. Connect the intended account or page there, then return here.';
+    if (panel) panel.hidden = false;
+    openService('social', 'connect-platform', activeSocialPlatform.id);
+  }
+  function finishServiceOpen(result) {
+    const action = result && result.action;
+    document.title = 'SP+ Welcome';
+    if (!result || !result.ok) {
+      document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
+      const target = action === 'connect-platform' ? document.getElementById('social-account-result') : action === 'browser' ? document.getElementById('portal-browser-result') : document.getElementById('social-calendar-result');
+      if (target) target.textContent = (result && result.message) || 'The browser could not be opened. Use your browser to retry.';
+      announce(((result && result.message) || 'THE BROWSER COULD NOT BE OPENED.').toUpperCase(), 'stub');
+      return;
+    }
+    const message = result.message || 'The browser launch was requested.';
+    if (action === 'connect-platform') {
+      const target = document.getElementById('social-account-result');
+      if (target) target.textContent = 'Browser launch requested. Welcome has not connected or verified an account. Return here after you choose one.';
+      document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
+      document.getElementById('social-account-name')?.focus();
+    } else if (action === 'calendar') {
+      const confirm = document.getElementById('social-calendar-confirm');
+      if (confirm) confirm.hidden = false;
+      const target = document.getElementById('social-calendar-result');
+      if (target) target.textContent = 'Browser launch requested. Check the calendar there, then confirm only what you can see.';
+    } else if (action === 'browser') {
+      const target = document.getElementById('portal-browser-result');
+      if (target) target.textContent = 'Browser launch requested. Welcome did not ask for a password.';
+    }
+    announce(message.toUpperCase());
+  }
+  document.querySelectorAll('[data-service-retry]').forEach(button => {
+    button.addEventListener('click', () => requestServiceCapability(button.dataset.serviceRetry, true));
+  });
+  document.getElementById('portal-browser')?.addEventListener('click', () => openService('files', 'browser'));
+  document.getElementById('social-calendar-open')?.addEventListener('click', () => openService('social', 'calendar'));
+  document.getElementById('social-not-connected')?.addEventListener('click', () => {
+    activeSocialPlatform = null;
+    document.getElementById('social-account-confirm').hidden = true;
+    document.getElementById('social-account-name').value = '';
+    document.getElementById('social-account-result').textContent = 'No account was recorded. Choose a live platform to try again.';
+    document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
+    announce('NO ACCOUNT WAS RECORDED. CHOOSE A LIVE PLATFORM TO TRY AGAIN.', 'stub');
+  });
+  document.getElementById('social-confirm-account')?.addEventListener('click', () => {
+    const input = document.getElementById('social-account-name');
+    const result = document.getElementById('social-account-result');
+    const name = input?.value.trim() || '';
+    if (!name) {
+      if (result) result.textContent = 'Enter the profile or page name you saw in the workspace first.';
+      announce('ENTER THE ACCOUNT OR PAGE NAME FIRST.', 'stub');
+      input?.focus();
+      return;
+    }
+    if (result) result.textContent = `You confirmed ${name}. Welcome did not verify it; check the profile or page again before scheduling.`;
+    announce('ACCOUNT CONFIRMATION RECORDED FOR THIS SESSION. CHECK THE PROFILE BEFORE POSTING.');
+  });
+  document.getElementById('portal-prove')?.addEventListener('click', event => {
+    if (!serviceReady.files) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.innerHTML = 'DOCUMENT CONFIRMED <span>✓</span>';
+    document.getElementById('portal-prove-result').textContent = 'You confirmed the document is visible. Welcome did not inspect or claim the upload.';
+    announce('YOU CONFIRMED THE DOCUMENT IS VISIBLE.');
+  });
+  document.getElementById('social-calendar-seen')?.addEventListener('click', event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.innerHTML = 'CALENDAR CHECKED <span>✓</span>';
+    document.getElementById('social-calendar-result').textContent = 'You confirmed the post is visible on the calendar. Review it again if an outage needs attention.';
+    announce('YOU CONFIRMED THE POST IS VISIBLE ON THE CALENDAR.');
+  });
   function showAskFeedback(message, kind) {
     askFeedback.hidden = false;
     askFeedback.dataset.kind = kind || '';
@@ -55,20 +287,23 @@
     announce('FIN COULD NOT ANSWER.','stub');
   }
   function go(index) {
-    current = Math.max(0, Math.min(6, index));
+    const lastScreen = screenCount - 1;
+    current = Math.max(0, Math.min(lastScreen, index));
     screens.forEach((screen,i) => { screen.classList.toggle('active',i===current); screen.setAttribute('aria-hidden', i===current ? 'false' : 'true'); });
     routes.forEach((route,i) => { route.classList.toggle('current',i===current); route.setAttribute('aria-current',i===current ? 'step' : 'false'); });
-    caption.textContent = `${names[current]} / ${String(current+1).padStart(2,'0')} OF 07`;
+    caption.textContent = `${names[current]} / ${String(current+1).padStart(2,'0')} OF ${String(routeCount).padStart(2,'0')}`;
     topline.textContent = `SP+ WELCOME / ${names[current]}`;
     back.disabled = current === 0;
     back.style.visibility = current === 0 ? 'hidden' : 'visible';
-    skip.style.visibility = (current === 0 || current === 6) ? 'hidden' : 'visible';
+    skip.style.visibility = (current === 0 || current === lastScreen) ? 'hidden' : 'visible';
     next.innerHTML = `${nextLabels[current]} <span>→</span>`;
     if (current === 0) window.spHero?.start(); else window.spHero?.stop();
-    announce(current === 6 ? 'SETUP HANDOFF READY.' : 'READY WHEN YOU ARE.');
+    if (current === serviceScreens.files) requestServiceCapability('files');
+    if (current === serviceScreens.social) requestServiceCapability('social');
+    announce(current === lastScreen ? 'SETUP HANDOFF READY.' : 'READY WHEN YOU ARE.');
   }
   routes.forEach(route => route.addEventListener('click', () => go(Number(route.dataset.go))));
-  next.addEventListener('click', () => { if(current===6){ announce('WELCOME STAYS AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
+  next.addEventListener('click', () => { if(current===screenCount-1){ announce('WELCOME STAYS AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
   skip.addEventListener('click', () => go(current+1));
   // A theme card opens a preview receipt. Nothing reaches the shell until the
@@ -486,6 +721,8 @@
     emailResult: finishEmail,
     shareResult: finishShare,
     printerResult: finishPrinter,
+    serviceResult: finishServiceCapability,
+    serviceOpenResult: finishServiceOpen,
     go, helpDepth };
   go(0);
 })();

@@ -5,11 +5,13 @@ import argparse
 import sys
 from pathlib import Path
 import datetime as dt
+import http.client
 import json
 import os
-import subprocess
 import re
 import socket
+import ssl
+import subprocess
 import time
 import uuid
 from urllib.parse import parse_qs, quote, urlparse
@@ -61,6 +63,23 @@ TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
 SELFTEST_SHARE_UP = os.environ.get('SPPLUS_SELFTEST_SHARE_UP', '127.0.0.1')
 SELFTEST_SHARE_DOWN = os.environ.get('SPPLUS_SELFTEST_SHARE_DOWN', '203.0.113.1')
 MACHINE_DOC = os.environ.get('SPPLUS_MACHINE_DOC', '/var/lib/sp-plus/THIS-MACHINE.md')
+SERVICE_ENDPOINTS = {
+    'files': 'https://cloud.secureprospective.com/.well-known/sppl',
+    'social': 'https://social.secureprospective.com/.well-known/sppl',
+}
+SERVICE_URLS = {
+    'files': 'https://cloud.secureprospective.com',
+    'social': 'https://social.secureprospective.com',
+}
+# These overrides exist for local test fixtures only. Production defaults above
+# remain public hostnames and are never replaced by a LAN fallback.
+SERVICE_ENDPOINT_ENV = {
+    'files': 'SPPLUS_CAPABILITY_FILES_URL',
+    'social': 'SPPLUS_CAPABILITY_SOCIAL_URL',
+}
+SERVICE_CONNECT_TIMEOUT = 10
+SERVICE_TOTAL_TIMEOUT = 15
+SERVICE_MAX_BODY = 1024 * 1024
 FLATPAK_APP_NAMES = {
     'com.bitwarden.desktop': 'Bitwarden',
     'org.signal.Signal': 'Signal',
@@ -104,6 +123,158 @@ class AskWorker(QThread):
         except Exception:
             payload = {'ok': False, 'answer': '',
                        'reason': 'Fin could not answer.'}
+        self.result_ready.emit(self, payload)
+
+
+class CapabilityShapeError(ValueError):
+    """The response was not the small, explicit service contract."""
+
+
+def capability_endpoint(service):
+    env_name = SERVICE_ENDPOINT_ENV.get(service)
+    if not env_name:
+        return ''
+    return os.environ.get(env_name, SERVICE_ENDPOINTS[service])
+
+
+def capability_result(service, status='unavailable', platforms=None,
+                      http_status=None, failure='', valid=False):
+    return {
+        'ok': bool(valid and status == 'ready'),
+        'valid': valid,
+        'service': service,
+        'status': status,
+        'platforms': platforms or [],
+        'http_status': http_status,
+        'failure': failure,
+    }
+
+
+def validate_capability(service, payload):
+    if not isinstance(payload, dict) or payload.get('service') != service:
+        raise CapabilityShapeError('service field')
+    status = payload.get('status')
+    if status not in {'ready', 'provisioning', 'unavailable'}:
+        raise CapabilityShapeError('status field')
+    raw_platforms = payload.get('platforms')
+    if not isinstance(raw_platforms, list):
+        raise CapabilityShapeError('platforms field')
+    platforms = []
+    seen = set()
+    for item in raw_platforms:
+        if not isinstance(item, dict):
+            raise CapabilityShapeError('platform entry')
+        platform_id = item.get('id')
+        label = item.get('label')
+        state = item.get('state')
+        if (not isinstance(platform_id, str) or not platform_id.strip() or
+                not isinstance(label, str) or not label.strip() or
+                state not in {'live', 'pending_review'} or
+                platform_id in seen):
+            raise CapabilityShapeError('platform entry fields')
+        seen.add(platform_id)
+        platforms.append({'id': platform_id, 'label': label, 'state': state})
+    return status, platforms
+
+
+def fetch_service_capability(service):
+    """Fetch one setup record without following redirects or blocking the UI.
+
+    The socket gets a ten-second connect/read ceiling and the whole transaction
+    gets a fifteen-second monotonic deadline. A non-200 response is terminal:
+    the social host intentionally redirects unknown paths to HTML, which must
+    never be mistaken for a JSON setup record.
+    """
+    if service not in SERVICE_ENDPOINTS:
+        return capability_result(service, failure='malformed')
+    endpoint = capability_endpoint(service)
+    connection = None
+    http_status = None
+    deadline = time.monotonic() + SERVICE_TOTAL_TIMEOUT
+    try:
+        parsed = urlparse(endpoint)
+        if (parsed.scheme not in {'http', 'https'} or not parsed.hostname or
+                parsed.username or parsed.password or parsed.fragment):
+            raise CapabilityShapeError('endpoint')
+        port = parsed.port
+        if parsed.scheme == 'https':
+            connection = http.client.HTTPSConnection(
+                parsed.hostname, port or 443,
+                timeout=SERVICE_CONNECT_TIMEOUT,
+                context=ssl.create_default_context())
+        else:
+            connection = http.client.HTTPConnection(
+                parsed.hostname, port or 80, timeout=SERVICE_CONNECT_TIMEOUT)
+        # HTTPConnection does not follow redirects. Calling connect explicitly
+        # keeps the connect budget separate from the remaining total budget.
+        connection.connect()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('capability connect exceeded total deadline')
+        if connection.sock is not None:
+            connection.sock.settimeout(min(SERVICE_CONNECT_TIMEOUT, remaining))
+        target = parsed.path or '/'
+        if parsed.query:
+            target += '?' + parsed.query
+        connection.request('GET', target, headers={
+            'Accept': 'application/json',
+            'User-Agent': 'SP-plus-Welcome-capability-check',
+        })
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('capability request exceeded total deadline')
+        if connection.sock is not None:
+            connection.sock.settimeout(remaining)
+        response = connection.getresponse()
+        http_status = response.status
+        # Do not read a redirect body. The status itself is the evidence that
+        # this was not the declared JSON endpoint, and no redirect is followed.
+        if http_status != 200:
+            return capability_result(service, http_status=http_status,
+                                     failure='http')
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('capability response exceeded total deadline')
+        if connection.sock is not None:
+            connection.sock.settimeout(remaining)
+        body = response.read(SERVICE_MAX_BODY + 1)
+        if len(body) > SERVICE_MAX_BODY:
+            raise CapabilityShapeError('response too large')
+        payload = json.loads(body.decode('utf-8'))
+        status, platforms = validate_capability(service, payload)
+        return capability_result(service, status, platforms, http_status=200,
+                                 valid=True)
+    except (socket.timeout, TimeoutError):
+        return capability_result(service, http_status=http_status,
+                                 failure='network')
+    except CapabilityShapeError:
+        return capability_result(service, http_status=http_status,
+                                 failure='malformed')
+    except (UnicodeError, ValueError, json.JSONDecodeError):
+        return capability_result(service, http_status=http_status,
+                                 failure='malformed')
+    except (OSError, http.client.HTTPException):
+        return capability_result(service, http_status=http_status,
+                                 failure='network')
+    except Exception:
+        return capability_result(service, http_status=http_status,
+                                 failure='network')
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+class ServiceCapabilityWorker(QThread):
+    """Check one public service without holding up the Welcome window."""
+
+    result_ready = Signal(object, object)
+
+    def __init__(self, service):
+        super().__init__()
+        self.service = service
+
+    def run(self):
+        payload = fetch_service_capability(self.service)
         self.result_ready.emit(self, payload)
 
 
@@ -843,12 +1014,15 @@ class WelcomeBridge(QObject):
         self._share_workers = set()
         self._printer_workers = set()
         self._theme_workers = set()
+        self._service_workers = set()
+        self._service_cache = {}
         view.titleChanged.connect(self.on_title)
 
     def _worker_sets(self):
         return (self._ask_workers, self._tool_workers, self._store_workers,
                 self._fin_workers, self._check_workers, self._email_workers,
-                self._share_workers, self._printer_workers, self._theme_workers)
+                self._share_workers, self._printer_workers, self._theme_workers,
+                self._service_workers)
 
     @Slot()
     def shutdown(self):
@@ -888,7 +1062,16 @@ class WelcomeBridge(QObject):
             return
         parsed = urlparse(title[len(self.PREFIX):])
         params = parse_qs(parsed.query)
-        if parsed.path == 'apply-theme':
+        if parsed.path == 'service-capabilities':
+            service = (params.get('service') or [''])[0].strip().lower()
+            retry = (params.get('retry') or ['0'])[0] == '1'
+            self.request_service_capability(service, retry)
+        elif parsed.path == 'open-service':
+            service = (params.get('service') or [''])[0].strip().lower()
+            action = (params.get('action') or ['browser'])[0].strip().lower()
+            platform = (params.get('platform') or [''])[0].strip().lower()
+            self.open_service(service, action, platform)
+        elif parsed.path == 'apply-theme':
             theme = (params.get('theme') or [''])[0].strip()
             layout_value = (params.get('layout') or [''])[0].strip()
             if theme and layout_value in {'0', '1'}:
@@ -943,6 +1126,75 @@ class WelcomeBridge(QObject):
                                                   password or '', save_securely))
         elif parsed.path == 'print-test':
             self.print_test()
+
+    def _send_service_result(self, payload):
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.serviceResult({encoded})')
+
+    def request_service_capability(self, service, retry=False):
+        if service not in SERVICE_ENDPOINTS:
+            return
+        if retry:
+            self._service_cache.pop(service, None)
+        elif service in self._service_cache:
+            self._send_service_result(self._service_cache[service])
+            return
+        if any(worker.service == service for worker in self._service_workers):
+            return
+        worker = ServiceCapabilityWorker(service)
+        self._service_workers.add(worker)
+        worker.result_ready.connect(self._service_finished)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    @Slot(object, object)
+    def _service_finished(self, worker, payload):
+        self._service_workers.discard(worker)
+        self._service_cache[worker.service] = payload
+        self._send_service_result(payload)
+
+    def open_service(self, service, action, platform=''):
+        actions = {'browser', 'connect-platform', 'calendar'}
+        if service not in SERVICE_URLS or action not in actions:
+            self._send_service_open_result({
+                'ok': False,
+                'service': service,
+                'action': action,
+                'platform': platform,
+                'message': 'That service action is not available. Welcome stayed open.',
+            })
+            return
+        try:
+            subprocess.Popen([XDG_OPEN, SERVICE_URLS[service]],
+                             stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+            message = ('Browser launch requested for the SecureProspective File Portal.'
+                       if service == 'files' else
+                       'Browser launch requested for SecureProspective Social.')
+            payload = {
+                'ok': True,
+                'service': service,
+                'action': action,
+                'platform': platform,
+                'message': message,
+            }
+        except (OSError, subprocess.SubprocessError):
+            payload = {
+                'ok': False,
+                'service': service,
+                'action': action,
+                'platform': platform,
+                'message': 'The browser could not be opened. Welcome stayed open.',
+            }
+        self._send_service_open_result(payload)
+
+    def _send_service_open_result(self, payload):
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.serviceOpenResult({encoded})')
 
     def ask(self, question):
         worker = AskWorker(question)
@@ -1180,7 +1432,7 @@ class WelcomeWindow(QMainWindow):
         if not self.force:
             self.view.page().runJavaScript("localStorage.getItem('spplus-welcome-no-show')", self.close_if_opted_out)
         if self.screen != 1:
-            self.view.page().runJavaScript(f'window.spWelcome.go({max(0, min(6, self.screen - 1))})')
+            self.view.page().runJavaScript(f'window.spWelcome.go({max(0, min(8, self.screen - 1))})')
         if self.help_depth:
             QTimer.singleShot(900, lambda: self.view.page().runJavaScript(f'window.spWelcome.helpDepth({self.help_depth})'))
 
@@ -1193,7 +1445,7 @@ class WelcomeWindow(QMainWindow):
         self._capture_screen()
 
     def _capture_screen(self):
-        if self._capture_index >= 7:
+        if self._capture_index >= 9:
             QApplication.quit()
             return
         self.view.page().runJavaScript(f'window.spWelcome.go({self._capture_index})')
@@ -1393,7 +1645,7 @@ class SelfTest(QObject):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--screen', type=int, default=1, help='screen number 1-7')
+    parser.add_argument('--screen', type=int, default=1, help='screen number 1-9')
     parser.add_argument('--screenshots', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--reset-no-show', action='store_true')
