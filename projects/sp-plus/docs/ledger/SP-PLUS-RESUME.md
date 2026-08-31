@@ -30,18 +30,25 @@ It is running `sp-plus-kde:test44` with a live Plasma 6.7 Wayland session.
 
 ## 3. IN FLIGHT RIGHT NOW — MOST PERISHABLE
 
-**No Bee job is running.** `spplus-phase2c.service` completed at 07:09 with `Result=success`;
-report `~/fleet/runs/REPORT-phase2c-lock.md` (3,941 B). Its fix is VERIFIED IN SOURCE but
-NOT yet on hardware: `panel.locked = true` now sits at line 109, after every `addWidget`, in
-BOTH windows light and dark, and `config/spplus-apply-theme` now accepts either
-`org.kde.plasma.minimizeall` or `org.kde.plasma.showdesktop` (lines 66-67).
+**`spplus-build45.service`** — building and pushing the image that carries every fix. Started
+08:20 CDT. It is a detached systemd unit and **survives compaction**. Do not restart it.
+- Alive?   `systemctl --user is-active spplus-build45.service`
+- Result:  `systemctl --user show spplus-build45.service -p Result --value`
+- Log:     `~/logs/sp-plus/build-test45-*.log` (the script tees to a timestamped file)
+- Script:  `~/fleet/bin/spplus-build-push.sh test45` — builds rootless, pushes to
+  `192.168.1.190:5000/sp-plus-kde:test45`, then CONFIRMS the tag is really in the registry
+  rather than trusting push's exit code.
+- Journal: `journalctl --user -u spplus-build45 --no-pager | tail -40`
+- On success: `~/fleet/bin/spplus-dell-switch.sh test45`, reboot the Dell, re-run the round
+  trip against the shipped image (§9).
 
-**On the Dell, deliberately running, leave alone:**
-- `welcome-probe` transient unit — the Welcome app with
-  `QTWEBENGINE_REMOTE_DEBUGGING=9222`. This is how the round trip gets driven.
-- plasmashell is alive and was started via `systemctl --user start plasma-plasmashell.service`.
-- The Dell still carries my staged copies under `~/stage` and `~/.local/share/...`, which are
-  now STALE relative to the 2c fix — re-stage before testing (§9 step 2).
+**On the Dell (192.168.1.134), deliberately running:**
+- `probe-dolphin.service` — a Dolphin left open by the receipt capture. Harmless.
+- Current theme is `org.kde.breeze.desktop`. plasmashell is up.
+- Staged copies that the tests currently depend on: `~/spplus-apply-theme`, `~/stage/`
+  (image root), `~/welcome-new/` (the new Welcome app), `~/cdp.py`,
+  `~/welcome_roundtrip.py`, `~/capture_receipts.sh`, `~/receipts/*.png`,
+  `~/roundtrip-results.json`. These become redundant once test45 is installed.
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
 
@@ -61,34 +68,32 @@ BOTH windows light and dark, and `config/spplus-apply-theme` now accepts either
   scratchpad `cdp.py`, `welcome_roundtrip.py`.
 - Registry `spplus-reg` (podman, :5000) holds `sp-plus-kde:test44`. **Keep it up.**
 
-## 5. THE LAST BUG FOUND — panel lock ordering (root cause proven, fix in source)
+## 5. NO OPEN BUG — the goal has been met on the staged build
 
-Running the Windows dark layout through `org.kde.PlasmaShell.evaluateScript` returns verbatim:
+The acceptance criterion PASSED at 08:07 CDT, driven entirely through the Welcome app by
+real mouse events (DevTools `Input.dispatchMouseEvent`), so the app's JavaScript, its
+window-title bridge and the apply helper all ran as they would for a person clicking:
 
 ```
-TypeError: Property 'writeConfig' of object
-Error: Could not create the org.kde.plasma.panelspacer widget! is not a function at line 50
+t0  windows11.dark -> breezedark      OK
+t1  breezedark     -> windows11.dark  OK
+t2  windows11.dark -> breezedark      OK
+t3  breezedark     -> windows11.dark  OK      VERDICT: PASS
 ```
 
-`addWidget` returns an Error, so the panel is built with **zero widgets** — that is the
-`panels: [[]]` the helper polled for 90 s before rolling back.
+Verified independently after each transition. KWin reported having LOADED
+`aurorae.v2 / windows-modern-dark` for Windows and `org.kde.breeze` for Breeze. t1 and t3
+identical; containments stayed at 1 panel / 0 orphaned; the shell survived all four.
+Evidence: `~/roundtrip-results.json` on the Dell.
 
-**Cause:** the layout script sets `panel.locked = true;` BEFORE calling `addWidget`. A locked
-panel refuses new applets.
+**The caveat, and it is the whole remaining job:** that run used the STAGED helper and theme
+(`SPPLUS_APPLY_THEME=/home/test/spplus-apply-theme`, `SPPLUS_IMAGE_ROOT=/home/test/stage`,
+`~/welcome-new/welcome.py`), NOT the shipped image. The Dell still runs `test44`. The honest
+final proof is the same round trip on test45 after `bootc switch` + reboot.
 
-**Proof, not hypothesis:** removing that one line and changing nothing else produced the
-intended panel on the first attempt:
-`panelspacer, kickoff, icontasks, panelspacer, systemtray, digitalclock, minimizeall`
-with pins brave / thunderbird / dolphin / writer / okular.
-
-Fixed in source by phase 2c: the lock now happens after every widget is added, in both
-variants. **Caveat: that re-locked ordering has NOT been run on hardware yet.** It is the
-first thing to verify (§9 step 1).
-
-Second, smaller: `org.kde.plasma.showdesktop` is **not installed** on the image. Bee's
-fallback correctly selects `org.kde.plasma.minimizeall`, but the helper's
-`layout_expectation` still demands `showdesktop`, so a correct apply would fail its own
-read-back. Reconciled in phase 2c: the helper now accepts either applet (lines 66-67).
+**Open question for Christopher, not a defect:** Breeze keeps the Windows centred taskbar.
+Only the Windows themes carry `data-layout-reset="true"`, so switching to Breeze changes
+colours, icons, style and decoration but leaves the panel arrangement alone.
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
@@ -115,6 +120,27 @@ read-back. Reconciled in phase 2c: the helper now accepts either applet (lines 6
   and resets. Run `cdp.py` ON the Dell instead.
 - **`pkill -f <pattern>` where the pattern appears in my own SSH/bash command line kills my own
   shell.** Cost two aborted commands. Use a pattern that cannot match itself.
+- **"`--resetLayout` breaks the panel."** REFUTED twice over. The empty panel was
+  `panel.locked = true` before `addWidget`; `--resetLayout` writes the layout correctly.
+- **"Windows Light has a layout bug."** REFUTED. Plasma's package loader silently IGNORES
+  symlinked files inside a look-and-feel package. The light layout was a symlink to the dark
+  one, so Plasma fell back to the stock default panel reporting no error. Both are real files
+  now, and Light applies cleanly.
+- **"The Start button shows the Windows logo."** WRONG when I first claimed it: that came
+  from my own test layout. The shipped layouts asked for `start-here-kde-symbolic`, which
+  `windows-modern` does not ship, so both Windows themes showed a KDE logo. Now `start-here`.
+- **Upstream themes must be applied with `--no-layout`.** Only the two Windows packages ship
+  an inspectable layout; asking for one on Breeze/Nordic/Catppuccin/Orchis fails validation.
+  The Welcome app already gets this right via `data-layout-reset`.
+- **Spectacle's `-o` works fine.** A run that wrote every screenshot to `btop.png` was my own
+  bash bug: a helper function used `for name in ...`, and bash function variables are global
+  by default, so it clobbered the caller's `$name`. Use `local`.
+- **DevTools visibility must be judged by `getBoundingClientRect()`, not `offsetParent`.** The
+  preview is a `position:fixed` modal and `offsetParent` is always null for fixed elements.
+- **The theme cards have a zero-sized box until their wizard step is shown.** Navigate to
+  "Choose the look" first or clicks silently hit nothing.
+- **The preview modal stays open after an apply** and swallows the next click; close it
+  between transitions. Close is legitimately disabled while an apply is in flight.
 
 ## 7. PROVEN ON HARDWARE (live Plasma 6.7 session) — do not re-derive
 
@@ -151,29 +177,23 @@ read-back. Reconciled in phase 2c: the helper now accepts either applet (lines 6
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. Re-stage to the Dell and re-run the apply:
-   ```
-   scp config/spplus-apply-theme test@192.168.1.134:/home/test/spplus-apply-theme
-   rsync -a theme/look-and-feel/ test@192.168.1.134:/home/test/stage/usr/share/plasma/look-and-feel/
-   rsync -a theme/icons/         test@192.168.1.134:/home/test/stage/usr/share/icons/
-   ```
-   then on the Dell, with the session env exported from plasmashell's `/proc/<pid>/environ`
-   and `SPPLUS_IMAGE_ROOT=$HOME/stage`:
-   `python3 ~/spplus-apply-theme org.secureprospective.spplus.windows11.dark --layout`
-   Expect a success verdict and the seven-applet sequence.
-2. Run the round trip THROUGH the Welcome app:
-   `scp scratchpad/welcome_roundtrip.py test@…:/home/test/ && ssh … python3 ~/welcome_roundtrip.py`
-   It dispatches real mouse events via CDP, so the app's JS + title bridge + helper all run.
-   Requires the `welcome-probe` unit running with `QTWEBENGINE_REMOTE_DEBUGGING=9222`.
-3. Capture the eight preview receipts required by
-   `welcome/PREVIEW-CAPTURE-CONTRACT.md` — the source gate FAILS until all eight exist
-   (`tests/theme-phase2-source-gate.sh`, currently: `FAIL missing applied-session preview
-   receipt: windows-light.png`). Captures must come from a real applied session AFTER a
-   success verdict, showing panel + decoration + wallpaper + an open app.
-4. Commit everything (nothing from this session is committed yet — see §10).
-5. ONE build: `~/fleet/bin/spplus-build-push.sh test45` (builds + pushes + verifies the tag
-   is actually in the registry). Then `~/fleet/bin/spplus-dell-switch.sh test45`, reboot the
-   Dell, and run the acceptance round trip on the shipped image.
+1. Check `spplus-build45.service` (§3). On success note the digest from the `BUILD OK` block.
+   If it FAILED, read `~/logs/sp-plus/build-test45-*.log` — do not rebuild blindly.
+2. Switch the Dell: `~/fleet/bin/spplus-dell-switch.sh test45`. It refuses early if the Dell
+   cannot see the tag, and prints the boot-entry count before staging. Then poll
+   `ssh ... test@192.168.1.134 'systemctl is-active spplus-switch'`.
+3. Confirm TWO boot entries exist before any reboot (`ls -1 /boot/loader/entries/ | wc -l`),
+   then reboot the Dell. That second entry is the rollback safety net.
+4. After boot: `bootc status` shows test45; `systemctl --failed`; confirm
+   `/usr/libexec/spplus-apply-theme` is the NEW helper and `/usr/share/icons/windows-modern/
+   index.theme` carries the Papirus inherit line.
+5. Re-run the acceptance round trip against the SHIPPED image — no `SPPLUS_APPLY_THEME`, no
+   `SPPLUS_IMAGE_ROOT`, and the installed `/usr/bin/spplus-welcome`:
+   launch it with `QTWEBENGINE_REMOTE_DEBUGGING=9222`, then
+   `python3 ~/welcome_roundtrip.py`. Expect VERDICT: PASS.
+6. Capture a screenshot after the final transition and LOOK at it. Legibility is pass/fail.
+7. Log what worked and what did not, per the standing goal.
+8. Raise the Breeze-keeps-the-Windows-taskbar question with Christopher (§5).
 
 ## 10. LEDGER STATE
 
@@ -200,9 +220,10 @@ confirmed by mtime. Leave them.
 
 ## 12. HONEST STATUS
 
-**The goal has NOT been met.** Nothing has yet been switched through the Welcome app end to
-end. What is genuinely proven: the switch mechanism works and is idempotent, Windows now looks
-like Windows and is legible (screenshots), the centred taskbar and correct pins can be built,
-and three real defects have been found and two fixed. The panel-lock fix is in source but its
-re-locked ordering is unverified on hardware. The build has not been made; the Dell still runs
-`test44`. The eight preview receipts do not exist and the source gate fails without them.
+**The goal is met on the staged build and NOT yet on the shipped image.** The round trip
+passed through the Welcome app with independent verification (§5), the source gate passes for
+the first time, and eight preview receipts exist in the composition Christopher specified
+(file manager over stock wallpaper, menu open, no Welcome window). What remains is
+mechanical but real: test45 must build, install on the Dell, and repeat the same run without
+any staging environment variables. Until that happens the claim is "proved on staged code",
+not "proved on the product".
