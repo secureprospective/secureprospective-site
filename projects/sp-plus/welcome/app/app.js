@@ -88,7 +88,9 @@
     const live = declared.filter(platform => platform && platform.state === 'live');
     const pending = declared.filter(platform => platform && platform.state === 'pending_review');
     if (liveNote) liveNote.hidden = !live.some(platform => platform.id === 'bluesky');
-    const order = { bluesky: 0, linkedin: 1 };
+    const order = live.some(platform => platform.id === 'linkedin')
+      ? { linkedin: 0, bluesky: 1 }
+      : { bluesky: 0, linkedin: 1 };
     const byPriority = (a, b) => (order[a.id] ?? 50) - (order[b.id] ?? 50);
     live.sort(byPriority).forEach(platform => {
       const button = document.createElement('button');
