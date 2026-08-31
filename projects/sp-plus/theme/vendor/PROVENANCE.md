@@ -59,8 +59,10 @@ that comparison did and did not prove, stated precisely:
   `contents/defaults`, and ships its own layout scripts. Upstream `BUILD.md` and
   `patches/` are not vendored.
 - **Not vendored at all:** upstream's custom C++ applets, panel template, session-lock
-  shell and patched boot greeter (excluded at `images/kde/Containerfile:L860-L863`), and
-  the upstream Windows Modern wallpaper.
+  shell and patched boot greeter (excluded at `images/kde/Containerfile:L860-L863`). The
+  upstream Windows Modern wallpaper is now vendored separately under
+  `theme/wallpaper/Windows-modern/` and copied into the image because DN-43 requires the
+  package's own wallpaper to be available.
 
 Anyone re-vendoring must record the new ref here at the time of the update rather than
 reconstructing it later.

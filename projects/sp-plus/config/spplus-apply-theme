@@ -1,150 +1,1635 @@
 #!/usr/bin/env python3
-"""Apply a Plasma global theme so that EVERY component changes together.
+"""Apply one SP+ Plasma theme as a transactional, observable operation.
 
-`plasma-apply-lookandfeel -a` is not sufficient on its own. It applies the colour
-scheme itself, but leaves the icon theme, widget style, Plasma desktop theme,
-window decoration, cursor and fonts to be picked up by the running session. The
-result the advisor sees is a theme switch where the colours move and the window
-frames, icons and fonts do not. That is the defect this exists to close.
-
-This reads the chosen look-and-feel package's own `contents/defaults` -- the
-upstream declaration of what the theme is -- writes every key it declares into the
-correct config file, and then tells each running component to reload.
-
-Usage:  spplus-apply-theme <look-and-feel-id>
+The helper is deliberately strict.  It validates the package before touching the
+user session, records a timestamped configuration snapshot, applies package
+values without inventing replacements, optionally resets the Plasma layout, and
+polls real read-backs before reporting success.
 """
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
 import os
+import re
+import select
+import shutil
 import subprocess
 import sys
-from pathlib import Path
-
-SEARCH = [
-    Path.home() / ".local/share/plasma/look-and-feel",
-    Path("/usr/share/plasma/look-and-feel"),
-]
-
-# A look-and-feel `defaults` file uses [configfile][Group] headers. A bare
-# [Group] header means kdeglobals.
-DEFAULT_FILE = "kdeglobals"
-
-# SP+ sets one type system across every theme it offers, so the desktop does not
-# change typeface when the advisor changes colours.
-_SANS = "Noto Sans"
-SPPLUS_FONTS = [
-    ("kdeglobals", "General", "font", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
-    ("kdeglobals", "General", "menuFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
-    ("kdeglobals", "General", "toolBarFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
-    ("kdeglobals", "General", "activeFont", f"{_SANS},10,-1,5,50,0,0,0,0,0"),
-    ("kdeglobals", "General", "smallestReadableFont",
-     f"{_SANS},9,-1,5,50,0,0,0,0,0"),
-]
+import time
+import uuid
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any, Callable, Iterable, Optional
+from urllib.parse import unquote, urlparse
 
 
-def find_package(theme_id):
-    for root in SEARCH:
-        candidate = root / theme_id
-        if (candidate / "contents" / "defaults").is_file():
+DEFAULT_FONT_VALUES = {
+    ("kdeglobals", "General", "font"): "Noto Sans,10,-1,5,50,0,0,0,0,0",
+    ("kdeglobals", "General", "fixed"): "Noto Sans Mono,10,-1,5,50,0,0,0,0,0",
+    ("kdeglobals", "General", "smallestReadableFont"): "Noto Sans,9,-1,5,50,0,0,0,0,0",
+    ("kdeglobals", "General", "toolBarFont"): "Noto Sans,10,-1,5,50,0,0,0,0,0",
+    ("kdeglobals", "General", "menuFont"): "Noto Sans,10,-1,5,50,0,0,0,0,0",
+    ("kdeglobals", "General", "activeFont"): "Noto Sans,10,-1,5,50,0,0,0,0,0",
+}
+FONT_KEYS = {item[2] for item in DEFAULT_FONT_VALUES}
+CONFIG_FILES = (
+    "kdeglobals",
+    "kwinrc",
+    "plasmarc",
+    "ksplashrc",
+    "plasmashellrc",
+    "kcminputrc",
+    # The brief and one ledger entry use the legacy shell-less name. Plasma 6.7's
+    # default shell is org.kde.plasma.desktop, so the live file includes
+    # .desktop. Snapshot both names until the target image's exact shell value is
+    # confirmed; missing files are recorded without inventing them.
+    "plasma-org.kde.plasma-appletsrc",
+    "plasma-org.kde.plasma.desktop-appletsrc",
+    "Kvantum/kvantum.kvconfig",
+)
+LEGACY_CHANGE_TYPES = {
+    ("kdeglobals", "General", "ColorScheme"): 0,
+    ("kdeglobals", "General", "font"): 1,
+    ("kdeglobals", "General", "fixed"): 1,
+    ("kdeglobals", "General", "smallestReadableFont"): 1,
+    ("kdeglobals", "General", "toolBarFont"): 1,
+    ("kdeglobals", "General", "menuFont"): 1,
+    ("kdeglobals", "KDE", "widgetStyle"): 2,
+    ("kdeglobals", "Icons", "Theme"): 4,
+    ("kcminputrc", "Mouse", "cursorTheme"): 5,
+}
+SECTION_RE = re.compile(r"^\[([^\]]+)\](?:\[([^\]]+)\])?$")
+ADD_WIDGET_RE = re.compile(r"\baddWidget\s*\(\s*['\"]([^'\"]+)['\"]\s*\)")
+SHOW_DESKTOP_WIDGETS = (
+    "org.kde.plasma.minimizeall",
+    "org.kde.plasma.showdesktop",
+)
+SHOW_DESKTOP_ADD_WIDGET_RE = re.compile(
+    r"\baddWidget\s*\(\s*spplusShowDesktopType\s*\)"
+)
+TASKBAR_LAUNCHERS_RE = re.compile(r"var\s+spplusTaskbarLaunchers\s*=\s*\[(.*?)\];", re.S)
+
+
+class ApplyFailure(RuntimeError):
+    """A failure that must trigger rollback when a snapshot exists."""
+
+
+class ValidationFailure(ApplyFailure):
+    """A package or request failed validation."""
+
+
+class CommandFailure(ApplyFailure):
+    def __init__(self, operation: str, args: list[str], returncode: Optional[int], detail: str) -> None:
+        self.operation = operation
+        self.args = args
+        self.returncode = returncode
+        self.detail = detail
+        rendered = " ".join(args)
+        suffix = f" (return code {returncode})" if returncode is not None else ""
+        super().__init__(f"{operation} failed{suffix}: {rendered}: {detail}")
+
+
+class RestoreFailure(ApplyFailure):
+    """The filesystem rollback or its verification was incomplete."""
+
+
+class EventLogFailure(RuntimeError):
+    """Structured event instrumentation could not be written."""
+
+
+@dataclass(frozen=True)
+class Setting:
+    file: str
+    group: str
+    key: str
+    value: str
+    source: str
+
+    @property
+    def identity(self) -> tuple[str, str, str]:
+        return self.file, self.group, self.key
+
+
+@dataclass(frozen=True)
+class Package:
+    theme_id: str
+    path: Path
+    metadata: dict[str, Any]
+    settings: tuple[Setting, ...]
+    wallpaper: Optional[Setting]
+    wallpaper_path: Optional[Path]
+    layout_settings: tuple[Setting, ...]
+    layout_script: Optional[Path]
+    layout_expectation: Optional[dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    path: Path
+    manifest: dict[str, Any]
+
+
+class EventLog:
+    """Write the same JSON object to JSONL and journald for every event."""
+
+    def __init__(self, correlation_id: str) -> None:
+        state_home = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))).expanduser()
+        self.path = Path(
+            os.environ.get(
+                "SPPLUS_THEME_EVENT_LOG",
+                str(state_home / "sp-plus" / "theme-events.jsonl"),
+            )
+        ).expanduser()
+        self.journal_command = os.environ.get("SPPLUS_JOURNAL_COMMAND", "/usr/bin/systemd-cat")
+        self.correlation_id = correlation_id
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.touch(mode=0o600, exist_ok=True)
+            os.chmod(self.path, 0o600)
+        except OSError as exc:
+            raise EventLogFailure(f"cannot prepare event log {self.path}: {exc}") from exc
+
+    def emit(self, event: str, stage: str, **fields: Any) -> None:
+        record: dict[str, Any] = {
+            "event": event,
+            "stage": stage,
+            "correlation_id": self.correlation_id,
+            "utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "monotonic_ns": time.monotonic_ns(),
+        }
+        record.update(fields)
+        line = json.dumps(record, sort_keys=True, default=str, separators=(",", ":"))
+        try:
+            with self.path.open("a", encoding="utf-8") as stream:
+                stream.write(line + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        except OSError as exc:
+            raise EventLogFailure(f"cannot append event log {self.path}: {exc}") from exc
+        try:
+            subprocess.run(
+                [self.journal_command, "--identifier=spplus-theme", "--priority=info"],
+                input=line + "\n",
+                text=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                check=True,
+                timeout=10,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise EventLogFailure(f"journald command timed out: {self.journal_command}") from exc
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or "").strip()
+            raise EventLogFailure(
+                f"journald command returned {exc.returncode}: {detail or self.journal_command}"
+            ) from exc
+        except OSError as exc:
+            raise EventLogFailure(f"cannot write journald event with {self.journal_command}: {exc}") from exc
+
+
+def safe_emit(log: EventLog, event: str, stage: str, **fields: Any) -> None:
+    try:
+        log.emit(event, stage, **fields)
+    except EventLogFailure as exc:
+        # An apply with an incomplete audit trail is not a successful apply.
+        # Raising here also sends a partially changed session through rollback.
+        raise ApplyFailure(f"event instrumentation failed: {exc}") from exc
+
+
+def command_output(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    clean = value.strip()
+    if len(clean) <= 2000:
+        return clean
+    return clean[-2000:]
+
+
+def run_command(
+    log: EventLog,
+    args: Iterable[object],
+    stage: str,
+    operation: str,
+    *,
+    capture: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    command = [str(item) for item in args]
+    stdout_target: Any = subprocess.PIPE if capture else subprocess.DEVNULL
+    try:
+        completed = subprocess.run(
+            command,
+            stdout=stdout_target,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+            timeout=float(os.environ.get("SPPLUS_COMMAND_TIMEOUT", "60")),
+        )
+    except subprocess.TimeoutExpired as exc:
+        safe_emit(
+            log,
+            "command",
+            stage,
+            operation=operation,
+            command=command,
+            returncode=None,
+            timeout=True,
+            stdout=command_output(exc.stdout if isinstance(exc.stdout, str) else None),
+            stderr=command_output(exc.stderr if isinstance(exc.stderr, str) else None),
+        )
+        raise CommandFailure(operation, command, None, "command ceiling exceeded") from exc
+    except subprocess.CalledProcessError as exc:
+        safe_emit(
+            log,
+            "command",
+            stage,
+            operation=operation,
+            command=command,
+            returncode=exc.returncode,
+            stdout=command_output(exc.stdout),
+            stderr=command_output(exc.stderr),
+        )
+        raise CommandFailure(
+            operation,
+            command,
+            exc.returncode,
+            command_output(exc.stderr) or "no diagnostic output",
+        ) from exc
+    except OSError as exc:
+        safe_emit(
+            log,
+            "command",
+            stage,
+            operation=operation,
+            command=command,
+            returncode=None,
+            error=str(exc),
+        )
+        raise CommandFailure(operation, command, None, str(exc)) from exc
+    safe_emit(
+        log,
+        "command",
+        stage,
+        operation=operation,
+        command=command,
+        returncode=completed.returncode,
+        stdout=command_output(completed.stdout),
+        stderr=command_output(completed.stderr),
+    )
+    return completed
+
+
+def config_root() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))).expanduser()
+
+
+def image_root() -> Path:
+    return Path(os.environ.get("SPPLUS_IMAGE_ROOT", "/")).expanduser()
+
+
+def data_roots(root: Path) -> list[Path]:
+    candidates = [
+        root / "usr/share",
+        Path.home() / ".local/share",
+        Path("/usr/share"),
+    ]
+    result: list[Path] = []
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved not in result:
+            result.append(resolved)
+    return result
+
+
+def look_and_feel_roots(root: Path) -> list[Path]:
+    candidates = [
+        root / "usr/share/plasma/look-and-feel",
+        Path.home() / ".local/share/plasma/look-and-feel",
+        Path("/usr/share/plasma/look-and-feel"),
+    ]
+    result: list[Path] = []
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved not in result:
+            result.append(resolved)
+    return result
+
+
+def validate_theme_id(theme_id: str) -> None:
+    if not theme_id or Path(theme_id).name != theme_id:
+        raise ValidationFailure(f"unsafe theme ID: {theme_id!r}")
+    if theme_id in {".", ".."} or "/" in theme_id or "\\" in theme_id:
+        raise ValidationFailure(f"unsafe theme ID: {theme_id!r}")
+
+
+def find_package(theme_id: str, root: Path) -> Path:
+    validate_theme_id(theme_id)
+    for base in look_and_feel_roots(root):
+        candidate = base / theme_id
+        if candidate.is_dir():
+            return candidate
+    searched = ", ".join(str(path / theme_id) for path in look_and_feel_roots(root))
+    raise ValidationFailure(f"look-and-feel package {theme_id!r} not found; searched {searched}")
+
+
+def read_json(path: Path, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValidationFailure(f"cannot parse {label} {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValidationFailure(f"{label} {path} is not a JSON object")
+    return value
+
+
+def validate_config_file(file_name: str) -> None:
+    pure = PurePosixPath(file_name)
+    if pure.is_absolute() or ".." in pure.parts or not file_name:
+        raise ValidationFailure(f"defaults names unsafe config file {file_name!r}")
+
+
+def parse_defaults(path: Path) -> list[Setting]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise ValidationFailure(f"cannot read defaults file {path}: {exc}") from exc
+    settings: list[Setting] = []
+    current_file: Optional[str] = None
+    current_group: Optional[str] = None
+    seen: set[tuple[str, str, str]] = set()
+    for line_number, original in enumerate(lines, 1):
+        line = original.strip()
+        if line_number == 1:
+            line = line.lstrip("\ufeff")
+        if not line or line.startswith("#") or line.startswith(";"):
+            continue
+        section = SECTION_RE.fullmatch(line)
+        if section:
+            first, second = section.groups()
+            if second is None:
+                current_file = "kdeglobals"
+                current_group = first
+            else:
+                current_file = first
+                current_group = second
+            validate_config_file(current_file)
+            if not current_group:
+                raise ValidationFailure(f"empty config group in {path}:{line_number}")
+            continue
+        if "=" not in line or current_file is None or current_group is None:
+            raise ValidationFailure(f"malformed defaults line {path}:{line_number}: {original!r}")
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            raise ValidationFailure(f"empty config key in {path}:{line_number}")
+        identity = (current_file, current_group, key)
+        if identity in seen:
+            raise ValidationFailure(f"duplicate config key {identity} in {path}:{line_number}")
+        seen.add(identity)
+        settings.append(Setting(*identity, value.strip(), f"{path}:{line_number}"))
+    if not settings:
+        raise ValidationFailure(f"defaults file has no settings: {path}")
+    return settings
+
+
+def find_layout_script(package_path: Path) -> Optional[Path]:
+    layouts = package_path / "contents/layouts"
+    if not layouts.is_dir():
+        return None
+    scripts = sorted(path for path in layouts.iterdir() if path.is_file() and path.name != "defaults" and path.suffix == ".js")
+    if not scripts:
+        return None
+    if len(scripts) > 1:
+        raise ValidationFailure(f"layout package has more than one JavaScript layout: {layouts}")
+    return scripts[0]
+
+
+def serialized_layout_object(text: str) -> Optional[dict[str, Any]]:
+    marker = "var layout ="
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        stripped = text.strip()
+        if stripped.startswith("{"):
+            try:
+                value = json.loads(stripped)
+            except json.JSONDecodeError:
+                return None
+            return value if isinstance(value, dict) else None
+        return None
+    object_start = text.find("{", marker_index + len(marker))
+    if object_start < 0:
+        return None
+    try:
+        value, _ = json.JSONDecoder().raw_decode(text[object_start:])
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def layout_expectation(script: Path) -> dict[str, Any]:
+    try:
+        text = script.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValidationFailure(f"cannot read layout script {script}: {exc}") from exc
+    launcher_block = TASKBAR_LAUNCHERS_RE.search(text)
+    taskbar_launchers = (
+        re.findall(r"['\"]([^'\"]+)['\"]", launcher_block.group(1))
+        if launcher_block
+        else None
+    )
+    widget_matches = list(ADD_WIDGET_RE.finditer(text))
+    widget_ids = [match.group(1) for match in widget_matches]
+    if widget_ids:
+        fallback_call = SHOW_DESKTOP_ADD_WIDGET_RE.search(text)
+        has_guarded_show_desktop = (
+            "knownWidgetTypes" in text
+            and all(widget_type in text for widget_type in SHOW_DESKTOP_WIDGETS)
+            and fallback_call is not None
+        )
+        if has_guarded_show_desktop and fallback_call is not None:
+            # The script has one logical show-desktop slot even though the
+            # installed applet ID is version-dependent. Put the alternatives at
+            # the dynamic addWidget call's position, not merely at the end of
+            # the literal calls found above.
+            insert_at = sum(
+                match.start() < fallback_call.start()
+                for match in widget_matches
+            )
+            widget_ids.insert(
+                insert_at,
+                {"alternatives": list(SHOW_DESKTOP_WIDGETS)},
+            )
+        expectation: dict[str, Any] = {
+            "kind": "panel-app-widget-sequence",
+            "panels": [widget_ids],
+            "panel_count": "per-screen" if re.search(r"\bscreenCount\b", text) else "exact",
+            "source": str(script),
+        }
+        if taskbar_launchers is not None:
+            expectation["taskbar_launchers"] = taskbar_launchers
+        return expectation
+    serialized = serialized_layout_object(text)
+    if serialized is None:
+        raise ValidationFailure(f"layout script {script} has no inspectable widget sequence")
+    expected_panels: list[list[str]] = []
+    for panel in serialized.get("panels", []):
+        if not isinstance(panel, dict):
+            continue
+        applets = panel.get("applets", [])
+        ids = [item.get("plugin") for item in applets if isinstance(item, dict) and isinstance(item.get("plugin"), str)]
+        if ids:
+            expected_panels.append(ids)
+    if not expected_panels:
+        raise ValidationFailure(f"layout script {script} has no serialized panel applets")
+    expectation = {
+        "kind": "serialized-panel-sequences",
+        "panels": expected_panels,
+        "panel_count": "per-screen" if re.search(r"\bscreenCount\b", text) else "exact",
+        "source": str(script),
+    }
+    if taskbar_launchers is not None:
+        expectation["taskbar_launchers"] = taskbar_launchers
+    return expectation
+
+
+def safe_asset_value(value: str) -> str:
+    parsed = urlparse(value)
+    if parsed.scheme == "file":
+        return unquote(parsed.path)
+    return value
+
+
+def resolve_asset(root: Path, category: str, value: str) -> Optional[Path]:
+    raw = safe_asset_value(value.strip())
+    if not raw:
+        return None
+    candidates: list[Path] = []
+    raw_path = Path(raw).expanduser()
+    if raw_path.is_absolute():
+        candidates.extend([root / raw_path.relative_to("/"), raw_path])
+    else:
+        suffix = ".colors" if category == "color-scheme" and not raw.endswith(".colors") else ""
+        named = raw + suffix
+        subdir = {
+            "color-scheme": "color-schemes",
+            "icons": "icons",
+            "cursor": "icons",
+            "plasma-theme": "plasma/desktoptheme",
+            "wallpaper": "wallpapers",
+            "kvantum": "Kvantum",
+            "aurorae": "aurorae/themes",
+        }[category]
+        for data_root in data_roots(root):
+            candidates.append(data_root / subdir / named)
+    for candidate in candidates:
+        if candidate.exists():
             return candidate
     return None
 
 
-def parse_defaults(path):
-    """Yield (file, group, key, value) for every declared setting."""
-    current_file, current_group = DEFAULT_FILE, None
-    for raw in path.read_text().splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
+def asset_check(log: EventLog, label: str, declared: str, actual: Optional[Path]) -> None:
+    matched = actual is not None
+    safe_emit(
+        log,
+        "asset_check",
+        "validate",
+        asset=label,
+        expected=declared,
+        actual=str(actual) if actual is not None else None,
+        matched=matched,
+    )
+    if not matched:
+        raise ValidationFailure(f"declared {label} asset is missing: {declared!r}")
+
+
+def require_aurorae_assets(log: EventLog, root: Path, theme_name: str) -> None:
+    directory = resolve_asset(root, "aurorae", theme_name)
+    asset_check(log, "Aurorae theme directory", theme_name, directory if directory and directory.is_dir() else None)
+    if directory is None or not directory.is_dir():
+        raise ValidationFailure(f"Aurorae directory unexpectedly disappeared: {theme_name}")
+    svg = next(
+        (directory / name for name in ("decoration.svg", "decoration.svgz")
+         if (directory / name).is_file()),
+        None,
+    )
+    rc = directory / f"{theme_name}rc"
+    asset_check(log, "Aurorae decoration SVG", f"{theme_name}/decoration.svg(.z)", svg)
+    asset_check(log, "Aurorae configuration", str(rc), rc if rc.is_file() else None)
+
+
+def require_breeze_plugin(log: EventLog, root: Path) -> None:
+    plugin_candidates = [
+        root / "usr/lib64/qt6/plugins/org.kde.kdecoration3/org.kde.breeze.so",
+        root / "usr/lib/qt6/plugins/org.kde.kdecoration3/org.kde.breeze.so",
+        Path("/usr/lib64/qt6/plugins/org.kde.kdecoration3/org.kde.breeze.so"),
+        Path("/usr/lib/qt6/plugins/org.kde.kdecoration3/org.kde.breeze.so"),
+    ]
+    plugin = next((item for item in plugin_candidates if item.is_file()), None)
+    asset_check(log, "Breeze decoration plugin", "org.kde.breeze", plugin)
+
+
+def validate_assets(log: EventLog, root: Path, settings: list[Setting]) -> tuple[Optional[Setting], Optional[Path]]:
+    wallpaper: Optional[Setting] = None
+    for setting in settings:
+        if setting.file == "kdeglobals" and setting.group == "Wallpaper" and setting.key == "Image":
+            if wallpaper is not None:
+                raise ValidationFailure("defaults declare Wallpaper Image more than once")
+            wallpaper = setting
             continue
-        if line.startswith("["):
-            parts = [p for p in line.strip("[]").split("][")]
-            if len(parts) == 2:
-                current_file, current_group = parts
+        if setting.file == "kdeglobals" and setting.group == "General" and setting.key == "ColorScheme":
+            value = setting.value if setting.value.endswith(".colors") else setting.value + ".colors"
+            asset_check(log, "color scheme", value, resolve_asset(root, "color-scheme", value))
+        elif setting.file == "kdeglobals" and setting.group == "Icons" and setting.key == "Theme":
+            asset_check(log, "icon theme", setting.value, resolve_asset(root, "icons", setting.value))
+        elif setting.file == "kcminputrc" and setting.group == "Mouse" and setting.key == "cursorTheme":
+            asset_check(log, "cursor theme", setting.value, resolve_asset(root, "cursor", setting.value))
+        elif setting.file == "plasmarc" and setting.group == "Theme" and setting.key == "name":
+            asset_check(log, "Plasma desktop theme", setting.value, resolve_asset(root, "plasma-theme", setting.value))
+        elif setting.file == "kwinrc" and setting.group == "org.kde.kdecoration2" and setting.key == "library":
+            if setting.value == "org.kde.breeze":
+                require_breeze_plugin(log, root)
+            elif setting.value != "org.kde.kwin.aurorae.v2":
+                raise ValidationFailure(f"unknown decoration library {setting.value!r}")
+        elif setting.file == "kwinrc" and setting.group == "org.kde.kdecoration2" and setting.key == "theme":
+            if setting.value.startswith("__aurorae__svg__"):
+                require_aurorae_assets(log, root, setting.value.removeprefix("__aurorae__svg__"))
+        elif setting.file == "Kvantum/kvantum.kvconfig" and setting.group == "General" and setting.key == "theme":
+            directory = resolve_asset(root, "kvantum", setting.value)
+            asset_check(log, "Kvantum skin", setting.value, directory if directory and directory.is_dir() else None)
+            if directory is not None:
+                kvconfig = next((item for item in directory.glob("*.kvconfig") if item.is_file()), None)
+                svg = next((item for item in directory.glob("*.svg") if item.is_file()), None)
+                asset_check(log, "Kvantum configuration", f"{setting.value}/*.kvconfig", kvconfig)
+                asset_check(log, "Kvantum SVG", f"{setting.value}/*.svg", svg)
+    wallpaper_path: Optional[Path] = None
+    if wallpaper is not None:
+        wallpaper_path = resolve_asset(root, "wallpaper", wallpaper.value)
+        asset_check(log, "wallpaper", wallpaper.value, wallpaper_path)
+        if wallpaper_path is not None:
+            if wallpaper_path.is_file():
+                asset_check(log, "wallpaper image file", str(wallpaper_path), wallpaper_path)
             else:
-                # A bare group such as [Wallpaper] belongs to kdeglobals unless
-                # it is one of the pseudo-groups handled separately.
-                current_file, current_group = DEFAULT_FILE, parts[0]
+                image_root = wallpaper_path / "contents/images"
+                image_files = sorted(
+                    item for item in image_root.iterdir()
+                    if item.is_file()
+                ) if image_root.is_dir() else []
+                asset_check(log, "wallpaper image directory", str(image_root), image_root if image_root.is_dir() else None)
+                asset_check(
+                    log,
+                    "wallpaper image file",
+                    str(image_root / "<resolution>"),
+                    image_files[0] if image_files else None,
+                )
+    return wallpaper, wallpaper_path
+
+
+def build_package(log: EventLog, theme_id: str, want_layout: bool, root: Path) -> Package:
+    package_path = find_package(theme_id, root)
+    metadata_path = package_path / "metadata.json"
+    if not metadata_path.is_file():
+        raise ValidationFailure(f"look-and-feel package has no metadata.json: {package_path}")
+    metadata = read_json(metadata_path, "metadata")
+    plugin = metadata.get("KPlugin", {})
+    package_metadata_id = plugin.get("Id") if isinstance(plugin, dict) else None
+    if package_metadata_id != theme_id:
+        raise ValidationFailure(
+            f"metadata ID mismatch for {theme_id!r}: {package_metadata_id!r} in {metadata_path}"
+        )
+    defaults_path = package_path / "contents/defaults"
+    if not defaults_path.is_file():
+        raise ValidationFailure(f"look-and-feel package has no contents/defaults: {package_path}")
+    settings = parse_defaults(defaults_path)
+    wallpaper, wallpaper_path = validate_assets(log, root, settings)
+
+    layout_settings: list[Setting] = []
+    layout_defaults = package_path / "contents/layouts/defaults"
+    if layout_defaults.is_file():
+        layout_settings = parse_defaults(layout_defaults)
+    layout_script = find_layout_script(package_path) if want_layout else None
+    layout_expectation_value: Optional[dict[str, Any]] = None
+    if want_layout:
+        if layout_script is None:
+            raise ValidationFailure(f"layout was requested but package has no JavaScript layout: {package_path}")
+        layout_expectation_value = layout_expectation(layout_script)
+
+    combined: list[Setting] = list(settings)
+    selection = Setting(
+        "kdeglobals",
+        "KDE",
+        "LookAndFeelPackage",
+        theme_id,
+        "apply selection",
+    )
+    previous_selection = next(
+        (setting for setting in combined if setting.identity == selection.identity),
+        None,
+    )
+    if previous_selection is not None and previous_selection.value != selection.value:
+        raise ValidationFailure(
+            "package defaults conflict with the requested look-and-feel selection: "
+            f"{previous_selection.value!r} versus {selection.value!r}"
+        )
+    if previous_selection is None:
+        combined.append(selection)
+    by_identity = {setting.identity: setting for setting in combined}
+    if want_layout:
+        for setting in layout_settings:
+            previous = by_identity.get(setting.identity)
+            if previous is not None and previous.value != setting.value:
+                raise ValidationFailure(
+                    f"package defaults conflict with layout defaults for {setting.identity}: "
+                    f"{previous.value!r} versus {setting.value!r}"
+                )
+            if previous is None:
+                combined.append(setting)
+                by_identity[setting.identity] = setting
+    for identity, fallback in DEFAULT_FONT_VALUES.items():
+        if identity not in by_identity:
+            setting = Setting(*identity, fallback, "SP+ policy fallback")
+            combined.append(setting)
+            by_identity[identity] = setting
+            safe_emit(
+                log,
+                "policy_fill",
+                "validate",
+                file=identity[0],
+                group=identity[1],
+                key=identity[2],
+                value=fallback,
+                reason="package is silent for this font key",
+            )
+    non_wallpaper = tuple(
+        setting
+        for setting in combined
+        if not (setting.file == "kdeglobals" and setting.group == "Wallpaper" and setting.key == "Image")
+    )
+    safe_emit(
+        log,
+        "package_validated",
+        "validate",
+        theme=theme_id,
+        package=str(package_path),
+        setting_count=len(non_wallpaper),
+        wallpaper=str(wallpaper_path) if wallpaper_path else None,
+        layout_requested=want_layout,
+        layout_script=str(layout_script) if layout_script else None,
+    )
+    return Package(
+        theme_id,
+        package_path,
+        metadata,
+        non_wallpaper,
+        wallpaper,
+        wallpaper_path,
+        tuple(layout_settings),
+        layout_script,
+        layout_expectation_value,
+    )
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def snapshot_config(log: EventLog, root: Path) -> Snapshot:
+    state_home = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))).expanduser()
+    snapshot_root = state_home / "sp-plus" / (
+        "theme-apply-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ") + "-" + uuid.uuid4().hex[:10]
+    )
+    backup_root = snapshot_root / "files"
+    try:
+        backup_root.mkdir(parents=True, exist_ok=False)
+        os.chmod(snapshot_root, 0o700)
+        os.chmod(backup_root, 0o700)
+    except OSError as exc:
+        raise ApplyFailure(f"cannot create configuration snapshot directory {snapshot_root}: {exc}") from exc
+    entries: list[dict[str, Any]] = []
+    for relative in CONFIG_FILES:
+        target = root / relative
+        backup = backup_root / relative
+        entry: dict[str, Any] = {
+            "relative": relative,
+            "kind": "file",
+            "existed": target.exists() or target.is_symlink(),
+            "backup": str(Path("files") / relative),
+        }
+        if entry["existed"]:
+            if not target.is_file() and not target.is_symlink():
+                raise ApplyFailure(f"configuration target is not a file: {target}")
+            try:
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(target, backup, follow_symlinks=False)
+                entry["size"] = target.stat().st_size
+                entry["sha256"] = sha256_file(target)
+            except OSError as exc:
+                raise ApplyFailure(f"cannot snapshot {target}: {exc}") from exc
+            safe_emit(log, "snapshot_copy", "snapshot", source=str(target), backup=str(backup), returncode=0)
+        else:
+            entry["size"] = None
+            entry["sha256"] = None
+            safe_emit(log, "snapshot_entry", "snapshot", source=str(target), existed=False, returncode=0)
+        entries.append(entry)
+    kdedefaults = root / "kdedefaults"
+    kdedefaults_entry: dict[str, Any] = {
+        "relative": "kdedefaults",
+        "kind": "directory",
+        "existed": kdedefaults.is_dir(),
+        "backup": str(Path("files") / "kdedefaults"),
+    }
+    if kdedefaults.is_dir():
+        try:
+            shutil.copytree(kdedefaults, backup_root / "kdedefaults", symlinks=True)
+        except OSError as exc:
+            raise ApplyFailure(f"cannot snapshot {kdedefaults}: {exc}") from exc
+        safe_emit(log, "snapshot_copy", "snapshot", source=str(kdedefaults), backup=str(backup_root / "kdedefaults"), returncode=0)
+        for child in sorted(kdedefaults.rglob("*")):
+            if child.is_file() or child.is_symlink():
+                relative = child.relative_to(root).as_posix()
+                entries.append(
+                    {
+                        "relative": relative,
+                        "kind": "file",
+                        "existed": True,
+                        "backup": str(Path("files") / relative),
+                        "size": child.stat().st_size,
+                        "sha256": sha256_file(child),
+                    }
+                )
+    else:
+        safe_emit(log, "snapshot_entry", "snapshot", source=str(kdedefaults), existed=False, returncode=0)
+    entries.append(kdedefaults_entry)
+    manifest: dict[str, Any] = {
+        "version": 1,
+        "correlation_id": log.correlation_id,
+        "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "config_root": str(root),
+        "entries": entries,
+    }
+    manifest_path = snapshot_root / "manifest.json"
+    try:
+        with manifest_path.open("x", encoding="utf-8") as stream:
+            json.dump(manifest, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(manifest_path, 0o600)
+    except OSError as exc:
+        raise ApplyFailure(f"cannot write snapshot manifest {manifest_path}: {exc}") from exc
+    safe_emit(log, "snapshot_created", "snapshot", path=str(snapshot_root), entries=len(entries), returncode=0)
+    return Snapshot(snapshot_root, manifest)
+
+
+def remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+def restore_snapshot(log: EventLog, snapshot: Snapshot, root: Path) -> None:
+    errors: list[str] = []
+    entries = snapshot.manifest.get("entries", [])
+    directory_entries = [entry for entry in entries if entry.get("kind") == "directory"]
+    file_entries = [entry for entry in entries if entry.get("kind") == "file"]
+    for entry in directory_entries:
+        relative = str(entry["relative"])
+        target = root / relative
+        try:
+            remove_path(target)
+            if entry.get("existed"):
+                backup = snapshot.path / str(entry["backup"])
+                shutil.copytree(backup, target, symlinks=True)
+            safe_emit(log, "restore_write", "restore", target=str(target), returncode=0)
+        except OSError as exc:
+            errors.append(f"{target}: {exc}")
+            safe_emit(log, "restore_write", "restore", target=str(target), returncode=None, error=str(exc))
+    for entry in file_entries:
+        relative = str(entry["relative"])
+        target = root / relative
+        try:
+            if entry.get("existed"):
+                if target.exists() or target.is_symlink():
+                    remove_path(target)
+                backup = snapshot.path / str(entry["backup"])
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(backup, target, follow_symlinks=False)
+                safe_emit(log, "restore_write", "restore", target=str(target), returncode=0)
+            else:
+                if target.exists() or target.is_symlink():
+                    remove_path(target)
+                safe_emit(log, "restore_remove", "restore", target=str(target), returncode=0)
+        except OSError as exc:
+            errors.append(f"{target}: {exc}")
+            safe_emit(log, "restore_write", "restore", target=str(target), returncode=None, error=str(exc))
+    if errors:
+        raise RestoreFailure("filesystem restore errors: " + "; ".join(errors))
+
+
+def verify_snapshot(log: EventLog, snapshot: Snapshot, root: Path) -> None:
+    errors: list[str] = []
+    for entry in snapshot.manifest.get("entries", []):
+        target = root / str(entry["relative"])
+        expected_exists = bool(entry.get("existed"))
+        if entry.get("kind") == "directory":
+            actual = target.is_dir()
+            safe_emit(
+                log,
+                "restore_readback",
+                "restore",
+                target=str(target),
+                expected=expected_exists,
+                actual=actual,
+                matched=actual == expected_exists,
+            )
+            if actual != expected_exists:
+                errors.append(f"directory existence mismatch: {target}")
             continue
-        if "=" in line and current_group:
-            key, value = line.split("=", 1)
-            yield current_file, current_group, key.strip(), value.strip()
+        actual_hash: Optional[str] = None
+        if target.is_file() or target.is_symlink():
+            try:
+                actual_hash = sha256_file(target)
+            except OSError as exc:
+                errors.append(f"cannot hash restored {target}: {exc}")
+        matched = (actual_hash == entry.get("sha256")) if expected_exists else actual_hash is None
+        safe_emit(
+            log,
+            "restore_readback",
+            "restore",
+            target=str(target),
+            expected=entry.get("sha256") if expected_exists else None,
+            actual=actual_hash,
+            matched=matched,
+        )
+        if not matched:
+            errors.append(f"hash mismatch: {target}")
+    if errors:
+        raise RestoreFailure("snapshot verification errors: " + "; ".join(errors))
 
 
-def kwrite(config_file, group, key, value):
-    cmd = ["kwriteconfig6", "--file", config_file, "--group", group,
-           "--key", key, value]
-    subprocess.run(cmd, check=False)
+def poll_until(log: EventLog, stage: str, label: str, predicate: Callable[[], bool]) -> None:
+    ceiling = float(os.environ.get("SPPLUS_POLL_CEILING", "90"))
+    interval = float(os.environ.get("SPPLUS_POLL_INTERVAL", "0.25"))
+    if ceiling <= 0 or interval <= 0:
+        raise ApplyFailure("poll ceiling and poll interval must be positive")
+    deadline = time.monotonic() + ceiling
+    attempts = 0
+    while True:
+        attempts += 1
+        if predicate():
+            safe_emit(log, "poll_complete", stage, label=label, attempts=attempts, returncode=0)
+            return
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            safe_emit(log, "poll_failed", stage, label=label, attempts=attempts, returncode=None)
+            raise ApplyFailure(f"{label} did not reach its expected state within {ceiling:g}s")
+        select.select([], [], [], min(interval, remaining))
 
 
-def notify():
-    """Tell the live session to reload each component."""
-    def dbus(*args):
-        subprocess.run(["qdbus-qt6", *args],
-                       check=False, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+def services_available_for(
+    log: EventLog,
+    expected_services: Iterable[str],
+    stage: str,
+) -> bool:
+    expected = list(expected_services)
+    busctl = os.environ.get("SPPLUS_BUSCTL", "/usr/bin/busctl")
+    try:
+        completed = run_command(
+            log,
+            [busctl, "--user", "--no-pager", "--no-legend", "list"],
+            stage,
+            "read-session-services",
+            capture=True,
+        )
+    except CommandFailure as exc:
+        safe_emit(
+            log,
+            "readback",
+            stage,
+            expected=expected,
+            actual=f"command failed: {exc}",
+            matched=False,
+        )
+        return False
+    output = completed.stdout or ""
+    names = {line.split()[0] for line in output.splitlines() if line.split()}
+    matched = all(name in names for name in expected)
+    safe_emit(log, "readback", stage, expected=expected, actual=sorted(names), matched=matched)
+    return matched
 
-    # Window decoration, borders and effects.
-    dbus("org.kde.KWin", "/KWin", "reconfigure")
-    # Plasma shell picks up the desktop theme from plasmarc through its own
-    # KConfigWatcher, so writing the key is enough; there is no refresh call.
-    # KDE global settings change: icons, style, fonts, colours.
-    # 0 = PaletteChanged, 1 = FontChanged, 2 = StyleChanged, 4 = IconChanged.
-    for change in (0, 1, 2, 4):
-        dbus("org.kde.KGlobalSettings", "/KGlobalSettings",
-             "org.kde.KGlobalSettings.notifyChange", str(change), "0")
+
+def services_available(log: EventLog) -> bool:
+    return services_available_for(
+        log,
+        ("org.kde.plasmashell", "org.kde.KWin"),
+        "session-ready",
+    )
 
 
-def main():
-    if len(sys.argv) != 2:
-        print(__doc__.strip(), file=sys.stderr)
-        return 2
-    theme_id = sys.argv[1]
+def ensure_session_ready(log: EventLog) -> None:
+    poll_until(log, "session-ready", "Plasma shell and KWin D-Bus services", lambda: services_available(log))
 
-    package = find_package(theme_id)
-    if package is None:
-        print(f"spplus-apply-theme: no look-and-feel package named {theme_id!r}",
-              file=sys.stderr)
-        return 1
 
-    defaults = package / "contents" / "defaults"
-    applied = []
-    wallpaper = None
+def restart_plasmashell(log: EventLog, stage: str) -> None:
+    systemctl = os.environ.get("SPPLUS_SYSTEMCTL", "/usr/bin/systemctl")
+    run_command(
+        log,
+        [systemctl, "--user", "restart", "plasma-plasmashell.service"],
+        stage,
+        "restart-plasmashell",
+    )
+    poll_until(
+        log,
+        "layout-shell-ready",
+        "Plasma shell D-Bus name",
+        lambda: services_available_for(
+            log,
+            ("org.kde.plasmashell",),
+            "layout-shell-ready",
+        ),
+    )
 
-    # Plasma goes FIRST. `plasma-apply-lookandfeel -a` resets the user's config
-    # keys back to the package's idea of default before applying, which silently
-    # discards anything written beforehand. Running it first means our explicit
-    # writes below are the last word.
-    subprocess.run(["plasma-apply-lookandfeel", "-a", theme_id],
-                   check=False, stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL)
 
-    declared = list(parse_defaults(defaults))
+def write_settings(log: EventLog, settings: tuple[Setting, ...], root: Path) -> None:
+    writer = os.environ.get("SPPLUS_KWRITE", "/usr/sbin/kwriteconfig6")
+    for setting in settings:
+        (root / setting.file).parent.mkdir(parents=True, exist_ok=True)
+        run_command(
+            log,
+            [
+                writer,
+                "--file",
+                setting.file,
+                "--group",
+                setting.group,
+                "--key",
+                setting.key,
+                setting.value,
+            ],
+            "config",
+            "write-config",
+        )
+        safe_emit(
+            log,
+            "write",
+            "config",
+            file=setting.file,
+            group=setting.group,
+            key=setting.key,
+            expected=setting.value,
+            source=setting.source,
+            returncode=0,
+        )
 
-    # Stock Plasma and Fedora themes declare no fonts at all, so switching to one
-    # would leave the previous theme's fonts in place. SP+ owns the font choice
-    # across every theme, so fill it in when the package is silent rather than
-    # patching upstream packages we do not maintain.
-    if not any(k == "font" for _, _, k, _ in declared):
-        declared.extend(SPPLUS_FONTS)
 
-    for config_file, group, key, value in declared:
-        if group == "Wallpaper" and key == "Image":
-            wallpaper = value
+def apply_wallpaper(log: EventLog, package: Package) -> None:
+    if package.wallpaper_path is None:
+        return
+    wallpaper_command = os.environ.get("SPPLUS_WALLPAPER", "/usr/sbin/plasma-apply-wallpaperimage")
+    run_command(
+        log,
+        [wallpaper_command, str(package.wallpaper_path)],
+        "config",
+        "write-wallpaper",
+    )
+    safe_emit(
+        log,
+        "write",
+        "config",
+        file="plasma-org.kde.plasma-appletsrc",
+        group="desktop wallpaper",
+        key="Image",
+        expected=str(package.wallpaper_path),
+        returncode=0,
+    )
+
+
+def run_package_apply(log: EventLog, package: Package, *, reset_layout: bool) -> None:
+    lookandfeel = os.environ.get("SPPLUS_LOOKANDFEEL", "/usr/sbin/plasma-apply-lookandfeel")
+    command: list[str] = [lookandfeel, "-a", package.theme_id]
+    if reset_layout:
+        command.append("--resetLayout")
+    run_command(log, command, "config" if not reset_layout else "layout", "apply-look-and-feel")
+
+
+def apply_package_state(log: EventLog, package: Package, root: Path) -> None:
+    write_settings(log, package.settings, root)
+    apply_wallpaper(log, package)
+
+
+def layout_ids_match(actual: list[str], expected: list[Any]) -> bool:
+    if len(actual) != len(expected):
+        return False
+    for observed, wanted in zip(actual, expected):
+        if isinstance(wanted, dict):
+            if observed not in wanted.get("alternatives", []):
+                return False
+        elif observed != wanted:
+            return False
+    return True
+
+
+def parse_layout_dump(text: str) -> Optional[dict[str, Any]]:
+    return serialized_layout_object(text)
+
+
+def layout_readback(log: EventLog, expectation: dict[str, Any]) -> bool:
+    if not services_available_for(
+        log,
+        ("org.kde.plasmashell",),
+        "layout-readback",
+    ):
+        safe_emit(
+            log,
+            "readback",
+            "layout-readback",
+            condition="plasmashell-dbus-name-absent",
+            expected=["org.kde.plasmashell"],
+            actual=None,
+            matched=False,
+        )
+        raise ApplyFailure(
+            "cannot evaluate layout because plasmashell is not running "
+            "(D-Bus name org.kde.plasmashell is not owned)"
+        )
+    qdbus = os.environ.get("SPPLUS_QDBUS", "/usr/bin/qdbus-qt6")
+    try:
+        completed = run_command(
+            log,
+            [qdbus, "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell.dumpCurrentLayoutJS"],
+            "layout-readback",
+            "dump-layout",
+            capture=True,
+        )
+    except CommandFailure as exc:
+        safe_emit(
+            log,
+            "readback",
+            "layout-readback",
+            expected=expectation,
+            actual=f"command failed: {exc}",
+            matched=False,
+        )
+        return False
+    layout = parse_layout_dump(completed.stdout or "")
+    actual: Any = None
+    matched = False
+    if layout is not None:
+        panels = layout.get("panels", [])
+        actual_panels: list[list[Any]] = []
+        taskbar_launchers: list[Optional[list[str]]] = []
+
+        def find_config_value(value: Any, key: str) -> Any:
+            if isinstance(value, dict):
+                if key in value:
+                    return value[key]
+                for child in value.values():
+                    found = find_config_value(child, key)
+                    if found is not None:
+                        return found
+            elif isinstance(value, list):
+                for child in value:
+                    found = find_config_value(child, key)
+                    if found is not None:
+                        return found
+            return None
+
+        for panel in panels:
+            if not isinstance(panel, dict):
+                continue
+            applets = panel.get("applets", [])
+            actual_panels.append(
+                [
+                    item.get("plugin")
+                    for item in applets
+                    if isinstance(item, dict) and isinstance(item.get("plugin"), str)
+                ]
+            )
+            for item in applets:
+                if not isinstance(item, dict) or item.get("plugin") != "org.kde.plasma.icontasks":
+                    continue
+                raw_launchers = find_config_value(item.get("config"), "launchers")
+                if isinstance(raw_launchers, list):
+                    taskbar_launchers.append([str(value) for value in raw_launchers])
+                elif isinstance(raw_launchers, str):
+                    taskbar_launchers.append([value for value in raw_launchers.split(",") if value])
+                else:
+                    taskbar_launchers.append(None)
+
+        expected_panels = expectation.get("panels", [])
+        if expectation.get("panel_count") == "per-screen":
+            expected_sequence = expected_panels[0] if expected_panels else []
+            matched = bool(actual_panels)
+            if matched:
+                matched = all(
+                    layout_ids_match(observed, expected_sequence)
+                    for observed in actual_panels
+                )
+        else:
+            matched = bool(actual_panels) and len(actual_panels) == len(expected_panels)
+            if matched:
+                for observed, wanted in zip(actual_panels, expected_panels):
+                    if not layout_ids_match(observed, wanted):
+                        matched = False
+                        break
+        expected_launchers = expectation.get("taskbar_launchers")
+        if expected_launchers is not None:
+            actual = {"panels": actual_panels, "taskbar_launchers": taskbar_launchers}
+            if not taskbar_launchers or not all(
+                observed == expected_launchers for observed in taskbar_launchers
+            ):
+                matched = False
+        else:
+            actual = actual_panels
+    safe_emit(
+        log,
+        "readback",
+        "layout-readback",
+        condition=None if matched else "wrong-layout",
+        expected=expectation,
+        actual=actual,
+        matched=matched,
+    )
+    return matched
+
+
+def emit_gdbus_signal(
+    log: EventLog,
+    gdbus: str,
+    object_path: str,
+    signal: str,
+    stage: str,
+    operation: str,
+    *values: object,
+) -> None:
+    run_command(
+        log,
+        [
+            gdbus,
+            "emit",
+            "--session",
+            "--object-path",
+            object_path,
+            "--signal",
+            signal,
+            "--",
+            *(str(value) for value in values),
+        ],
+        stage,
+        operation,
+    )
+
+
+def reload_gdbus_notifications(
+    log: EventLog,
+    gdbus: str,
+    stage: str,
+    *,
+    icon: bool = False,
+    fonts: bool = False,
+    change_types: Iterable[int] = (),
+) -> None:
+    if icon:
+        emit_gdbus_signal(
+            log,
+            gdbus,
+            "/KIconLoader",
+            "org.kde.KIconLoader.iconChanged",
+            stage,
+            "reload-icons",
+            -1,
+        )
+    if fonts:
+        emit_gdbus_signal(
+            log,
+            gdbus,
+            "/KDEPlatformTheme",
+            "org.kde.KDEPlatformTheme.refreshFonts",
+            stage,
+            "reload-fonts",
+        )
+    for change_type in change_types:
+        emit_gdbus_signal(
+            log,
+            gdbus,
+            "/KGlobalSettings",
+            "org.kde.KGlobalSettings.notifyChange",
+            stage,
+            f"reload-kglobalsettings-{change_type}",
+            change_type,
+            0,
+        )
+
+
+def reload_surfaces(log: EventLog, settings: tuple[Setting, ...]) -> None:
+    identities = {setting.identity for setting in settings}
+    qdbus = os.environ.get("SPPLUS_QDBUS", "/usr/bin/qdbus-qt6")
+    gdbus = os.environ.get("SPPLUS_GDBUS", "/usr/bin/gdbus")
+    if any(file_name == "kwinrc" for file_name, _, _ in identities):
+        run_command(
+            log,
+            [qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"],
+            "reload",
+            "reload-kwin",
+        )
+    reload_gdbus_notifications(
+        log,
+        gdbus,
+        "reload",
+        icon=any(identity == ("kdeglobals", "Icons", "Theme") for identity in identities),
+        fonts=any(identity[2] in FONT_KEYS for identity in identities),
+        change_types=sorted(
+            change_type
+            for identity, change_type in LEGACY_CHANGE_TYPES.items()
+            if identity in identities
+        ),
+    )
+
+
+def reload_all_surfaces(log: EventLog) -> None:
+    qdbus = os.environ.get("SPPLUS_QDBUS", "/usr/bin/qdbus-qt6")
+    gdbus = os.environ.get("SPPLUS_GDBUS", "/usr/bin/gdbus")
+    restart_plasmashell(log, "restore-reload")
+    run_command(
+        log,
+        [qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"],
+        "restore-reload",
+        "reload-kwin",
+    )
+    reload_gdbus_notifications(
+        log,
+        gdbus,
+        "restore-reload",
+        icon=True,
+        fonts=True,
+        change_types=(0, 1, 2, 4, 5),
+    )
+
+
+def config_readback(log: EventLog, setting: Setting) -> bool:
+    reader = os.environ.get("SPPLUS_KREAD", "/usr/bin/kreadconfig6")
+    try:
+        completed = run_command(
+            log,
+            [
+                reader,
+                "--file",
+                setting.file,
+                "--group",
+                setting.group,
+                "--key",
+                setting.key,
+                "--default",
+                "__SPPLUS_MISSING__",
+            ],
+            "readback",
+            "read-config",
+            capture=True,
+        )
+        actual = (completed.stdout or "").rstrip("\r\n")
+    except CommandFailure as exc:
+        safe_emit(
+            log,
+            "readback",
+            "readback",
+            file=setting.file,
+            group=setting.group,
+            key=setting.key,
+            expected=setting.value,
+            actual=f"command failed: {exc}",
+            matched=False,
+        )
+        return False
+    matched = actual == setting.value
+    safe_emit(
+        log,
+        "readback",
+        "readback",
+        file=setting.file,
+        group=setting.group,
+        key=setting.key,
+        expected=setting.value,
+        actual=actual,
+        matched=matched,
+    )
+    return matched
+
+
+def wallpaper_readback(log: EventLog, package: Package, root: Path) -> bool:
+    if package.wallpaper is None or package.wallpaper_path is None:
+        return True
+    expected_path = str(package.wallpaper_path)
+    alternatives = {expected_path, package.wallpaper_path.as_uri(), package.wallpaper.value}
+    actual_lines: list[str] = []
+    applet_configs = (
+        root / "plasma-org.kde.plasma.desktop-appletsrc",
+        root / "plasma-org.kde.plasma-appletsrc",
+    )
+    for applet_config in applet_configs:
+        if not applet_config.is_file():
             continue
-        kwrite(config_file, group, key, value)
-        applied.append(f"{config_file}:{group}:{key}={value}")
+        try:
+            for line in applet_config.read_text(encoding="utf-8", errors="replace").splitlines():
+                if "Image" in line or any(candidate in line for candidate in alternatives):
+                    actual_lines.append(f"{applet_config.name}: {line.strip()}")
+        except OSError as exc:
+            actual_lines.append(f"{applet_config.name}: cannot read: {exc}")
+    matched = any(any(candidate in line for candidate in alternatives) for line in actual_lines)
+    safe_emit(
+        log,
+        "readback",
+        "readback",
+        file=[path.name for path in applet_configs],
+        group="desktop wallpaper",
+        key="Image",
+        expected=sorted(alternatives),
+        actual=actual_lines or ["<missing>"],
+        matched=matched,
+    )
+    return matched
 
-    if wallpaper:
-        subprocess.run(["plasma-apply-wallpaperimage", wallpaper],
-                       check=False, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
 
-    notify()
+def decoration_readback(log: EventLog, settings: tuple[Setting, ...]) -> bool:
+    expected_plugin = next(
+        (setting.value for setting in settings if setting.identity == ("kwinrc", "org.kde.kdecoration2", "library")),
+        None,
+    )
+    expected_theme = next(
+        (setting.value for setting in settings if setting.identity == ("kwinrc", "org.kde.kdecoration2", "theme")),
+        None,
+    )
+    if expected_plugin is None and expected_theme is None:
+        return True
+    qdbus = os.environ.get("SPPLUS_QDBUS", "/usr/bin/qdbus-qt6")
+    try:
+        completed = run_command(
+            log,
+            [qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.supportInformation"],
+            "readback",
+            "read-decoration",
+            capture=True,
+        )
+    except CommandFailure as exc:
+        safe_emit(
+            log,
+            "readback",
+            "readback",
+            expected={"plugin": expected_plugin, "theme": expected_theme},
+            actual=f"command failed: {exc}",
+            matched=False,
+        )
+        return False
+    actual: dict[str, Optional[str]] = {"plugin": None, "theme": None}
+    for line in (completed.stdout or "").splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        if key.strip() == "Plugin":
+            actual["plugin"] = value.strip()
+        elif key.strip() == "Theme":
+            actual["theme"] = value.strip()
+    matched = actual["plugin"] == expected_plugin and actual["theme"] == expected_theme
+    safe_emit(
+        log,
+        "readback",
+        "readback",
+        expected={"plugin": expected_plugin, "theme": expected_theme},
+        actual=actual,
+        matched=matched,
+    )
+    return matched
 
-    for line in applied:
-        print(f"applied {line}")
-    print(f"SPPLUS_THEME_APPLIED {theme_id} keys={len(applied)}")
-    return 0
+
+def verify_once(log: EventLog, package: Package, root: Path, want_layout: bool) -> bool:
+    result = True
+    for setting in package.settings:
+        result = config_readback(log, setting) and result
+    result = wallpaper_readback(log, package, root) and result
+    result = decoration_readback(log, package.settings) and result
+    if want_layout:
+        if package.layout_expectation is None:
+            raise ApplyFailure("layout readback requested without a layout expectation")
+        result = layout_readback(log, package.layout_expectation) and result
+    return result
+
+
+def restore_after_failure(log: EventLog, snapshot: Snapshot, root: Path) -> tuple[bool, str]:
+    errors: list[str] = []
+    try:
+        restore_snapshot(log, snapshot, root)
+    except RestoreFailure as exc:
+        errors.append(str(exc))
+    try:
+        reload_all_surfaces(log)
+    except (ApplyFailure, OSError) as exc:
+        errors.append(f"consumer reload after restore failed: {exc}")
+    try:
+        verify_snapshot(log, snapshot, root)
+    except RestoreFailure as exc:
+        errors.append(str(exc))
+    if errors:
+        safe_emit(log, "restore_verdict", "restore", matched=False, errors=errors)
+        return False, "; ".join(errors)
+    safe_emit(log, "restore_verdict", "restore", matched=True, errors=[])
+    return True, "snapshot restored and verified"
+
+
+def success_verdict(log: EventLog, snapshot: Snapshot, package: Package, want_layout: bool) -> None:
+    proven = [
+        "look-and-feel defaults parsed before apply",
+        "look-and-feel package selection read back exactly",
+        "declared assets exist",
+        "package settings read back exactly",
+        "wallpaper configuration read back",
+        "KWin decoration Plugin and Theme read back",
+        "affected Plasma reload calls returned zero",
+        f"configuration snapshot created at {snapshot.path}",
+    ]
+    if want_layout:
+        proven.append("dumpCurrentLayoutJS matched the expected ordered native applets")
+        proven.append("taskbar launchers read back in the approved order")
+    not_provable_now = [
+        "visible wallpaper and panel appearance without a captured Dell session",
+        "the active Qt widget-style class in an already-running application",
+        "cached application icon, font, and cursor refresh in a running target application",
+        "the next-login splash screen surface",
+        "multi-monitor visual spacing and taskbar-centering details",
+    ]
+    safe_emit(
+        log,
+        "verdict",
+        "verdict",
+        result="success",
+        theme=package.theme_id,
+        layout_requested=want_layout,
+        proven=proven,
+        not_provable_now=not_provable_now,
+        snapshot=str(snapshot.path),
+    )
+
+
+def failure_verdict(
+    log: EventLog,
+    theme_id: str,
+    stage: str,
+    error: BaseException,
+    snapshot: Optional[Snapshot],
+    restore_ok: Optional[bool],
+    restore_detail: Optional[str],
+) -> None:
+    proven = []
+    not_provable = ["any live visual result because the apply did not complete"]
+    if restore_ok is True:
+        proven.append("configuration snapshot restored and filesystem hashes verified")
+    elif restore_ok is False:
+        not_provable.append("the original configuration after the failed restore")
+    safe_emit(
+        log,
+        "verdict",
+        "verdict",
+        result="failure",
+        theme=theme_id,
+        failed_stage=stage,
+        error=str(error),
+        snapshot=str(snapshot.path) if snapshot else None,
+        restore_ok=restore_ok,
+        restore_detail=restore_detail,
+        proven=proven,
+        not_provable_now=not_provable,
+    )
+
+
+def run_apply(theme_id: str, want_layout: bool, log: EventLog) -> int:
+    root = config_root()
+    image = image_root()
+    snapshot: Optional[Snapshot] = None
+    stage = "validate"
+    try:
+        package = build_package(log, theme_id, want_layout, image)
+        stage = "snapshot"
+        snapshot = snapshot_config(log, root)
+        stage = "session-ready"
+        ensure_session_ready(log)
+        stage = "layout" if want_layout else "config"
+        # The official tool is called once.  Its reset flag is the explicit
+        # layout decision; our declared-key writes follow it so the package is
+        # still the last word on settings the tool does not own.
+        run_package_apply(log, package, reset_layout=want_layout)
+        stage = "config"
+        apply_package_state(log, package, root)
+        if want_layout:
+            if package.layout_expectation is None:
+                raise ApplyFailure("layout was requested but no expectation was produced")
+            stage = "layout-shell-ready"
+            restart_plasmashell(log, stage)
+            stage = "layout-readback"
+            poll_until(
+                log,
+                "layout-readback",
+                "requested Plasma panel layout",
+                lambda: layout_readback(log, package.layout_expectation or {}),
+            )
+        stage = "reload"
+        reload_surfaces(log, package.settings)
+        stage = "readback"
+        poll_until(
+            log,
+            "readback",
+            "theme configuration and active decoration",
+            lambda: verify_once(log, package, root, want_layout),
+        )
+        success_verdict(log, snapshot, package, want_layout)
+        print(f"spplus-apply-theme: applied {theme_id}; snapshot={snapshot.path}")
+        print("spplus-apply-theme: config, wallpaper, decoration, and requested layout read back successfully")
+        print("spplus-apply-theme: visual Qt/app-cache/splash/Dell evidence remains unproven — needs the Dell")
+        return 0
+    except BaseException as exc:
+        restore_ok: Optional[bool] = None
+        restore_detail: Optional[str] = None
+        if snapshot is not None:
+            try:
+                restore_ok, restore_detail = restore_after_failure(log, snapshot, root)
+            except ApplyFailure as restore_exc:
+                restore_ok = False
+                restore_detail = str(restore_exc)
+        try:
+            failure_verdict(log, theme_id, stage, exc, snapshot, restore_ok, restore_detail)
+        except ApplyFailure as verdict_exc:
+            print(f"spplus-apply-theme: could not write failure verdict: {verdict_exc}", file=sys.stderr)
+        print(f"spplus-apply-theme: FAILED at {stage}: {exc}", file=sys.stderr)
+        if snapshot is not None:
+            print(f"spplus-apply-theme: rollback: {restore_detail}", file=sys.stderr)
+        if isinstance(exc, KeyboardInterrupt):
+            return 130
+        return 3 if restore_ok is False else 1
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 3 or argv[2] not in {"--layout", "--no-layout"}:
+        print(f"usage: {argv[0]} THEME_ID (--layout|--no-layout)", file=sys.stderr)
+        return 64
+    theme_id = argv[1]
+    want_layout = argv[2] == "--layout"
+    correlation_id = os.environ.get("SPPLUS_CORRELATION_ID", uuid.uuid4().hex)
+    try:
+        log = EventLog(correlation_id)
+        log.emit(
+            "apply_received",
+            "request",
+            theme=theme_id,
+            layout_requested=want_layout,
+            argv=argv[1:],
+        )
+    except EventLogFailure as exc:
+        print(f"spplus-apply-theme: cannot start observable apply: {exc}", file=sys.stderr)
+        return 70
+    return run_apply(theme_id, want_layout, log)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main(sys.argv))

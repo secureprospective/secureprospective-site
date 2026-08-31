@@ -69,3 +69,45 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
 .check-summary[hidden]{display:none}
 .fin-brief .primary-action{flex:0 0 auto}
 .fin-brief>p{flex:0 0 auto}
+
+/* DN-44: a preview is the verified desktop receipt, not a second confirmation
+   dialog. Keep the whole card inside 75% of the screen at the 1440x900 shell
+   size. No child surface scrolls: copy is compact and overflow is clipped so
+   the advisor always sees the action and the full change receipt together. */
+.theme-preview[hidden]{display:none}
+.theme-preview{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:#222b}
+.theme-preview-card{display:grid;grid-template-rows:52px minmax(0,1fr);width:75vw;height:75vh;max-width:1180px;max-height:720px;min-width:820px;min-height:560px;border:2px solid var(--ink);background:var(--silver);box-shadow:10px 10px 0 #0008;overflow:hidden}
+.theme-preview-header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:8px 16px;border-bottom:2px solid var(--ink);background:var(--blue);color:var(--white)}
+.preview-kicker,.preview-label{display:block;color:var(--yellow);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.theme-preview-header h2{margin-top:3px;font-family:Primal,'Noto Sans Condensed Black','Noto Sans Condensed',Impact,sans-serif;font-size:25px;line-height:.9;text-transform:uppercase}
+.theme-preview-header .text-button{color:var(--white);font-size:10px;white-space:nowrap}
+.theme-preview-header .text-button:hover{color:var(--yellow)}
+.theme-preview-main{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);min-height:0}
+.preview-media{display:grid;grid-template-rows:minmax(0,1fr) auto;position:relative;min-width:0;min-height:0;margin:0;padding:14px;background:#101216;color:var(--white);overflow:hidden}
+.preview-media img{display:block;width:100%;height:100%;min-height:0;object-fit:contain;background:#101216}
+.preview-media figcaption{padding-top:8px;color:#c8ccd4;font-size:10px;line-height:1.25}
+.preview-missing{position:absolute;inset:25% 12%;display:grid;place-items:center;padding:20px;border:1px solid var(--yellow);background:#222e;color:var(--white);font-size:13px;font-weight:700;line-height:1.35;text-align:center}
+.preview-missing[hidden]{display:none}
+.preview-receipt{display:grid;grid-template-rows:auto auto auto minmax(45px,1fr) auto;gap:12px;min-width:0;min-height:0;padding:18px;border-left:2px solid var(--ink);background:var(--white);overflow:hidden}
+.preview-result{min-height:29px;padding:7px 9px;border-left:4px solid var(--blue);background:var(--silver);font-size:11px;font-weight:800;line-height:1.25}
+.preview-result[data-kind=error]{border-left-color:var(--yellow);background:#fff4b8}
+.preview-result[data-kind=success]{border-left-color:var(--blue);background:#dcecff}
+.preview-copy-block{min-width:0;overflow:hidden}
+.preview-copy-block ul{display:grid;gap:3px;margin:5px 0 0;padding-left:17px;font-size:11px;line-height:1.25}
+.preview-copy-block li{margin:0}
+.preview-save{align-self:end;padding:8px 9px;border-block:var(--line);font-size:11px;font-weight:700;line-height:1.3}
+.preview-actions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+.preview-actions .secondary-action{font-size:9px;box-shadow:none;white-space:nowrap}
+.preview-actions .primary-action{min-width:180px;min-height:40px;font-size:10px}
+.preview-actions button:disabled{cursor:wait;opacity:.55;box-shadow:none;transform:none}
+.preview-actions .primary-action[data-state=working]{background:var(--yellow);border-color:var(--ink);color:var(--ink)}
+.theme-card:focus-visible{position:relative;z-index:1}
+@media(max-width:900px){
+  .theme-preview{padding:12px}
+  .theme-preview-card{width:94vw;height:94vh;min-width:0;min-height:0;max-width:none;max-height:none;grid-template-rows:54px minmax(0,1fr)}
+  .theme-preview-main{grid-template-columns:1fr;grid-template-rows:minmax(190px,.8fr) minmax(0,1.2fr)}
+  .preview-receipt{border-top:2px solid var(--ink);border-left:0;padding:12px;gap:8px}
+  .preview-copy-block ul{font-size:10px}
+  .preview-save{font-size:10px}
+  .preview-actions{justify-content:stretch}.preview-actions button{flex:1;min-width:0}
+}

@@ -859,14 +859,19 @@ RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
 # Jeysef; LICENSE and ATTRIBUTION ship alongside it under /usr/share/sp-plus/theme).
 # Deliberately NOT shipped: the upstream C++ System Tray and Icon Tasks applets, the
 # patched login manager and the lock-screen shell overlay — they fork core Plasma and
-# break at every update. The layout uses native Plasma applets instead, and no
-# Microsoft artwork ships: the wallpaper is SP+'s own.
+# break at every update. The layout uses native Plasma applets instead. Windows Modern
+# ships its attributed wallpaper payload separately below; the SP+ Calm wallpaper stays
+# available as the existing fallback asset for the other profiles.
 COPY theme/look-and-feel/  /usr/share/plasma/look-and-feel/
 COPY theme/desktoptheme/   /usr/share/plasma/desktoptheme/
 COPY theme/color-schemes/  /usr/share/color-schemes/
 COPY theme/aurorae/        /usr/share/aurorae/themes/
 COPY theme/icons/          /usr/share/icons/
 COPY theme/Kvantum/        /usr/share/Kvantum/
+# Windows Modern owns the icon role. Its index.theme inherits Breeze for the
+# platform fallbacks, but the selected theme name is not an unrelated Papirus
+# package.
+COPY theme/wallpaper/Windows-modern/ /usr/share/wallpapers/Windows-modern/
 COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
 
 # ---- 5c. Flathub, shipped rather than added at runtime (DN-26) ---------------
@@ -1043,6 +1048,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
  && test -d /usr/share/icons/Paper-Mono-Dark \
  && test -d /usr/share/icons/Papirus-Dark \
+ && test -d /usr/share/icons/windows-modern \
  && fc-list : family | grep -qi 'Noto Sans' \
  && fc-list : family | grep -qi 'IBM Plex Sans' \
  && fc-list : family | grep -qi 'JetBrains Mono' \
@@ -1061,7 +1067,7 @@ RUN printf '%s\n' \
       'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
       '' \
       '[Icons]' \
-      'Theme=Papirus-Dark' \
+      'Theme=windows-modern' \
       '' \
       '[KDE]' \
       'widgetStyle=kvantum-dark' \
@@ -1091,7 +1097,12 @@ RUN printf '%s\n' \
  && grep -q '^theme=__aurorae__svg__windows-modern-dark-aurorae$' /etc/xdg/kwinrc \
  && test -d /usr/share/wallpapers/SPPlus-Calm/contents/images \
  && test -f /usr/share/wallpapers/SPPlus-Calm/contents/images/3840x2160.jpg \
+ && test -d /usr/share/wallpapers/Windows-modern/contents/images \
+ && test -s /usr/share/wallpapers/Windows-modern/contents/images/2560x1440.png \
+ && test -s /usr/share/wallpapers/Windows-modern/contents/images_dark/2560x1440.png \
  && test -x /usr/libexec/spplus-apply-theme \
+ && ! grep -qF 'check=False' /usr/libexec/spplus-apply-theme \
+ && ! grep -qE '\bsleep\b' /usr/libexec/spplus-apply-theme \
  && python3 /usr/libexec/spplus-validate-global-themes --root / \
  && echo "GLOBAL_THEME_DEFAULT_OK themes=$(ls /usr/share/plasma/look-and-feel | wc -l)"
 
@@ -1133,7 +1144,9 @@ RUN chmod 0755 /usr/libexec/spplus-first-login /usr/libexec/spplus-printscreen \
  && grep -q '^cursorTheme=breeze_cursors$' /etc/xdg/kcminputrc \
  && test -d /usr/share/icons/breeze_cursors \
  && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
- && grep -q '^Image=SPPlus-Calm$' \
+ && grep -q '^Image=Windows-modern$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
+ && grep -q '^Theme=windows-modern$' \
       /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
  && grep -q '^ColorScheme=WindowsModernDark$' \
       /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
@@ -1153,6 +1166,7 @@ RUN chmod 0755 /usr/libexec/spplus-first-login /usr/libexec/spplus-printscreen \
 # Noto Sans Condensed Black, which IS in the image, rather than to Impact, which
 # is not and would have silently become generic sans.
 COPY welcome/app/        /usr/libexec/sp-plus/welcome/app/
+COPY welcome/PREVIEW-CAPTURE-CONTRACT.md /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md
 COPY welcome/welcome.py  /usr/libexec/sp-plus/welcome/welcome.py
 COPY tests/welcome-close-gate.sh /usr/libexec/sp-plus/welcome/welcome-close-gate.sh
 COPY welcome/org.secureprospective.spplus.welcome.desktop \
@@ -1170,6 +1184,10 @@ RUN printf '%s\n' \
  && test -x /usr/bin/spplus-welcome \
  && test -f /usr/libexec/sp-plus/welcome/app/index.html \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
+ && test -s /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md \
+ && for preview in windows-light.png windows-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \
+      test -s "/usr/libexec/sp-plus/welcome/app/assets/theme-previews/$preview"; \
+    done \
  && test -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
  && desktop-file-validate /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
  && chmod 0755 /usr/libexec/sp-plus/welcome/welcome-close-gate.sh \

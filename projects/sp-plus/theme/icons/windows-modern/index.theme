@@ -1,7 +1,14 @@
 [Icon Theme]
 Name=windows-modern
 Comment=A consolidated Windows 11-style icon theme for KDE Plasma
-Inherits=breeze,breeze-dark,hicolor
+# Papirus sits between Windows Modern and Breeze deliberately. Windows Modern keeps
+# the icon role and wins for everything it draws, but it ships no icon for third-party
+# applications its author never packaged -- verified on the Dell (test44), where
+# brave-browser and thunderbird resolve in neither windows-modern nor breeze, so the
+# browser and mail client rendered as blank tiles on the taskbar. Papirus has both.
+# The selected theme name remains windows-modern; Papirus is only a fallback link,
+# which is the theme-wins/policy-fills-gaps rule (DN-43), not an icon substitution.
+Inherits=Papirus,breeze,breeze-dark,hicolor
 
 FollowsColorScheme=true
 KDE-Extensions=.svg

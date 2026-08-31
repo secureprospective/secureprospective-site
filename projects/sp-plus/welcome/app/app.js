@@ -71,21 +71,135 @@
   next.addEventListener('click', () => { if(current===6){ announce('WELCOME STAYS AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
   skip.addEventListener('click', () => go(current+1));
-  // Applying a theme is a real system change, not a stub. The page hands the
-  // look-and-feel id to the shell over the spplus: scheme; the shell runs
-  // spplus-apply-theme, which writes EVERY component the theme declares --
-  // colours, icons, widget style, Plasma theme, window decoration, cursor and
-  // fonts -- and reports back through themeApplied(). Nothing here claims
-  // success on its own.
-  document.querySelectorAll('.theme-card').forEach(card => card.addEventListener('click', () => {
-    document.querySelectorAll('.theme-card').forEach(item => { item.classList.remove('selected'); item.setAttribute('aria-checked','false'); });
-    card.classList.add('selected'); card.setAttribute('aria-checked','true');
-    selectedTheme = card.dataset.theme.toUpperCase();
-    document.getElementById('final-theme').textContent = `${selectedTheme} / SELECTED`;
-    announce(`APPLYING ${selectedTheme} TO THE WHOLE DESKTOP...`);
+  // A theme card opens a preview receipt. Nothing reaches the shell until the
+  // advisor sees the verified-session capture and presses APPLY inside that
+  // receipt. The shell receives the look-and-feel id plus an explicit layout
+  // decision; it runs the one transactional helper and reports its readback.
+  const themeCards = [...document.querySelectorAll('.theme-card')];
+  const themePreview = document.getElementById('theme-preview');
+  const previewImage = document.getElementById('preview-image');
+  const previewMissing = document.getElementById('preview-missing');
+  const previewTitle = document.getElementById('preview-title');
+  const previewCaption = document.getElementById('preview-caption');
+  const previewChanges = document.getElementById('preview-changes');
+  const previewUnchanged = document.getElementById('preview-unchanged');
+  const previewSave = document.getElementById('preview-save');
+  const previewResult = document.getElementById('preview-result');
+  const previewApply = document.getElementById('preview-apply');
+  const previewClose = document.getElementById('preview-close');
+  const previewKeep = document.getElementById('preview-keep');
+  let previewCard = null;
+  let previewFocus = null;
+  let themeApplying = false;
+
+  function fillPreviewList(target, lines) {
+    target.replaceChildren(...lines.map(line => {
+      const item = document.createElement('li');
+      item.textContent = line;
+      return item;
+    }));
+  }
+  function setPreviewResult(message, kind='') {
+    previewResult.textContent = message;
+    previewResult.dataset.kind = kind;
+  }
+  function closeThemePreview() {
+    if (themeApplying) return;
+    themePreview.hidden = true;
+    document.body.classList.remove('theme-preview-open');
+    document.title = 'SP+ Welcome';
+    if (previewFocus && typeof previewFocus.focus === 'function') previewFocus.focus();
+    previewFocus = null;
+    previewCard = null;
+  }
+  function openThemePreview(card) {
+    if (themeApplying) return;
+    previewCard = card;
+    previewFocus = document.activeElement;
+    const label = (card.dataset.theme || 'THIS THEME').toUpperCase();
+    const resetsLayout = card.dataset.layoutReset === 'true';
+    previewTitle.textContent = label;
+    previewCaption.textContent = 'Verified applied-session capture. The image is not a drawn approximation.';
+    previewImage.alt = `${label} verified desktop preview`;
+    previewImage.onload = () => {
+      previewImage.hidden = false;
+      previewMissing.hidden = true;
+      previewApply.disabled = false;
+      previewApply.setAttribute('aria-busy', 'false');
+    };
+    previewImage.onerror = () => {
+      previewImage.hidden = true;
+      previewMissing.hidden = false;
+      previewApply.disabled = true;
+      previewApply.setAttribute('aria-busy', 'false');
+      setPreviewResult('This choice is not available until its verification capture is installed.', 'error');
+    };
+    previewImage.removeAttribute('src');
+    previewImage.hidden = true;
+    previewMissing.hidden = true;
+    previewApply.disabled = true;
+    previewApply.setAttribute('aria-busy', 'true');
+    previewApply.dataset.state = 'ready';
+    previewApply.textContent = `APPLY ${label}`;
+    previewClose.disabled = false;
+    previewKeep.disabled = false;
+    setPreviewResult('Nothing changes until you apply.');
+    if (resetsLayout) {
+      fillPreviewList(previewChanges, [
+        'Colours, window style and desktop theme.',
+        'Panel and pinned apps: replaced with this theme\'s arrangement.',
+        'Desktop widgets: replaced with this theme\'s arrangement.',
+        'Splash screen: changes next time you sign in.'
+      ]);
+      fillPreviewList(previewUnchanged, [
+        'Apps already open may keep their current look. Reopen them to see the new style.',
+        card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
+        'The lock screen and on-screen messages stay unchanged.',
+        'Start-menu favourites are not removed. Their order is not guaranteed.'
+      ]);
+      previewSave.textContent = 'Your current panel is saved. You can restore the previous panel and pinned apps later.';
+    } else {
+      fillPreviewList(previewChanges, [
+        'Colours, window style and desktop theme.',
+        'Splash screen: changes next time you sign in.',
+        'Cursor, fonts and application icon theme.'
+      ]);
+      fillPreviewList(previewUnchanged, [
+        'Your panel and pinned apps stay as they are.',
+        'Apps already open may keep their current look. Reopen them to see the new style.',
+        card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
+        'The lock screen and on-screen messages stay unchanged.',
+        'Start-menu favourites are not removed. Their order is not guaranteed.'
+      ]);
+      previewSave.textContent = 'No panel backup is needed because this theme does not change the panel.';
+    }
+    previewImage.src = card.dataset.preview || '';
+    themePreview.hidden = false;
+    document.body.classList.add('theme-preview-open');
+    previewClose.focus();
+  }
+  themeCards.forEach(card => card.addEventListener('click', () => openThemePreview(card)));
+  previewClose.addEventListener('click', closeThemePreview);
+  previewKeep.addEventListener('click', closeThemePreview);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !themePreview.hidden && !themeApplying) closeThemePreview();
+  });
+  previewApply.addEventListener('click', () => {
+    if (!previewCard || previewApply.disabled || themeApplying) return;
+    const label = (previewCard.dataset.theme || 'THIS THEME').toUpperCase();
+    const layout = previewCard.dataset.layoutReset === 'true' ? '1' : '0';
+    themeApplying = true;
+    previewApply.disabled = true;
+    previewApply.setAttribute('aria-busy', 'true');
+    previewApply.dataset.state = 'working';
+    previewApply.textContent = 'APPLYING...';
+    previewClose.disabled = true;
+    previewKeep.disabled = true;
+    setPreviewResult('Applying the package, saving the current panel, then checking the live readback.', 'working');
+    announce(`APPLYING ${label} TO THE WHOLE DESKTOP...`);
     // The shell watches the title. Navigating instead would replace the page.
-    document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(card.dataset.lnf);
-  }));
+    document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(previewCard.dataset.lnf) + `&layout=${layout}`;
+  });
   const toolActions = [...document.querySelectorAll('.tool-action')];
   let activeTool = null;
   function toolLabel(button) { return button.dataset.toolName || 'That application'; }
@@ -318,12 +432,40 @@
   window.spWelcome = {
     themeApplied: function(result){
       const detail = document.getElementById('theme-detail');
+      const samePreview = previewCard && result && result.theme === previewCard.dataset.lnf;
+      themeApplying = false;
+      document.title = 'SP+ Welcome';
       if (result && result.ok) {
-        announce(`${(result.theme||'').toUpperCase()} APPLIED. THE WHOLE DESKTOP CHANGED.`);
-        if (detail) detail.textContent = 'Applied to the desktop: colours, icons, window frames, panel, cursor and fonts all changed together.';
+        themeCards.forEach(item => {
+          const selected = item.dataset.lnf === result.theme;
+          item.classList.toggle('selected', selected);
+          item.setAttribute('aria-checked', selected ? 'true' : 'false');
+        });
+        selectedTheme = (result.theme || '').toUpperCase();
+        document.getElementById('final-theme').textContent = `${selectedTheme} / SELECTED`;
+        announce(`${selectedTheme} APPLIED. THE WHOLE DESKTOP CHANGED.`);
+        if (detail) detail.textContent = 'Applied after package validation and readback. Visual Qt, app-cache, splash and Dell evidence still need the hardware session.';
+        if (samePreview) {
+          setPreviewResult('Applied. The helper verified the package settings, wallpaper, decoration and requested layout.', 'success');
+          previewApply.dataset.state = 'applied';
+          previewApply.textContent = 'APPLIED';
+          previewApply.disabled = true;
+          previewApply.setAttribute('aria-busy', 'false');
+          previewClose.disabled = false;
+          previewKeep.disabled = false;
+        }
       } else {
         announce('THAT THEME COULD NOT BE APPLIED. THE DESKTOP WAS LEFT AS IT WAS.', 'stub');
-        if (detail) detail.textContent = 'The desktop was left unchanged. Detail: ' + ((result && result.detail) || 'no detail reported') + '.';
+        if (detail) detail.textContent = 'The desktop was left unchanged after rollback. Detail: ' + ((result && result.detail) || 'no detail reported') + '.';
+        if (samePreview) {
+          setPreviewResult('Apply failed and the saved configuration was restored. No new theme was selected.', 'error');
+          previewApply.dataset.state = 'failed';
+          previewApply.textContent = 'APPLY FAILED';
+          previewApply.disabled = true;
+          previewApply.setAttribute('aria-busy', 'false');
+          previewClose.disabled = false;
+          previewKeep.disabled = false;
+        }
       }
     },
     answered: finishAsk,

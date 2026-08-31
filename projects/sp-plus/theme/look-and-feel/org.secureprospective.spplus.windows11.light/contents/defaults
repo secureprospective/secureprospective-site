@@ -11,7 +11,7 @@ activeFont=Noto Sans,10,-1,5,50,0,0,0,0,0
 smallestReadableFont=Noto Sans,9,-1,5,50,0,0,0,0,0
 
 [kdeglobals][Icons]
-Theme=Papirus
+Theme=windows-modern
 
 [kdeglobals][KDE]
 widgetStyle=kvantum
@@ -23,12 +23,12 @@ cursorTheme=breeze_cursors
 name=Windows-modern-light
 
 [Wallpaper]
-Image=SPPlus-Calm
+Image=Windows-modern
 
 [kwinrc][org.kde.kdecoration2]
 library=org.kde.kwin.aurorae.v2
 theme=__aurorae__svg__windows-modern-light-aurorae
-ButtonsOnLeft=
+ButtonsOnLeft=ML
 ButtonsOnRight=IAX
 
 [Kvantum/kvantum.kvconfig][General]

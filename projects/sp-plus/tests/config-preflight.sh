@@ -557,6 +557,14 @@ grep -qF 'SPPLUS_NETWORK_PATCH FAILED' "$REPO/projects/sp-plus/installer/patch-a
   && ok "D-02 base images are digest-pinned and the Anaconda patches still fail loudly" \
   || bad "D-02 pin gate failed" "an unpinned base means a mile marker does not name one set of bits"
 
+# P-24  DN-43 to DN-45 theme path. This gate is intentionally strict: missing
+# applied-session receipts are a build failure, not a reason to ship swatches.
+if "$REPO/projects/sp-plus/tests/theme-phase2-source-gate.sh"; then
+  ok "DN-43/44/45 verified theme apply, panel, and preview source gate"
+else
+  bad "DN-43/44/45 theme source gate failed" "do not build until the apply path and every preview receipt are present"
+fi
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

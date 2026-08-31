@@ -22,11 +22,12 @@ grep -qF 'theme=__aurorae__svg__windows-modern-dark-aurorae' "$CF" || fail 'defa
 if grep -rn 'library=org\.kde\.kwin\.aurorae$' "$ROOT/theme" >/dev/null 2>&1; then
   fail 'a look-and-feel package still names the Plasma 5 decoration plugin'
 fi
-grep -qF 'look-and-feel config verified' "$C/spplus-first-login" || fail 'first-login theme read-back is absent'
-grep -qF 'KDE widgetStyle' "$C/spplus-first-login" || fail 'widgetStyle read-back is absent'
-grep -qF 'General ColorScheme' "$C/spplus-first-login" || fail 'ColorScheme read-back is absent'
-grep -qF 'org.kde.kdecoration2 theme' "$C/spplus-first-login" || fail 'KWin theme read-back is absent'
-pass 'Aurorae v2 everywhere and first-login read-back'
+grep -qF 'verify_once' "$C/spplus-apply-theme" || fail 'shared helper theme read-back is absent'
+grep -qF 'widgetStyle' "$C/spplus-apply-theme" || fail 'widgetStyle read-back is absent'
+grep -qF 'ColorScheme' "$C/spplus-apply-theme" || fail 'ColorScheme read-back is absent'
+grep -qF 'org.kde.kdecoration2' "$C/spplus-apply-theme" || fail 'KWin theme read-back is absent'
+grep -qF 'spplus-apply-theme' "$C/spplus-first-login" || fail 'first-login is not using the shared read-back path'
+pass 'Aurorae v2 everywhere and shared first-login read-back'
 
 # FIX 2b (DN-28): a theme switch must change EVERY component, not just colours.
 test -x "$C/spplus-apply-theme" || fail 'spplus-apply-theme helper missing'

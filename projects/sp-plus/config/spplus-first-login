@@ -1,158 +1,33 @@
 #!/usr/bin/bash
 # DN-24: make a fresh install look like the machine we demo.
 #
-# /etc/xdg/kdeglobals NAMES the SP+ look-and-feel, but naming is not applying.
-# plasmashell reads LookAndFeelPackage for its colours and widget style only;
-# the panel layout and the wallpaper come from the package's layouts/*.js and
-# its [Wallpaper] default, and NOTHING re-reads those unless the look-and-feel
-# is explicitly applied. So a fresh advisor account booted to Fedora's default
-# wallpaper and Fedora's default favourites, while the machine we had themed by
-# hand looked correct -- the gap that made DN-24.
-#
-# This runs once per user, inside the live Plasma session (it needs the session
-# bus and a running plasmashell to talk to), then drops a stamp so it never
-# fights the advisor's own choices afterwards.
+# The image names the SP+ look-and-feel in /etc/xdg, but naming is not applying.
+# The single observable helper below owns package validation, the configuration
+# snapshot, the optional layout reset, wallpaper, notifications, and readback.
+# There is one path for first login and Welcome, so a first-login retry cannot
+# silently drift from the picker path.
 set -u
 
 LNF=org.secureprospective.spplus.windows11.dark
-# The wallpaper is shipped as a Plasma wallpaper PACKAGE with a resolution ladder
-# (1920x1080 through 7680x4320, JPEG). plasma-apply-wallpaperimage is handed the
-# package directory, not a single file, so Plasma picks the size that fits the
-# advisor's screen instead of scaling one image badly.
-WALLPAPER=/usr/share/wallpapers/SPPlus-Calm
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
 
 [ -e "$STAMP" ] && { echo "spplus-first-login: already applied, nothing to do"; exit 0; }
 
-# plasma-apply-* are D-Bus clients: plasmashell has to be answering before they
-# will do anything. The unit is ordered after plasma-workspace.target, but that
-# target is reached before plasmashell has claimed its name, so wait for the
-# name rather than for the target. busctl is used rather than qdbus because the
-# image ships no qdbus at all -- checked, it is not in the Plasma package set.
-for _ in $(seq 1 60); do
-    busctl --user list --no-legend --no-pager 2>/dev/null \
-        | grep -q '^org\.kde\.plasmashell\b' && break
-    sleep 1
-done
-
-# Plasma installs these under /usr/sbin, which is not reliably on a user
-# session's PATH. Call them by path.
-#
-# The command's exit code is not proof. Plasma applies the package asynchronously,
-# and a plasmashell reload can flush stale values back over the user config. Read
-# the resulting configuration back and retry until it agrees with the package.
-#
-# READ THE EFFECTIVE VALUE, NOT THE USER FILE. This verification used to awk the
-# user's ~/.config/kdeglobals directly and it reported failure on a machine where
-# the theme was applied perfectly -- observed on the cycle36 guest 2026-08-28,
-# where the unit retried three times, gave up, and withheld its stamp while every
-# component was in fact correct.
-#
-# The reason is KConfig's cascade. Setting a key whose new value already equals
-# the current EFFECTIVE value is a no-op: KConfig writes nothing, because there
-# is nothing to override. SP+ ships these very values in /etc/xdg/kdeglobals and
-# /etc/xdg/kwinrc, so the user file legitimately stays silent on exactly the keys
-# we were testing, while the fonts and the button layout -- which have no system
-# default -- did land. Absence from the user file means agreement, not failure.
-#
-# kreadconfig6 resolves the whole cascade, which is what Plasma itself reads.
-KDEGLOBALS="${XDG_CONFIG_HOME:-$HOME/.config}/kdeglobals"
-KWINRC="${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc"
-effective() {
-    # effective <file> <group> <key>
-    kreadconfig6 --file "$1" --group "$2" --key "$3" 2>/dev/null
-}
-theme_config_ok() {
-    [ "$(effective kdeglobals General ColorScheme)" = "WindowsModernDark" ] && \
-    [ "$(effective kdeglobals KDE widgetStyle)" = "kvantum-dark" ] && \
-    [ "$(effective kwinrc org.kde.kdecoration2 library)" = "org.kde.kwin.aurorae.v2" ] && \
-    [ "$(effective kwinrc org.kde.kdecoration2 theme)" = "__aurorae__svg__windows-modern-dark-aurorae" ] && \
-    cursor_ok
-}
-# The cursor is the one component the theme loop used to leave behind. cycle36
-# shipped with kcminputrc absent entirely on a fresh login, so the advisor got
-# the stock cursor while every other component was correct, and the gate above
-# passed because it never looked. Checked on the cascade like the rest.
-cursor_ok() {
-    [ "$(effective kcminputrc Mouse cursorTheme)" = "breeze_cursors" ]
-}
-
-rc=0
-theme_ok=0
-for attempt in 1 2 3; do
-    apply_rc=0
-    /usr/sbin/plasma-apply-lookandfeel -a "$LNF" --resetLayout || apply_rc=1
-    # Then force every remaining component key from the package defaults.
-    /usr/libexec/spplus-apply-theme "$LNF" >/dev/null 2>&1 || apply_rc=1
-    for _ in $(seq 1 60); do
-        busctl --user list --no-legend --no-pager 2>/dev/null \
-            | grep -q '^org\.kde\.plasmashell\b' && break
-        sleep 1
-    done
-    sleep 2
-    if [ "$apply_rc" -eq 0 ] && theme_config_ok; then
-        theme_ok=1
-        echo "spplus-first-login: look-and-feel config verified on attempt $attempt"
-        break
-    fi
-    echo "spplus-first-login: look-and-feel reported success but config did not verify; retrying"
-done
-[ "$theme_ok" -eq 1 ] || rc=1
-
-# --- Wallpaper. ORDER IS NOT ENOUGH, AND EXIT 0 IS NOT PROOF. ------------------
-# --resetLayout makes plasmashell reload its layout ASYNCHRONOUSLY. On cycle32 the
-# wallpaper call returned "Successfully set the wallpaper for all desktops", this
-# unit exited 0 and wrote its journal line -- and the advisor still got Fedora's
-# red/purple default, because the reload flushed plasmashell's cached config over
-# our write afterwards. The layout won simply by landing last.
-# So: wait for plasmashell to come BACK on the bus after the reset, then apply,
-# then READ THE CONFIG BACK. Trust the file, never the exit code.
-APPLETSRC="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
-wp_ok=1
-if [ -d "$WALLPAPER" ] || [ -r "$WALLPAPER" ]; then
-    for _ in $(seq 1 60); do
-        busctl --user list --no-legend --no-pager 2>/dev/null \
-            | grep -q '^org\.kde\.plasmashell\b' && break
-        sleep 1
-    done
-    wp_ok=0
-    for attempt in 1 2 3; do
-        sleep 3
-        /usr/sbin/plasma-apply-wallpaperimage "$WALLPAPER" || continue
-        sleep 2
-        if grep -qF "$WALLPAPER" "$APPLETSRC" 2>/dev/null; then
-            wp_ok=1
-            echo "spplus-first-login: wallpaper verified in the desktop config on attempt $attempt"
-            break
-        fi
-        echo "spplus-first-login: wallpaper reported success but did not stick; retrying"
-    done
-    [ "$wp_ok" -eq 1 ] || rc=1
+# The helper waits for the real Plasma/KWin D-Bus names with a bounded poll and
+# fails loudly if the session never becomes usable. It is deliberately passed
+# --layout here: only this first-login policy is allowed to replace the panel.
+theme_rc=0
+/usr/libexec/spplus-apply-theme "$LNF" --layout || theme_rc=$?
+if [ "$theme_rc" -eq 0 ]; then
+    echo "spplus-first-login: look-and-feel, wallpaper, layout, and readback completed"
+else
+    echo "spplus-first-login: look-and-feel apply failed; continuing with screenshot setup and leaving the stamp off"
 fi
 
 # THE THEME MUST NOT GATE THE SCREENSHOT PERMISSION.
-#
-# This used to `exit 1` right here, which meant a cosmetic failure -- a wallpaper
-# that did not verify, a look-and-feel that needed a fourth attempt -- silently
-# skipped everything below: the screenshots folder, the Print Screen portal
-# grant, and the cursor. That is the defect that made Flameshot "randomly"
-# broken out of the box across many cycles. cycle38's theme happened to verify
-# on attempt 1, so Print Screen worked; cycle36's retried three times, gave up
-# here, and Print Screen met a permission prompt. Same image, same code, two
-# different advisors' experience, decided by the wallpaper.
-#
-# So: record the cosmetic failure, keep going, and decide the stamp at the end.
-# Withholding the stamp still makes the next login retry the theme, which was
-# the only thing the early exit was actually buying.
-theme_failed=0
-if [ "$rc" -ne 0 ] || [ "$theme_ok" -ne 1 ] || [ "$wp_ok" -ne 1 ]; then
-    echo "spplus-first-login: theme did not apply cleanly; continuing so Print Screen is still set up, and leaving the stamp off so the next login retries"
-    theme_failed=1
-fi
-
-# flameshot's savePath has to be an absolute path, so it cannot be shipped in
-# /etc/skel -- that file is copied verbatim into whatever home the wizard
-# creates. Point it at a real Screenshots folder now that $HOME is known.
+# A cosmetic apply failure must not skip the screenshots folder or the portal
+# grant. The stamp is withheld above by the helper result, so a later login can
+# retry the cosmetic path without repeating a successful stamp.
 SHOTS="$HOME/Pictures/Screenshots"
 FLAMESHOT="${XDG_CONFIG_HOME:-$HOME/.config}/flameshot/flameshot.ini"
 if [ -w "$FLAMESHOT" ] || [ ! -e "$FLAMESHOT" ]; then
@@ -161,7 +36,6 @@ if [ -w "$FLAMESHOT" ] || [ ! -e "$FLAMESHOT" ]; then
     if grep -q '^savePath=' "$FLAMESHOT" 2>/dev/null; then
         sed -i "s#^savePath=.*#savePath=$SHOTS#" "$FLAMESHOT"
     else
-        # Append under [General], which /etc/skel's copy always has.
         printf 'savePath=%s\n' "$SHOTS" >> "$FLAMESHOT"
     fi
     echo "spplus-first-login: screenshots will be saved to $SHOTS"
@@ -170,37 +44,16 @@ fi
 # --- Screenshot portal permission (DN-29). ------------------------------------
 # Print Screen runs `flameshot gui`. Flameshot is a third-party app, so on
 # Wayland it captures through xdg-desktop-portal, and the KDE backend puts up
-# "Allow Apps to Take Screenshots?" the first time and BLOCKS until a human
-# answers. An advisor must not meet a permission prompt the first time they press
-# Print Screen, so grant it once, here, in the live session.
-#
-# Measured on the cycle36 guest 2026-08-28: with the grant absent the dialog
-# blocks indefinitely, which is what cycle35 misread as the portal wedging. With
-# the grant written exactly as below and no dialog pending, `flameshot gui` opens
-# its overlay immediately and no prompt appears. Verified by host-side screenshot,
-# not by an exit code.
-#
-# NOTE ON SCOPE, deliberately recorded: the app id is the EMPTY string. That is
-# what the portal itself writes when a human clicks Allow here, because it cannot
-# identify an unsandboxed app. It is therefore a BLANKET screenshot grant for
-# unsandboxed applications, not a Flameshot-specific one. SP+ ships a curated
-# application set and no human account by default (DN-13), but this is a real
-# widening of what a compromised desktop app could do silently, and it is the
-# price of Print Screen working out of the box.
+# "Allow Apps to Take Screenshots?" the first time and blocks until a human
+# answers. Grant the ids used by the shipped launchers once in the live session.
 grant_screenshot_permission() {
     have_gdbus=0
     command -v gdbus >/dev/null 2>&1 && have_gdbus=1
-    [ "$have_gdbus" -eq 1 ] || { echo "spplus-first-login: gdbus missing; screenshot permission not granted"; return 1; }
+    [ "$have_gdbus" -eq 1 ] || {
+        echo "spplus-first-login: gdbus missing; screenshot permission not granted"
+        return 1
+    }
 
-    # The portal keys this permission by the requesting process's app id, which
-    # it derives from that process's systemd app scope. When KWin launches the
-    # Print Screen shortcut, Flameshot lands in app-flameshot-capture@.service
-    # and asks as app id "flameshot-capture" -- NOT as the empty app id. A grant
-    # on "" alone therefore does nothing for the key press, and any earlier
-    # denial recorded against "flameshot-capture" makes the capture fail
-    # silently with "Unable to capture screen". Grant every id the shipped
-    # launchers can produce, and overwrite a stale "no". Proven on the cycle36
-    # UEFI guest, 2026-08-28.
     for app in "" flameshot-capture flameshot org.flameshot.Flameshot spplus-screenshot; do
         gdbus call --session \
             --dest org.freedesktop.impl.portal.PermissionStore \
@@ -209,8 +62,6 @@ grant_screenshot_permission() {
             screenshot true screenshot "$app" "['yes']" >/dev/null 2>&1 || return 1
     done
 
-    # Read it back. The call returning 0 is not proof the entry is there, and
-    # the id that actually matters is the one the shortcut runs under.
     gdbus call --session \
         --dest org.freedesktop.impl.portal.PermissionStore \
         --object-path /org/freedesktop/impl/portal/PermissionStore \
@@ -223,39 +74,13 @@ else
     echo "spplus-first-login: could not grant the screenshot portal permission; Print Screen will prompt once"
 fi
 
-# --- Cursor. WRITTEN LAST, BECAUSE EARLY SESSION STARTUP WIPES IT. ------------
-# spplus-apply-theme does write kcminputrc:Mouse:cursorTheme from the package
-# defaults, and in a settled session that write sticks -- verified surviving 40s
-# in first-login's exact order on the cycle36 UEFI guest, 2026-08-28. But on a
-# real first login the file came back absent every time: something in early
-# session startup truncates kcminputrc to zero bytes AFTER this unit's write.
-# plasma-apply-lookandfeel --resetLayout was observed truncating it outright.
-# So re-assert the cursor at the very end, once the session has settled, and
-# verify it on the cascade rather than trusting the write. Same shape as the
-# wallpaper fix above, and for the same underlying reason: last writer wins.
-for attempt in 1 2 3; do
-    if cursor_ok; then
-        echo "spplus-first-login: cursor verified on attempt $attempt"
-        break
-    fi
-    kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
-    # Tell the running session, otherwise the config is right and the pointer is
-    # still the old one until the next login.
-    if command -v gdbus >/dev/null 2>&1; then
-        gdbus emit --session --object-path /KGlobalSettings \
-            --signal org.kde.KGlobalSettings.notifyChange 5 0 >/dev/null 2>&1 || true
-    fi
-    sleep 3
-done
-cursor_ok || { echo "spplus-first-login: cursor theme did not stick; advisor has the stock pointer"; rc=1; }
-
-# The cosmetic gate, moved down here from where it used to short-circuit the
-# screenshot setup. Everything above has now run regardless.
-if [ "$theme_failed" -ne 0 ] || [ "$rc" -ne 0 ]; then
-    echo "spplus-first-login: finished with the screenshot setup done, but the look and feel did not fully verify; no stamp, the next login retries"
+if [ "$theme_rc" -ne 0 ]; then
     exit 1
 fi
 
 install -d -m 0700 "$(dirname "$STAMP")"
-date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP"
-echo "spplus-first-login: applied $LNF and the SP+ wallpaper"
+if ! date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP" || [ ! -s "$STAMP" ]; then
+    echo "spplus-first-login: could not write completion stamp" >&2
+    exit 1
+fi
+echo "spplus-first-login: applied $LNF and the Windows Modern wallpaper"

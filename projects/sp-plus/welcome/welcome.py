@@ -4,12 +4,14 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+import datetime as dt
 import json
 import os
 import subprocess
 import re
 import socket
 import time
+import uuid
 from urllib.parse import parse_qs, quote, urlparse
 from PySide6.QtCore import QSettings, QThread, QTimer, QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QIcon
@@ -31,6 +33,13 @@ INSTANCE_NAME = 'spplus-welcome'
 # without needing to write into the immutable /usr.
 APPLY_THEME = os.environ.get('SPPLUS_APPLY_THEME',
                              '/usr/libexec/spplus-apply-theme')
+THEME_EVENT_LOG = os.environ.get(
+    'SPPLUS_THEME_EVENT_LOG',
+    str(Path(os.environ.get('XDG_STATE_HOME',
+                            str(Path.home() / '.local' / 'state'))) /
+        'sp-plus' / 'theme-events.jsonl'))
+THEME_JOURNAL = os.environ.get('SPPLUS_JOURNAL_COMMAND', '/usr/bin/systemd-cat')
+THEME_APPLY_TIMEOUT = float(os.environ.get('SPPLUS_THEME_APPLY_TIMEOUT', '600'))
 FIN = os.environ.get('SPPLUS_FIN', '/usr/libexec/sp-plus/fin')
 FIN_DESKTOP = os.environ.get('SPPLUS_FIN_DESKTOP', '/usr/share/applications/fin.desktop')
 GTK_LAUNCH = os.environ.get('SPPLUS_GTK_LAUNCH', '/usr/bin/gtk-launch')
@@ -87,6 +96,120 @@ class AskWorker(QThread):
         except Exception:
             payload = {'ok': False, 'answer': '',
                        'reason': 'Fin could not answer.'}
+        self.result_ready.emit(self, payload)
+
+
+class ThemeEventFailure(RuntimeError):
+    """Welcome could not record the required apply event in both sinks."""
+
+
+def emit_theme_event(correlation_id, event, stage, **fields):
+    record = {
+        'event': event,
+        'stage': stage,
+        'correlation_id': correlation_id,
+        'utc': dt.datetime.now(dt.timezone.utc).isoformat(),
+        'monotonic_ns': time.monotonic_ns(),
+    }
+    record.update(fields)
+    line = json.dumps(record, sort_keys=True, ensure_ascii=True,
+                      separators=(',', ':'))
+    path = Path(THEME_EVENT_LOG).expanduser()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch(mode=0o600, exist_ok=True)
+        os.chmod(path, 0o600)
+        with path.open('a', encoding='utf-8') as stream:
+            stream.write(line + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError as exc:
+        raise ThemeEventFailure(f'could not append {path}: {exc}') from exc
+    try:
+        subprocess.run([THEME_JOURNAL, '--identifier=spplus-theme',
+                        '--priority=info'], input=line + '\n', text=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                       check=True, timeout=10)
+    except subprocess.TimeoutExpired as exc:
+        raise ThemeEventFailure('journald event command timed out') from exc
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ThemeEventFailure(f'could not write journald event: {exc}') from exc
+
+
+def theme_success_verdict(correlation_id):
+    path = Path(THEME_EVENT_LOG).expanduser()
+    try:
+        lines = path.read_text(encoding='utf-8').splitlines()
+    except (OSError, UnicodeError):
+        return False
+    for line in reversed(lines):
+        try:
+            record = json.loads(line)
+        except (TypeError, ValueError):
+            continue
+        if (record.get('correlation_id') == correlation_id and
+                record.get('event') == 'verdict'):
+            return record.get('result') == 'success'
+    return False
+
+
+class ThemeApplyWorker(QThread):
+    """Apply a theme away from Qt's UI thread and require the helper verdict."""
+
+    result_ready = Signal(object, object)
+
+    def __init__(self, theme_id, reset_layout, correlation_id):
+        super().__init__()
+        self.theme_id = theme_id
+        self.reset_layout = reset_layout
+        self.correlation_id = correlation_id
+
+    @staticmethod
+    def _summary(stdout, stderr):
+        lines = [line.strip() for line in (stdout or '').splitlines() if line.strip()]
+        if not lines:
+            lines = [line.strip() for line in (stderr or '').splitlines() if line.strip()]
+        return lines[-1] if lines else ''
+
+    def _payload(self, ok, detail):
+        return {
+            'ok': ok,
+            'detail': detail,
+            'theme': self.theme_id,
+            'layout': self.reset_layout,
+            'correlation_id': self.correlation_id,
+        }
+
+    def run(self):
+        layout_arg = '--layout' if self.reset_layout else '--no-layout'
+        env = os.environ.copy()
+        env['SPPLUS_CORRELATION_ID'] = self.correlation_id
+        env['SPPLUS_THEME_EVENT_LOG'] = THEME_EVENT_LOG
+        try:
+            result = subprocess.run(
+                [APPLY_THEME, self.theme_id, layout_arg],
+                capture_output=True,
+                text=True,
+                timeout=THEME_APPLY_TIMEOUT,
+                check=True,
+                env=env,
+            )
+            if theme_success_verdict(self.correlation_id):
+                payload = self._payload(True, self._summary(result.stdout, result.stderr))
+            else:
+                payload = self._payload(
+                    False,
+                    'The theme helper exited successfully without a success readback verdict.',
+                )
+        except subprocess.TimeoutExpired:
+            payload = self._payload(False, 'Theme apply reached its time limit and was rolled back.')
+        except subprocess.CalledProcessError as exc:
+            payload = self._payload(False, self._summary(exc.stdout, exc.stderr) or
+                                    f'Theme apply failed with exit code {exc.returncode}.')
+        except (OSError, subprocess.SubprocessError) as exc:
+            payload = self._payload(False, f'Theme apply could not be started: {exc}')
+        except Exception as exc:
+            payload = self._payload(False, f'Theme apply failed: {type(exc).__name__}: {exc}')
         self.result_ready.emit(self, payload)
 
 
@@ -711,6 +834,7 @@ class WelcomeBridge(QObject):
         self._email_workers = set()
         self._share_workers = set()
         self._printer_workers = set()
+        self._theme_workers = set()
         view.titleChanged.connect(self.on_title)
 
     def on_title(self, title):
@@ -719,9 +843,32 @@ class WelcomeBridge(QObject):
         parsed = urlparse(title[len(self.PREFIX):])
         params = parse_qs(parsed.query)
         if parsed.path == 'apply-theme':
-            theme = (params.get('theme') or [''])[0]
-            if theme:
-                self.apply_theme(theme)
+            theme = (params.get('theme') or [''])[0].strip()
+            layout_value = (params.get('layout') or [''])[0].strip()
+            if theme and layout_value in {'0', '1'}:
+                correlation_id = uuid.uuid4().hex
+                try:
+                    # This is intentionally the first line for a Welcome click.
+                    # The helper inherits the same correlation ID and appends its
+                    # command/readback/verdict events to the same two sinks.
+                    emit_theme_event(
+                        correlation_id,
+                        'click_receipt',
+                        'request',
+                        theme=theme,
+                        layout_requested=layout_value == '1',
+                        source='welcome',
+                    )
+                except ThemeEventFailure as exc:
+                    self._send_theme_result({
+                        'ok': False,
+                        'detail': f'Apply was not started because it could not be logged: {exc}',
+                        'theme': theme,
+                        'layout': layout_value == '1',
+                        'correlation_id': correlation_id,
+                    })
+                else:
+                    self.apply_theme(theme, layout_value == '1', correlation_id)
         elif parsed.path == 'ask':
             question = (params.get('q') or [''])[0].strip()
             if question:
@@ -882,19 +1029,55 @@ class WelcomeBridge(QObject):
         self.view.page().runJavaScript(
             f'window.spWelcome && window.spWelcome.storeResult({encoded})')
 
-    def apply_theme(self, theme_id):
-        try:
-            result = subprocess.run([APPLY_THEME, theme_id], capture_output=True,
-                                    text=True, timeout=60)
-            ok = result.returncode == 0
-            detail = (result.stdout or result.stderr).strip().splitlines()
-            summary = detail[-1] if detail else ''
-        except (OSError, subprocess.SubprocessError) as exc:
-            ok, summary = False, str(exc)
-        # Report what actually happened; the page never assumes the click worked.
-        payload = json.dumps({'ok': ok, 'detail': summary, 'theme': theme_id})
+    def _send_theme_result(self, payload):
+        encoded = json.dumps(payload, ensure_ascii=True)
         self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.themeApplied({payload})')
+            f'window.spWelcome && window.spWelcome.themeApplied({encoded})')
+
+    def apply_theme(self, theme_id, reset_layout, correlation_id):
+        if self._theme_workers:
+            detail = 'Another theme apply is already running. Keep the current preview open and wait for its result.'
+            try:
+                emit_theme_event(
+                    correlation_id,
+                    'apply_rejected_busy',
+                    'request',
+                    theme=theme_id,
+                    layout_requested=reset_layout,
+                    reason='one apply worker at a time',
+                )
+            except ThemeEventFailure as exc:
+                detail = f'{detail} Event logging also failed: {exc}'
+            self._send_theme_result({
+                'ok': False,
+                'detail': detail,
+                'theme': theme_id,
+                'layout': reset_layout,
+                'correlation_id': correlation_id,
+            })
+            return
+        worker = ThemeApplyWorker(theme_id, reset_layout, correlation_id)
+        self._theme_workers.add(worker)
+        worker.result_ready.connect(self._theme_finished)
+        worker.finished.connect(worker.deleteLater)
+        try:
+            worker.start()
+        except RuntimeError as exc:
+            self._theme_workers.discard(worker)
+            self._send_theme_result({
+                'ok': False,
+                'detail': f'Theme apply worker could not start: {exc}',
+                'theme': theme_id,
+                'layout': reset_layout,
+                'correlation_id': correlation_id,
+            })
+
+    @Slot(object, object)
+    def _theme_finished(self, worker, payload):
+        self._theme_workers.discard(worker)
+        # Report what the helper actually proved; the page never assumes the
+        # click worked from a process exit code alone.
+        self._send_theme_result(payload)
 
 
 class WelcomeWindow(QMainWindow):

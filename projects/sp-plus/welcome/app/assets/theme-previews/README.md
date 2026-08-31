@@ -1,0 +1,1 @@
+Capture receipts belong here after a verified Plasma session round-trip. See `welcome/PREVIEW-CAPTURE-CONTRACT.md`. The build gate intentionally fails while any offered theme lacks its applied-session PNG.

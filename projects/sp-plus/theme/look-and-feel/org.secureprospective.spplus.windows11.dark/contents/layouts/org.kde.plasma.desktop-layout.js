@@ -1,7 +1,37 @@
-// SP+ Calm Dark layout. Native Plasma widgets only; no forked applets.
-// Re-apply the theme after changing monitor topology so each screen receives a panel.
+// SP+ Windows Modern panel. Both Windows Modern variants use this one stock layout.
+// Plasma 6.7: keep widget IDs native and guard the version-sensitive show-desktop ID.
+var spplusTaskbarLaunchers = [
+    "applications:brave-browser.desktop",
+    "applications:net.thunderbird.Thunderbird.desktop",
+    "applications:org.kde.dolphin.desktop",
+    "applications:libreoffice-writer.desktop",
+    "applications:org.kde.okular.desktop"
+];
+var spplusMenuFavorites = [
+    "applications:brave-browser.desktop",
+    "applications:net.thunderbird.Thunderbird.desktop",
+    "applications:fin.desktop",
+    "applications:org.kde.dolphin.desktop",
+    "applications:libreoffice-writer.desktop",
+    "applications:org.kde.okular.desktop",
+    "applications:org.keepassxc.KeePassXC.desktop"
+];
+
 var oldPanels = panels();
-for (var i = oldPanels.length - 1; i >= 0; --i) oldPanels[i].remove();
+for (var oldPanelIndex = oldPanels.length - 1; oldPanelIndex >= 0; --oldPanelIndex) {
+    oldPanels[oldPanelIndex].remove();
+}
+
+var spplusWidgetTypes = (typeof knownWidgetTypes !== "undefined") ? knownWidgetTypes : [];
+var spplusShowDesktopType = null;
+if (typeof spplusWidgetTypes.indexOf === "function") {
+    if (spplusWidgetTypes.indexOf("org.kde.plasma.minimizeall") !== -1) {
+        spplusShowDesktopType = "org.kde.plasma.minimizeall";
+    } else if (spplusWidgetTypes.indexOf("org.kde.plasma.showdesktop") !== -1) {
+        spplusShowDesktopType = "org.kde.plasma.showdesktop";
+    }
+}
+
 for (var screen = 0; screen < screenCount; ++screen) {
     var panel = new Panel;
     panel.screen = screen;
@@ -11,48 +41,70 @@ for (var screen = 0; screen < screenCount; ++screen) {
     panel.hiding = "none";
     panel.lengthMode = "fill";
     panel.opacity = "opaque";
+    panel.floating = false;
+
+    var panelWidgets = [];
+    var leftSpacer = panel.addWidget("org.kde.plasma.panelspacer");
+    leftSpacer.currentConfigGroup = ["General"];
+    leftSpacer.writeConfig("expanding", "true");
+    panelWidgets.push(leftSpacer);
 
     var start = panel.addWidget("org.kde.plasma.kickoff");
     start.currentConfigGroup = ["General"];
-    start.writeConfig("icon", "start-here");
-    // Curate Favorites. Left alone, Kickoff seeds Plasma's stock favourites,
-    // which put Konsole in front of the advisor on the cycle36 UEFI guest even
-    // though the build sets NoDisplay=true on it -- Kickoff pins by desktop id
-    // and does not consult NoDisplay. SP+ ships no admin account (DN-13), so a
-    // terminal in Favorites is the wrong front door.
-    //
-    // Favorites live in the kactivitymanagerd database, not here. This key is
-    // only the one-time migration seed, consumed when Kickoff first sets
-    // favoritesPortedToKAstats=true. Writing it into a session that has already
-    // ported does nothing -- confirmed on the guest, where the flag flipped back
-    // to true on the next plasmashell start and the stock list survived. It has
-    // to be set at layout time, before Kickoff ever initialises, which is here.
-    start.writeConfig("favorites", [
-        "applications:brave-browser.desktop",
-        "applications:net.thunderbird.Thunderbird.desktop",
-        "applications:fin.desktop",
-        "applications:org.kde.dolphin.desktop",
-        "applications:libreoffice-writer.desktop",
-        "applications:org.kde.okular.desktop",
-        "applications:org.keepassxc.KeePassXC.desktop"
-    ].join(","));
+    start.writeConfig("icon", "start-here-kde-symbolic");
+    start.writeConfig("favorites", spplusMenuFavorites.join(","));
     start.writeConfig("favoritesPortedToKAstats", "false");
+    panelWidgets.push(start);
 
     var tasks = panel.addWidget("org.kde.plasma.icontasks");
     tasks.currentConfigGroup = ["General"];
-    tasks.writeConfig("showOnlyCurrentScreen", "false");
-    tasks.writeConfig("showOnlyCurrentDesktop", "false");
+    tasks.writeConfig("launchers", spplusTaskbarLaunchers.join(","));
     tasks.writeConfig("groupingStrategy", "1");
+    tasks.writeConfig("groupPopups", "true");
+    tasks.writeConfig("onlyGroupWhenFull", "false");
+    tasks.writeConfig("separateLaunchers", "true");
+    tasks.writeConfig("sortingStrategy", "1");
+    tasks.writeConfig("fill", "false");
+    tasks.writeConfig("maxStripes", "1");
+    tasks.writeConfig("forceStripes", "false");
+    tasks.writeConfig("showToolTips", "true");
+    tasks.writeConfig("taskHoverEffect", "true");
+    tasks.writeConfig("showOnlyCurrentDesktop", "true");
+    tasks.writeConfig("showOnlyCurrentActivity", "true");
+    tasks.writeConfig("showOnlyCurrentScreen", "false");
+    tasks.writeConfig("iconSpacing", "1");
+    tasks.writeConfig("middleClickAction", "2");
+    tasks.writeConfig("minimizeActiveTaskOnClick", "false");
+    tasks.writeConfig("indicateAudioStreams", "true");
+    panelWidgets.push(tasks);
 
-    var spacer = panel.addWidget("org.kde.plasma.panelspacer");
+    var rightSpacer = panel.addWidget("org.kde.plasma.panelspacer");
+    rightSpacer.currentConfigGroup = ["General"];
+    rightSpacer.writeConfig("expanding", "true");
+    panelWidgets.push(rightSpacer);
+
     var tray = panel.addWidget("org.kde.plasma.systemtray");
+    tray.currentConfigGroup = ["General"];
+    tray.writeConfig("showAllItems", "false");
+    tray.writeConfig("scaleIconsToFit", "false");
+    tray.writeConfig("iconSpacing", "1");
+    panelWidgets.push(tray);
+
     var clock = panel.addWidget("org.kde.plasma.digitalclock");
     clock.currentConfigGroup = ["Appearance"];
     clock.writeConfig("showDate", "true");
     clock.writeConfig("dateDisplayFormat", "2");
     clock.writeConfig("showSeconds", "0");
-    var desktop = panel.addWidget("org.kde.plasma.showdesktop");
+    panelWidgets.push(clock);
 
-    start.index = 0; tasks.index = 1; spacer.index = 2; tray.index = 3;
-    clock.index = 4; desktop.index = 5;
+    if (spplusShowDesktopType !== null) {
+        panelWidgets.push(panel.addWidget(spplusShowDesktopType));
+    }
+
+    for (var widgetIndex = 0; widgetIndex < panelWidgets.length; ++widgetIndex) {
+        panelWidgets[widgetIndex].index = widgetIndex;
+    }
+    // Plasma refuses addWidget on a locked panel. Lock only after every applet
+    // has been added, configured, and placed.
+    panel.locked = true;
 }
