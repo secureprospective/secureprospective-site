@@ -85,3 +85,25 @@ the two Windows packages, because advisors read that detail as trustworthiness. 
 081c774: every card resets its layout, and packages that ship no layout of their own (Nordic,
 both Catppuccin) are returned to Plasma's stock default panel and verified through the same
 live D-Bus readback. That change is NOT in test45 and awaits verification on test46.
+
+## Confirmed again on test46, with paneling fidelity
+
+test46 (registry digest sha256:2478e5fc...) booted clean with zero failed units, and the
+installed Welcome app carries all eight `data-layout-reset="true"` values. The same round
+trip passed a second time, now with a layout reset and shell restart on EVERY transition
+rather than only on the Windows ones -- a materially harder test than test45 passed.
+
+Live read-back per transition, which is the evidence that the panel itself changed rather
+than only the colours:
+
+- Breeze:  kickoff, pager, icontasks, marginsseparator, systemtray, digitalclock, showdesktop
+           decoration Plugin: org.kde.breeze Theme: Breeze
+- Windows: panelspacer, kickoff, icontasks, panelspacer, systemtray, digitalclock, minimizeall
+           decoration Plugin: org.kde.kwin.aurorae.v2 Theme: windows-modern-dark-aurorae
+
+Both final states were screenshotted and inspected: Windows shows the centred taskbar with
+the four-pane Start mark; Breeze shows its own left-aligned panel and wallpaper. Both legible.
+
+Note on digests: the `BUILD OK` summary prints podman's LOCAL manifest digest, which differs
+from the digest the registry serves after push. Verify a deployment against the registry's
+`Docker-Content-Digest`, not the build summary, or a correct deployment looks like a mismatch.
