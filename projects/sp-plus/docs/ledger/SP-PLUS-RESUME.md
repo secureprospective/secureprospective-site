@@ -1,216 +1,204 @@
-# SP+ RESUME — 2026-08-31, mid-session (theme work + Welcome defects)
+# SP+ RESUME — 2026-08-31 (second compaction of the session)
 
 ## 1. WHAT WE ARE DOING
 
-Christopher's goal was met earlier: switching Windows -> Breeze -> Windows through the
-Welcome app alone, without error. That is now ALSO proven on an ISO-installed VM. Current
-work is three defects found during that verification, then a rebuild folding them in.
-Two further Welcome upgrades are inbound from Claudebox and should go into the SAME build.
+SP+ is an image-mode (bootc) Fedora KDE desktop for non-technical financial
+advisors. The session goal — switching Windows -> Breeze -> Windows through the
+Welcome app alone, without error — **is MET and was met before this window**, on
+test45, test46, and on an ISO-installed VM. This window fixed the two Welcome
+defects that goal work exposed, and picked up two new Welcome flows.
 
-Repo: `/home/chris/work/secureprospective-advisor-os` (worktree; run everything from here,
-never cd to the original checkout). Project subdir `projects/sp-plus`.
+- Repo: `/home/chris/work/secureprospective-advisor-os` (a **git worktree** —
+  run everything from it, never cd to the original checkout).
+- Branch: `session/sp-plus-plan`. HEAD `50d914a`.
+- VM: `ssh -p 2222 test@127.0.0.1` (libvirt session domain `fedora-test`).
 
 ## 2. AGENTS + HARNESSES
 
-- **Bee** = Pi on `gpt-5.6-luna`, thinking max. Never leave the model to pi's default.
-- Three lanes, deliberately distinct:
-  - `~/fleet/bin/run-bee-spplus.sh` — research. Forbids writing files.
-  - `~/fleet/bin/run-bee-spplus-impl.sh` — implementation. Expects repo source edits.
-  - `~/fleet/bin/run-bee-spplus-verify.sh` — **NEW this session.** Drives a live machine,
-    writes report + artifacts under `~/fleet/runs`, must NOT edit repo source.
-- Briefs live in `~/fleet/briefs/`, and are copied to `~/.pi/agent/spplus-brief-<id>.md`
-  which is where the runner actually reads them. Copy to BOTH.
-- Dispatch detached: `systemd-run --user --collect --unit=<name> --setenv=HOME=/home/chris`.
-  systemd-run starts with an EMPTY environment; without `--setenv=HOME` scripts die
-  instantly on `HOME: unbound variable`.
-- Bee returns EVIDENCE, never a verdict. I make the call.
+- **Bee** = the Pi agent, `--provider openai-codex --model gpt-5.6-luna
+  --thinking max`. Never leave the model to pi's default.
+- Three lanes in `~/fleet/bin/`: `run-bee-spplus.sh` (research, stdout only),
+  `run-bee-spplus-impl.sh` (edits repo source), `run-bee-spplus-verify.sh`
+  (**drives a live machine, writes reports under `~/fleet/runs`, must NOT edit
+  repo source**). The verify lane is the one used this window.
+- Dispatch pattern: `systemd-run --user --unit=<name> --collect
+  --setenv=HOME=/home/chris --setenv=THINK=max --setenv=TMO=7200
+  --property=TimeoutStartSec=7500 ~/fleet/bin/run-bee-spplus-verify.sh <fid>`.
+  The runner reads its brief from `~/.pi/agent/spplus-brief-<fid>.md`, so a
+  brief written to `~/fleet/briefs/` must ALSO be copied there.
+- Sentinel convention: agent writes `REPORT-<job>.md` then touches
+  `REPORT-<job>.DONE`. A background watcher loop pings back. Never poll.
 
-## 3. IN-FLIGHT RIGHT NOW (most perishable)
+## 3. GATES / STATUS
 
-**a) `bee-welcome-defects.service`** — dispatched ~18:20Z, TMO=7200.
-- Alive? `systemctl --user is-active bee-welcome-defects.service`
-- Brief: `~/fleet/briefs/spplus-welcome-defects.md`
-- Output: `~/fleet/runs/REPORT-welcome-defects.md` + `.DONE` sentinel.
-- pi stdout/stderr: `~/.pi/agent/spplus-welcome-defects.{out,err}` — stdout stays 0 bytes
-  until the process exits; that is NORMAL buffering, not a stall.
-- Watcher: background shell `buyflinad` (may not survive compaction; the unit will).
-- If it died without a sentinel, read the `.err` and the brief before re-dispatching.
+| Gate | State |
+|---|---|
+| Theme round trip on installed VM | **PASS** (proven pre-window) |
+| Welcome BUG A — cards unreachable | **FIXED + VERIFIED** at `97f2dee` |
+| Welcome BUG B — intermittent SIGABRT | **FIXED + VERIFIED** at `00e2e02` |
+| ISO contains either fix | **NO.** Source only. No build since 11:53. |
+| Dell hardware gate | **OWED** — not re-run since the D-02 pin bump |
+| Two new Welcome flows | Direction read, nothing built |
+| Filing gate | FAIL, one known offender (see §12) |
 
-**b) Backend recorder on the VM** — `~/spplus-observe.sh`, running detached on the guest,
-appending `/home/test/observe.log` every 5s. READ-ONLY; it never applies anything.
-- Alive? `ssh -p 2222 test@127.0.0.1 'pgrep -f "spplus-observe[.]sh"'`
-- This is my independent evidence channel. Do not stop it while Bee is driving.
+## 4. ARTIFACTS THAT EXIST
 
-**c) The VM itself** — libvirt session domain `fedora-test`, running since 12:05.
-**DO NOT REBOOT IT.** See section 10.
+- ISO: `projects/sp-plus/artifacts/spikeB-rootful/out/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
+  — 5,498,066,944 bytes, built 11:53. **Predates every fix in this window.**
+- VM deployment digest:
+  `ostree-unverified-registry:ghcr.io/secureprospective/sp-plus-kde:edge`
+  `sha256:e9d936bfd01a55740c60893017fa94955284280c0aa9155e69cb38f80c9ce437`
+- Current source hashes (what Bee verified):
+  - `projects/sp-plus/welcome/app/app.css` sha256 `3614f66932729deb9d2c57175883730bdf4981cdd110933c4bed766270d6eb47`
+  - `projects/sp-plus/welcome/welcome.py` sha256 `8dad5ff06270bff65acccd5ffce8f896019ba956463375142354884a7972d3b8`
+- Reports: `~/fleet/runs/REPORT-welcome-defects.md` (measurement),
+  `~/fleet/runs/REPORT-welcome-fixverify.md` (12,727 bytes, the verification).
+  Raw evidence in `~/fleet/runs/welcome-defects/` and `~/fleet/runs/welcome-fixverify/`.
 
-## 4. ARTIFACTS THAT EXIST AND WORK
+## 5. THE CURRENT BUG
 
-- **ISO**: `~/Downloads/sp-plus-2026-08-31-1152.iso`
-  - 5,498,066,944 bytes, sha256
-    `de4db844d84f283fd7dcb2299603a1213b3b0407a54cd15a6004dfa75f4a499c`
-  - `ISO 9660 ... 'Secureprospective-Advisor-POC' (bootable)`; structure verified
-    (`/EFI/BOOT`, `/LiveOS/squashfs.img`, `/images/efiboot.img`, `/boot/grub2`).
-  - Built 11:52 by `spplus-iso.service`. Installed to the VM successfully.
-- **Round-trip evidence**: `~/fleet/runs/REPORT-vm-roundtrip.md` (9500 bytes), 8 screenshots
-  in `~/fleet/runs/vm-roundtrip/`, 26 raw files in `.../raw-vm-roundtrip/`.
-- **Guest**: `SP+ 1 (dev)`, variant Advisor, kernel `7.1.10-200.fc44`.
-  All 8 theme previews on the installed system are **byte-identical sha256 to the repo**.
+**There is no open Welcome defect.** Both are closed on evidence. Do not go
+looking for one.
 
-## 5. THE CURRENT BUGS
+The two fixes, for context:
 
-**BUG 1 — Welcome app crashes (open).**
-Verbatim: `QThread: Destroyed while thread '' is still running` at 17:40:00.092Z, then
-`SIGABRT` pid 6690 `python3.14` at 17:40:07, service
-`app-org.secureprospective.spplus.welcome@autostart.service` `status=6/ABRT`, result
-`core-dump`. Backtrace entirely in `viz::DirectRenderer::DrawFrame` ->
-`viz::Display::DrawAndSwap` -> `DisplayScheduler::OnBeginFrameDeadline` inside
-`libQt6WebEngineCore`. Occurred 8s after the Nordic apply restarted plasmashell.
-
-Leading hypothesis: this VM's software GPU. Every Welcome launch here logs
-`ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer`.
-**CAVEAT — this is NOT established.** A plasmashell restart is also a compositor teardown
-and that IS our code's doing. n=1. Bee's investigation B is running 10 applies, then 10
-more under `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu`, to separate the two. The
-`--disable-gpu` run is a DIAGNOSTIC, not a proposed fix.
-
-**BUG 2 — a theme card can be silently unclickable (open).**
-A drive at 17:43:06Z clicked a card, nothing happened, no receipt, no error, 2-minute
-timeout. Hypothesis from source reading: `.work-area` is a grid `38px/minmax(0,1fr)/74px`
-so the footer does NOT overlap, but above 900px wide `.screens` and `.screen` are
-`overflow:hidden`, so content past the fold is CLIPPED and unreachable rather than
-scrollable. That would breach the standing "Welcome must never scroll" rule.
-**CAVEAT — unmeasured.** Bee's investigation A measures every card's rect, what
-`elementFromPoint` returns at its centre, and `scrollHeight` vs `clientHeight`, at three
-window sizes. Do not patch CSS before reading it.
+- **Cards clipped out of reach.** The theme screen sized every row to content,
+  so at 1280x800 and 1024x768 it exceeded the `overflow:hidden` `.screens` box.
+  Catppuccin Mocha and Latte fell 65px and 79px below the clip and their centre
+  points landed on footer controls — clicking Mocha pressed "I'll do this
+  later", clicking Latte pressed "Back". Fixed by making the three-deep card
+  columns the one flexible grid row.
+- **Intermittent SIGABRT.** `QThread: Destroyed while thread '' is still
+  running`. `WelcomeBridge` held workers in sets and nothing waited for them at
+  quit, so Python dropped the bridge and Qt aborted in `~QThread`. A theme apply
+  restarts plasmashell; the shell teardown can close the Welcome window mid-apply
+  and `quit()` then races the running `ThemeApplyWorker`. Fixed with
+  `WelcomeBridge.shutdown()` connected to `aboutToQuit`.
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-1. **"The image is missing qdbus6."** No. The binary is **`qdbus-qt6`**, it ships, and the
-   harness already uses the right name. My probe used the wrong name.
-2. **"Welcome/plasmashell was not running on the VM."** No. The guest agent runs
-   SELinux-confined and returns `Permission denied` **as root** for `/home/test/...` and
-   cannot see other processes reliably. A SPICE screenshot proved both were running.
-   Never trust an "absent" reading from the guest agent; confirm with a screenshot.
-3. **"The em-dash gate failure was a content problem in index.html."** No. `grep -rqlP`
-   was scanning binary PNGs; `orchis-light.png` contains the bytes E2 80 94 in its deflate
-   stream. Fixed with `-I`. Reproduced in-image before and after.
-4. **"The installer base pin was merely unresolvable."** No. It was garbage-collected on
-   quay AND absent from root's podman store: unrecoverable, not recoverable.
-5. **"Five of eight themes share one panel, so the paneling work failed."** No. FIVE ship
-   their own layout (Windows x2, Breeze x2, Orchis) and apply it. Only THREE (Nordic,
-   Catppuccin Mocha, Catppuccin Latte) declare no layout and take stock. No theme ever
-   inherits the previous theme's panel, which was the actual defect.
-6. **"Bee took a shortcut and called the apply helper directly."** No. Verified its helper:
-   real CDP `Input.dispatchMouseEvent` press/release on the card and `#preview-apply`.
+1. **The SIGABRT is WebEngine failing on the VM's software GPU.** Refuted.
+   0/10 crashes under normal rendering and 0/10 under
+   `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu`, and the
+   `ContextResult::kTransientFailure` line did not even appear in the controlled
+   units. The cause is our own teardown, proven by a directed test.
+2. **The crash rate test would settle the cause.** Refuted — 0/10 vs 0/10
+   separates nothing. Only the directed race did.
+3. **`exec()` returning 0 means the process exited cleanly.** Refuted. The
+   unpatched child *printed* rc=0 and still took SIGABRT during interpreter
+   teardown, and SSH returned 255 (transport), not 134. **The coredump is the
+   authoritative status evidence, not the exit code.**
+4. **Enabling scroll would fix the clipped cards.** Rejected by standing rule —
+   every Welcome screen must fit one viewport. A scrollbar is a FAIL condition.
+5. **The image is missing `qdbus6`.** Refuted — the binary is `qdbus-qt6`.
+6. **Five of eight themes share one panel (a defect).** Refuted — five ship
+   their own layout, three declare none. Settled by D-2026-08-31.
+7. **`10.0.2.15` is the VM's address.** Now STALE — see §10.
+8. **The proposed OAuth callback `/api/auth/oauth/<platform>`.** Wrong, never
+   file it. See §7.
 
 ## 7. DECISIONS
 
-- **2026-08-31 (new):** the three layout-less themes KEEP THE STOCK PANEL. We do not author
-  SP+ layouts for them. Their authors declared no panel intent, so nothing is being
-  overridden; stock is known good. Recorded in
-  `docs/ledger/DECISION-2026-08-31-layoutless-themes-keep-stock-panel.md`.
-- **D-02** stands: base images pinned by digest; a bump is deliberate and **owes a full
-  re-run of the hardware gate**. The bump made today has NOT had that hardware gate.
-- Orchis Light's top-panel/no-taskbar desktop is its author's intent. Record it, never
-  "fix" it.
+- **D-02 pin bump.** Installer base digest bumped after the old pin was
+  garbage-collected on quay. Owes a Dell hardware gate re-run.
+- **Layout-less themes keep the stock panel.** Christopher: "Leave them on
+  stock." Nordic and both Catppuccins declare no layout; wording differs, panel
+  is still reset either way.
+- **Hostnames.** File portal `cloud.secureprospective.com` (changed from
+  `files.` late on 2026-08-31); social scheduler
+  `social.secureprospective.com`. Recorded in
+  `projects/sp-plus/docs/ledger/DECISION-2026-08-31-public-hostnames.md`.
+- **OAuth callbacks are Postiz's path, not ours:**
+  `https://social.secureprospective.com/integrations/social/<platform>`.
+  X is `x` not `twitter`. LinkedIn is TWO providers, `linkedin` and
+  `linkedin-page`, and both callbacks belong on the one app. Bluesky is not
+  OAuth at all (app password) so there is nothing to file — which is why it
+  carries the first end-to-end test.
+- **Welcome renders only live capabilities.** Reads
+  `GET https://<host>/.well-known/sppl` (NOT `/api/...`, which collides with
+  Postiz). Render only `state:"live"`; hide `pending_review`; treat unreachable
+  as `unavailable` and defer. Keyed to the immutable D1 UUID, never email.
+  Saved as a standing memory, not just a project note.
+- **Filings are scoped as a multi-user scheduling service for contracted
+  producers** — the stricter review. Re-scoping later means re-review.
 
 ## 8. LEDGER STATE
 
-Committed this session: `82626f6` (em-dash gate scoped to text), `aec0f43` (installer base
-pin bump), `f6ce2dd` (panel-source wording + the decision doc). Earlier: `081c774`,
-`87277a7`, `becc3dc`, `e86310f`, `418091d`, `6a85ae9`.
-Nothing is written-but-uncommitted.
+Committed this window, all on `session/sp-plus-plan`:
+
+- `00e2e02` welcome: unclip the bottom theme cards, and drain workers before quit
+- `6a9bdc5` ledger: VM SSH forward moved into the domain XML
+- `68c9d6b` ledger: public hostnames (superseded by `50d914a`)
+- `97f2dee` welcome: drop the theme descriptor on short screens
+- `50d914a` ledger: correct hostname, callback path, tunnel ordering
+
+Uncommitted modifications exist in unrelated top-level docs (`CLAUDE.md`,
+`HANDOFF.md`, `SP-PLUS-STATE.md`, bee-lane briefs, grafix). They predate this
+window and were deliberately not touched.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. **Read** `~/fleet/runs/REPORT-welcome-defects.md` when the sentinel lands.
-2. **Fix BUG 2** from the measurements, not from the hypothesis. If cards are clipped, the
-   fix is layout so all eight fit one viewport, NOT enabling scroll (standing rule).
-3. **Decide BUG 1** from the crash-rate comparison. If it only crashes with GPU
-   compositing, it is likely VM-only and must still be checked on the Dell before it is
-   dismissed. If it crashes under both, it is ours.
-4. **Fold in the two Welcome upgrades from Claudebox** when they arrive.
-5. **Then one build**, not one per fix. Builds are the bottleneck.
-6. **Re-run the hardware gate on the Dell** — owed by the D-02 pin bump regardless.
+1. **WAIT.** Christopher said "hold on, we are almost there" — Claudebox is
+   standing up the Cloudflare tunnel. Do not start the flow build until he says
+   go. The VM is idle and free if Claudebox needs it.
+2. **Build the two Welcome flows** from `~/fleet/inbox/HANDOFF-tom-nextcloud.md`
+   and `~/fleet/inbox/HANDOFF-tom-postiz.md`, driven by the `/.well-known/sppl`
+   capability contract. Delegate execution to Bee; drive, do not type.
+3. **Batch, then build ONE ISO** with the two fixes plus the flows. The build is
+   the slowest step in the loop — do not build per fix.
+4. **Re-run the Dell hardware gate**, owed by the D-02 pin bump.
+5. **Verify the passt port forward on the VM's next boot** (§10) — defined but
+   never yet observed carrying a session.
 
 ## 10. RELAY / ENVIRONMENT NOTES
 
-- **VM SSH:** `ssh -p 2222 test@127.0.0.1`. Key `chris@beelink` was already installed by
-  the kickstart at 12:05; I added nothing.
-- **The port forward is VOLATILE — held in QEMU's memory only.** Recreate after any VM
-  restart with:
-  `virsh -c qemu:///session qemu-monitor-command fedora-test --hmp 'hostfwd_add hostnet0 tcp:127.0.0.1:2222-10.0.2.15:22'`
-  `10.0.2.15` is QEMU user-mode NAT and is NOT routable from the Beelink.
-- **Do not reboot the VM** — it destroys the forward and locks everything out.
-- Read-only channels that work without network: `virsh screenshot fedora-test` (SPICE
-  framebuffer) and `virsh qemu-agent-command` (guest agent, but SELinux-confined).
-- Panel applets: parse with `~/panel-applets.py` on the guest. `dumpCurrentLayoutJS`
-  returns a JS document, not JSON; brace-match from the first `{` after `var layout`.
-- **The ISO build is rootful and needs Christopher's sudo** (per-tty tickets; my shell has
-  no tty). Hand him:
-  `sudo systemd-run --unit=spplus-iso --collect --setenv=HOME=/home/chris --property=TimeoutStartSec=7200 /home/chris/fleet/bin/sp-plus-iso-build.sh`
+- **The VM's SSH forward was a live `hostfwd_add` on the QEMU HMP monitor, which
+  lives only in QEMU's memory.** QEMU restarted mid-run this window and the
+  forward vanished, failing a dispatch through no fault of its own. It is now
+  declared in the domain XML with `<portForward>` + `<backend type='passt'/>`.
+  `<portForward>` is NOT accepted on the SLIRP backend — libvirt 11.3.0 rejects
+  it outright, so the passt move is required, not optional.
+  - **Takes effect at the VM's next boot and is UNPROVEN until then.**
+  - **The guest will no longer be `10.0.2.15`** — that was SLIRP's lease.
+  - Rollback XML: `fedora-test.backup-*.xml` in the session scratchpad;
+    `virsh -c qemu:///session define` on it restores SLIRP.
+  - To re-add by hand if needed:
+    `virsh -c qemu:///session qemu-monitor-command fedora-test --hmp 'hostfwd_add tcp:127.0.0.1:2222-10.0.2.15:22'`
+- The VM's SSH host key has changed more than once; clear with
+  `ssh-keygen -f ~/.ssh/known_hosts -R '[127.0.0.1]:2222'`.
+- **Service LAN addresses moved** (their old ones were inside the DHCP pool and
+  another device took `.107`): Nextcloud `192.168.1.107` -> **`192.168.1.30`**,
+  Postiz `192.168.1.106` -> **`192.168.1.31`**.
+- The guest agent is SELinux-confined and returns `Permission denied` as root.
+  **Never trust an "absent" reading from it** — use `virsh screenshot` or SSH.
 
 ## 11. HONEST STATUS
 
-The theme-switching goal is **met and independently verified on an ISO-installed system**,
-not just on staged code: two round trips, t1 identical to t3, confirmed by a backend
-recorder Bee did not control.
+Both Welcome defects are genuinely closed: measured, fixed, and re-verified
+against the current source by an agent that re-staged the follow-up commit on
+its own. The crash gate's negative control actually failed, which is what makes
+it evidence rather than a green tick.
 
 What is NOT proven:
-- The Welcome crash is **unexplained**. One occurrence, two candidate causes, neither
-  eliminated. Do not report it as VM-only.
-- The unclickable-card bug is **unmeasured**; the clipping explanation is a hypothesis.
-- The three fixes committed today (`82626f6`, `aec0f43`, `f6ce2dd`) are **in source only**.
-  No ISO contains `f6ce2dd`. Written code is not working software.
-- The F44 base pin bump has **never been through the Dell hardware gate**.
 
-## 12. HOUSEKEEPING FOUND, NOT ACTIONED
+- **No ISO contains any of this.** Everything since 11:53 is source only.
+- The passt forward is defined, not observed working.
+- The two new flows are unbuilt, and cannot be proven end to end regardless —
+  **the file portal's critical path is SMTP, not the container.** Steps 2 and 3
+  of that flow *are* the activation and reset emails, and Brevo is deferred with
+  a placeholder sender.
+- The Dell has not run since the base-image pin changed.
 
-`~/JoplinBackup` is the 23rd visible entry at `~` and makes the filing gate FAIL (target
-22). It is NOT mine and it is LIVE: the Joplin backup plugin
-(`io.github.jackgruber.backup`) references it and touched it at 13:46 today. Moving it
-would break Christopher's note backups, so the fix is a Joplin plugin setting, not a `mv`.
-Raised with him; left in place deliberately.
+Two blockers sit with Christopher and gate other people: **a verified Brevo
+sender**, and **creating the Postiz operator account** in a browser at
+`http://192.168.1.31:4007` before registration is closed (Postiz has zero
+accounts and the first is made *through* registration, so closing it first locks
+everyone out).
 
-## ENVIRONMENT CHANGE 2026-08-31 -- VM SSH forward made persistent
+## 12. FILING GATE
 
-The `ssh -p 2222 test@127.0.0.1` path into the `fedora-test` VM was created with a
-live `hostfwd_add` on the QEMU HMP monitor. That forward exists only in QEMU's
-memory, so it disappeared the moment QEMU restarted, and a verification run in
-flight failed with "connection refused" through no fault of its own. It had to be
-re-added by hand each time, which is friction that costs whole runs.
-
-It is now declared in the domain XML instead:
-
-```xml
-<interface type='user'>
-  <mac address='52:54:00:06:f0:fe'/>
-  <portForward proto='tcp' address='127.0.0.1'>
-    <range start='2222' to='22'/>
-  </portForward>
-  <model type='virtio'/>
-  <backend type='passt'/>
-</interface>
-```
-
-`<portForward>` is not available on the SLIRP backend. libvirt 11.3.0 rejects it
-outright with "can only be used with the 'passt' backend of interface type='user'
-or type='vhostuser'", so the backend change is required rather than incidental.
-passt was already installed and is designed for exactly this unprivileged session
-use.
-
-Two consequences to expect:
-
-- The guest address will no longer be `10.0.2.15`. That was SLIRP's fixed lease.
-  Nothing in the workflow depends on it -- the VM is reached through the forward
-  on `127.0.0.1:2222` -- but earlier notes referring to `10.0.2.15` are stale.
-- The change takes effect at the VM's NEXT boot. The running domain keeps the
-  hand-added monitor forward, which is why defining this was safe to do with a
-  verification run live against the VM.
-
-**UNPROVEN until that next boot.** The definition was accepted and reads back
-correctly, but accepted XML is not a working forward, and it has not yet been
-observed carrying an SSH session. Verify on the next start before relying on it;
-if it misbehaves, the pre-change XML is backed up in the session scratchpad as
-`fedora-test.backup-*.xml` and `virsh define` on that file restores SLIRP.
+FAILS at 23 visible entries against a target of 22. The single offender is
+`~/JoplinBackup`. **It is LIVE** — the Joplin plugin
+`io.github.jackgruber.backup` points at it. It was deliberately NOT moved:
+the correct fix is a plugin setting, not a `mv`. Do not "tidy" it away.
+Also noted: `.npm` is a new dotfile since the baseline, not a failure.
