@@ -287,7 +287,7 @@ be coming back to said process or file, it must be cleaned up. The token burn is
 prevention of slop."*
 
 **What prompted it.** A single day of build/test cycles left 63 GB of artifacts in
-`~/sp-plus-iso` — six ~8 GB install disk images, a 64 GB sparse raw copy, 130+ redundant
+`~/work/sp-plus/iso` — six ~8 GB install disk images, a 64 GB sparse raw copy, 130+ redundant
 3 MB `.ppm` screendumps each with a ~50 KB `.png` twin, and two superseded ISOs. Two orphaned
 QEMU VMs and three orphaned `swtpm` processes from a KILLED dispatch were still holding
 7.7 GB of RAM, on a 30 GB machine that a build agent shares. **56 GB and 11 GB of RAM were
@@ -385,7 +385,7 @@ grepped.
 ## OP-23 — the Bee test lane (2026-08-26)
 The SP+ test loop is delegable because the read/write serial console turned it from
 "look at a screenshot and judge" into "grep a text file". Scripts live in
-`~/sp-plus-bee/` on the Beelink, mirrored to `projects/sp-plus/tests/bee-lane/`.
+`~/work/sp-plus/bee/` on the Beelink, mirrored to `projects/sp-plus/tests/bee-lane/`.
 
 **The whole lane runs unprivileged.** QEMU, swtpm, socat and the gates need no root;
 root lives *inside* the guest and is reached with `spb-shell` over serial. This removes

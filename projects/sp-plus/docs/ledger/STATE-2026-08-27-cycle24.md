@@ -30,7 +30,7 @@ cycle9                                        1 MB  running=no  bserial=133215 B
 
 ## Latest evidence headline
 ```
-log: /home/chris/sp-plus-iso/cycle24/bserial.log  (118346 bytes)
+log: ~/work/sp-plus/iso/cycle24/bserial.log  (118346 bytes)
 avc: 0 lines  [MEANINGLESS unless semodule -DB was run]
 failed units seen:
 ```

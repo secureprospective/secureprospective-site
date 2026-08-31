@@ -38,7 +38,7 @@ KNOWN_t13:  6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db
 First `./spb-install` attempt:
 
 ```text
-SPB: cycle32 up, pid=3277548 serial=/home/chris/sp-plus-iso/cycle32/serial.log
+SPB: cycle32 up, pid=3277548 serial=~/work/sp-plus/iso/cycle32/serial.log
 SPB: waiting for the Anaconda greeter (up to 5 min)
 qemu-system-x86_64: terminating on signal 15 from pid 3278559 ()
 ```
@@ -46,7 +46,7 @@ qemu-system-x86_64: terminating on signal 15 from pid 3278559 ()
 After preserving that attempt's files, a repeat `./spb-install` produced:
 
 ```text
-SPB: cycle32 up, pid=3300549 serial=/home/chris/sp-plus-iso/cycle32/serial.log
+SPB: cycle32 up, pid=3300549 serial=~/work/sp-plus/iso/cycle32/serial.log
 SPB: waiting for the Anaconda greeter (up to 5 min)
 SPB: installing — watching the disk grow, then plateau (up to 35 min)
 SPB: INSTALL_PLATEAU at 600s disk=12177113088
@@ -80,12 +80,12 @@ SPB: GRUB_MENU_SEEN=yes
 SPB: IN_EDITOR=yes
 SPB: waiting for the LUKS prompt on serial (up to 2 min)
 SPB: LUKS_PROMPT_ON_SERIAL=yes after 15s
-SCREEN: /home/chris/sp-plus-iso/cycle32/screen-luks.png (1611 bytes)
+SCREEN: ~/work/sp-plus/iso/cycle32/screen-luks.png (1611 bytes)
 SPB: passphrase sent, waiting 180s for the system to settle
 SPB: FIRSTBOOT_PROMPT_ON_CONSOLE=no after 60s
-SCREEN: /home/chris/sp-plus-iso/cycle32/screen-settled.png (881178 bytes)
+SCREEN: ~/work/sp-plus/iso/cycle32/screen-settled.png (881178 bytes)
 SPB: serial_bytes=53977
-SPB: guest left running. Type into /home/chris/sp-plus-iso/cycle32/bserialpty, read /home/chris/sp-plus-iso/cycle32/bserial.log
+SPB: guest left running. Type into ~/work/sp-plus/iso/cycle32/bserialpty, read ~/work/sp-plus/iso/cycle32/bserial.log
 ```
 
 The installed image had no human account available to the serial lane. `spb-mkuser` was used to create the disposable `spbtest` lane account. Raw result:
@@ -308,7 +308,7 @@ BRANDING_PASS=11 BRANDING_FAIL=0
 
 ### Step 3 — screen evidence
 
-Image files were left in `/home/chris/sp-plus-iso/cycle32/`:
+Image files were left in `~/work/sp-plus/iso/cycle32/`:
 
 ```text
 screen-luks.png                 1611 bytes

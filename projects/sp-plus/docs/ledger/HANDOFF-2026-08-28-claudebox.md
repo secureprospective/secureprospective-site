@@ -61,7 +61,7 @@ The gate strings already seen passing before the failure: `AUDIT_SSH_KEY_OK`,
   before theorising.** It disproved two of my hypotheses in minutes. Read its config
   freely; change nothing on it, and avoid anything that captures its screen.
 - Build entry point: `~/sp-plus-gates/sp-plus-build-gated.sh` — the ONLY sanctioned
-  path. It runs `preflight-gate.sh` (10 checks), then `~/sp-plus-iso-build.sh`.
+  path. It runs `preflight-gate.sh` (10 checks), then `~/fleet/bin/sp-plus-iso-build.sh`.
 - ISO output: `projects/sp-plus/artifacts/spikeB-rootful/out/`
 
 ---

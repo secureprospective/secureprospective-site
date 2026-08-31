@@ -1,7 +1,7 @@
 # SP+ cycle7 — verify the DN-16 relabel fix
 
 You are running the SP+ test loop on this machine (the Beelink). Everything you need
-is in `~/sp-plus-bee/RUNBOOK.md`. **Read that file first, in full, before running
+is in `~/work/sp-plus/bee/RUNBOOK.md`. **Read that file first, in full, before running
 anything.** It contains the rules, the traps, and the list of hypotheses already
 refuted — do not retest those.
 
@@ -10,7 +10,7 @@ refuted — do not retest those.
 Verify whether the SELinux relabel fix in ISO sha `6a593d70…` actually closes DN-16
 (`/etc` is `unlabeled_t`, which breaks every login under Enforcing).
 
-Run, in this order, from `~/sp-plus-bee`:
+Run, in this order, from `~/work/sp-plus/bee`:
 
 ```bash
 export CYCLE=cycle7
@@ -39,7 +39,7 @@ Paste the **entire** `spb-evidence` output to STDOUT, verbatim. Plus, in plain w
   literal words "(none present in the log)".
 - Do not use `sudo`. You never need it here — root lives inside the guest and
   `./spb-shell '<cmd>'` reaches it.
-- Do not delete `~/sp-plus-iso/cycle6/` — that is evidence for an open defect.
+- Do not delete `~/work/sp-plus/iso/cycle6/` — that is evidence for an open defect.
 - Do not retry a failed step "blind". If something does not match the runbook,
   capture what you saw and stop. A partial result with an honest note beats a
   clean-looking result from a step you re-ran until it passed.

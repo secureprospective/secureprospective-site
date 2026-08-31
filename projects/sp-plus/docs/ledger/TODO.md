@@ -86,7 +86,7 @@ the in-flight b03 dispatch, which is editing `tests/`.
 
 ### T-12 — Wire the pre-build gate into `sp-plus-iso-build.sh` directly
 
-`~/sp-plus-gates/sp-plus-build-gated.sh` currently WRAPS the build script rather than
+`~/work/sp-plus/gates/sp-plus-build-gated.sh` currently WRAPS the build script rather than
 modifying it, because b03 was mid-run and editing a script an agent is executing is a way
 to break a dispatch. Once b03 closes, fold the gate call into the head of
 `sp-plus-iso-build.sh` so there is exactly ONE build path and it cannot be bypassed by

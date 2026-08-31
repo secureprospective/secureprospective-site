@@ -26,4 +26,4 @@ The `Re-verify when` field makes this survive a Fedora migration.
 
 ### W-03 — Direct kernel boot as the diagnostic escape hatch
 
-Extract vmlinuz+initrd from the ISO with `osirrox` and boot QEMU with `-kernel`/`-initrd`/`-append`. Full cmdline control, serial-captured output, no bootloader UI. Confirmed 2026-08-26: turned a silent hang into a one-line root cause. Script: `~/sp-plus-iso/t-direct.sh` (and `t-direct2.sh`, its A/B twin).
+Extract vmlinuz+initrd from the ISO with `osirrox` and boot QEMU with `-kernel`/`-initrd`/`-append`. Full cmdline control, serial-captured output, no bootloader UI. Confirmed 2026-08-26: turned a silent hang into a one-line root cause. Script: `~/work/sp-plus/iso/t-direct.sh` (and `t-direct2.sh`, its A/B twin).
