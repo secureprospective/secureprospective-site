@@ -19,7 +19,14 @@
 # answer is mirroring the base into our own registry, not a longer pin.
 #
 # Bumping this digest requires a rebuild and a full re-run of the hardware gate.
-FROM quay.io/fedora/fedora-bootc@sha256:aebf110db87f9f83bcc7c6c2fcdd3b644c1b462211dcb95463632a1b015b9b1c
+#
+# BUMPED 2026-08-31. The aebf110 pin was collected on quay exactly as the note
+# above predicts -- `manifest unknown`, and root's podman store no longer had the
+# bits either, so it was unrecoverable rather than merely unresolvable. Replaced
+# with the digest :44 resolved to on the day. Verified before rebuilding: the
+# base reports VERSION_ID 44, and the full installer package transaction (539
+# packages) resolves against it with nothing unmet.
+FROM quay.io/fedora/fedora-bootc@sha256:e91da1afe4026c2c830241557fd5bd40c165bad45cb6f9a89fc0db00ec749d6e
 
 RUN dnf install -y \
     anaconda \
