@@ -1,154 +1,174 @@
-# SP+ RESUME — 2026-08-31 (theme switching DONE; ISO in flight)
+# SP+ RESUME — 2026-08-31, mid-session (theme work + Welcome defects)
 
 ## 1. WHAT WE ARE DOING
 
-The stated goal -- switch to Windows, back to Breeze, back to Windows again without error
-using ONLY the Welcome application on the Dell -- IS MET, twice, on shipped images. The
-remaining work is a single deliverable: an ISO of the current source, verified and placed in
-`~/Downloads` for Christopher to test in a VM.
+Christopher's goal was met earlier: switching Windows -> Breeze -> Windows through the
+Welcome app alone, without error. That is now ALSO proven on an ISO-installed VM. Current
+work is three defects found during that verification, then a rebuild folding them in.
+Two further Welcome upgrades are inbound from Claudebox and should go into the SAME build.
 
-- Repo: `/home/chris/work/secureprospective-advisor-os` (worktree; do NOT cd to the origin).
-- Dell: `test@192.168.1.124` (DHCP; it has been .134 and .124 this session -- check both).
-  Key `~/.ssh/id_ed25519`. Disk is LUKS: every reboot needs Christopher at the keyboard.
-- Registry: `192.168.1.190:5000/sp-plus-kde:<tag>`.
+Repo: `/home/chris/work/secureprospective-advisor-os` (worktree; run everything from here,
+never cd to the original checkout). Project subdir `projects/sp-plus`.
 
 ## 2. AGENTS + HARNESSES
 
-- `~/fleet/bin/run-bee-spplus-impl.sh <id>` -- WRITE-enabled Bee lane. Brief must be at
-  `~/.pi/agent/spplus-brief-<id>.md`. Dispatch detached: `systemd-run --user --collect
-  --unit=bee-<id> ~/fleet/bin/run-bee-spplus-impl.sh <id>`. Sentinel:
-  `~/.pi/agent/spplus-IMPL-ALL.sentinel`. NEVER poll artifacts; wait on the sentinel.
-- `~/fleet/bin/run-bee-spplus-manifest.sh` is the READ-ONLY audit lane. Using it for
-  implementation work is a wasted cycle -- that mistake was made once already.
-- `~/fleet/bin/spplus-build-push.sh <tag>` -- rootless build + push + registry verify.
-- `~/fleet/bin/spplus-dell-switch.sh <tag>` -- detached bootc switch on the Dell. Honours
-  `DELL_HOST`; currently hardcoded to .124.
-- `~/fleet/bin/sp-plus-iso-build.sh` -- the ONLY sanctioned ISO path (DN-06), ROOTFUL.
+- **Bee** = Pi on `gpt-5.6-luna`, thinking max. Never leave the model to pi's default.
+- Three lanes, deliberately distinct:
+  - `~/fleet/bin/run-bee-spplus.sh` — research. Forbids writing files.
+  - `~/fleet/bin/run-bee-spplus-impl.sh` — implementation. Expects repo source edits.
+  - `~/fleet/bin/run-bee-spplus-verify.sh` — **NEW this session.** Drives a live machine,
+    writes report + artifacts under `~/fleet/runs`, must NOT edit repo source.
+- Briefs live in `~/fleet/briefs/`, and are copied to `~/.pi/agent/spplus-brief-<id>.md`
+  which is where the runner actually reads them. Copy to BOTH.
+- Dispatch detached: `systemd-run --user --collect --unit=<name> --setenv=HOME=/home/chris`.
+  systemd-run starts with an EMPTY environment; without `--setenv=HOME` scripts die
+  instantly on `HOME: unbound variable`.
+- Bee returns EVIDENCE, never a verdict. I make the call.
 
-## 3. IN FLIGHT RIGHT NOW
+## 3. IN-FLIGHT RIGHT NOW (most perishable)
 
-**`spplus-iso.service`** -- the ISO build, started 11:03 CDT, TimeoutStartSec=7200.
+**a) `bee-welcome-defects.service`** — dispatched ~18:20Z, TMO=7200.
+- Alive? `systemctl --user is-active bee-welcome-defects.service`
+- Brief: `~/fleet/briefs/spplus-welcome-defects.md`
+- Output: `~/fleet/runs/REPORT-welcome-defects.md` + `.DONE` sentinel.
+- pi stdout/stderr: `~/.pi/agent/spplus-welcome-defects.{out,err}` — stdout stays 0 bytes
+  until the process exits; that is NORMAL buffering, not a stall.
+- Watcher: background shell `buyflinad` (may not survive compaction; the unit will).
+- If it died without a sentinel, read the `.err` and the brief before re-dispatching.
 
-- Alive? `systemctl is-active spplus-iso`
-- Progress: `journalctl -u spplus-iso --no-pager -n 30`
-- Output lands in
-  `projects/sp-plus/artifacts/spikeB-rootful/out/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/`
-  NOTE: that directory ALREADY holds an ISO dated Aug 30 09:55 from a previous run. Check
-  mtime and size before believing an ISO is this build's output.
-- Watcher: background shell `bz4kq1tg4`, output
-  `/tmp/claude-1000/-home-chris/33018ca6-b1dc-4bd0-8aa4-38a969ed6dae/tasks/bz4kq1tg4.output`.
-  If compaction kills the watcher the SERVICE still runs -- re-poll it directly.
-- When it finishes: verify, then copy (not move) into `~/Downloads` named for this build,
-  and tell Christopher.
+**b) Backend recorder on the VM** — `~/spplus-observe.sh`, running detached on the guest,
+appending `/home/test/observe.log` every 5s. READ-ONLY; it never applies anything.
+- Alive? `ssh -p 2222 test@127.0.0.1 'pgrep -f "spplus-observe[.]sh"'`
+- This is my independent evidence channel. Do not stop it while Bee is driving.
 
-**Root cannot be obtained from this tool shell.** sudo issues per-tty tickets and the tool
-shell has no tty, so `sudo -v` in Christopher's terminal does NOT carry over. The ISO build
-was started by Christopher pasting a one-liner. If it must be restarted, give him:
-`sudo systemd-run --unit=spplus-iso --collect --property=TimeoutStartSec=7200 --setenv=HOME=/home/chris /home/chris/fleet/bin/sp-plus-iso-build.sh`
-The `--setenv=HOME` is REQUIRED: systemd-run starts with an empty environment and the script
-dies on `HOME: unbound variable` without it.
+**c) The VM itself** — libvirt session domain `fedora-test`, running since 12:05.
+**DO NOT REBOOT IT.** See section 10.
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
 
-- Registry `sp-plus-kde:test45` = `sha256:240b7bd64fb45ed8b06e08ede2e654d6ff838e88add5deea6a2ebd35c261c70c`
-- Registry `sp-plus-kde:test46` = `sha256:2478e5fc5e952b6570fe2fef4b29c4dc9a0e515418201c9a13750ff188b70663`
-  The Dell is BOOTED on test46. Zero failed units.
-- The eight staged preview screenshots, in the repo at
-  `projects/sp-plus/welcome/app/assets/theme-previews/*.png`, committed in `e86310f`.
-- Old ISOs in `~/Downloads`: `SP-PLUS-cycle43.iso`, `SP-PLUS-cycle39.iso` (Aug 29, PRE-dating
-  all theme work). Do not hand either to Christopher as current.
+- **ISO**: `~/Downloads/sp-plus-2026-08-31-1152.iso`
+  - 5,498,066,944 bytes, sha256
+    `de4db844d84f283fd7dcb2299603a1213b3b0407a54cd15a6004dfa75f4a499c`
+  - `ISO 9660 ... 'Secureprospective-Advisor-POC' (bootable)`; structure verified
+    (`/EFI/BOOT`, `/LiveOS/squashfs.img`, `/images/efiboot.img`, `/boot/grub2`).
+  - Built 11:52 by `spplus-iso.service`. Installed to the VM successfully.
+- **Round-trip evidence**: `~/fleet/runs/REPORT-vm-roundtrip.md` (9500 bytes), 8 screenshots
+  in `~/fleet/runs/vm-roundtrip/`, 26 raw files in `.../raw-vm-roundtrip/`.
+- **Guest**: `SP+ 1 (dev)`, variant Advisor, kernel `7.1.10-200.fc44`.
+  All 8 theme previews on the installed system are **byte-identical sha256 to the repo**.
 
-**Digest gotcha:** `spplus-build-push.sh` prints podman's LOCAL manifest digest, which
-differs from what the registry serves after push. Always verify a deployment against the
-registry's `Docker-Content-Digest`, or a correct deployment looks like a mismatch.
+## 5. THE CURRENT BUGS
 
-## 5. THE CURRENT BUG
+**BUG 1 — Welcome app crashes (open).**
+Verbatim: `QThread: Destroyed while thread '' is still running` at 17:40:00.092Z, then
+`SIGABRT` pid 6690 `python3.14` at 17:40:07, service
+`app-org.secureprospective.spplus.welcome@autostart.service` `status=6/ABRT`, result
+`core-dump`. Backtrace entirely in `viz::DirectRenderer::DrawFrame` ->
+`viz::Display::DrawAndSwap` -> `DisplayScheduler::OnBeginFrameDeadline` inside
+`libQt6WebEngineCore`. Occurred 8s after the Nordic apply restarted plasmashell.
 
-None open on the theme work. Two known environment defects, deliberately NOT folded in:
+Leading hypothesis: this VM's software GPU. Every Welcome launch here logs
+`ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer`.
+**CAVEAT — this is NOT established.** A plasmashell restart is also a compositor teardown
+and that IS our code's doing. n=1. Bee's investigation B is running 10 applies, then 10
+more under `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu`, to separate the two. The
+`--disable-gpu` run is a DIAGNOSTIC, not a proposed fix.
 
-- Kickoff favourites are half-seeded from the user's `kactivitymanagerd-statsrc`, so Konsole
-  and Discover appear in the menu even though the image sets `NoDisplay=true`. Confirmed to
-  survive a fresh deployment: it is USER state, so no Containerfile change can fix it.
-- `/etc/xdg/kwinrc` hard-codes the Windows Aurorae decoration as system default. Worth
-  revisiting now that every theme owns its layout.
-
-Open question for Christopher, raised but not answered: **Orchis Light leaves the desktop
-with a top panel only -- no taskbar -- plus a large desktop clock.** That is genuinely its
-author's design, and his rule is that creator intent outranks SP+ normalisation, but it is a
-jarring result for an advisor choosing from a gallery.
+**BUG 2 — a theme card can be silently unclickable (open).**
+A drive at 17:43:06Z clicked a card, nothing happened, no receipt, no error, 2-minute
+timeout. Hypothesis from source reading: `.work-area` is a grid `38px/minmax(0,1fr)/74px`
+so the footer does NOT overlap, but above 900px wide `.screens` and `.screen` are
+`overflow:hidden`, so content past the fold is CLIPPED and unreachable rather than
+scrollable. That would breach the standing "Welcome must never scroll" rule.
+**CAVEAT — unmeasured.** Bee's investigation A measures every card's rect, what
+`elementFromPoint` returns at its centre, and `scrollHeight` vs `clientHeight`, at three
+window sizes. Do not patch CSS before reading it.
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-1. "plasmarc is truncated / the theme apply damaged config." NO. `plasma-apply-lookandfeel`
-   writes `~/.config/kdedefaults/<file>` and reverts the user file. Normal cascade.
-2. "A stale decoration key leaks between themes." NO -- harness artifact. `kreadconfig6` in an
-   SSH shell reads a different cascade; inherit env from plasmashell's `/proc/<pid>/environ`.
-3. "Black text on black background is a theme defect." NO -- it was contamination from killing
-   plasmashell and relaunching apps without `XDG_CURRENT_DESKTOP`. The shipped theme is fine.
-4. "`--resetLayout` breaks the panel." NO -- the panel was empty because `panel.locked = true`
-   ran BEFORE `addWidget`. `--resetLayout` does stop plasmashell, which is a separate defect,
-   fixed by restarting the unit and polling for the D-Bus name.
-5. "The Welcome app failed to launch / test45 is broken." NO, twice: (a) plasmashell had hit
-   systemd's start-rate limiter because a delegated agent was restarting it concurrently;
-   (b) the Welcome app is SINGLE-INSTANCE and a second copy exits 0 silently while the
-   autostart copy holds the socket.
-6. "The build did not push / the Dell staged the wrong image." NO -- I queried the wrong repo
-   path (`sp-plus` instead of `sp-plus-kde`), and separately compared a local digest to a
-   registry digest. Both were my error.
-7. "The Dell came back after the reboot." NO -- false positive: the watcher polled SSH three
-   seconds before a scheduled reboot took effect. A reboot watcher MUST wait for the host to
-   go DOWN before waiting for it to come back.
+1. **"The image is missing qdbus6."** No. The binary is **`qdbus-qt6`**, it ships, and the
+   harness already uses the right name. My probe used the wrong name.
+2. **"Welcome/plasmashell was not running on the VM."** No. The guest agent runs
+   SELinux-confined and returns `Permission denied` **as root** for `/home/test/...` and
+   cannot see other processes reliably. A SPICE screenshot proved both were running.
+   Never trust an "absent" reading from the guest agent; confirm with a screenshot.
+3. **"The em-dash gate failure was a content problem in index.html."** No. `grep -rqlP`
+   was scanning binary PNGs; `orchis-light.png` contains the bytes E2 80 94 in its deflate
+   stream. Fixed with `-I`. Reproduced in-image before and after.
+4. **"The installer base pin was merely unresolvable."** No. It was garbage-collected on
+   quay AND absent from root's podman store: unrecoverable, not recoverable.
+5. **"Five of eight themes share one panel, so the paneling work failed."** No. FIVE ship
+   their own layout (Windows x2, Breeze x2, Orchis) and apply it. Only THREE (Nordic,
+   Catppuccin Mocha, Catppuccin Latte) declare no layout and take stock. No theme ever
+   inherits the previous theme's panel, which was the actual defect.
+6. **"Bee took a shortcut and called the apply helper directly."** No. Verified its helper:
+   real CDP `Input.dispatchMouseEvent` press/release on the card and `#preview-apply`.
 
-## 7. DECISIONS (Christopher's rulings this session)
+## 7. DECISIONS
 
-- **All eight themes must reset to their own paneling**, not just the two Windows packages,
-  "as advisors assume trust in 1st class applications". Windows and Breeze were the pilot
-  "because its the tallest hill to climb".
-- **Christopher composes the preview screenshots himself.** An automated Fin/Dolphin placement
-  was rejected on sight: "stop the screen shots are bad. Let me stage them please." The split
-  is: I apply themes and prepare the machine, he arranges windows, I capture and verify.
-- **Deliver complete work, not caveated work.** "I would like to test your best work, not
-  '...but not that'." Time pressure was explicitly removed: "take your time".
-- Fin must appear in preview shots at its welcoming banner so advisors are "comfortable with
-  Fin, not be afraid of it because its the Terminal".
+- **2026-08-31 (new):** the three layout-less themes KEEP THE STOCK PANEL. We do not author
+  SP+ layouts for them. Their authors declared no panel intent, so nothing is being
+  overridden; stock is known good. Recorded in
+  `docs/ledger/DECISION-2026-08-31-layoutless-themes-keep-stock-panel.md`.
+- **D-02** stands: base images pinned by digest; a bump is deliberate and **owes a full
+  re-run of the hardware gate**. The bump made today has NOT had that hardware gate.
+- Orchis Light's top-panel/no-taskbar desktop is its author's intent. Record it, never
+  "fix" it.
 
-## 8. LEDGER STATE — all committed
+## 8. LEDGER STATE
 
-- `081c774` every global theme owns its panel layout (Bee)
-- `87277a7` what worked and what did not, for future sessions
-- `becc3dc` test46 round trip with per-theme paneling verified
-- `e86310f` the eight staged previews + capture contract records manual composition
-- `418091d` capture harness defaults to the installed helper
-
-Nothing is written-but-uncommitted for the SP+ theme work. Many unrelated files show as
-modified in `git status` and predate this session -- leave them.
+Committed this session: `82626f6` (em-dash gate scoped to text), `aec0f43` (installer base
+pin bump), `f6ce2dd` (panel-source wording + the decision doc). Earlier: `081c774`,
+`87277a7`, `becc3dc`, `e86310f`, `418091d`, `6a85ae9`.
+Nothing is written-but-uncommitted.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. **Check `spplus-iso.service`.** If active, wait. If failed, read
-   `journalctl -u spplus-iso` -- do not blindly restart, and remember only Christopher can
-   start it (section 3).
-2. **Verify the ISO is THIS build**, by mtime and size, against the stale Aug 30 artifact in
-   the same directory.
-3. **Copy it into `~/Downloads`** with a name that distinguishes it from `SP-PLUS-cycle43.iso`
-   and `SP-PLUS-cycle39.iso`, and record the sha256.
-4. **Tell Christopher it is there**, with its size and what is in it.
-5. Optionally raise the Orchis-no-taskbar question and the Kickoff-favourites defect.
+1. **Read** `~/fleet/runs/REPORT-welcome-defects.md` when the sentinel lands.
+2. **Fix BUG 2** from the measurements, not from the hypothesis. If cards are clipped, the
+   fix is layout so all eight fit one viewport, NOT enabling scroll (standing rule).
+3. **Decide BUG 1** from the crash-rate comparison. If it only crashes with GPU
+   compositing, it is likely VM-only and must still be checked on the Dell before it is
+   dismissed. If it crashes under both, it is ours.
+4. **Fold in the two Welcome upgrades from Claudebox** when they arrive.
+5. **Then one build**, not one per fix. Builds are the bottleneck.
+6. **Re-run the hardware gate on the Dell** — owed by the D-02 pin bump regardless.
 
 ## 10. RELAY / ENVIRONMENT NOTES
 
-- `pkill -f <pattern>` matches the very SSH command line running it and kills the session.
-  Kill by PID. This has bitten three times.
-- Bash function variables are GLOBAL; a helper looping over `name` clobbered a caller's
-  `$name`. Use `local`.
-- Drive the Welcome app over CDP with `QTWEBENGINE_REMOTE_DEBUGGING=9222`; it must run ON the
-  Dell because QtWebEngine validates the Host header.
-- Never run two agents against the Dell's Plasma session at once.
+- **VM SSH:** `ssh -p 2222 test@127.0.0.1`. Key `chris@beelink` was already installed by
+  the kickstart at 12:05; I added nothing.
+- **The port forward is VOLATILE — held in QEMU's memory only.** Recreate after any VM
+  restart with:
+  `virsh -c qemu:///session qemu-monitor-command fedora-test --hmp 'hostfwd_add hostnet0 tcp:127.0.0.1:2222-10.0.2.15:22'`
+  `10.0.2.15` is QEMU user-mode NAT and is NOT routable from the Beelink.
+- **Do not reboot the VM** — it destroys the forward and locks everything out.
+- Read-only channels that work without network: `virsh screenshot fedora-test` (SPICE
+  framebuffer) and `virsh qemu-agent-command` (guest agent, but SELinux-confined).
+- Panel applets: parse with `~/panel-applets.py` on the guest. `dumpCurrentLayoutJS`
+  returns a JS document, not JSON; brace-match from the first `{` after `var layout`.
+- **The ISO build is rootful and needs Christopher's sudo** (per-tty tickets; my shell has
+  no tty). Hand him:
+  `sudo systemd-run --unit=spplus-iso --collect --setenv=HOME=/home/chris --property=TimeoutStartSec=7200 /home/chris/fleet/bin/sp-plus-iso-build.sh`
 
 ## 11. HONEST STATUS
 
-The goal is MET and independently verified on two shipped images -- not on staged code. What
-is NOT yet proven is the ISO: it is still building, no ISO of this source has been produced,
-booted, or installed, and the installer path has not been exercised since these changes. The
-round trip was proven on a machine upgraded in place via `bootc switch`, which is not the
-same as a fresh install from this ISO. Say so plainly rather than implying the ISO is tested.
+The theme-switching goal is **met and independently verified on an ISO-installed system**,
+not just on staged code: two round trips, t1 identical to t3, confirmed by a backend
+recorder Bee did not control.
+
+What is NOT proven:
+- The Welcome crash is **unexplained**. One occurrence, two candidate causes, neither
+  eliminated. Do not report it as VM-only.
+- The unclickable-card bug is **unmeasured**; the clipping explanation is a hypothesis.
+- The three fixes committed today (`82626f6`, `aec0f43`, `f6ce2dd`) are **in source only**.
+  No ISO contains `f6ce2dd`. Written code is not working software.
+- The F44 base pin bump has **never been through the Dell hardware gate**.
+
+## 12. HOUSEKEEPING FOUND, NOT ACTIONED
+
+`~/JoplinBackup` is the 23rd visible entry at `~` and makes the filing gate FAIL (target
+22). It is NOT mine and it is LIVE: the Joplin backup plugin
+(`io.github.jackgruber.backup`) references it and touched it at 13:46 today. Moving it
+would break Christopher's note backups, so the fix is a Joplin plugin setting, not a `mv`.
+Raised with him; left in place deliberately.
