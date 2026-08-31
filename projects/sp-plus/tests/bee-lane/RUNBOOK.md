@@ -1,5 +1,5 @@
 # SP+ TEST LANE — RUNBOOK FOR BEE / LUNA
-Version 1 · 2026-08-26 · lives at `~/sp-plus-bee/RUNBOOK.md` on the Beelink
+Version 1 · 2026-08-26 · lives at `~/work/sp-plus/bee/RUNBOOK.md` on the Beelink
 
 You are running the **test loop** for SP+, a Fedora-44 bootc Linux distribution for
 financial advisors. Christopher owns the machine. Headbrain (Claude on CT105) owns
@@ -38,7 +38,7 @@ once, in `spb-build`, and you never compose a privileged command yourself.
 ## THE LOOP
 
 ```bash
-cd ~/sp-plus-bee
+cd ~/work/sp-plus/bee
 export CYCLE=cycle7          # pick a NEW cycle name each run; never reuse cycle6
 
 ./spb-sha                    # 0. what ISO is on disk right now
@@ -62,7 +62,7 @@ dracut pre-pivot shell, so the real sequence is three commands, in this order:
 ./spb-boot 'rd.break=pre-pivot'      # boot INTO the pre-pivot shell
 ./spb-mkuser spbtest spplus-test     # write the account into the deployment
 # then kill that VM from its pidfile and boot normally:
-kill $(cat /home/chris/sp-plus-iso/$CYCLE/boot.pid); sleep 5
+kill $(cat ~/work/sp-plus/iso/$CYCLE/boot.pid); sleep 5
 ./spb-boot
 ```
 
@@ -193,7 +193,7 @@ Brave, no SP+ runtime and no advisor account is not SP+. **As of 2026-08-26 that
 exactly what the ISO ships (DN-18).**
 
 ```bash
-cd ~/sp-plus-bee && export CYCLE=cycle8
+cd ~/work/sp-plus/bee && export CYCLE=cycle8
 ./spb-hygiene                    # RAM/disk before you start
 ./spb-packages image             # IS THE SOFTWARE IN THE IMAGE? seconds, no VM needed
 ./spb-build                      # only if the image gate passes — never build an empty image
@@ -205,7 +205,7 @@ cd ~/sp-plus-bee && export CYCLE=cycle8
 ./spb-hygiene --apply
 ```
 
-`spb-packages` reads `~/sp-plus-bee/spb-manifest` — one line per component,
+`spb-packages` reads `~/work/sp-plus/bee/spb-manifest` — one line per component,
 `TYPE|NAME|WHY`, types `rpm`, `path`, `unit`, `user`. **When the product gains a
 component, add a line.** The manifest is the definition of "SP+ is complete"; anything
 not in it is a component nobody is testing.
@@ -222,7 +222,7 @@ As always: **evidence, not a verdict.**
 ## EIGHT GATES NOW — SOFTWARE, BRANDING, APPS
 
 ```bash
-cd ~/sp-plus-bee && export CYCLE=cycle8
+cd ~/work/sp-plus/bee && export CYCLE=cycle8
 ./spb-hygiene
 ./spb-packages image                              # SP+ software present?
 ./spb-branding image                              # any Fedora logo left?
@@ -243,8 +243,8 @@ cd ~/sp-plus-bee && export CYCLE=cycle8
 minutes.
 
 Manifests you may need to extend — a component with no line is a component nobody tests:
-- `~/sp-plus-bee/spb-manifest` — SP+ software (`TYPE|NAME|WHY`)
-- `~/sp-plus-bee/spb-appmanifest` — the app suite (`RPM|BINARY|DESKTOP|WHY`)
+- `~/work/sp-plus/bee/spb-manifest` — SP+ software (`TYPE|NAME|WHY`)
+- `~/work/sp-plus/bee/spb-appmanifest` — the app suite (`RPM|BINARY|DESKTOP|WHY`)
 
 Branding assets are staged at `projects/sp-plus/branding/` (icon 1024/512, lockup 1080/4k,
 dark splash). `spb-branding` enumerates the real surfaces from the rpm database rather

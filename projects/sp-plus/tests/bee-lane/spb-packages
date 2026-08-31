@@ -6,10 +6,10 @@
 #   spb-packages live                  # against the running installed guest
 #
 # Prints PASS/FAIL per item and a count. Exit 0 only if everything passes.
-. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+. ~/work/sp-plus/bee/spb-env 2>/dev/null
 MODE="${1:-image}"
 IMG="${2:-localhost/sp-plus-kde:spike}"
-MAN=/home/chris/sp-plus-bee/spb-manifest
+MAN=~/work/sp-plus/bee/spb-manifest
 [ -f "$MAN" ] || { echo "no manifest at $MAN"; exit 2; }
 
 # Build one probe script that runs wherever the system under test is.
@@ -44,7 +44,7 @@ case "$MODE" in
     ;;
   live)
     echo "guest: $CYCLE (must already be booted AND logged in via spb-boot/spb-shell)"
-    /home/chris/sp-plus-bee/spb-shell "$(cat "$PROBE" | tr '\n' ';')"
+    ~/work/sp-plus/bee/spb-shell "$(cat "$PROBE" | tr '\n' ';')"
     rc=$?
     ;;
   *) echo "usage: spb-packages [image|live] [image-ref]"; exit 2 ;;

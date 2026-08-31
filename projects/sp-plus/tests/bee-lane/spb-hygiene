@@ -3,7 +3,7 @@
 # Run it at the START of a work block, after every completed cycle, and before any handoff.
 # Binary, not a policy debate: if we are not coming back to it, it goes.
 # Reports first. Pass --apply to actually reclaim.
-. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+. ~/work/sp-plus/bee/spb-env 2>/dev/null
 APPLY=""; [ "${1:-}" = "--apply" ] && APPLY=yes
 echo "########## SP+ HYGIENE  $(date -u +%FT%TZ)  apply=${APPLY:-no} ##########"
 
@@ -36,7 +36,7 @@ echo "  DROP: cycle dirs from a closed question, older than 12h, not running."
 echo "  A qcow2 is ~8 GB. Three stale cycles is a quarter of his free space."
 if [ -n "$APPLY" ]; then
   echo "--- running reap.sh --apply (12h evidence hold) ---"
-  ~/sp-plus-gates/reap.sh --apply 2>&1 | tail -12
+  ~/work/sp-plus/gates/reap.sh --apply 2>&1 | tail -12
   find "$SPB_ISO_DIR" -maxdepth 1 -name '*.ppm' -newermt '-30 days' -size +1M 2>/dev/null | while read -r f; do
     [ -f "${f%.ppm}.png" ] && { echo "  rm redundant $f"; rm -f "$f"; }
   done

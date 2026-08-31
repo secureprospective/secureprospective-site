@@ -50,7 +50,7 @@ Only if Step 1 is entirely clean:
 systemd-run --user --unit=spplus-build-cycle34 --collect \
   -p StandardOutput=append:$HOME/sp-plus-build-cycle34.log \
   -p StandardError=append:$HOME/sp-plus-build-cycle34.log \
-  -p TimeoutStartSec=infinity /home/chris/sp-plus-iso-build.sh
+  -p TimeoutStartSec=infinity ~/fleet/bin/sp-plus-iso-build.sh
 ```
 
 Then WAIT for it. Poll `systemctl --user is-active spplus-build-cycle34` on a
@@ -79,5 +79,5 @@ so Christopher can test it immediately.
 - Nobody is at the keyboard. Do not ask questions.
 - Return evidence, never a verdict.
 
-Finish by writing `~/sp-plus-bee/REPORT-cycle34.md`, then
-`touch ~/sp-plus-bee/REPORT-cycle34.DONE`.
+Finish by writing `~/work/sp-plus/bee/REPORT-cycle34.md`, then
+`touch ~/work/sp-plus/bee/REPORT-cycle34.DONE`.

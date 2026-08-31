@@ -8,7 +8,7 @@
 # gracefully rather than traceback when no key is present.
 #
 # Usage: CYCLE=cycle31 spb-fin
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 pass=0; fail=0
 check() { # check <label> <command> <expected-substring>
   # The serial console ECHOES the command back before running it, so a naive
@@ -17,7 +17,7 @@ check() { # check <label> <command> <expected-substring>
   # installed" PASSED one line above "fastfetch: command not found". Strip the
   # echoed command, the marker line, and the shell-integration escape noise
   # before deciding anything.
-  raw=$(/home/chris/sp-plus-bee/spb-shell "$2" 2>&1)
+  raw=$(~/work/sp-plus/bee/spb-shell "$2" 2>&1)
   out=$(printf '%s' "$raw" \
         | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g; s/\x1b\][^\x07\x1b]*//g' \
         | grep -vF -- "$2" \

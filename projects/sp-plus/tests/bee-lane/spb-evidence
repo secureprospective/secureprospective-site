@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # spb-evidence — print EVIDENCE, not a verdict. Four artifacts, verbatim, to STDOUT.
 # Do not summarise these. Do not conclude from them. Paste them back.
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 L="$D/bserial.log"
 echo "########## SP+ EVIDENCE  cycle=$CYCLE  $(date -u +%FT%TZ) ##########"
 echo "SERIAL_BYTES: $(stat -c%s "$L" 2>/dev/null || echo MISSING)"
@@ -19,5 +19,5 @@ echo "=== C. LAST 60 LINES OF SERIAL ==="
 tail -60 "$L"
 echo
 echo "=== D. IN-GUEST STATE ==="
-/home/chris/sp-plus-bee/spb-shell 'getenforce; echo ---; systemctl --failed --no-legend; echo ---; ls -Zd /etc /etc/passwd /etc/nsswitch.conf /etc/shadow /etc/localtime; echo ---; ausearch -m AVC -ts boot 2>&1 | tail -40'
+~/work/sp-plus/bee/spb-shell 'getenforce; echo ---; systemctl --failed --no-legend; echo ---; ls -Zd /etc /etc/passwd /etc/nsswitch.conf /etc/shadow /etc/localtime; echo ---; ausearch -m AVC -ts boot 2>&1 | tail -40'
 echo "########## END EVIDENCE ##########"

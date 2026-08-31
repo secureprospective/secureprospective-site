@@ -2,7 +2,7 @@
 # spb-install — create a fresh SATA VM from the current ISO and drive Anaconda to
 # "Complete!". SATA (ich9-ahci+ide-hd) so the guest sees /dev/sda like the Dell (G9).
 # Usage: CYCLE=cycle7 spb-install
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 set -e
 [ -f "$ISO" ] || die "no ISO at $ISO — run spb-build first"
 mkdir -p "$D"
@@ -50,9 +50,9 @@ key alt-c;                       sleep 8    # Continue (welcome)
 key tab; key ret;                sleep 8    # pre-release dialog -> acknowledge
 key left; key up; key ret;       sleep 10   # Installation Destination
 key alt-d;                       sleep 8    # Done -> passphrase dialog
-/home/chris/sp-plus-iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
+~/work/sp-plus/iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
 key tab; sleep 1
-/home/chris/sp-plus-iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
+~/work/sp-plus/iso/vmtype-noret.sh "$MON" "$LUKS_PASS" >/dev/null; sleep 1
 key ret;                         sleep 8
 key alt-d;                       sleep 8    # back on the hub
 key alt-b;                       sleep 5    # Begin Installation

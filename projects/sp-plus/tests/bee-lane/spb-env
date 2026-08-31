@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SP+ Bee lane — shared environment. Sourced by every spb-* script.
 # Nothing here needs root. The whole test lane runs as chris.
-SPB_HOME=/home/chris/sp-plus-bee
-SPB_ISO_DIR=/home/chris/sp-plus-iso
+SPB_HOME=~/work/sp-plus/bee
+SPB_ISO_DIR=~/work/sp-plus/iso
 REPO=/home/chris/work/secureprospective-advisor-os
 # The output filename is derived from the payload's os-release, so branding the
 # image (DN-19) renamed it from bootc-fedora-44-... to bootc-sp-plus-1.0-... .

@@ -5,7 +5,7 @@
 # front of and the one a serial-only lane is completely blind to.
 #   spb-key tab tab ret          send three keys, screenshot after the last
 #   SHOT=name spb-key ret        name the screenshot
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 set -u
 [ -S "$BMON" ] || die "no boot monitor socket at $BMON — is the boot VM running?"
 for k in "$@"; do
@@ -13,4 +13,4 @@ for k in "$@"; do
   sleep "${KEYDELAY:-0.6}"
 done
 sleep "${SETTLE:-2}"
-exec /home/chris/sp-plus-bee/spb-screen "${SHOT:-key-$(date +%H%M%S)}"
+exec ~/work/sp-plus/bee/spb-screen "${SHOT:-key-$(date +%H%M%S)}"

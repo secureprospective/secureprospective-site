@@ -10,7 +10,11 @@ command -v "$LAUNCHER" >/dev/null 2>&1 || {
 }
 
 process_ids() {
-  ps -eo pid=,args= | awk -v pattern="$WELCOME_PATTERN" 'index($0, pattern) > 0 && $0 ~ /^[[:space:]]*[0-9]+ python3 / {print $1}'
+  # ps prints the interpreter's full path on the installed image
+  # (/usr/bin/python3), not the bare command name. Match both that form and
+  # versioned Python launchers without counting an unrelated process whose
+  # arguments merely contain the Welcome path.
+  ps -eo pid=,args= | awk -v pattern="$WELCOME_PATTERN" 'index($0, pattern) > 0 && $0 ~ /^[[:space:]]*[0-9]+[[:space:]]+([^[:space:]]+\/)?python3([.][0-9]+)?([[:space:]]|$)/ {print $1}'
 }
 renderer_ids() {
   ps -eo pid=,comm= | awk '$2 == "QtWebEngineProc" {print $1}'

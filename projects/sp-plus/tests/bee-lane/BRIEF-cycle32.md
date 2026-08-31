@@ -1,5 +1,5 @@
 # BEE BRIEF — cycle32 full verification
-Issued by Headbrain, 2026-08-27. Read `~/sp-plus-bee/RUNBOOK.md` first, in full.
+Issued by Headbrain, 2026-08-27. Read `~/work/sp-plus/bee/RUNBOOK.md` first, in full.
 
 ## Your job
 
@@ -45,7 +45,7 @@ an unknown artifact.
 ## Step 1 — the loop
 
 ```bash
-cd ~/sp-plus-bee && export CYCLE=cycle32
+cd ~/work/sp-plus/bee && export CYCLE=cycle32
 ./spb-install     # ~35 min
 ./spb-mkuser spbtest spplus-test   # MANDATORY -- see below
 ./spb-boot        # serial boot + LUKS unlock
@@ -86,7 +86,7 @@ opinion on an image (allow it up to 7 minutes per image — it is slow, not brok
 
 ## Step 4 — report
 
-Write your report to `~/sp-plus-bee/REPORT-cycle32.md`. Include:
+Write your report to `~/work/sp-plus/bee/REPORT-cycle32.md`. Include:
 
 - the ISO sha256 you tested and the cycle name
 - what you ran, in order, with the actual output
@@ -97,7 +97,7 @@ Write your report to `~/sp-plus-bee/REPORT-cycle32.md`. Include:
 Then, as the very last thing:
 
 ```bash
-touch ~/sp-plus-bee/REPORT-cycle32.DONE
+touch ~/work/sp-plus/bee/REPORT-cycle32.DONE
 ```
 
 Headbrain is watching for that file. Do not skip it — it is how the work gets back to

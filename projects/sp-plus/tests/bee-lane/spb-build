@@ -7,6 +7,6 @@
 set -o pipefail
 LOG=/home/chris/sp-plus-build-$(date +%Y%m%dT%H%M%S).log
 echo "SPB: building, log=$LOG  (~15 min)"
-setsid nohup /home/chris/sp-plus-iso-build.sh > "$LOG" 2>&1 &
+setsid nohup ~/fleet/bin/sp-plus-iso-build.sh > "$LOG" 2>&1 &
 echo "SPB: pid=$! log=$LOG"
 echo "SPB: poll with:  tail -5 $LOG"

@@ -8,7 +8,7 @@
 # 249 files and the rpm database knows their pristine checksums, so `rpm -V` tells
 # us exactly which ones we replaced and which are still stock. A detector written
 # from expectation reports variety as failure; this one reads the filesystem.
-. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+. ~/work/sp-plus/bee/spb-env 2>/dev/null
 MODE="${1:-image}"; IMG="${2:-localhost/sp-plus-kde:spike}"
 
 PROBE=$(mktemp); trap 'rm -f "$PROBE"' EXIT
@@ -113,7 +113,7 @@ case "$MODE" in
   live)  # A live gate that produces NO output must FAIL -- cycle14 passed all three
          # live gates on an empty guest response. Silence proves nothing.
          echo "guest: $CYCLE"
-         out=$(/home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")" 2>&1); rc=$?
+         out=$(~/work/sp-plus/bee/spb-shell "$(tr '\n' ';' < "$PROBE")" 2>&1); rc=$?
          printf '%s\n' "$out"
          if ! printf '%s' "$out" | grep -qE '_(PASS|FAIL)='; then
            echo "GATE FAILED: the guest returned no gate output at all."

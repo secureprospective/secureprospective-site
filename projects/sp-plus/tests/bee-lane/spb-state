@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# spb-state — regenerate the machine-truth half of ~/SP-PLUS-STATE.md.
+# spb-state — regenerate the machine-truth half of ~/archive/2026-08-sp-plus-state/SP-PLUS-STATE.md.
 # Run it after EVERY cycle. It overwrites the AUTOMATIC section only; the
 # narrative section you write by hand is preserved below the marker.
-. /home/chris/sp-plus-bee/spb-env 2>/dev/null
-S=/home/chris/SP-PLUS-STATE.md
+. ~/work/sp-plus/bee/spb-env 2>/dev/null
+S=~/archive/2026-08-sp-plus-state/SP-PLUS-STATE.md
 MARK="<!-- ===== NARRATIVE BELOW — spb-state NEVER TOUCHES THIS ===== -->"
 NARR=""
 [ -f "$S" ] && NARR=$(awk -v m="$MARK" 'f{print} $0==m{f=1}' "$S")

@@ -4,7 +4,7 @@
 # cannot be positioned, and keyboard focus in the setup wizard is trapped in its
 # search field, so this is the only reliable way to drive the graphical wizard.
 # Panel is 1280x800; the tablet's coordinate space is 0..32767 on both axes.
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 set -u
 X="${1:?usage: spb-click <x> <y> [label]}"; Y="${2:?usage: spb-click <x> <y> [label]}"
 W=${PANEL_W:-1280}; H=${PANEL_H:-800}
@@ -12,4 +12,4 @@ ax=$(( X * 32767 / W )); ay=$(( Y * 32767 / H ))
 mon "mouse_move $ax $ay" "$BMON"; sleep 0.4
 mon "mouse_button 1" "$BMON"; sleep 0.2
 mon "mouse_button 0" "$BMON"; sleep "${SETTLE:-2}"
-exec /home/chris/sp-plus-bee/spb-screen "${3:-click-$(date +%H%M%S)}"
+exec ~/work/sp-plus/bee/spb-screen "${3:-click-$(date +%H%M%S)}"

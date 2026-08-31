@@ -6,9 +6,9 @@
 #   spb-apps image [<ref>]   # installed + launchable checks, no VM
 #   spb-apps live            # the above PLUS crash/coredump evidence from a real boot
 #
-. /home/chris/sp-plus-bee/spb-env 2>/dev/null
+. ~/work/sp-plus/bee/spb-env 2>/dev/null
 MODE="${1:-image}"; IMG="${2:-localhost/sp-plus-kde:spike}"
-MAN=/home/chris/sp-plus-bee/spb-appmanifest
+MAN=~/work/sp-plus/bee/spb-appmanifest
 [ -f "$MAN" ] || { echo "no app manifest at $MAN"; exit 2; }
 
 PROBE=$(mktemp); trap 'rm -f "$PROBE"' EXIT
@@ -57,7 +57,7 @@ TAIL
 echo "########## SP+ APPLICATION GATE  mode=$MODE  $(date -u +%FT%TZ) ##########"
 case "$MODE" in
   image) echo "image: $IMG"; sudo -n podman run --rm -i "$IMG" bash -s < "$PROBE"; rc=$? ;;
-  live)  echo "guest: $CYCLE"; /home/chris/sp-plus-bee/spb-shell "$(tr '\n' ';' < "$PROBE")"; rc=$? ;;
+  live)  echo "guest: $CYCLE"; ~/work/sp-plus/bee/spb-shell "$(tr '\n' ';' < "$PROBE")"; rc=$? ;;
   *) echo "usage: spb-apps [image|live] [ref]"; exit 2 ;;
 esac
 echo "########## END APPLICATION GATE (exit $rc) ##########"

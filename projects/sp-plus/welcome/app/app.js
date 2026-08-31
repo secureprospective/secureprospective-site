@@ -67,61 +67,81 @@
     marker.textContent = markerText;
   }
   function renderSocialPlatforms(platforms, state) {
-    const list = document.getElementById('social-platforms');
-    if (!list) return;
-    list.replaceChildren();
+    const liveList = document.getElementById('social-platforms');
+    const pendingList = document.getElementById('social-pending-platforms');
+    const liveSection = document.getElementById('social-live-section');
+    const emptySection = document.getElementById('social-live-empty');
+    const pendingSection = document.getElementById('social-pending-section');
+    if (!liveList || !pendingList) return;
+    liveList.replaceChildren();
+    pendingList.replaceChildren();
+    if (liveSection) liveSection.hidden = true;
+    if (emptySection) emptySection.hidden = true;
+    if (pendingSection) pendingSection.hidden = true;
     const liveNote = document.querySelector('[data-social-live-note]');
     if (liveNote) liveNote.hidden = true;
-    if (state !== 'ready') {
-      document.getElementById('social-account-confirm')?.setAttribute('hidden', '');
-      document.getElementById('social-calendar-confirm')?.setAttribute('hidden', '');
-      activeSocialPlatform = null;
-      const empty = document.createElement('div');
-      empty.className = 'platform-empty';
-      empty.textContent = state === 'provisioning'
-        ? 'Connection choices will appear when the workspace is ready.'
-        : 'No connection choices are available until the service returns a valid setup record.';
-      list.append(empty);
-      return;
-    }
+    document.getElementById('social-account-confirm')?.setAttribute('hidden', '');
+    document.getElementById('social-calendar-confirm')?.setAttribute('hidden', '');
+    activeSocialPlatform = null;
+    if (state !== 'ready') return;
+
     const declared = Array.isArray(platforms) ? platforms : [];
     const live = declared.filter(platform => platform && platform.state === 'live');
     const pending = declared.filter(platform => platform && platform.state === 'pending_review');
-    if (liveNote) liveNote.hidden = !live.some(platform => platform.id === 'bluesky');
-    const order = live.some(platform => platform.id === 'linkedin')
-      ? { linkedin: 0, bluesky: 1 }
-      : { bluesky: 0, linkedin: 1 };
-    const byPriority = (a, b) => (order[a.id] ?? 50) - (order[b.id] ?? 50);
-    live.sort(byPriority).forEach(platform => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'platform-connect';
-      button.dataset.platform = platform.id;
-      button.dataset.label = platform.label;
-      button.textContent = `CONNECT ${platform.label}`;
-      button.addEventListener('click', () => startSocialConnection(button));
-      list.append(button);
-    });
+    const linkedInLive = live.some(platform => platform.id === 'linkedin' || platform.id === 'linkedin-page');
+    const preferred = linkedInLive
+      ? ['linkedin', 'linkedin-page', 'bluesky']
+      : ['bluesky', 'linkedin', 'linkedin-page'];
+    const rank = new Map(preferred.map((id, index) => [id, index]));
+    const byPriority = (a, b) => (rank.get(a.id) ?? 50) - (rank.get(b.id) ?? 50);
+
+    if (live.length) {
+      live.sort(byPriority);
+      if (liveSection) liveSection.hidden = false;
+      const title = document.getElementById('social-live-title');
+      const lede = document.getElementById('social-platform-lede');
+      const first = live[0];
+      if (live.length === 1 && first.id === 'bluesky') {
+        if (title) title.textContent = 'START WITH BLUESKY.';
+        if (lede) lede.textContent = 'Bluesky needs no approval from anyone. Enter your handle and an app password and you are posting. It is ready today and it stays ready.';
+      } else {
+        if (title) title.textContent = `START WITH ${first.label.toUpperCase()}.`;
+        if (lede) lede.textContent = 'Choose a live account below. Each live platform joins this lead group as SecureProspective approves it.';
+      }
+      if (liveNote) liveNote.hidden = !live.some(platform => platform.id === 'bluesky');
+      live.forEach(platform => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'platform-connect';
+        button.dataset.platform = platform.id;
+        button.dataset.label = platform.label;
+        button.textContent = `CONNECT ${platform.label}`;
+        button.addEventListener('click', () => startSocialConnection(button));
+        liveList.append(button);
+      });
+    } else if (emptySection) {
+      emptySection.hidden = false;
+    }
+
     pending.sort(byPriority).forEach(platform => {
       const item = document.createElement('div');
       item.className = 'platform-pending';
       item.dataset.platform = platform.id;
       item.dataset.platformState = 'pending_review';
+      item.setAttribute('role', 'status');
       item.setAttribute('aria-disabled', 'true');
-      item.setAttribute('aria-label', `${platform.label}, coming soon`);
+      item.setAttribute('aria-label', `${platform.label}, approval in progress`);
       const label = document.createElement('span');
       label.textContent = platform.label;
       const stateLabel = document.createElement('span');
-      stateLabel.textContent = 'COMING SOON';
-      item.append(label, stateLabel);
-      list.append(item);
+      stateLabel.className = 'platform-pending-state';
+      stateLabel.textContent = 'APPROVAL IN PROGRESS';
+      const ownerLabel = document.createElement('small');
+      ownerLabel.textContent = 'OURS TO DO';
+      item.append(label, stateLabel, ownerLabel);
+      pendingList.append(item);
     });
-    if (!list.children.length) {
-      const empty = document.createElement('div');
-      empty.className = 'platform-empty';
-      empty.textContent = 'No platform is live for this workspace yet. Choose Retry later.';
-      list.append(empty);
-    }
+    if (pending.length && pendingSection) pendingSection.hidden = false;
   }
   function renderServicePending(service) {
     servicePending[service] = true;
@@ -168,12 +188,17 @@
       if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
       if (detail) detail.textContent = 'Connect to the internet, then choose Retry. No sign-in was requested.';
     } else {
-      if (title) title.textContent = 'SERVICE UNAVAILABLE.';
-      if (detail) detail.textContent = payload && payload.failure === 'malformed'
-        ? 'The setup record was not valid. Try again later. No credentials were requested.'
-        : 'This service is unavailable right now. Try again. No credentials were requested.';
+      if (payload && payload.failure === 'network') {
+        if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
+        if (detail) detail.textContent = 'Connect to the internet, then choose Try again. No sign-in was requested.';
+      } else {
+        if (title) title.textContent = 'WE WILL BE BACK.';
+        if (detail) detail.textContent = service === 'social'
+          ? 'SecureProspective Social is not answering right now. This is on our side and it is temporary. Your connected accounts and anything you have scheduled are unaffected.'
+          : 'SecureProspective File Portal is not answering right now. This is on our side and it is temporary. Your files and anything you have queued are unaffected.';
+      }
     }
-    if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
+    if (retry) { retry.disabled = false; retry.textContent = stateName === 'unavailable' ? 'TRY AGAIN' : 'RETRY'; }
     serviceReady[service] = stateName === 'ready';
     setReadyOnlyControls(service, serviceReady[service]);
     if (service === 'files') renderPortalSyncState(stateName);

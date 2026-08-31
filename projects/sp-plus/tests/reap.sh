@@ -10,7 +10,7 @@
 # deletes evidence (logs, screendumps, reports), never touches the repo.
 set -uo pipefail
 APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
-D="$HOME/sp-plus-iso"
+D="~/work/sp-plus/iso"
 say() { [ $APPLY -eq 1 ] && echo "  REAPED  $*" || echo "  would reap  $*"; }
 FREED=0
 

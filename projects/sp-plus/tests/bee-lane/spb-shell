@@ -2,7 +2,7 @@
 # spb-shell '<command>' — run one command inside the booted guest over the serial
 # console and print what came back. Logs in as root first if needed.
 # THIS IS WHY NO HOST sudo IS NEEDED: root lives inside the VM.
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 P="$D/bserialpty"; L="$D/bserial.log"
 [ -e "$P" ] || die "no serial pty — run spb-boot first"
 printf '\n' > "$P"; sleep 2

@@ -3,7 +3,7 @@
 # DN-15 lives on that panel and spb-boot answers the LUKS prompt on the serial
 # within seconds, so a single manual screenshot always races it. Capture a strip
 # instead and pick the LUKS-era frame afterwards.
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 mkdir -p "$D/strip"
 rm -f "$D"/strip/*.ppm "$D"/strip/*.png
 ( ./spb-boot "$1" > "$D/bootshot-boot.log" 2>&1 ) &

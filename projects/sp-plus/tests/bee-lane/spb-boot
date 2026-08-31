@@ -3,7 +3,7 @@
 # LUKS prompt on the serial, log in as root, and leave the guest sitting at a shell.
 # Optional arg: extra kernel args to append in the GRUB editor (e.g. "enforcing=0").
 # THE SERIAL CONSOLE IS THE INSTRUMENT. It is why this lane is cheap (OP-22).
-. /home/chris/sp-plus-bee/spb-env
+. ~/work/sp-plus/bee/spb-env
 set -e
 EXTRA="$1"
 [ -f "$D/disk.qcow2" ] || die "no installed disk at $D/disk.qcow2"
@@ -87,7 +87,7 @@ echo "SPB: IN_EDITOR=$(grep -qa 'Minimum Emacs-like screen editing' "$D/bserial.
 # --- GRUB editor. `end` alone selects "UEFI Firmware Settings" — `home` is required.
 # Enter inside the editor SPLITS the linux line, which is why vmtype-noret.sh exists.
 key down "$BMON"; key down "$BMON"; key down "$BMON"; key ctrl-e "$BMON"
-/home/chris/sp-plus-iso/vmtype-noret.sh "$BMON" " console=ttyS0,115200 $EXTRA" >/dev/null
+~/work/sp-plus/iso/vmtype-noret.sh "$BMON" " console=ttyS0,115200 $EXTRA" >/dev/null
 sleep 1
 key ctrl-x "$BMON"
 
@@ -101,7 +101,7 @@ echo "SPB: LUKS_PROMPT_ON_SERIAL=$seen after $((i*3))s"
 [ "$seen" = yes ] || echo "SPB: prompt never appeared — capture the log anyway, do NOT retry blind"
 # DN-15: the prompt is on the serial. Is it on the SCREEN? Capture the panel
 # BEFORE answering, because that is the moment Christopher faces on the Dell.
-/home/chris/sp-plus-bee/spb-screen luks || true
+~/work/sp-plus/bee/spb-screen luks || true
 printf '%s\n' "$LUKS_PASS" > "$P"
 echo "SPB: passphrase sent, waiting 180s for the system to settle"
 sleep 60
@@ -125,6 +125,6 @@ if [ "$fb" = yes ]; then
     || echo "SPB: FIRSTBOOT_PASSWORD_SET=no"
 fi
 sleep 120
-/home/chris/sp-plus-bee/spb-screen settled || true
+~/work/sp-plus/bee/spb-screen settled || true
 echo "SPB: serial_bytes=$(stat -c%s "$D/bserial.log")"
 echo "SPB: guest left running. Type into $P, read $D/bserial.log"
