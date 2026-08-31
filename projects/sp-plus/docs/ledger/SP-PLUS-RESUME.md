@@ -1,229 +1,154 @@
-# SP+ RESUME — 2026-08-31 07:08 CDT (theme round trip, compact #2)
+# SP+ RESUME — 2026-08-31 (theme switching DONE; ISO in flight)
 
 ## 1. WHAT WE ARE DOING
 
-Make the SP+ Welcome theme picker actually switch global themes, so Windows looks like
-Windows and Breeze looks like Breeze. **Goal (Christopher, /goal, still active):** switching
-to Windows, back to Breeze, then back to Windows again **without error, using only the
-Welcome application on the Dell.** Keep working until that happens, then log what worked and
-what did not.
+The stated goal -- switch to Windows, back to Breeze, back to Windows again without error
+using ONLY the Welcome application on the Dell -- IS MET, twice, on shipped images. The
+remaining work is a single deliverable: an ISO of the current source, verified and placed in
+`~/Downloads` for Christopher to test in a VM.
 
-Repo: `~/work/secureprospective-advisor-os` (a git worktree — do not cd to the original).
-Work lives in `projects/sp-plus`. Branch as checked out; last commit `0270a00`.
-
-**The Dell is ON and reachable** — this is new since the last resume, and the address changed:
-`ssh -i ~/.ssh/id_ed25519 test@192.168.1.134` (NOT .124, which is stale in older docs).
-Key auth works, no password. The Dell has passwordless sudo; the Beelink does not.
-It is running `sp-plus-kde:test44` with a live Plasma 6.7 Wayland session.
+- Repo: `/home/chris/work/secureprospective-advisor-os` (worktree; do NOT cd to the origin).
+- Dell: `test@192.168.1.124` (DHCP; it has been .134 and .124 this session -- check both).
+  Key `~/.ssh/id_ed25519`. Disk is LUKS: every reboot needs Christopher at the keyboard.
+- Registry: `192.168.1.190:5000/sp-plus-kde:<tag>`.
 
 ## 2. AGENTS + HARNESSES
 
-- **Bee** = `pi` on the Beelink, `--provider openai-codex --model gpt-5.6-luna --thinking max`.
-- Briefs: `~/.pi/agent/spplus-brief-<id>.md`. Reports: `~/fleet/runs/REPORT-<id>.md` + `.DONE`.
-- **Two runners, and the difference matters** — I lost a cycle to this:
-  - `~/fleet/bin/run-bee-spplus-manifest.sh` — prompt says "audit task" + **read-only**.
-    Bee will refuse to edit source. Use only for audits.
-  - `~/fleet/bin/run-bee-spplus-impl.sh` — **NEW this session**, write-enabled. Use for
-    implementation. Dispatch pattern:
-    `systemd-run --user --unit=<name> --collect --property=TimeoutStartSec=infinity
-     /bin/bash -lc 'TMO=5400 ~/fleet/bin/run-bee-spplus-impl.sh <brief-id>'`
+- `~/fleet/bin/run-bee-spplus-impl.sh <id>` -- WRITE-enabled Bee lane. Brief must be at
+  `~/.pi/agent/spplus-brief-<id>.md`. Dispatch detached: `systemd-run --user --collect
+  --unit=bee-<id> ~/fleet/bin/run-bee-spplus-impl.sh <id>`. Sentinel:
+  `~/.pi/agent/spplus-IMPL-ALL.sentinel`. NEVER poll artifacts; wait on the sentinel.
+- `~/fleet/bin/run-bee-spplus-manifest.sh` is the READ-ONLY audit lane. Using it for
+  implementation work is a wasted cycle -- that mistake was made once already.
+- `~/fleet/bin/spplus-build-push.sh <tag>` -- rootless build + push + registry verify.
+- `~/fleet/bin/spplus-dell-switch.sh <tag>` -- detached bootc switch on the Dell. Honours
+  `DELL_HOST`; currently hardcoded to .124.
+- `~/fleet/bin/sp-plus-iso-build.sh` -- the ONLY sanctioned ISO path (DN-06), ROOTFUL.
 
-## 3. IN FLIGHT RIGHT NOW — MOST PERISHABLE
+## 3. IN FLIGHT RIGHT NOW
 
-**`spplus-build45.service`** — building and pushing the image that carries every fix. Started
-08:20 CDT. It is a detached systemd unit and **survives compaction**. Do not restart it.
-- Alive?   `systemctl --user is-active spplus-build45.service`
-- Result:  `systemctl --user show spplus-build45.service -p Result --value`
-- Log:     `~/logs/sp-plus/build-test45-*.log` (the script tees to a timestamped file)
-- Script:  `~/fleet/bin/spplus-build-push.sh test45` — builds rootless, pushes to
-  `192.168.1.190:5000/sp-plus-kde:test45`, then CONFIRMS the tag is really in the registry
-  rather than trusting push's exit code.
-- Journal: `journalctl --user -u spplus-build45 --no-pager | tail -40`
-- On success: `~/fleet/bin/spplus-dell-switch.sh test45`, reboot the Dell, re-run the round
-  trip against the shipped image (§9).
+**`spplus-iso.service`** -- the ISO build, started 11:03 CDT, TimeoutStartSec=7200.
 
-**On the Dell (192.168.1.134), deliberately running:**
-- `probe-dolphin.service` — a Dolphin left open by the receipt capture. Harmless.
-- Current theme is `org.kde.breeze.desktop`. plasmashell is up.
-- Staged copies that the tests currently depend on: `~/spplus-apply-theme`, `~/stage/`
-  (image root), `~/welcome-new/` (the new Welcome app), `~/cdp.py`,
-  `~/welcome_roundtrip.py`, `~/capture_receipts.sh`, `~/receipts/*.png`,
-  `~/roundtrip-results.json`. These become redundant once test45 is installed.
+- Alive? `systemctl is-active spplus-iso`
+- Progress: `journalctl -u spplus-iso --no-pager -n 30`
+- Output lands in
+  `projects/sp-plus/artifacts/spikeB-rootful/out/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/`
+  NOTE: that directory ALREADY holds an ISO dated Aug 30 09:55 from a previous run. Check
+  mtime and size before believing an ISO is this build's output.
+- Watcher: background shell `bz4kq1tg4`, output
+  `/tmp/claude-1000/-home-chris/33018ca6-b1dc-4bd0-8aa4-38a969ed6dae/tasks/bz4kq1tg4.output`.
+  If compaction kills the watcher the SERVICE still runs -- re-poll it directly.
+- When it finishes: verify, then copy (not move) into `~/Downloads` named for this build,
+  and tell Christopher.
+
+**Root cannot be obtained from this tool shell.** sudo issues per-tty tickets and the tool
+shell has no tty, so `sudo -v` in Christopher's terminal does NOT carry over. The ISO build
+was started by Christopher pasting a one-liner. If it must be restarted, give him:
+`sudo systemd-run --unit=spplus-iso --collect --property=TimeoutStartSec=7200 --setenv=HOME=/home/chris /home/chris/fleet/bin/sp-plus-iso-build.sh`
+The `--setenv=HOME` is REQUIRED: systemd-run starts with an empty environment and the script
+dies on `HOME: unbound variable` without it.
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
 
-- `~/fleet/runs/REPORT-phase2-windows.md` (24,773 B) — Bee's phase-2 report, honest, every
-  claim marked "coded, unproven — needs the Dell".
-- `~/fleet/runs/REPORT-phase2b-fixes.md` (4,496 B) — the read-only audit run (my dispatch
-  error), but it did verify `gdbus -- -1` returns 0.
-- **Screenshots, real evidence, in `~/logs/sp-plus/theme-shots/`**:
-  `windows-FIXED-taskbar.png` (centred taskbar, Windows 11 logo, all five pins rendering),
-  `windows-FIXED-window.png` (legible white-on-dark Dolphin, Windows title bar),
-  `windows-FIXED-full.png`, plus earlier `windows-dark.png` / `breeze-dark.png`.
-- **On the Dell**: `~/spplus-theme-capture.sh`, `~/spplus-theme-diff.sh`, `~/cdp.py`,
-  `~/spplus-apply-theme` (staged helper), `~/stage/` (40 MB staged image root),
-  `~/shots/*.png`, `~/.local/state/sp-plus/theme-events.jsonl` (helper correlation log).
-- **On the Beelink**: `~/fleet/bin/spplus-theme-capture.sh`, `spplus-theme-diff.sh`,
-  `spplus-build-push.sh`, `spplus-dell-switch.sh`, `run-bee-spplus-impl.sh`;
-  scratchpad `cdp.py`, `welcome_roundtrip.py`.
-- Registry `spplus-reg` (podman, :5000) holds `sp-plus-kde:test44`. **Keep it up.**
+- Registry `sp-plus-kde:test45` = `sha256:240b7bd64fb45ed8b06e08ede2e654d6ff838e88add5deea6a2ebd35c261c70c`
+- Registry `sp-plus-kde:test46` = `sha256:2478e5fc5e952b6570fe2fef4b29c4dc9a0e515418201c9a13750ff188b70663`
+  The Dell is BOOTED on test46. Zero failed units.
+- The eight staged preview screenshots, in the repo at
+  `projects/sp-plus/welcome/app/assets/theme-previews/*.png`, committed in `e86310f`.
+- Old ISOs in `~/Downloads`: `SP-PLUS-cycle43.iso`, `SP-PLUS-cycle39.iso` (Aug 29, PRE-dating
+  all theme work). Do not hand either to Christopher as current.
 
-## 5. NO OPEN BUG — the goal has been met on the staged build
+**Digest gotcha:** `spplus-build-push.sh` prints podman's LOCAL manifest digest, which
+differs from what the registry serves after push. Always verify a deployment against the
+registry's `Docker-Content-Digest`, or a correct deployment looks like a mismatch.
 
-The acceptance criterion PASSED at 08:07 CDT, driven entirely through the Welcome app by
-real mouse events (DevTools `Input.dispatchMouseEvent`), so the app's JavaScript, its
-window-title bridge and the apply helper all ran as they would for a person clicking:
+## 5. THE CURRENT BUG
 
-```
-t0  windows11.dark -> breezedark      OK
-t1  breezedark     -> windows11.dark  OK
-t2  windows11.dark -> breezedark      OK
-t3  breezedark     -> windows11.dark  OK      VERDICT: PASS
-```
+None open on the theme work. Two known environment defects, deliberately NOT folded in:
 
-Verified independently after each transition. KWin reported having LOADED
-`aurorae.v2 / windows-modern-dark` for Windows and `org.kde.breeze` for Breeze. t1 and t3
-identical; containments stayed at 1 panel / 0 orphaned; the shell survived all four.
-Evidence: `~/roundtrip-results.json` on the Dell.
+- Kickoff favourites are half-seeded from the user's `kactivitymanagerd-statsrc`, so Konsole
+  and Discover appear in the menu even though the image sets `NoDisplay=true`. Confirmed to
+  survive a fresh deployment: it is USER state, so no Containerfile change can fix it.
+- `/etc/xdg/kwinrc` hard-codes the Windows Aurorae decoration as system default. Worth
+  revisiting now that every theme owns its layout.
 
-**The caveat, and it is the whole remaining job:** that run used the STAGED helper and theme
-(`SPPLUS_APPLY_THEME=/home/test/spplus-apply-theme`, `SPPLUS_IMAGE_ROOT=/home/test/stage`,
-`~/welcome-new/welcome.py`), NOT the shipped image. The Dell still runs `test44`. The honest
-final proof is the same round trip on test45 after `bootc switch` + reboot.
-
-**Open question for Christopher, not a defect:** Breeze keeps the Windows centred taskbar.
-Only the Windows themes carry `data-layout-reset="true"`, so switching to Breeze changes
-colours, icons, style and decoration but leaves the panel arrangement alone.
+Open question for Christopher, raised but not answered: **Orchis Light leaves the desktop
+with a top panel only -- no taskbar -- plus a large desktop clock.** That is genuinely its
+author's design, and his rule is that creator intent outranks SP+ normalisation, but it is a
+jarring result for an advisor choosing from a gallery.
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-- **"Black text on black background is a theme defect."** REFUTED. It was my artifact: I had
-  killed plasmashell and launched apps from an SSH shell with no `XDG_CURRENT_DESKTOP`, so Qt
-  never loaded the KDE platform theme. Launched properly via `systemd-run --user`, the Windows
-  dark theme is fully legible (see `windows-FIXED-window.png`).
-- **"`--resetLayout` is destructive / truncates configs."** REFUTED. A zero-byte
-  `~/.config/<file>` is NORMAL: `plasma-apply-lookandfeel` writes theme values into
-  `~/.config/kdedefaults/<file>` (the defaults layer) and reverts the user file. Every themed
-  file had a populated kdedefaults counterpart. The old note at `config/kcminputrc:8` was a
-  misdiagnosis.
-- **"`--resetLayout` causes the empty panel."** REFUTED — it was the panel lock (§5).
-  `--resetLayout` does stop plasmashell (unit `Result=success`, `NRestarts=0`, stays down),
-  which is a real defect, and Bee has fixed it with a restart + D-Bus readiness poll.
-- **"A stale decoration key leaks across themes."** REFUTED — harness artifact. `kreadconfig6`
-  in an SSH shell reads a DIFFERENT cascade than the session unless `XDG_CONFIG_DIRS` includes
-  `~/.config/kdedefaults`. The capture script now inherits it from plasmashell's `/proc` environ.
-- **"`org.kde.plasma.panelspacer` is missing."** REFUTED. It ships as a compiled plugin at
-  `/usr/lib64/qt6/plugins/plasma/applets/`, and `knownWidgetTypes` lists 69 types including it.
-- **"Kvantum needs `theme=Windows-modernDark` for the dark LnF."** REFUTED — `widgetStyle=
-  kvantum-dark` selects the Dark variant automatically. Bee's `theme=Windows-modern` is right.
-- **Tunnelling DevTools off the Dell.** Does not work — QtWebEngine validates the Host header
-  and resets. Run `cdp.py` ON the Dell instead.
-- **`pkill -f <pattern>` where the pattern appears in my own SSH/bash command line kills my own
-  shell.** Cost two aborted commands. Use a pattern that cannot match itself.
-- **"`--resetLayout` breaks the panel."** REFUTED twice over. The empty panel was
-  `panel.locked = true` before `addWidget`; `--resetLayout` writes the layout correctly.
-- **"Windows Light has a layout bug."** REFUTED. Plasma's package loader silently IGNORES
-  symlinked files inside a look-and-feel package. The light layout was a symlink to the dark
-  one, so Plasma fell back to the stock default panel reporting no error. Both are real files
-  now, and Light applies cleanly.
-- **"The Start button shows the Windows logo."** WRONG when I first claimed it: that came
-  from my own test layout. The shipped layouts asked for `start-here-kde-symbolic`, which
-  `windows-modern` does not ship, so both Windows themes showed a KDE logo. Now `start-here`.
-- **Upstream themes must be applied with `--no-layout`.** Only the two Windows packages ship
-  an inspectable layout; asking for one on Breeze/Nordic/Catppuccin/Orchis fails validation.
-  The Welcome app already gets this right via `data-layout-reset`.
-- **Spectacle's `-o` works fine.** A run that wrote every screenshot to `btop.png` was my own
-  bash bug: a helper function used `for name in ...`, and bash function variables are global
-  by default, so it clobbered the caller's `$name`. Use `local`.
-- **DevTools visibility must be judged by `getBoundingClientRect()`, not `offsetParent`.** The
-  preview is a `position:fixed` modal and `offsetParent` is always null for fixed elements.
-- **The theme cards have a zero-sized box until their wizard step is shown.** Navigate to
-  "Choose the look" first or clicks silently hit nothing.
-- **The preview modal stays open after an apply** and swallows the next click; close it
-  between transitions. Close is legitimately disabled while an apply is in flight.
+1. "plasmarc is truncated / the theme apply damaged config." NO. `plasma-apply-lookandfeel`
+   writes `~/.config/kdedefaults/<file>` and reverts the user file. Normal cascade.
+2. "A stale decoration key leaks between themes." NO -- harness artifact. `kreadconfig6` in an
+   SSH shell reads a different cascade; inherit env from plasmashell's `/proc/<pid>/environ`.
+3. "Black text on black background is a theme defect." NO -- it was contamination from killing
+   plasmashell and relaunching apps without `XDG_CURRENT_DESKTOP`. The shipped theme is fine.
+4. "`--resetLayout` breaks the panel." NO -- the panel was empty because `panel.locked = true`
+   ran BEFORE `addWidget`. `--resetLayout` does stop plasmashell, which is a separate defect,
+   fixed by restarting the unit and polling for the D-Bus name.
+5. "The Welcome app failed to launch / test45 is broken." NO, twice: (a) plasmashell had hit
+   systemd's start-rate limiter because a delegated agent was restarting it concurrently;
+   (b) the Welcome app is SINGLE-INSTANCE and a second copy exits 0 silently while the
+   autostart copy holds the socket.
+6. "The build did not push / the Dell staged the wrong image." NO -- I queried the wrong repo
+   path (`sp-plus` instead of `sp-plus-kde`), and separately compared a local digest to a
+   registry digest. Both were my error.
+7. "The Dell came back after the reboot." NO -- false positive: the watcher polled SSH three
+   seconds before a scheduled reboot took effect. A reboot watcher MUST wait for the host to
+   go DOWN before waiting for it to come back.
 
-## 7. PROVEN ON HARDWARE (live Plasma 6.7 session) — do not re-derive
+## 7. DECISIONS (Christopher's rulings this session)
 
-- `org.kde.KGlobalSettings` has **no bus owner**. It is signal-only, so the original
-  `notifyChange` method calls could never have worked. Correct form is `gdbus emit`.
-- `org.kde.KWin.reconfigure` is a real method; `supportInformation` returns a string and is
-  the only way to prove which decoration KWin **actually loaded**.
-- `org.kde.PlasmaShell` exposes `evaluateScript`, `dumpCurrentLayoutJS`,
-  `loadLookAndFeelDefaultLayout`, `refreshCurrentShell`.
-- `evaluateScript` applies a layout cleanly, keeps the shell alive, and **removes orphaned
-  containments** (the Dell had 2 orphaned panels before any of this work).
-- The theme round trip Breeze→Windows→Breeze→Windows is idempotent at the mechanism level:
-  captures t1≡t3 and t2≡t4 IDENTICAL, and the differ was control-tested to prove it can fail.
-- Icon fix: `theme/icons/windows-modern/index.theme` now
-  `Inherits=Papirus,breeze,breeze-dark,hicolor`. Verified on screen — Brave and Thunderbird
-  render; without Papirus they were blank because windows-modern ships neither.
-- SP+ Kickoff favourites are only half-seeded: one instance has
-  `favoritesPortedToKAstats=true` and reads stock Plasma defaults (kontact, konsole, discover)
-  from `kactivitymanagerd-statsrc`. Separate defect; must not block the theme round trip.
-- `/etc/xdg/kwinrc` in the image hard-codes the **Windows** Aurorae decoration as the
-  system-wide default. Worth revisiting; not blocking.
+- **All eight themes must reset to their own paneling**, not just the two Windows packages,
+  "as advisors assume trust in 1st class applications". Windows and Breeze were the pilot
+  "because its the tallest hill to climb".
+- **Christopher composes the preview screenshots himself.** An automated Fin/Dolphin placement
+  was rejected on sight: "stop the screen shots are bad. Let me stage them please." The split
+  is: I apply themes and prepare the machine, he arranges windows, I capture and verify.
+- **Deliver complete work, not caveated work.** "I would like to test your best work, not
+  '...but not that'." Time pressure was explicitly removed: "take your time".
+- Fin must appear in preview shots at its welcoming banner so advisors are "comfortable with
+  Fin, not be afraid of it because its the Terminal".
 
-## 8. DECISIONS — do not relitigate
+## 8. LEDGER STATE — all committed
 
-- DN-43 theme wins on everything it declares, SP+ policy fills gaps only. The Papirus
-  inheritance link obeys this: windows-modern keeps the icon role, Papirus only fills gaps.
-- DN-44 75% preview before applying; do NOT promise Kickoff favourites restoration.
-- DN-45 Windows must be familiar, not counterfeit.
-- Acceptance = the repeated round trip, not one successful apply.
-- Code standard: clean, no shortcuts, no swallowed errors, no fixed sleeps for readiness.
-- "Coded" is not "works." Report what was OBSERVED.
-- **Legibility is pass/fail**, not cosmetic (Christopher, this session): "simply changing
-  themes without error is the goal, but if its not usable thats not a passing grade."
+- `081c774` every global theme owns its panel layout (Bee)
+- `87277a7` what worked and what did not, for future sessions
+- `becc3dc` test46 round trip with per-theme paneling verified
+- `e86310f` the eight staged previews + capture contract records manual composition
+- `418091d` capture harness defaults to the installed helper
+
+Nothing is written-but-uncommitted for the SP+ theme work. Many unrelated files show as
+modified in `git status` and predate this session -- leave them.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. Check `spplus-build45.service` (§3). On success note the digest from the `BUILD OK` block.
-   If it FAILED, read `~/logs/sp-plus/build-test45-*.log` — do not rebuild blindly.
-2. Switch the Dell: `~/fleet/bin/spplus-dell-switch.sh test45`. It refuses early if the Dell
-   cannot see the tag, and prints the boot-entry count before staging. Then poll
-   `ssh ... test@192.168.1.134 'systemctl is-active spplus-switch'`.
-3. Confirm TWO boot entries exist before any reboot (`ls -1 /boot/loader/entries/ | wc -l`),
-   then reboot the Dell. That second entry is the rollback safety net.
-4. After boot: `bootc status` shows test45; `systemctl --failed`; confirm
-   `/usr/libexec/spplus-apply-theme` is the NEW helper and `/usr/share/icons/windows-modern/
-   index.theme` carries the Papirus inherit line.
-5. Re-run the acceptance round trip against the SHIPPED image — no `SPPLUS_APPLY_THEME`, no
-   `SPPLUS_IMAGE_ROOT`, and the installed `/usr/bin/spplus-welcome`:
-   launch it with `QTWEBENGINE_REMOTE_DEBUGGING=9222`, then
-   `python3 ~/welcome_roundtrip.py`. Expect VERDICT: PASS.
-6. Capture a screenshot after the final transition and LOOK at it. Legibility is pass/fail.
-7. Log what worked and what did not, per the standing goal.
-8. Raise the Breeze-keeps-the-Windows-taskbar question with Christopher (§5).
+1. **Check `spplus-iso.service`.** If active, wait. If failed, read
+   `journalctl -u spplus-iso` -- do not blindly restart, and remember only Christopher can
+   start it (section 3).
+2. **Verify the ISO is THIS build**, by mtime and size, against the stale Aug 30 artifact in
+   the same directory.
+3. **Copy it into `~/Downloads`** with a name that distinguishes it from `SP-PLUS-cycle43.iso`
+   and `SP-PLUS-cycle39.iso`, and record the sha256.
+4. **Tell Christopher it is there**, with its size and what is in it.
+5. Optionally raise the Orchis-no-taskbar question and the Kickoff-favourites defect.
 
-## 10. LEDGER STATE
+## 10. RELAY / ENVIRONMENT NOTES
 
-**Nothing from this session is committed.** Uncommitted and wanted:
-- `projects/sp-plus/config/spplus-apply-theme` (Bee phase 2 + 2b + 2c)
-- `projects/sp-plus/config/spplus-first-login`, `welcome/*`, `theme/*`, `tests/*`
-- `projects/sp-plus/theme/icons/windows-modern/index.theme` — **my** Papirus inheritance fix
-- `projects/sp-plus/docs/ledger/DELL-PREFLIGHT-2026-08-30.md` — written by me, uncommitted
-- `projects/sp-plus/welcome/PREVIEW-CAPTURE-CONTRACT.md`, `theme/wallpaper/` (untracked)
+- `pkill -f <pattern>` matches the very SSH command line running it and kills the session.
+  Kill by PID. This has bitten three times.
+- Bash function variables are GLOBAL; a helper looping over `name` clobbered a caller's
+  `$name`. Use `local`.
+- Drive the Welcome app over CDP with `QTWEBENGINE_REMOTE_DEBUGGING=9222`; it must run ON the
+  Dell because QtWebEngine validates the Host header.
+- Never run two agents against the Dell's Plasma session at once.
 
-The `tests/bee-lane/*` modifications are **Christopher's own from 10:39–10:41 on 08-30** —
-confirmed by mtime. Leave them.
+## 11. HONEST STATUS
 
-## 11. ENVIRONMENT NOTES
-
-- Dell session env must be inherited from plasmashell's `/proc/<pid>/environ`, not hand-built.
-  Without `XDG_CURRENT_DESKTOP`/`XDG_CONFIG_DIRS` both apps and probes read the wrong thing.
-- Restart the shell with `systemctl --user start plasma-plasmashell.service`, never `pkill` +
-  `setsid` — the latter produces a shell with no desktop environment.
-- `spectacle -b -n -f -o <path>` takes a headless screenshot; needs `WAYLAND_DISPLAY`.
-- The Beelink has `websockets` 15.0.1; the Dell has neither websockets nor websocket-client,
-  hence the dependency-free `cdp.py`.
-- CT105 (192.168.1.105) is head-brain; its activity here is normal. Do not "fix" it.
-
-## 12. HONEST STATUS
-
-**The goal is met on the staged build and NOT yet on the shipped image.** The round trip
-passed through the Welcome app with independent verification (§5), the source gate passes for
-the first time, and eight preview receipts exist in the composition Christopher specified
-(file manager over stock wallpaper, menu open, no Welcome window). What remains is
-mechanical but real: test45 must build, install on the Dell, and repeat the same run without
-any staging environment variables. Until that happens the claim is "proved on staged code",
-not "proved on the product".
+The goal is MET and independently verified on two shipped images -- not on staged code. What
+is NOT yet proven is the ISO: it is still building, no ISO of this source has been produced,
+booted, or installed, and the installer path has not been exercised since these changes. The
+round trip was proven on a machine upgraded in place via `bootc switch`, which is not the
+same as a fresh install from this ISO. Say so plainly rather than implying the ISO is tested.
