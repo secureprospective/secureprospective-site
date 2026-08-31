@@ -1069,8 +1069,7 @@ class WelcomeBridge(QObject):
         elif parsed.path == 'open-service':
             service = (params.get('service') or [''])[0].strip().lower()
             action = (params.get('action') or ['browser'])[0].strip().lower()
-            platform = (params.get('platform') or [''])[0].strip().lower()
-            self.open_service(service, action, platform)
+            self.open_service(service, action)
         elif parsed.path == 'apply-theme':
             theme = (params.get('theme') or [''])[0].strip()
             layout_value = (params.get('layout') or [''])[0].strip()
@@ -1166,15 +1165,13 @@ class WelcomeBridge(QObject):
         self._service_cache[worker.service] = payload
         self._send_service_result(payload)
 
-    def open_service(self, service, action, platform=''):
-        actions = {'browser', 'connect-platform', 'calendar'}
-        if service not in SERVICE_URLS or action not in actions:
+    def open_service(self, service, action):
+        if service not in SERVICE_URLS or action != 'browser':
             self._send_service_open_result({
                 'ok': False,
                 'service': service,
                 'action': action,
-                'platform': platform,
-                'message': 'That service action is not available. Welcome stayed open.',
+                'message': 'That service link is not available. Welcome stayed open.',
             })
             return
         try:
@@ -1190,7 +1187,6 @@ class WelcomeBridge(QObject):
                 'ok': True,
                 'service': service,
                 'action': action,
-                'platform': platform,
                 'message': message,
             }
         except (OSError, subprocess.SubprocessError):
@@ -1198,7 +1194,6 @@ class WelcomeBridge(QObject):
                 'ok': False,
                 'service': service,
                 'action': action,
-                'platform': platform,
                 'message': 'The browser could not be opened. Welcome stayed open.',
             }
         self._send_service_open_result(payload)
@@ -1444,7 +1439,7 @@ class WelcomeWindow(QMainWindow):
         if not self.force:
             self.view.page().runJavaScript("localStorage.getItem('spplus-welcome-no-show')", self.close_if_opted_out)
         if self.screen != 1:
-            self.view.page().runJavaScript(f'window.spWelcome.go({max(0, min(8, self.screen - 1))})')
+            self.view.page().runJavaScript(f'window.spWelcome.go({max(0, min(7, self.screen - 1))})')
         if self.help_depth:
             QTimer.singleShot(900, lambda: self.view.page().runJavaScript(f'window.spWelcome.helpDepth({self.help_depth})'))
 
@@ -1457,7 +1452,7 @@ class WelcomeWindow(QMainWindow):
         self._capture_screen()
 
     def _capture_screen(self):
-        if self._capture_index >= 9:
+        if self._capture_index >= 8:
             QApplication.quit()
             return
         self.view.page().runJavaScript(f'window.spWelcome.go({self._capture_index})')
@@ -1657,7 +1652,7 @@ class SelfTest(QObject):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--screen', type=int, default=1, help='screen number 1-9')
+    parser.add_argument('--screen', type=int, default=1, help='screen number 1-8')
     parser.add_argument('--screenshots', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--reset-no-show', action='store_true')

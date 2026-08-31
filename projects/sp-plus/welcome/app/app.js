@@ -19,129 +19,78 @@
   let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
   const screenCount = screens.length;
   const routeCount = routes.length;
-  const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','FILE PORTAL','SOCIAL','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
-  const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
-  const serviceScreens = { files: 4, social: 5 };
+  const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','YOUR SERVICES','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
+  const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
+  const serviceScreens = { files: 4, social: 4 };
   const serviceCache = { files: null, social: null };
   const servicePending = { files: false, social: false };
   const serviceReady = { files: false, social: false };
-  let activeSocialPlatform = null;
   function announce(message, kind=''){ status.textContent = message; status.dataset.kind = kind; }
   function serviceElement(service, attribute) {
     return document.querySelector(`[data-${attribute}="${service}"]`);
   }
-  function setReadyOnlyControls(service, ready) {
-    document.querySelectorAll(`[data-service-ready-only="${service}"]`).forEach(control => {
-      control.disabled = !ready;
-      control.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      const label = ready
-        ? (control.dataset.readyLabel || control.textContent.replace(/\s*→\s*$/, '').trim())
-        : (service === 'files' ? 'WAITING FOR PORTAL' : 'WAITING FOR SOCIAL WORKSPACE');
-      control.innerHTML = `${label}${control.classList.contains('primary-action') ? ' <span>→</span>' : ''}`;
-    });
-  }
-  function renderPortalSyncState(state) {
-    const copy = document.querySelector('[data-portal-sync-copy]');
-    const marker = document.querySelector('[data-portal-sync-state]');
-    if (!copy || !marker) return;
-    const states = {
-      pending: [
-        'Welcome is checking the secure workspace. Browser access stays closed until it answers.',
-        'CHECKING WORKSPACE'
-      ],
-      provisioning: [
-        'The workspace is still being set up. Browser access will appear when it is ready.',
-        'WAITING FOR WORKSPACE'
-      ],
-      ready: [
-        'Workspace ready. Sync stays limited to these two folders. Use browser access if the client will not connect.',
-        'READY FOR TWO-FOLDER SYNC'
-      ],
-      unavailable: [
-        'Desktop sync and browser access are deferred until Welcome can reach the portal. Try again from the status strip.',
-        'ACCESS DEFERRED / RETRY'
-      ]
+  function setReadyOnlyControls(service, ready, state = '') {
+    const card = document.querySelector(`[data-service-card="${service}"]`);
+    if (!card) return;
+    const statusCopy = card.querySelector('[data-service-card-state]');
+    const actionCopy = card.querySelector('[data-service-card-action]');
+    const stateName = state || (ready ? 'ready' : 'unavailable');
+    const stateLabels = {
+      pending: 'CHECKING...',
+      ready: 'READY',
+      provisioning: 'PROVISIONING',
+      unavailable: 'UNAVAILABLE'
     };
-    const [copyText, markerText] = states[state] || states.unavailable;
-    copy.textContent = copyText;
-    marker.textContent = markerText;
+    const actionLabels = {
+      pending: 'CHECKING ACCESS',
+      ready: card.dataset.readyLabel || 'OPEN SERVICE',
+      provisioning: service === 'files' ? 'WAITING FOR PORTAL' : 'WAITING FOR SOCIAL',
+      unavailable: 'TRY AGAIN ABOVE'
+    };
+    card.disabled = !ready;
+    card.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    card.dataset.state = stateName;
+    card.classList.toggle('is-ready', ready);
+    if (statusCopy) statusCopy.textContent = stateLabels[stateName] || stateLabels.unavailable;
+    if (actionCopy) actionCopy.textContent = actionLabels[stateName] || actionLabels.unavailable;
   }
   function renderSocialPlatforms(platforms, state) {
-    const liveList = document.getElementById('social-platforms');
-    const pendingList = document.getElementById('social-pending-platforms');
-    const liveSection = document.getElementById('social-live-section');
-    const emptySection = document.getElementById('social-live-empty');
-    const pendingSection = document.getElementById('social-pending-section');
-    if (!liveList || !pendingList) return;
-    liveList.replaceChildren();
-    pendingList.replaceChildren();
-    if (liveSection) liveSection.hidden = true;
-    if (emptySection) emptySection.hidden = true;
-    if (pendingSection) pendingSection.hidden = true;
-    const liveNote = document.querySelector('[data-social-live-note]');
-    if (liveNote) liveNote.hidden = true;
-    document.getElementById('social-account-confirm')?.setAttribute('hidden', '');
-    document.getElementById('social-calendar-confirm')?.setAttribute('hidden', '');
-    activeSocialPlatform = null;
-    if (state !== 'ready') return;
-
-    const declared = Array.isArray(platforms) ? platforms : [];
-    const live = declared.filter(platform => platform && platform.state === 'live');
-    const pending = declared.filter(platform => platform && platform.state === 'pending_review');
-    const linkedInLive = live.some(platform => platform.id === 'linkedin' || platform.id === 'linkedin-page');
-    const preferred = linkedInLive
-      ? ['linkedin', 'linkedin-page', 'bluesky']
-      : ['bluesky', 'linkedin', 'linkedin-page'];
-    const rank = new Map(preferred.map((id, index) => [id, index]));
-    const byPriority = (a, b) => (rank.get(a.id) ?? 50) - (rank.get(b.id) ?? 50);
-
-    if (live.length) {
-      live.sort(byPriority);
-      if (liveSection) liveSection.hidden = false;
-      const title = document.getElementById('social-live-title');
-      const lede = document.getElementById('social-platform-lede');
-      const first = live[0];
-      if (live.length === 1 && first.id === 'bluesky') {
-        if (title) title.textContent = 'START WITH BLUESKY.';
-        if (lede) lede.textContent = 'Bluesky needs no approval from anyone. Enter your handle and an app password and you are posting. It is ready today and it stays ready.';
-      } else {
-        if (title) title.textContent = `START WITH ${first.label.toUpperCase()}.`;
-        if (lede) lede.textContent = 'Choose a live account below. Each live platform joins this lead group as SecureProspective approves it.';
-      }
-      if (liveNote) liveNote.hidden = !live.some(platform => platform.id === 'bluesky');
-      live.forEach(platform => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'platform-connect';
-        button.dataset.platform = platform.id;
-        button.dataset.label = platform.label;
-        button.textContent = `CONNECT ${platform.label}`;
-        button.addEventListener('click', () => startSocialConnection(button));
-        liveList.append(button);
-      });
-    } else if (emptySection) {
-      emptySection.hidden = false;
+    const list = document.getElementById('social-platforms');
+    if (!list) return;
+    list.replaceChildren();
+    if (state !== 'ready') {
+      const item = document.createElement('p');
+      item.className = 'platform-info-empty';
+      item.textContent = state === 'provisioning'
+        ? 'Platform status will appear when Social is ready.'
+        : 'Platform status is unavailable until Social returns.';
+      list.append(item);
+      return;
     }
-
-    pending.sort(byPriority).forEach(platform => {
+    const declared = Array.isArray(platforms) ? platforms : [];
+    if (!declared.length) {
+      const item = document.createElement('p');
+      item.className = 'platform-info-empty';
+      item.textContent = 'No platform status was declared by Social.';
+      list.append(item);
+      return;
+    }
+    declared.forEach(platform => {
+      if (!platform) return;
       const item = document.createElement('div');
-      item.className = 'platform-pending';
-      item.dataset.platform = platform.id;
-      item.dataset.platformState = 'pending_review';
+      const live = platform.state === 'live';
+      item.className = live ? 'platform-info platform-info--live' : 'platform-info platform-info--pending';
       item.setAttribute('role', 'status');
-      item.setAttribute('aria-disabled', 'true');
-      item.setAttribute('aria-label', `${platform.label}, approval in progress`);
-      const label = document.createElement('span');
+      const label = document.createElement('strong');
       label.textContent = platform.label;
       const stateLabel = document.createElement('span');
-      stateLabel.className = 'platform-pending-state';
-      stateLabel.textContent = 'APPROVAL IN PROGRESS';
-      const ownerLabel = document.createElement('small');
-      ownerLabel.textContent = 'OURS TO DO';
-      item.append(label, stateLabel, ownerLabel);
-      pendingList.append(item);
+      stateLabel.className = 'platform-info-state';
+      stateLabel.textContent = live ? 'LIVE / CONNECT ON SITE' : 'APPROVAL IN PROGRESS';
+      const owner = document.createElement('small');
+      owner.textContent = live ? 'READY TO USE' : 'SECUREPROSPECTIVE HANDLES THIS';
+      item.append(label, stateLabel, owner);
+      list.append(item);
     });
-    if (pending.length && pendingSection) pendingSection.hidden = false;
   }
   function renderServicePending(service) {
     servicePending[service] = true;
@@ -149,17 +98,12 @@
     const state = serviceElement(service, 'service-state');
     const title = serviceElement(service, 'service-title');
     const detail = serviceElement(service, 'service-detail');
-    const stamp = serviceElement(service, 'service-stamp');
     const retry = document.querySelector(`[data-service-retry="${service}"]`);
     if (state) { state.dataset.kind = 'pending'; state.removeAttribute('data-http-status'); }
-    if (title) title.textContent = service === 'files' ? 'CHECKING SECURE WORKSPACE...' : 'CHECKING SOCIAL WORKSPACE...';
-    if (detail) detail.textContent = service === 'files'
-      ? 'Welcome is checking the portal before it asks you to sign in.'
-      : 'Welcome is checking the service before it offers a connection.';
-    if (stamp) stamp.textContent = 'CHECKING...';
+    if (title) title.textContent = service === 'files' ? 'CHECKING FILE PORTAL...' : 'CHECKING SOCIAL...';
+    if (detail) detail.textContent = 'Welcome is checking the service before it opens the details.';
     if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
-    setReadyOnlyControls(service, false);
-    if (service === 'files') renderPortalSyncState('pending');
+    setReadyOnlyControls(service, false, 'pending');
     if (service === 'social') renderSocialPlatforms([], 'pending');
   }
   function renderServiceResult(service, payload) {
@@ -168,49 +112,33 @@
     const state = serviceElement(service, 'service-state');
     const title = serviceElement(service, 'service-title');
     const detail = serviceElement(service, 'service-detail');
-    const stamp = serviceElement(service, 'service-stamp');
     const retry = document.querySelector(`[data-service-retry="${service}"]`);
     const httpStatus = payload && Number.isInteger(payload.http_status) ? String(payload.http_status) : '';
     if (state) {
       state.dataset.kind = stateName;
       if (httpStatus) state.dataset.httpStatus = httpStatus; else state.removeAttribute('data-http-status');
     }
-    if (stamp) stamp.textContent = stateName === 'ready' ? 'READY' : stateName === 'provisioning' ? 'PROVISIONING' : 'UNAVAILABLE';
     if (stateName === 'ready') {
-      if (title) title.textContent = service === 'files' ? 'SECURE WORKSPACE READY.' : 'SOCIAL WORKSPACE READY.';
+      if (title) title.textContent = service === 'files' ? 'FILE PORTAL READY.' : 'SOCIAL READY.';
       if (detail) detail.textContent = service === 'files'
-        ? 'Continue below. Activation email delivery is still not wired, so Welcome will not claim an email was sent.'
-        : 'Continue below. Welcome will show only the platforms the service declares live.';
+        ? 'Open the card for a short handoff. Sign-in and file work happen on the service site.'
+        : 'Open the card for the declared platform status and the service link.';
     } else if (stateName === 'provisioning') {
-      if (title) title.textContent = 'SETTING UP YOUR SECURE WORKSPACE…';
+      if (title) title.textContent = 'SETTING UP THE SERVICE...';
       if (detail) detail.textContent = 'Setup is still in flight. Choose Retry when you want to check again.';
     } else if (payload && payload.failure === 'network') {
       if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
       if (detail) detail.textContent = 'Connect to the internet, then choose Retry. No sign-in was requested.';
     } else {
-      if (payload && payload.failure === 'network') {
-        if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
-        if (detail) detail.textContent = 'Connect to the internet, then choose Try again. No sign-in was requested.';
-      } else {
-        if (title) title.textContent = 'WE WILL BE BACK.';
-        if (detail) detail.textContent = service === 'social'
-          ? 'SecureProspective Social is not answering right now. This is on our side and it is temporary. Your connected accounts and anything you have scheduled are unaffected.'
-          : 'SecureProspective File Portal is not answering right now. This is on our side and it is temporary. Your files and anything you have queued are unaffected.';
-      }
+      if (title) title.textContent = 'WE WILL BE BACK.';
+      if (detail) detail.textContent = service === 'social'
+        ? 'SecureProspective Social is not answering right now. This is on our side and it is temporary.'
+        : 'SecureProspective File Portal is not answering right now. This is on our side and it is temporary.';
     }
     if (retry) { retry.disabled = false; retry.textContent = stateName === 'unavailable' ? 'TRY AGAIN' : 'RETRY'; }
     serviceReady[service] = stateName === 'ready';
-    setReadyOnlyControls(service, serviceReady[service]);
-    if (service === 'files') renderPortalSyncState(stateName);
+    setReadyOnlyControls(service, serviceReady[service], stateName);
     if (service === 'social') renderSocialPlatforms(serviceReady[service] ? payload.platforms : [], stateName);
-    if (service === 'files') {
-      const mailState = document.querySelector('[data-portal-mail-state]');
-      if (mailState) mailState.textContent = serviceReady.files
-        ? 'Activation delivery is still not available. No email was sent.'
-        : stateName === 'provisioning'
-          ? 'Waiting for the secure workspace. Activation delivery remains deferred.'
-          : 'Activation delivery is not available yet. No email was sent.';
-    }
   }
   function requestServiceCapability(service, force = false) {
     if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
@@ -231,93 +159,101 @@
     renderServiceResult(service, payload);
     document.title = 'SP+ Welcome';
   }
-  function openService(service, action, platform = '') {
-    if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
-    if ((service === 'files' && !serviceReady.files) || (service === 'social' && !serviceReady.social)) {
-      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL WORKSPACE'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
+  const serviceUrls = {
+    files: 'https://cloud.secureprospective.com',
+    social: 'https://social.secureprospective.com'
+  };
+  const servicePanel = document.getElementById('service-panel');
+  const servicePanelClose = document.getElementById('service-panel-close');
+  const servicePanelBackdrop = document.getElementById('service-panel-backdrop');
+  const servicePanelLink = document.getElementById('service-panel-link');
+  const servicePanelLinkLabel = document.getElementById('service-panel-link-label');
+  const servicePanelResult = document.getElementById('service-panel-result');
+  const servicePanelViews = [...document.querySelectorAll('[data-service-panel-view]')];
+  let activeServicePanel = null;
+  let servicePanelOrigin = null;
+
+  function openServicePanel(service, origin) {
+    if (!serviceUrls[service]) return;
+    if (!serviceReady[service]) {
+      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
       return;
     }
-    document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=${encodeURIComponent(action)}${platform ? `&platform=${encodeURIComponent(platform)}` : ''}`;
+    activeServicePanel = service;
+    servicePanelOrigin = origin || document.activeElement;
+    servicePanelViews.forEach(view => { view.hidden = view.dataset.servicePanelView !== service; });
+    document.getElementById('service-panel-kicker').textContent = service === 'files'
+      ? 'FILE PORTAL / SERVICE DETAILS' : 'SOCIAL / SERVICE DETAILS';
+    document.getElementById('service-panel-title').textContent = service === 'files'
+      ? 'YOUR FILE PORTAL' : 'YOUR SOCIAL WORKSPACE';
+    servicePanelLink.href = serviceUrls[service];
+    servicePanelLinkLabel.textContent = service === 'files' ? 'OPEN FILE PORTAL' : 'OPEN SOCIAL';
+    servicePanelResult.textContent = service === 'files'
+      ? 'The File Portal site handles sign-in, uploads and sharing.'
+      : 'The Social site handles account connections and scheduling.';
+    servicePanel.hidden = false;
+    document.body.classList.add('service-panel-open');
+    servicePanelClose.focus();
   }
-  function startSocialConnection(button) {
-    if (!button || !serviceReady.social) return;
-    activeSocialPlatform = { id: button.dataset.platform, label: button.dataset.label || button.textContent.replace(/^CONNECT\s+/i, '') };
-    document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = true; });
-    const panel = document.getElementById('social-account-confirm');
-    const heading = document.getElementById('social-account-heading');
-    const result = document.getElementById('social-account-result');
-    if (heading) heading.textContent = `CONFIRM THE ${activeSocialPlatform.label.toUpperCase()} ACCOUNT YOU CHOSE.`;
-    if (result) result.textContent = 'Browser launch requested. Connect the intended account or page there, then return here.';
-    if (panel) panel.hidden = false;
-    openService('social', 'connect-platform', activeSocialPlatform.id);
+  function closeServicePanel() {
+    if (!servicePanel || servicePanel.hidden) return;
+    servicePanel.hidden = true;
+    document.body.classList.remove('service-panel-open');
+    activeServicePanel = null;
+    const origin = servicePanelOrigin;
+    servicePanelOrigin = null;
+    if (origin && typeof origin.focus === 'function' && document.contains(origin)) origin.focus();
+  }
+  function openService(service) {
+    if (!serviceUrls[service]) return;
+    if (!serviceReady[service]) {
+      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
+      return;
+    }
+    document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=browser`;
   }
   function finishServiceOpen(result) {
-    const action = result && result.action;
     document.title = 'SP+ Welcome';
+    const message = result && result.message;
     if (!result || !result.ok) {
-      document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
-      const target = action === 'connect-platform' ? document.getElementById('social-account-result') : action === 'browser' ? document.getElementById('portal-browser-result') : document.getElementById('social-calendar-result');
-      if (target) target.textContent = (result && result.message) || 'The browser could not be opened. Use your browser to retry.';
-      announce(((result && result.message) || 'THE BROWSER COULD NOT BE OPENED.').toUpperCase(), 'stub');
+      if (servicePanelResult) servicePanelResult.textContent = message || 'The browser could not be opened. Welcome stayed open.';
+      announce((message || 'THE BROWSER COULD NOT BE OPENED.').toUpperCase(), 'stub');
       return;
     }
-    const message = result.message || 'The browser launch was requested.';
-    if (action === 'connect-platform') {
-      const target = document.getElementById('social-account-result');
-      if (target) target.textContent = 'Browser launch requested. Welcome has not connected or verified an account. Return here after you choose one.';
-      document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
-      document.getElementById('social-account-name')?.focus();
-    } else if (action === 'calendar') {
-      const confirm = document.getElementById('social-calendar-confirm');
-      if (confirm) confirm.hidden = false;
-      const target = document.getElementById('social-calendar-result');
-      if (target) target.textContent = 'Browser launch requested. Check the calendar there, then confirm only what you can see.';
-    } else if (action === 'browser') {
-      const target = document.getElementById('portal-browser-result');
-      if (target) target.textContent = 'Browser launch requested. Welcome did not ask for a password.';
-    }
-    announce(message.toUpperCase());
+    if (servicePanelResult) servicePanelResult.textContent = 'Browser launch requested. Welcome stayed open.';
+    announce((message || 'THE BROWSER LAUNCH WAS REQUESTED.').toUpperCase());
   }
   document.querySelectorAll('[data-service-retry]').forEach(button => {
     button.addEventListener('click', () => requestServiceCapability(button.dataset.serviceRetry, true));
   });
-  document.getElementById('portal-browser')?.addEventListener('click', () => openService('files', 'browser'));
-  document.getElementById('social-calendar-open')?.addEventListener('click', () => openService('social', 'calendar'));
-  document.getElementById('social-not-connected')?.addEventListener('click', () => {
-    activeSocialPlatform = null;
-    document.getElementById('social-account-confirm').hidden = true;
-    document.getElementById('social-account-name').value = '';
-    document.getElementById('social-account-result').textContent = 'No account was recorded. Choose a live platform to try again.';
-    document.querySelectorAll('.platform-connect').forEach(item => { item.disabled = false; });
-    announce('NO ACCOUNT WAS RECORDED. CHOOSE A LIVE PLATFORM TO TRY AGAIN.', 'stub');
+  document.querySelectorAll('[data-service-card]').forEach(card => {
+    card.addEventListener('click', () => openServicePanel(card.dataset.serviceCard, card));
   });
-  document.getElementById('social-confirm-account')?.addEventListener('click', () => {
-    const input = document.getElementById('social-account-name');
-    const result = document.getElementById('social-account-result');
-    const name = input?.value.trim() || '';
-    if (!name) {
-      if (result) result.textContent = 'Enter the profile or page name you saw in the workspace first.';
-      announce('ENTER THE ACCOUNT OR PAGE NAME FIRST.', 'stub');
-      input?.focus();
+  servicePanelClose.addEventListener('click', closeServicePanel);
+  servicePanelBackdrop.addEventListener('click', closeServicePanel);
+  servicePanelLink.addEventListener('click', event => {
+    event.preventDefault();
+    if (activeServicePanel) openService(activeServicePanel);
+  });
+  document.addEventListener('keydown', event => {
+    if (!servicePanel || servicePanel.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeServicePanel();
       return;
     }
-    if (result) result.textContent = `You confirmed ${name}. Welcome did not verify it; check the profile or page again before scheduling.`;
-    announce('ACCOUNT CONFIRMATION RECORDED FOR THIS SESSION. CHECK THE PROFILE BEFORE POSTING.');
-  });
-  document.getElementById('portal-prove')?.addEventListener('click', event => {
-    if (!serviceReady.files) return;
-    const button = event.currentTarget;
-    button.disabled = true;
-    button.innerHTML = 'DOCUMENT CONFIRMED <span>✓</span>';
-    document.getElementById('portal-prove-result').textContent = 'You confirmed the document is visible. Welcome did not inspect or claim the upload.';
-    announce('YOU CONFIRMED THE DOCUMENT IS VISIBLE.');
-  });
-  document.getElementById('social-calendar-seen')?.addEventListener('click', event => {
-    const button = event.currentTarget;
-    button.disabled = true;
-    button.innerHTML = 'CALENDAR CHECKED <span>✓</span>';
-    document.getElementById('social-calendar-result').textContent = 'You confirmed the post is visible on the calendar. Review it again if an outage needs attention.';
-    announce('YOU CONFIRMED THE POST IS VISIBLE ON THE CALENDAR.');
+    if (event.key !== 'Tab') return;
+    const focusable = [servicePanelClose, servicePanelLink].filter(control => control && !control.disabled && !control.hidden);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
   function showAskFeedback(message, kind) {
     askFeedback.hidden = false;
@@ -355,7 +291,9 @@
   }
   function go(index) {
     const lastScreen = screenCount - 1;
-    current = Math.max(0, Math.min(lastScreen, index));
+    const target = Math.max(0, Math.min(lastScreen, index));
+    if (servicePanel && !servicePanel.hidden) closeServicePanel();
+    current = target;
     screens.forEach((screen,i) => { screen.classList.toggle('active',i===current); screen.setAttribute('aria-hidden', i===current ? 'false' : 'true'); });
     routes.forEach((route,i) => { route.classList.toggle('current',i===current); route.setAttribute('aria-current',i===current ? 'step' : 'false'); });
     caption.textContent = `${names[current]} / ${String(current+1).padStart(2,'0')} OF ${String(routeCount).padStart(2,'0')}`;

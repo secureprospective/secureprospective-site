@@ -8,22 +8,21 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <!-- THESIS: A first-run control room, not a polite wizard. OWN-WORLD: Secure Prospective blue, silver, yellow, square rules, ticker field, and hard registration offsets. STORY: an advisor sees their protected work desk take shape, then handles one honest task at a time. FIRST VIEWPORT: a blue route rail, an animated silver briefing field, a large welcome statement, and a nine-stop manifest, with the action anchored at lower right. FORM: corporate badge x transit signage x financial ledger x storm shelter x vault, code-led, seed pinned by the SP+ brand brief. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
+  <!-- THESIS: A first-run control room, not a polite wizard. OWN-WORLD: Secure Prospective blue, silver, yellow, square rules, ticker field, and hard registration offsets. STORY: an advisor sees their protected work desk take shape, then handles one honest task at a time. FIRST VIEWPORT: a blue route rail, an animated silver briefing field, a large welcome statement, and an eight-stop manifest, with the action anchored at lower right. FORM: corporate badge x transit signage x financial ledger x storm shelter x vault, code-led, seed pinned by the SP+ brand brief. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
   <main class="app-shell" aria-label="SP+ Welcome setup">
     <aside class="route-rail" aria-label="Setup progress">
       <div class="brand-block"><span class="brand-mark" aria-hidden="true">SP+</span><span class="brand-name">SECURE PROSPECTIVE</span></div>
       <div class="rail-rule"></div>
-      <p class="route-caption" id="route-caption">WELCOME / 01 OF 09</p>
+      <p class="route-caption" id="route-caption">WELCOME / 01 OF 08</p>
       <nav class="route-list" aria-label="Setup steps">
         <button class="route current" data-go="0"><b>01</b><span>Welcome</span></button>
         <button class="route" data-go="1"><b>02</b><span>Choose the look</span></button>
         <button class="route" data-go="2"><b>03</b><span>Know your way around</span></button>
         <button class="route" data-go="3"><b>04</b><span>Office connections</span></button>
-        <button class="route" data-go="4"><b>05</b><span>File portal</span></button>
-        <button class="route" data-go="5"><b>06</b><span>Social</span></button>
-        <button class="route" data-go="6"><b>07</b><span>Bring Fin into your work</span></button>
-        <button class="route" data-go="7"><b>08</b><span>Optional tools + store</span></button>
-        <button class="route" data-go="8"><b>09</b><span>Ready to work</span></button>
+        <button class="route" data-go="4"><b>05</b><span>Your services</span></button>
+        <button class="route" data-go="5"><b>06</b><span>Bring Fin into your work</span></button>
+        <button class="route" data-go="6"><b>07</b><span>Optional tools + store</span></button>
+        <button class="route" data-go="7"><b>08</b><span>Ready to work</span></button>
       </nav>
       <div class="rail-foot"><span class="signal-dot" aria-hidden="true"></span><span>BUILT FOR THE WORK<br>BEHIND THE ADVICE.</span></div>
     </aside>
@@ -38,7 +37,7 @@
             <p>SP+ keeps your files, tools and Fin close at hand without asking you to learn Linux first.</p>
           </div>
           <div class="welcome-manifest" aria-label="What Welcome can prepare">
-            <div><span>YOUR ROUTE</span><strong>9 SMALL STEPS</strong></div>
+            <div><span>YOUR ROUTE</span><strong>8 SMALL STEPS</strong></div>
             <div><span>START HERE</span><strong>THE ESSENTIALS</strong></div>
             <div><span>YOUR CONTROL</span><strong>SKIP ANY TIME</strong></div>
           </div>
@@ -77,73 +76,51 @@
           <div class="ledger-callout"><span>WHAT HAPPENS</span><p>Email opens the provider's webmail and leaves a launcher in Applications; SP+ never handles the email password. Folder checks use GVFS and the desktop wallet when you choose secure save. Printer checks submit one page only after CUPS is ready.</p></div>
         </article>
 
-        <article class="screen service-screen portal-screen" data-screen="4" aria-labelledby="portal-title">
-          <header class="page-title"><div><h1 id="portal-title">MOVE CLIENT<br>FILES OUT OF<br>EMAIL.</h1><p>Email attachments are the risk. The File Portal gives your practice one protected place to work.</p></div><div class="title-stamp"><span>SECURE FILE PORTAL</span><strong data-service-stamp="files">CHECKING...</strong></div></header>
-          <div class="service-body" data-service-body="files">
-            <div class="service-status" data-service-state="files" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="files">CHECKING SECURE WORKSPACE...</b><p data-service-detail="files">Welcome is checking the service before it asks you to sign in.</p></div><button class="secondary-action" data-service-retry="files" type="button">RETRY</button></div>
-            <div class="portal-layout">
-              <div class="service-column portal-steps">
-                <section class="service-card portal-card"><div class="lane-title"><span>01 / WHY</span><b>REPLACE EMAIL</b></div><h2>EMAIL IS THE RISK.</h2><p>Email attachments multiply copies. Use the portal instead.</p><p class="portal-security">Your files are encrypted at rest and never travel by email.</p></section>
-                <section class="service-card portal-card"><div class="lane-title"><span>02 / SIGN IN</span><b>SINGLE USE</b></div><h2>USE YOUR ACTIVATION LINK.</h2><p>Open the single-use link when SecureProspective provides it. The portal password is separate from your SP+ and back-office passwords.</p><p class="portal-deferred" data-portal-mail-state>Activation delivery is not available yet. No email was sent.</p></section>
-                <section class="service-card portal-card"><div class="lane-title"><span>03 / TWO-FACTOR</span><b>AFTER ACTIVATION</b></div><h2>PROTECT THE CASE FILES.</h2><p>After activation, turn on two-factor and store the recovery codes safely. If you skip it, the portal will ask again before client work.</p></section>
+        <article class="screen service-screen services-screen" data-screen="4" aria-labelledby="services-title">
+          <header class="page-title"><div><h1 id="services-title">YOUR SECUREPROSPECTIVE<br>SERVICES.</h1><p>Welcome sets things up and hands you off. Choose a service to see what it does; its own site handles the work.</p></div><div class="title-stamp"><span>ONE PLACE TO START</span><strong>SERVICE ACCESS</strong></div></header>
+          <div class="services-body">
+            <div class="services-status-grid" aria-label="Service access checks">
+              <div class="service-status" data-service-state="files" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="files">CHECKING FILE PORTAL...</b><p data-service-detail="files">Welcome is checking the service before it opens the details.</p></div><button class="secondary-action" data-service-retry="files" type="button">RETRY</button></div>
+              <div class="service-status" data-service-state="social" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="social">CHECKING SOCIAL...</b><p data-service-detail="social">Welcome is checking the service before it opens the details.</p></div><button class="secondary-action" data-service-retry="social" type="button">RETRY</button></div>
+            </div>
+            <div class="services-content">
+              <div class="service-card-grid" aria-label="SecureProspective services">
+                <button class="service-card-trigger service-card-trigger--files" data-service-card="files" data-service-ready-only="files" data-ready-label="OPEN PORTAL →" type="button" disabled aria-disabled="true">
+                  <span class="service-card-top"><span>FILE PORTAL</span><b data-service-card-state="files">CHECKING...</b></span>
+                  <strong class="service-card-title">STORE AND SHARE<br>CLIENT DOCUMENTS.</strong>
+                  <span class="service-card-description">Keep client files out of email attachments.</span>
+                  <span class="service-card-action" data-service-card-action="files">CHECKING ACCESS</span>
+                </button>
+                <button class="service-card-trigger service-card-trigger--social" data-service-card="social" data-service-ready-only="social" data-ready-label="OPEN SOCIAL →" type="button" disabled aria-disabled="true">
+                  <span class="service-card-top"><span>SOCIAL</span><b data-service-card-state="social">CHECKING...</b></span>
+                  <strong class="service-card-title">SCHEDULE POSTS<br>ACROSS ACCOUNTS.</strong>
+                  <span class="service-card-description">Plan posts in one place. Connect accounts on the Social site.</span>
+                  <span class="service-card-action" data-service-card-action="social">CHECKING ACCESS</span>
+                </button>
               </div>
-              <section class="service-card portal-folders" aria-labelledby="folder-heading"><div class="lane-title"><span>04 / THE TWO FOLDERS</span><b>DO NOT MIX THESE</b></div><h2 id="folder-heading">ONE CLEAR<br>BOUNDARY.</h2><div class="folder-diagram" aria-label="Folder boundary diagram"><div class="folder-node folder-private"><span>PRIVATE/</span><strong>ONLY YOU</strong></div><div class="folder-divider" aria-hidden="true"><i></i><b>OR</b><i></i></div><div class="folder-node folder-shared"><span>SHARED — <em>YOUR NAME</em>/</span><strong>YOU + SECUREPROSPECTIVE</strong></div></div><p>Welcome configures only these two folders. It never syncs everything.</p><div class="portal-boundary"><span>ACCESS CHANGES</span><p>If your membership is disabled or removed, Welcome will say so plainly and the service session will end.</p></div></section>
-              <div class="service-column portal-actions">
-                <section class="service-card portal-card"><div class="lane-title"><span>05 / CONNECT THE DESKTOP</span><b>TWO FOLDERS ONLY</b></div><h2>SYNC WITHOUT A TOUR.</h2><p data-portal-sync-copy>Workspace ready. Sync stays limited to these two folders. Use browser access if the client will not connect.</p><div class="portal-sync-state" data-portal-sync-state>READY FOR TWO-FOLDER SYNC</div><button class="secondary-action" id="portal-browser" data-service-ready-only="files" data-ready-label="OPEN BROWSER ACCESS" type="button" disabled>WAITING FOR PORTAL</button><p class="lane-result" id="portal-browser-result" role="status" aria-live="polite"></p></section>
-                <section class="service-card portal-card"><div class="lane-title"><span>06 / PROVE IT</span><b>ONE REAL FILE</b></div><h2>SEE THE DOCUMENT LAND.</h2><p>Upload one real document in the portal, then confirm that it is visible. A browser upload above 100 MB returns 413; desktop sync chunks larger files.</p><button class="primary-action" id="portal-prove" data-service-ready-only="files" data-ready-label="CONFIRM DOCUMENT IS VISIBLE" type="button" disabled>WAITING FOR PORTAL <span>→</span></button><p class="lane-result" id="portal-prove-result" role="status" aria-live="polite"></p></section>
-              </div>
+              <section class="services-folders" aria-labelledby="folder-heading">
+                <div class="lane-title"><span id="folder-heading">YOUR TWO FOLDERS</span><b>DO NOT MIX THESE</b></div>
+                <div class="folder-diagram" aria-label="Folder boundary diagram"><div class="folder-node folder-private"><span>PRIVATE/</span><strong>ONLY YOU</strong></div><div class="folder-divider" aria-hidden="true"><i></i><b>OR</b><i></i></div><div class="folder-node folder-shared"><span>SHARED - <em>YOUR NAME</em>/</span><strong>YOU + SECUREPROSPECTIVE</strong></div></div>
+                <p class="folder-caption">Private is only you. Shared - YOUR NAME is you and SecureProspective.</p>
+                <p class="service-password-note">Your portal password is separate from your SP+ and back-office password.</p>
+              </section>
             </div>
           </div>
         </article>
 
-        <article class="screen service-screen social-screen" data-screen="5" aria-labelledby="social-title">
-          <header class="page-title"><div><h1 id="social-title">PUT SOCIAL<br>ON A SCHEDULE.</h1><p>Schedule your posts across your accounts from one place. We host it; you connect the accounts you already have.</p></div><div class="title-stamp"><span>SECURE SOCIAL</span><strong data-service-stamp="social">CHECKING...</strong></div></header>
-          <div class="service-body" data-service-body="social">
-            <div class="service-status" data-service-state="social" data-kind="pending" role="status" aria-live="polite"><span class="service-spinner" aria-hidden="true"></span><div><b data-service-title="social">CHECKING SOCIAL WORKSPACE...</b><p data-service-detail="social">Welcome is checking the service before it offers a connection.</p></div><button class="secondary-action" data-service-retry="social" type="button">RETRY</button></div>
-            <div class="social-layout">
-              <div class="social-lead-column">
-                <section class="service-card social-live-card" id="social-live-section" hidden>
-                  <div class="lane-title"><span>01 / READY NOW</span><b>LIVE ACCOUNTS</b></div>
-                  <h2 id="social-live-title">START WITH BLUESKY.</h2>
-                  <p id="social-platform-lede">Bluesky needs no approval from anyone. Enter your handle and an app password and you are posting. It is ready today and it stays ready.</p>
-                  <div class="social-no-login"><span>NO GOOGLE SIGN-IN</span><p>Accounts are provisioned server-side against your immutable member record. OAuth matches a provider ID, not an email address. Registration is closed, so a pre-provisioned Gmail address would not match.</p></div>
-                  <div class="social-live-note" data-social-live-note hidden><span>CONNECTABLE, NOT PROVEN</span><p>No post has published through Welcome yet. Ready means connectable, not proven.</p></div>
-                  <div class="platform-list" id="social-platforms" aria-live="polite"></div>
-                  <div class="social-account-confirm" id="social-account-confirm" hidden><span class="service-label">RETURN CHECK</span><b id="social-account-heading">CONFIRM THE ACCOUNT YOU CHOSE.</b><label for="social-account-name">ACCOUNT OR PAGE NAME<input id="social-account-name" type="text" maxlength="120" autocomplete="off" placeholder="The profile or page you connected"></label><div class="social-confirm-actions"><button class="primary-action" id="social-confirm-account" type="button">CONFIRM THIS ACCOUNT <span>→</span></button><button class="text-button" id="social-not-connected" type="button">NOT CONNECTED / TRY AGAIN</button></div><p class="lane-result" id="social-account-result" role="status" aria-live="polite"></p></div>
-                </section>
-                <section class="service-card social-live-empty" id="social-live-empty" data-kind="unavailable" hidden>
-                  <div class="lane-title"><span>01 / READY NOW</span><b>TRY AGAIN</b></div>
-                  <h2>WE WILL BE BACK.</h2>
-                  <p>The Social workspace has no live connection to offer right now. Choose Try again above and check again later.</p>
-                </section>
-                <section class="service-card social-proof-card"><div class="lane-title"><span>03 / ONE REAL POST</span><b>END WITH EVIDENCE</b></div><h2>SEE IT ON THE CALENDAR.</h2><p>Open the Social workspace, schedule one real post and check the calendar. Welcome records only your confirmation; it does not claim a post it cannot inspect.</p><button class="secondary-action" id="social-calendar-open" data-service-ready-only="social" data-ready-label="OPEN SOCIAL WORKSPACE" type="button" disabled>WAITING FOR SOCIAL WORKSPACE</button><div class="social-calendar-confirm" id="social-calendar-confirm" hidden><span>CALENDAR CHECK</span><button class="primary-action" id="social-calendar-seen" type="button">I SEE THE POST ON THE CALENDAR <span>→</span></button><p class="lane-result" id="social-calendar-result" role="status" aria-live="polite"></p></div><div class="social-attention"><span>NEEDS ATTENTION</span><p>Posts are scheduled, not guaranteed. If an outage causes a miss, review it here instead of assuming it caught up.</p></div></section>
-              </div>
-              <div class="social-register-column">
-                <section class="service-card social-pending-card" id="social-pending-section" hidden>
-                  <div class="lane-title"><span>02 / WE ARE GETTING APPROVED</span><b>OUR WORK</b></div>
-                  <h2>THE REST ARE ON US.</h2>
-                  <p>Each of these needs SecureProspective to register with the platform first — one approval that covers every advisor. That work is under way. There is nothing for you to do, nothing to sign up for and nothing on your side to fix. Each one appears here the day it is approved.</p>
-                  <div class="platform-register" id="social-pending-platforms" aria-live="polite"></div>
-                </section>
-                <aside class="service-card social-notes"><div class="lane-title"><span>EXPECTATIONS</span><b>PLAIN LANGUAGE</b></div><div class="social-note"><span>RECONNECT BEFORE POSTING</span><p>If a platform token expires, reconnect your LinkedIn before a post fails.</p></div><div class="social-note"><span>WRONG PROFILE?</span><p>Disconnect and retry in the Social workspace if you chose the wrong page or profile.</p></div><div class="social-note"><span>NOT A COMPLIANCE ARCHIVE</span><p>Nothing here satisfies SEC Marketing Rule record-keeping.</p></div><div class="social-note social-member-note"><span>MEMBER ACCESS</span><p>If access is disabled or removed, your session ends plainly and safely. Nothing is silently retained.</p></div></aside>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article class="screen fin-screen" data-screen="6" aria-labelledby="fin-title">
+        <article class="screen fin-screen" data-screen="5" aria-labelledby="fin-title">
           <header class="page-title"><div><h1 id="fin-title">BRING FIN<br>INTO YOUR WORK.</h1><p>Fin can help summarise, organise and revise documents. You remain responsible for the advice and final decision.</p></div><div class="title-stamp"><span>YOUR CONTROL</span><strong>YOU DECIDE WHAT TO SHARE</strong></div></header>
           <div class="fin-stage"><section class="fin-brief"><div class="fin-index">FIN / START HERE</div><h2>FIN OPENS<br>WITHOUT ASKING<br>FOR A KEY.</h2><p>If no provider is connected, Fin will tell you to type <code>/login</code> and choose a provider. There is no welcome email and nothing to paste.</p><button class="primary-action fin-action" id="fin-check" type="button">HAVE FIN CHECK MY COMPUTER <span>→</span></button><p class="lane-result" id="check-result" role="status" aria-live="polite"></p><button class="primary-action fin-action" id="fin-launch" type="button">OPEN FIN <span>→</span></button><p class="lane-result" id="fin-result" role="status" aria-live="polite"></p></section><section class="fin-ledger"><div><span>CONNECTION</span><strong>CHOOSE A PROVIDER<br>WHEN FIN ASKS</strong></div><div><span>SAFE FIRST TRY</span><strong>USE A NON-SENSITIVE<br>DOCUMENT FIRST</strong></div><div><span>STARTING PROMPT</span><strong>WHAT ARE THE THREE THINGS<br>I NEED TO KNOW?</strong></div><ul class="check-summary" id="check-summary" hidden></ul><p>Fin opens in its own window and stays open when Welcome closes.</p></section></div>
         </article>
 
-        <article class="screen tools-screen" data-screen="7" aria-labelledby="tools-title">
+        <article class="screen tools-screen" data-screen="6" aria-labelledby="tools-title">
           <header class="page-title"><div><h1 id="tools-title">OPTIONAL TOOLS.<br>YOUR CALL.</h1><p>Two useful additions, plus the software library when you want to explore. An open store is not a practice-approved list.</p></div><div class="title-stamp"><span>RUNTIME INSTALLS</span><strong>NO IMAGE CHANGE</strong></div></header>
           <div class="tool-register"><section class="tool-row"><span class="tool-index">01</span><div><h2>BITWARDEN</h2><p>A password manager for work logins.</p></div><div class="tool-detail">FLATHUB<br>com.bitwarden.desktop</div><div class="tool-state" data-state="idle">RUNTIME INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="com.bitwarden.desktop" data-tool-name="Bitwarden" data-state="idle" aria-busy="false">ADD BITWARDEN</button></section><section class="tool-row"><span class="tool-index">02</span><div><h2>SIGNAL DESKTOP</h2><p>A private way to reach a client or colleague when email is the wrong channel.</p></div><div class="tool-detail">FLATHUB<br>org.signal.Signal</div><div class="tool-state" data-state="idle">RUNTIME INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="org.signal.Signal" data-tool-name="Signal" data-state="idle" aria-busy="false">ADD SIGNAL</button></section></div>
           <section class="discover-strip"><div><span>03 / BROWSE EVERYTHING</span><h2>THE SOFTWARE LIBRARY IS OPEN.</h2><p>Discover, Flatpak and its backend are already on this computer. Flathub is configured and ready to browse. An open Flathub source is not a practice-approved list.</p></div><button class="primary-action" data-store-action>BROWSE IN DISCOVER <span>→</span></button></section>
           <div class="ledger-callout"><span>USE WITH CARE</span><p>Check an app with your practice before using it for client work. The two optional apps install only when you choose them; Discover opens the configured Flathub source.</p></div>
         </article>
 
-        <article class="screen done-screen" data-screen="8" aria-labelledby="done-title">
+        <article class="screen done-screen" data-screen="7" aria-labelledby="done-title">
           <div class="done-field"><div class="done-mark">SP+</div><div><h1 id="done-title">READY<br>TO WORK.</h1><p>Anything you skipped is still available from SP+ Welcome.</p></div></div>
           <section class="handoff-register" aria-label="Setup handoff"><div><span>YOUR LOOK</span><strong id="final-theme">SP+ CALM DARK / SELECTED</strong></div><div><span>OFFICE CONNECTIONS</span><strong id="final-office">PRINTER + EMAIL / RETURN WHEN READY</strong></div><div><span>FIN</span><strong id="final-fin">READY AFTER YOU CONNECT IT</strong></div><div><span>OPTIONAL TOOLS</span><strong id="final-tools">NONE ADDED YET</strong></div></section>
           <div class="finish-line"><p>You can reopen this from Applications › SP+ Welcome.</p><label class="checkline"><input type="checkbox" id="no-show"> Do not show this setup again</label></div>
@@ -152,6 +129,26 @@
       <footer class="controls"><button class="text-button" id="skip">I'LL DO THIS LATER</button><div class="status" role="status" id="status">READY WHEN YOU ARE.</div><div class="nav-actions"><button class="secondary-action" id="back">BACK</button><button class="primary-action" id="next">LET'S MAKE IT MINE <span>→</span></button></div></footer>
     </section>
   </main>
+  <section class="service-panel" id="service-panel" role="dialog" aria-modal="true" aria-labelledby="service-panel-title" hidden>
+    <div class="service-panel-backdrop" id="service-panel-backdrop" aria-hidden="true"></div>
+    <article class="service-panel-card">
+      <header class="service-panel-header">
+        <div><span class="service-panel-kicker" id="service-panel-kicker">SERVICE DETAILS</span><h2 id="service-panel-title">YOUR SECUREPROSPECTIVE SERVICES</h2></div>
+        <button class="text-button service-panel-close" id="service-panel-close" type="button">CLOSE PANEL</button>
+      </header>
+      <div class="service-panel-main">
+        <section class="service-panel-view service-panel-view--files" data-service-panel-view="files" aria-labelledby="service-panel-files-title" hidden>
+          <div class="service-panel-lede"><h3 id="service-panel-files-title">STORE AND SHARE CLIENT DOCUMENTS.</h3><p>Keep client documents in one protected place instead of sending attachments through email.</p><ul class="service-feature-list"><li><strong>PRIVATE/</strong><span>Files only you need.</span></li><li><strong>SHARED - YOUR NAME/</strong><span>You and SecureProspective.</span></li><li><strong>ENCRYPTED AT REST</strong><span>Files never travel by email.</span></li></ul></div>
+          <aside class="service-panel-note"><span>THE SERVICE SITE HANDLES THE WORK</span><h3>START WITH THE PORTAL.</h3><p>Sign in, upload documents and manage sharing there. Welcome only hands you off.</p></aside>
+        </section>
+        <section class="service-panel-view service-panel-view--social" data-service-panel-view="social" aria-labelledby="service-panel-social-title" hidden>
+          <div class="service-panel-lede"><h3 id="service-panel-social-title">PLAN POSTS IN ONE PLACE.</h3><p>Connect accounts on the Social site. This list is informational; Welcome does not connect accounts.</p><div class="platform-status-block"><div class="service-panel-subhead"><span>PLATFORM STATUS</span><b>DECLARED BY SOCIAL</b></div><div class="platform-info-list" id="social-platforms" aria-live="polite"></div></div></div>
+          <aside class="service-panel-note social-expectations"><span>PLAIN EXPECTATIONS</span><h3>REVIEW AFTER AN OUTAGE.</h3><p>Posts are scheduled, not guaranteed.</p><p>An outage does not reliably catch up missed posts. Review the schedule after the service returns.</p><p>This is not a compliance archive for SEC Marketing Rule purposes.</p></aside>
+        </section>
+      </div>
+      <footer class="service-panel-footer"><p id="service-panel-result" role="status" aria-live="polite">The service site handles sign-in, connections and files.</p><a class="primary-action service-panel-link" id="service-panel-link" href="https://cloud.secureprospective.com" target="_blank" rel="noopener"><span id="service-panel-link-label">OPEN FILE PORTAL</span><span aria-hidden="true">→</span></a></footer>
+    </article>
+  </section>
   <section class="theme-preview" id="theme-preview" role="dialog" aria-modal="true" aria-labelledby="preview-title" hidden>
     <div class="theme-preview-card">
       <header class="theme-preview-header">
