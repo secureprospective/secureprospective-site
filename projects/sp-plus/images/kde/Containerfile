@@ -1214,7 +1214,11 @@ RUN printf '%s\n' \
  && ! grep -qE 'src="http|href="http' "$W" \
  && grep -q "LocalContentCanAccessRemoteUrls, False" /usr/libexec/sp-plus/welcome/welcome.py \
  && python3 -c "import PySide6.QtWebEngineWidgets" \
- && ! grep -rqlP '\xe2\x80\x94' /usr/libexec/sp-plus/welcome/app/ \
+ # The em-dash ban is a typography rule about the text an advisor reads. -I keeps
+ # it to text files: the staged theme previews are compressed PNGs, and one of them
+ # (orchis-light.png) happens to contain the bytes E2 80 94 in its deflate stream,
+ # which without -I fails this gate on image data nobody will ever read as prose.
+ && ! grep -rIqlP '\xe2\x80\x94' /usr/libexec/sp-plus/welcome/app/ \
  && if [ -f /usr/libexec/sp-plus/welcome/app/fonts/Primal.ttf ]; then \
       echo "WELCOME_OK primal=SHIPPED"; \
     else \
