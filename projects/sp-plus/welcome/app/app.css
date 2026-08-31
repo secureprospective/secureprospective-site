@@ -149,4 +149,18 @@ h1,h2,p{margin:0}h1{font-family:Primal,'Noto Sans Condensed Black','Noto Sans Co
   .choice-head.split{margin-top:7px;padding-top:6px}
   .lead-gallery .theme-card .swatch{height:24px}
   .theme-choice{padding-top:6px}
+
+  /* Even with the furniture trimmed, a card in the six-deep columns is 78px
+     tall at 1280x800 and 72px at 1024x768, while its full contents need 89px.
+     The measured result was the descriptor sentence being cut through the
+     middle of its line -- present enough to read as broken, not enough to
+     read. So on this tier the six secondary cards carry their name and their
+     one-line tagline and drop the sentence, which is a deliberate choice
+     rather than a clip: the full description is what the preview panel exists
+     to show, and it appears there the moment a card is selected.
+
+     The two lead cards keep theirs. They are on a two-across row with 98px to
+     work with and were never short of space. */
+  .theme-column .theme-card .theme-meta em{display:none}
+  .theme-column .theme-card .theme-meta{padding:6px 8px;gap:1px}
 }
