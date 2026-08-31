@@ -1,5 +1,15 @@
 # Handoff
 
+## 2026-08-31 — Welcome services consolidated
+
+- **Baton:** Bee — 2026-08-31
+- **Where it stands:** Collapsed the File Portal and Social onboarding screens into one readiness-aware services screen with two in-place handoff panels. Removed the old portal, account-confirmation, and calendar flows. Committed as `8f94c55` on `session/sp-plus-plan`; branch is pushed.
+- **Gates:** SP+ VM evidence covers eight-screen/no-scroll bounds at 1280x800 and 1024x768, real CDP card/panel/link/close/Escape/backdrop clicks, public-host-only browser launch, deleted-ID search, and the theme round trip.
+- **Build boundary:** No ISO or image build started. The installed VM was not reset.
+- **Next move:** Christopher reviews the six VM captures and chooses whether to merge this lane onward.
+- **Blocked on:** Real File Portal sign-in/upload and real Social account connection/post publication remain outside Welcome and were not exercised.
+- **Tried and rejected:** Keeping service administration inside Welcome. The new page only explains the services and hands off to their public sites.
+
 ## 2026-08-28 — Calm live contrast and pinstripe trial closed
 
 - **Baton:** Bee — 2026-08-28
