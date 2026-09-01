@@ -20,6 +20,12 @@ Type=oneshot
 # unit the DN-26 rationale is defeated by omission: Zoom enforces a minimum
 # client version and refuses connections from older clients, so the advisor's
 # Zoom silently rots until it simply stops connecting.
+# DN-47. Refresh the catalogue BEFORE updating from it. `flatpak update` alone
+# does not touch appstream data -- that is a separate invocation -- so until now
+# the only thing that ever refreshed Flathub's catalogue was Discover, while an
+# advisor had it open. A machine that has not been told what exists cannot know
+# it is out of date. Root does this, so it never depends on a session or polkit.
+ExecStart=/usr/bin/flatpak update --appstream --system --noninteractive -y
 ExecStart=/usr/bin/flatpak update --system --noninteractive -y
 
 # A laptop on a slow link with a rotational disk is the design target, not the

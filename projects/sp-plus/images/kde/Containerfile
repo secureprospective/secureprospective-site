@@ -444,6 +444,78 @@ RUN set -eux; \
     test -x /usr/bin/notify-send; \
     echo "DN46_UPDATE_GATE_OK stages daily, applies at shutdown, never reboots, notifies once"
 
+# ---- DN-47. The advisor can FINISH an update, not just start one ------------
+# Christopher, 2026-09-01: "The system either updates like a normal Linux distro
+# or it doesn't. Look at the permissions/rules level, not pecking at the apps."
+#
+# WHAT WAS ACTUALLY WRONG, measured on the running VM with pkcheck against the
+# live plasmashell process (an active, local, wheel session -- the advisor's own
+# desktop, not an SSH session, which polkit correctly treats as neither):
+#
+#   org.projectatomic.rpmostree1.upgrade              -> yes
+#   org.projectatomic.rpmostree1.deploy               -> auth_admin_keep
+#   org.projectatomic.rpmostree1.finalize-deployment  -> auth_admin_keep
+#
+# So the store could LOOK for an OS update and could download one, and then hit a
+# password box on the one verb that puts it in place. Fedora's stock rules file
+# grants `upgrade` and `repo-refresh` and stops there, because upstream assumes a
+# machine with a separate administrator. SP+ has no such person: the account is
+# made by the first-boot wizard and the password is not something a non-technical
+# advisor reliably remembers months later. The Flatpak and firmware lanes were
+# already clear for a wheel session; the OS lane was the one that dead-ended.
+#
+# The fix is one rules file covering the update verbs of all three lanes at once,
+# not a wrapper or a helper per application. It is the same bargain sudoers-sp-plus
+# already strikes, stated once, at the level where it belongs.
+COPY config/49-sp-plus-updates.rules /usr/share/polkit-1/rules.d/49-sp-plus-updates.rules
+
+RUN set -eux; \
+    R=/usr/share/polkit-1/rules.d/49-sp-plus-updates.rules; \
+    chmod 0644 "$R"; \
+    # polkit ships no linter, but its rules are JavaScript and node is already in
+    # this image. A syntax error here is silent at runtime -- polkitd logs and
+    # carries on with the rule unapplied -- so it must be caught at build time.
+    # node --check refuses a file without a .js extension, so check a copy.
+    cp "$R" /tmp/polkit-rules-check.js; node --check /tmp/polkit-rules-check.js; rm -f /tmp/polkit-rules-check.js; \
+    # The guard is the session, not the verb. Without all three of these the file
+    # would hand the update verbs to anyone with an SSH login.
+    grep -q 'subject.active' "$R"; \
+    grep -q 'subject.local' "$R"; \
+    grep -q 'isInGroup("wheel")' "$R"; \
+    # finalize-deployment is the whole point of the file. Losing it silently would
+    # restore the exact dead end this fixes, and the store would still look fine.
+    grep -q 'org.projectatomic.rpmostree1.finalize-deployment' "$R"; \
+    grep -q 'org.freedesktop.Flatpak.appstream-update' "$R"; \
+    grep -q 'org.freedesktop.fwupd.refresh-remote' "$R"; \
+    # Layering permanently marks the deployment incompatible and breaks `bootc
+    # upgrade` for good (verified 2026-08-29). It must never become a one-click
+    # operation from the store.
+    for forbidden in install-uninstall-packages install-local-packages override repo-modify; do \
+        if grep -q "rpmostree1.$forbidden" "$R"; then \
+            echo "DN47 GATE FAIL: $R grants rpm-ostree $forbidden; layering breaks bootc upgrade" >&2; exit 1; \
+        fi; \
+    done; \
+    # It must sort before the stock 50-default.rules, or it never gets a say.
+    case "$(basename "$R")" in [0-4]*) : ;; *) echo "DN47 GATE FAIL: rules file sorts after 50-default" >&2; exit 1;; esac; \
+    echo "DN47_POLKIT_GATE_OK the advisor can finish an update in all three lanes"
+
+# ---- DN-47b. Every lane's metadata is refreshed by the system, on a schedule --
+# An update the machine cannot SEE is an update that does not exist. Each lane
+# keeps its own catalogue, and two of the three were never being refreshed:
+#
+#   applications  flatpak appstream   only ever refreshed by Discover while open
+#   firmware      LVFS metadata       fwupd-refresh.timer was disabled
+#   OS packages   swcatalog           refresh service was disabled by 5b debloat
+#
+# All three now refresh from root-owned system units, so nothing about staying
+# current depends on the advisor having the store open, or on polkit at all.
+RUN set -eux; \
+    systemctl enable fwupd-refresh.timer; \
+    test -L /etc/systemd/system/timers.target.wants/fwupd-refresh.timer; \
+    systemctl enable fedora-atomic-desktop-appstream-cache-refresh.service; \
+    test -L /etc/systemd/system/multi-user.target.wants/fedora-atomic-desktop-appstream-cache-refresh.service; \
+    echo "DN47B_METADATA_GATE_OK firmware and appstream catalogues refresh on a schedule"
+
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 
@@ -935,13 +1007,15 @@ RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
              ModemManager.service \
              dnf-makecache.timer rpm-ostree-countme.timer \
              fedora-third-party-refresh.service \
-             fedora-atomic-desktop-appstream-cache-refresh.service \
              fedora-atomic-desktop-mandb-update.service; do \
       systemctl disable "$u" 2>/dev/null || true; \
     done; \
     for u in sshd.service sp-plus.service cups.service firewalld.service \
              plasmalogin.service spplus-relabel.service wsdd.service; do \
       systemctl is-enabled "$u" >/dev/null 2>&1 || { echo "DEBLOAT BROKE $u"; exit 1; }; \
+    done; \
+    for u in fwupd-refresh.timer fedora-atomic-desktop-appstream-cache-refresh.service; do \
+      systemctl is-enabled "$u" >/dev/null 2>&1 || { echo "DEBLOAT BROKE THE UPDATE PATH: $u (DN-47b)"; exit 1; }; \
     done; \
     echo "DEBLOAT_OK enabled_units=$(systemctl list-unit-files --state=enabled --no-legend | grep -c .)"
 
@@ -954,7 +1028,7 @@ RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
 # needs under Wayland). The removal list below is by name so it survives today;
 # the test at the end asserts that, because a future addition to that list which
 # happened to match would silently break Print Screen.
-RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
+RUN for f in baloo_file org.kde.kdeconnect.daemon \
              orca-autostart geoclue-demo-agent org.kde.kunifiedpush-distributor \
              org.kde.xwaylandvideobridge vboxclient vmware-user spice-vdagent; do \
       rm -f "/etc/xdg/autostart/$f.desktop"; \
@@ -963,6 +1037,11 @@ RUN for f in baloo_file org.kde.kdeconnect.daemon org.kde.discover.notifier \
     test -e /etc/xdg/autostart/powerdevil.desktop; \
     test -e /etc/xdg/autostart/polkit-kde-authentication-agent-1.desktop; \
     test ! -e /etc/xdg/autostart/baloo_file.desktop; \
+    # DN-47. The store's own notifier is how a normal Plasma desktop tells you an
+    # update is waiting. It used to be on the removal list above and only survived
+    # by accident, because a later dnf install pulled plasma-discover-notifier back
+    # in and restored the file. Ship it on purpose.
+    test -e /etc/xdg/autostart/org.kde.discover.notifier.desktop; \
     test ! -e /etc/xdg/autostart/flameshot-daemon.desktop; \
     echo "AUTOSTART_OK count=$(ls /etc/xdg/autostart/ | wc -l)"
 
@@ -1041,6 +1120,8 @@ COPY config/spplus-flatpak-update.timer   /usr/lib/systemd/system/spplus-flatpak
 
 RUN systemctl enable spplus-flatpak-update.timer \
  && test -L /etc/systemd/system/timers.target.wants/spplus-flatpak-update.timer \
+ && grep -q '^ExecStart=/usr/bin/flatpak update --appstream --system --noninteractive -y$' \
+      /usr/lib/systemd/system/spplus-flatpak-update.service \
  && grep -q '^ExecStart=/usr/bin/flatpak update --system --noninteractive -y$' \
       /usr/lib/systemd/system/spplus-flatpak-update.service \
  && grep -q '^Persistent=true$' /usr/lib/systemd/system/spplus-flatpak-update.timer \

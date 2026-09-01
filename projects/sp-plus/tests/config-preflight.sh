@@ -427,6 +427,58 @@ grep -qF 'PI_PIN_GATE_OK' "$PICF" \
   && ok "Pi is pinned to one exact literal ($PI_PIN), read back, and npm is gone" \
   || bad "Pi pin gate failed" "a floating agent version is not reproducible and not auditable"
 
+# P-15d  DN-47 update permissions. Measured with pkcheck against the live
+# plasmashell process on the test VM: with only Fedora's stock rules in place,
+# org.projectatomic.rpmostree1.finalize-deployment and .deploy both returned
+# auth_admin_keep. That is a password box on the last step of an OS update, in
+# front of an advisor whose password was chosen once by the first-boot wizard.
+# The store could look for an update and download one, and then dead-end.
+DN47R="$REPO/projects/sp-plus/config/49-sp-plus-updates.rules"
+DN47CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN47_OK=1
+[ -f "$DN47R" ] || { DN47_OK=0; echo "       missing $DN47R"; }
+if [ -f "$DN47R" ]; then
+  # The guard is the session, not the verb. All three, or an SSH login inherits
+  # the update verbs.
+  for guard in 'subject.active' 'subject.local' 'isInGroup("wheel")'; do
+    grep -qF "$guard" "$DN47R" \
+      || { DN47_OK=0; echo "       rules file does not require $guard"; }
+  done
+  # finalize-deployment is the whole reason the file exists.
+  for verb in org.projectatomic.rpmostree1.finalize-deployment \
+              org.projectatomic.rpmostree1.deploy \
+              org.freedesktop.Flatpak.appstream-update \
+              org.freedesktop.fwupd.refresh-remote; do
+    grep -qF "$verb" "$DN47R" \
+      || { DN47_OK=0; echo "       rules file does not grant $verb"; }
+  done
+  # Layering permanently marks the deployment incompatible and kills `bootc
+  # upgrade` for good. It must never be one click away in the store.
+  for forbidden in install-uninstall-packages install-local-packages override repo-modify; do
+    grep -q "rpmostree1.$forbidden" "$DN47R" \
+      && { DN47_OK=0; echo "       rules file grants rpm-ostree $forbidden; layering breaks bootc upgrade"; }
+  done
+fi
+# An update the machine cannot SEE is an update that does not exist. The 5b
+# debloat pass used to switch the appstream refresh off; if it ever does again,
+# the store's catalogue silently stops being refreshed by anything.
+grep -q 'fedora-atomic-desktop-appstream-cache-refresh.service \\' "$DN47CF" \
+  && { DN47_OK=0; echo "       Containerfile still disables the appstream cache refresh (DN-47b)"; }
+grep -qF 'org.kde.discover.notifier' "$DN47CF" \
+  || { DN47_OK=0; echo "       the store's own update notifier is not asserted present"; }
+for marker in DN47_POLKIT_GATE_OK DN47B_METADATA_GATE_OK; do
+  grep -qF "$marker" "$DN47CF" \
+    || { DN47_OK=0; echo "       Containerfile has no $marker build gate"; }
+done
+# The catalogue refresh is a separate flatpak invocation; `flatpak update` alone
+# never touches it.
+grep -qF 'flatpak update --appstream --system' \
+  "$REPO/projects/sp-plus/config/spplus-flatpak-update.service" \
+  || { DN47_OK=0; echo "       nothing refreshes the Flatpak catalogue outside Discover"; }
+[ "$DN47_OK" -eq 1 ] \
+  && ok "DN-47 the advisor can finish an update in all three lanes, and each lane's catalogue is refreshed" \
+  || bad "DN-47 update permissions gate failed" "a store that dead-ends at a password box teaches the advisor that updating does not work"
+
 # P-16  DN-36 wifi powersave. The value reads BACKWARDS: NetworkManager's
 # wifi.powersave is 0=default 1=ignore 2=disable 3=enable, so 2 disables power
 # saving and 3 would enable it. A well-meaning "fix" to 3 would silently

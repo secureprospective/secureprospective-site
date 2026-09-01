@@ -1,0 +1,91 @@
+// SP+ — DN-47. The advisor may complete an update without a password prompt.
+//
+// WHY THIS EXISTS. Fedora's stock policy assumes a machine with a separate
+// administrator: the store may LOOK for updates freely, but the verbs that
+// finish one -- rpm-ostree finalize-deployment, fwupd update-internal, a
+// Flatpak system install -- default to auth_admin_keep. On an ordinary desktop
+// that is a prompt someone answers. On SP+ it is a dead end. SP+ ships no
+// account at all (DN-13); the advisor's password is chosen once by the
+// first-boot wizard and is not something a non-technical user reliably
+// remembers months later. A store that opens, lists updates and then stops at a
+// password box is worse than no store, because it teaches the advisor that
+// updating does not work.
+//
+// This is the same bargain already struck in sudoers-sp-plus, written once at
+// the rules level rather than per application. It grants nothing the advisor,
+// as the owner of the machine, does not already have via sudo. It removes a
+// prompt, not a boundary.
+//
+// THE GUARD IS THE SESSION, NOT THE VERB. Every grant below requires
+// subject.active && subject.local && wheel: someone sitting at an unlocked
+// session on this machine. SSH sessions are neither active nor local and get
+// nothing from this file. An unattended machine is protected by being locked
+// and by LUKS, not by a prompt.
+//
+// DELIBERATELY NOT GRANTED, and each for a reason:
+//   rpm-ostree install-uninstall-packages / install-local-packages / override /
+//     repo-modify -- package layering permanently marks the deployment
+//     incompatible and breaks `bootc upgrade` for good. SP+ updates by image.
+//   fwupd set-bios-settings / fix-host-security-attr / self-sign -- firmware
+//     policy changes are not update operations.
+//   Flatpak override-parental-controls -- stays auth_admin by design.
+
+polkit.addRule(function(action, subject) {
+    if (!(subject.active && subject.local && subject.isInGroup("wheel"))) {
+        return polkit.Result.NOT_HANDLED;
+    }
+
+    var allowed = [
+        // The OS image lane. `upgrade` and `repo-refresh` are already allowed by
+        // the stock rules; `deploy`, `rebase` and above all `finalize-deployment`
+        // are not, and finalize is the verb that actually puts a staged update in
+        // place -- the last step of the only lane that was still blocked.
+        "org.projectatomic.rpmostree1.upgrade",
+        "org.projectatomic.rpmostree1.deploy",
+        "org.projectatomic.rpmostree1.rebase",
+        "org.projectatomic.rpmostree1.finalize-deployment",
+        "org.projectatomic.rpmostree1.repo-refresh",
+        "org.projectatomic.rpmostree1.rollback",
+        "org.projectatomic.rpmostree1.cleanup",
+        "org.projectatomic.rpmostree1.cancel",
+        "org.projectatomic.rpmostree1.reload-daemon",
+        "org.projectatomic.rpmostree1.client-management",
+        "org.projectatomic.rpmostree1.bootconfig",
+
+        // The firmware lane. Applying an update and keeping LVFS metadata fresh.
+        "org.freedesktop.fwupd.update-internal",
+        "org.freedesktop.fwupd.update-hotplug",
+        "org.freedesktop.fwupd.downgrade-internal",
+        "org.freedesktop.fwupd.downgrade-hotplug",
+        "org.freedesktop.fwupd.device-activate",
+        "org.freedesktop.fwupd.device-unlock",
+        "org.freedesktop.fwupd.get-remotes",
+        "org.freedesktop.fwupd.refresh-remote",
+        "org.freedesktop.fwupd.enable-remote",
+        "org.freedesktop.fwupd.modify-remote",
+        "org.freedesktop.fwupd.modify-device",
+
+        // The application lane. The stock Fedora rules cover install and
+        // uninstall for wheel but stop short of the catalogue verbs, so
+        // `flatpak update --appstream` fails with "DeployAppstream not allowed
+        // for user" and the store's list of what is updatable goes stale.
+        "org.freedesktop.Flatpak.app-install",
+        "org.freedesktop.Flatpak.runtime-install",
+        "org.freedesktop.Flatpak.app-uninstall",
+        "org.freedesktop.Flatpak.runtime-uninstall",
+        "org.freedesktop.Flatpak.app-update",
+        "org.freedesktop.Flatpak.runtime-update",
+        "org.freedesktop.Flatpak.install-bundle",
+        "org.freedesktop.Flatpak.appstream-update",
+        "org.freedesktop.Flatpak.metadata-update",
+        "org.freedesktop.Flatpak.update-remote",
+        "org.freedesktop.Flatpak.configure-remote",
+        "org.freedesktop.Flatpak.modify-repo"
+    ];
+
+    if (allowed.indexOf(action.id) !== -1) {
+        return polkit.Result.YES;
+    }
+
+    return polkit.Result.NOT_HANDLED;
+});
