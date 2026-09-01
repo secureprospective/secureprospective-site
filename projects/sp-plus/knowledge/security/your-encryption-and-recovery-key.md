@@ -1,52 +1,43 @@
-# Your Encryption and Recovery Key
+# Your encryption and recovery key
 
-This page explains the two most important pieces of security on your computer in plain terms, and helps you fix the most common mistake advisors make with them.
+The checked SP+ virtual machine uses encrypted storage but does not demonstrate older guidance's recovery-key or automatic-unlock setup. Do not assume SP+ gave you a startup PIN or recovery code.
 
-## What encryption does for you
+## What was checked
 
-Everything stored on this computer is scrambled using strong encryption. The unscrambling key exists only on your side of the screen: your PIN at startup and your login password after that.
+The test machine has LUKS2 encrypted storage. Its `/var` area, which holds home folders and work files, is inside it. `/boot` is outside it. Not every part of the disk is encrypted.
 
-What this means in practice:
+Disk encryption protects stored data only while the computer is powered off and the encrypted volume is locked. It does not protect an unlocked computer, a copied or sent file, or the only copy of a deleted file.
 
-- **Laptop stolen from a car**: thief gets expensive junk. The files are unreadable without your PIN.
-- **Computer lost on a trip**: same story.
-- **Old computer retired or recycled**: the data cannot be pulled off the drive by whoever receives it. Wiping keys or keeping the recovery key safe finishes the job.
+This was checked on a virtual machine, not through a real installation or on your hardware. The actual layout, passphrase prompt, and hardware security chip still need testing.
 
-Client Social Security numbers, account statements, medical information in emails: none of it is legible to anyone holding the hardware.
+## Three different secrets
 
-## The two keys, and how they differ
+A **disk passphrase** unlocks encrypted storage during startup if one was set when the computer was installed. A **login password** opens your desktop session after startup. They have different jobs and should not be treated as interchangeable.
 
-| | Startup PIN | Recovery key |
-|---|---|---|
-| What it is | A code you chose during setup | A long machine-generated code shown once |
-| Used when | Every normal startup | Only rare exceptions |
-| Looks like | Something you can remember | A long block of random characters |
-| If forgotten | Recoverable through support processes | Cannot be guessed; without it, encrypted data stays locked forever |
+A **recovery key** is a separate emergency secret. It is useful only when a specific setup process has created it and told you how it works. It is not your login password, not a short PIN, and not a code you should invent from a hint on screen.
 
-The startup PIN unlocks the disk each morning; then your usual login password takes over for the session. Two quick codes, both yours alone.
+## Recovery-key status in this release
 
-## When you would need the recovery key
+The image has encryption tools but no verified SP+ process that creates, displays, records, or replaces a recovery key. On the checked virtual machine, the encrypted volume had one key slot, no recovery token, and no hardware security chip.
 
-Rarely: usually after some major update changes the startup chain enough that the security chip wants human confirmation before releasing its secret. The full walkthrough lives here: [The computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md).
+That does not prove another computer was never configured differently. It does mean that this manual cannot promise a machine-generated key, TPM-based automatic startup unlocking, or support-led key replacement. Do not run encryption commands yourself to try to add a key. A mistake can make the data permanently inaccessible.
 
-## Storing the key properly: do this today
+## If you were given a recovery key
 
-The single worst outcome with encryption is not theft. It is losing the one key that unlocks your own data. Store the recovery key so that all of these are true:
+Treat it like a master key to the encrypted files. Keep it away from the computer, identify which computer it belongs to, and store it in a location your practice has approved. Do not put the only copy in a local document, email it, paste it into Fin, or send it to support.
 
-1. **Away from this computer.** Not in a file on the machine, not in a photo of the screen still sitting in your phone's camera roll next to the laptop it unlocks. The key protects against computer-level loss; storing it on the same computer cancels itself out.
-2. **Physically secure.** Printed and placed in a home safe, a lockbox, or a bank safe-deposit box. Paper survives things computers do not.
-3. **Findable by someone you trust if you cannot be.** An emergency should not turn into a lockout because only you knew where the paper was.
+A recovery key should be recorded when it is issued, not reconstructed from memory after a lockout. If you do not know whether one was issued, ask the person who set up the computer while it still starts normally.
 
-Good options, roughly in order:
+## If startup asks for a key
 
-- Print it, store it in a fireproof home safe.
-- Print it, deposit it with your attorney or in a bank box alongside your will documents.
-- A password manager entry in Bitwarden works as a secondary copy, but keep a physical copy too: if the day comes when you need this key, it may be because computers have failed you.
+Read the screen. Do not guess repeatedly, enter your login password as a recovery key, or follow instructions from an unexpected caller or webpage. If the computer is working, record the exact wording and ask for human help before changing encryption settings. If it is already locked, use [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md).
 
-If you never wrote it down, or cannot find it now: treat this as urgent but fixable. Support can guide replacing the recovery key with a new one while the computer is working normally. Doing that requires access to a functioning machine; waiting until something breaks removes that option.
+## Encryption is not a backup or a privacy policy
+
+Encryption cannot recover a file that was deleted, a drive that failed, or a document sent to the wrong recipient. It also does not control what leaves through email, websites, cloud storage, printing, or an AI provider. Keep tested backups and make a deliberate decision before sending client information.
 
 ## Related pages
 
 - [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md)
-- [Screen lock and privacy](screen-lock-and-privacy.md)
-- [Security Evidence Report](../advisor-help/security-evidence-report.md)
+- [Backups: a working copy, not a wish](../files/backups.md)
+- [What leaves this computer](what-leaves-this-computer.md)
