@@ -5,6 +5,21 @@
   // advisor FINDS has to be identical in both, so the deciding logic is
   // shared rather than reimplemented on each side.
   const H = window.SPPlusHelp;
+
+  // The single page -> shell channel. Setting document.title fires
+  // titleChanged, which welcome.py parses; the title is reset in the SAME
+  // task so every request is a real transition.
+  //
+  // This used to reset in the RESULT handler instead. When a result never
+  // arrived the title stayed on the request, so clicking the same button
+  // again assigned an identical string, titleChanged never fired, and the
+  // control was silently dead with nothing on screen to say so.
+  //
+  // Resetting immediately is safe: QtWebEngine delivers titleChanged for
+  // BOTH assignments made in one task. Verified on the test VM 2026-09-01
+  // (Qt/QWebEngine, Plasma 6 Wayland) -- the request title was observed by
+  // the shell before the reset.
+  function send(title){ document.title = title; document.title = 'SP+ Welcome'; }
   // Help sits after "Bring Fin into your work": the help screen offers to
   // hand the advisor to Fin, which only makes sense once Fin exists for them.
   const HELP_SCREEN = 5;
@@ -30,7 +45,6 @@
   // exist. Saying plainly that the desktop is unchanged is both true and less
   // alarming than a stranger's choice made on their behalf.
   let selectedTheme = '';
-  let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
   const screenCount = screens.length;
   const routeCount = routes.length;
   const names = ['WELCOME','CHOOSE YOUR LOOK','YOUR DESKTOP MAP','CONNECT YOUR OFFICE','YOUR SERVICES','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
@@ -165,7 +179,7 @@
     if (servicePending[service]) return;
     if (force) serviceCache[service] = null;
     renderServicePending(service);
-    document.title = `spplus:service-capabilities?service=${encodeURIComponent(service)}${force ? '&retry=1' : ''}`;
+    send(`spplus:service-capabilities?service=${encodeURIComponent(service)}${force ? '&retry=1' : ''}`);
   }
   function finishServiceCapability(payload) {
     const service = payload && payload.service;
@@ -173,7 +187,6 @@
     servicePending[service] = false;
     serviceCache[service] = payload;
     renderServiceResult(service, payload);
-    document.title = 'SP+ Welcome';
   }
   const serviceUrls = {
     files: 'https://cloud.secureprospective.com',
@@ -226,10 +239,9 @@
       announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY YET. CHOOSE RETRY FIRST.`, 'stub');
       return;
     }
-    document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=browser`;
+    send(`spplus:open-service?service=${encodeURIComponent(service)}&action=browser`);
   }
   function finishServiceOpen(result) {
-    document.title = 'SP+ Welcome';
     const message = result && result.message;
     if (!result || !result.ok) {
       if (servicePanelResult) servicePanelResult.textContent = message || 'The browser could not be opened. Welcome is still here.';
@@ -284,14 +296,12 @@
     askInput.disabled = false;
     askSubmit.disabled = false;
     askForm.setAttribute('aria-busy', 'false');
-    document.title = 'SP+ Welcome';
   }
   function finishAsk(result) {
     if (askTimer) { clearTimeout(askTimer); askTimer = null; }
     askInput.disabled = false;
     askSubmit.disabled = false;
     askForm.setAttribute('aria-busy', 'false');
-    document.title = 'SP+ Welcome';
     if (result && result.ok && result.answer) {
       showAskFeedback(result.answer, 'answer');
       announce('FIN ANSWERED YOUR QUESTION.');
@@ -330,8 +340,7 @@
   // did nothing visible.
   function finishSetup(){
     announce('OPENING YOUR DESKTOP.', '');
-    document.title = 'spplus:finish';
-    setTimeout(() => { document.title = 'SP+ Welcome'; }, 400);
+    send('spplus:finish');
   }
   next.addEventListener('click', () => { if(current===screenCount-1){ finishSetup(); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
@@ -372,7 +381,6 @@
     if (themeApplying) return;
     themePreview.hidden = true;
     document.body.classList.remove('theme-preview-open');
-    document.title = 'SP+ Welcome';
     if (previewFocus && typeof previewFocus.focus === 'function') previewFocus.focus();
     previewFocus = null;
     previewCard = null;
@@ -473,7 +481,7 @@
     setPreviewResult('Applying the package, saving the current panel, and checking that the change landed.', 'working');
     announce(`APPLYING ${label} TO THE WHOLE DESKTOP...`);
     // The shell watches the title. Navigating instead would replace the page.
-    document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(previewCard.dataset.lnf) + `&layout=${layout}`;
+    send('spplus:apply-theme?theme=' + encodeURIComponent(previewCard.dataset.lnf) + `&layout=${layout}`);
   });
   const toolActions = [...document.querySelectorAll('.tool-action')];
   let activeTool = null;
@@ -498,7 +506,7 @@
     toolActions.forEach(item => { if (item !== button) item.disabled = true; });
     setToolState(button, 'working');
     announce(`ADDING ${toolLabel(button).toUpperCase()}. THIS MAY TAKE A FEW MINUTES. WELCOME WILL STAY AVAILABLE.`);
-    document.title = 'spplus:install?app=' + encodeURIComponent(button.dataset.appId);
+    send('spplus:install?app=' + encodeURIComponent(button.dataset.appId));
   }
   toolActions.forEach(button => {
     setToolState(button, button.dataset.state || 'idle');
@@ -512,7 +520,6 @@
       activeTool = null;
       toolActions.forEach(item => { item.disabled = item.dataset.state === 'installed'; });
     }
-    document.title = 'SP+ Welcome';
     if (result && result.ok) {
       announce((result.message || `${name} is ready to use on this computer.`).toUpperCase());
       updateFinalTools();
@@ -523,7 +530,6 @@
   function finishStore(result) {
     const button = document.querySelector('[data-store-action]');
     if (button) button.disabled = false;
-    document.title = 'SP+ Welcome';
     if (result && result.ok) announce(result.message || 'Discover is open. Welcome is still here when you need it.');
     else announce((result && result.message) || 'Flathub is not available right now, so Discover was not opened.', 'stub');
   }
@@ -569,13 +575,12 @@
     if (finResult) finResult.textContent = (result && result.message) || 'Fin could not be opened. Welcome is still here.';
     announce((result && result.message) || 'FIN COULD NOT BE OPENED. WELCOME IS STILL HERE.', result && result.ok ? '' : 'stub');
     if (result && result.ok) document.getElementById('final-fin').textContent = 'OPEN OR READY / /LOGIN IF ASKED';
-    document.title = 'SP+ Welcome';
   }
   finButton.addEventListener('click', () => {
     finButton.disabled = true;
     if (finResult) finResult.textContent = 'Opening Fin in its own window. Welcome will stay available.';
     announce('OPENING FIN. WELCOME WILL STAY AVAILABLE.');
-    document.title = 'spplus:launch-fin';
+    send('spplus:launch-fin');
   });
   const checkButton = document.getElementById('fin-check');
   const checkResultEl = document.getElementById('check-result');
@@ -593,13 +598,12 @@
     // A machine that cannot update looks completely normal from the desktop,
     // so an unhealthy result must READ as a problem, not as a quiet success.
     announce(msg.toUpperCase(), (result && result.ok && result.healthy) ? '' : 'stub');
-    document.title = 'SP+ Welcome';
   }
   if (checkButton) checkButton.addEventListener('click', () => {
     checkButton.disabled = true;
     if (checkResultEl) checkResultEl.textContent = 'Fin is checking this computer. Nothing will be changed.';
     announce('FIN IS CHECKING THIS COMPUTER. NOTHING WILL BE CHANGED.');
-    document.title = 'spplus:check-computer';
+    send('spplus:check-computer');
   });
   const emailButton = document.getElementById('email-connect');
   const emailResult = document.getElementById('email-result');
@@ -609,14 +613,13 @@
     if (emailResult) emailResult.textContent = (result && result.message) || 'Email could not be opened this time.';
     updateOfficeSummary();
     announce((result && result.message) || 'EMAIL COULD NOT BE OPENED THIS TIME.', result && result.ok ? '' : 'stub');
-    document.title = 'SP+ Welcome';
   }
   emailButton.addEventListener('click', () => {
     const provider = document.querySelector('input[name="email"]:checked')?.value || 'other';
     emailButton.disabled = true;
     if (emailResult) emailResult.textContent = 'Opening your provider page. SP+ will not ask for your email password.';
     announce('OPENING THE PROVIDER SIGN-IN PAGE. SP+ NEVER HANDLES YOUR EMAIL PASSWORD.');
-    document.title = 'spplus:connect-email?provider=' + encodeURIComponent(provider);
+    send('spplus:connect-email?provider=' + encodeURIComponent(provider));
   });
   const shareButton = document.getElementById('share-check');
   const shareResult = document.getElementById('share-result');
@@ -626,7 +629,6 @@
     if (shareResult) shareResult.textContent = (result && result.message) || 'The folder could not be checked this time.';
     updateOfficeSummary();
     announce((result && result.message) || 'THE FOLDER COULD NOT BE CHECKED THIS TIME.', result && result.ok ? '' : 'stub');
-    document.title = 'SP+ Welcome';
   }
   shareButton.addEventListener('click', () => {
     const server = document.getElementById('share-server').value.trim();
@@ -641,7 +643,7 @@
     if (shareResult) shareResult.textContent = 'Checking the folder through the desktop connection service. No permanent mount will be left behind.';
     announce('CHECKING THE SHARED FOLDER. NO PERMANENT MOUNT WILL BE LEFT BEHIND.');
     const save = document.getElementById('share-save').checked;
-    document.title = 'spplus:check-share?server=' + encodeURIComponent(server) + '&folder=' + encodeURIComponent(folder) + '&username=' + encodeURIComponent(username) + '&save=' + save;
+    send('spplus:check-share?server=' + encodeURIComponent(server) + '&folder=' + encodeURIComponent(folder) + '&username=' + encodeURIComponent(username) + '&save=' + save);
   });
   const printerButton = document.getElementById('printer-test');
   const printerResult = document.getElementById('printer-result');
@@ -651,20 +653,19 @@
     if (printerResult) printerResult.textContent = (result && result.message) || 'The printer test did not complete this time.';
     updateOfficeSummary();
     announce((result && result.message) || 'THE PRINTER TEST DID NOT COMPLETE THIS TIME.', result && result.ok ? '' : 'stub');
-    document.title = 'SP+ Welcome';
   }
   printerButton.addEventListener('click', () => {
     printerButton.disabled = true;
     if (printerResult) printerResult.textContent = 'Checking the print service and the configured printer before sending one page.';
     announce('CHECKING THE PRINT SERVICE FIRST. EXACTLY ONE PAGE WILL BE SENT IF A PRINTER IS READY.');
-    document.title = 'spplus:print-test';
+    send('spplus:print-test');
   });
   document.querySelector('[data-store-action]').addEventListener('click', event => {
     const button = event.currentTarget;
     if (button.disabled) return;
     button.disabled = true;
     announce('CHECKING FLATHUB. DISCOVER WILL OPEN ONLY IF IT IS READY.');
-    document.title = 'spplus:browse-store';
+    send('spplus:browse-store');
   });
   document.getElementById('no-show').addEventListener('change', event => { localStorage.setItem('spplus-welcome-no-show', event.target.checked ? 'true' : 'false'); announce(event.target.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.'); });
   askForm.addEventListener('submit', event => {
@@ -681,7 +682,7 @@
     askForm.setAttribute('aria-busy', 'true');
     showAskFeedback('FIN IS THINKING. YOUR QUESTION IS WITH FIN.', 'pending');
     announce('FIN IS THINKING. YOUR QUESTION IS WITH FIN.');
-    document.title = 'spplus:ask?q=' + encodeURIComponent(question);
+    send('spplus:ask?q=' + encodeURIComponent(question));
     askTimer = setTimeout(() => finishAsk({ok:false, reason:'Fin did not respond.'}), 125000);
   });
 
@@ -810,12 +811,11 @@
       pinHelp.setAttribute('aria-busy','true');
       pinHelp.textContent='PINNING...';
       if(pinHelpResult) pinHelpResult.textContent='Putting Help on your task bar.';
-      document.title='spplus:pin-help';
+      send('spplus:pin-help');
     });
   }
   function finishPinHelp(result){
     pinning=false;
-    document.title='SP+ Welcome';
     if(!pinHelp) return;
     pinHelp.setAttribute('aria-busy','false');
     const ok=result&&result.ok;
@@ -873,7 +873,6 @@
       const detail = document.getElementById('theme-detail');
       const samePreview = previewCard && result && result.theme === previewCard.dataset.lnf;
       themeApplying = false;
-      document.title = 'SP+ Welcome';
       if (result && result.ok) {
         themeCards.forEach(item => {
           const selected = item.dataset.lnf === result.theme;

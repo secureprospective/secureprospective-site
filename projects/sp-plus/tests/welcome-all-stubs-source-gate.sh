@@ -21,17 +21,17 @@ grep -qF "parsed.path == 'launch-fin'" "$PY" || fail 'launch-fin bridge verb mis
 grep -qF "parsed.path == 'connect-email'" "$PY" || fail 'connect-email bridge verb missing'
 grep -qF "parsed.path == 'check-share'" "$PY" || fail 'check-share bridge verb missing'
 grep -qF "parsed.path == 'print-test'" "$PY" || fail 'print-test bridge verb missing'
-grep -qF "document.title = 'spplus:launch-fin'" "$JS" || fail 'Fin title bridge missing'
-grep -qF "document.title = 'spplus:connect-email?provider='" "$JS" || fail 'email title bridge missing'
-grep -qF "document.title = 'spplus:check-share?server='" "$JS" || fail 'share title bridge missing'
-grep -qF "document.title = 'spplus:print-test'" "$JS" || fail 'printer title bridge missing'
+grep -qF "send('spplus:launch-fin')" "$JS" || fail 'Fin title bridge missing'
+grep -qF "send('spplus:connect-email?provider='" "$JS" || fail 'email title bridge missing'
+grep -qF "send('spplus:check-share?server='" "$JS" || fail 'share title bridge missing'
+grep -qF "send('spplus:print-test')" "$JS" || fail 'printer title bridge missing'
 grep -qF 'finResult: finishFin' "$JS" || fail 'Fin callback missing'
 grep -qF 'emailResult: finishEmail' "$JS" || fail 'email callback missing'
 grep -qF 'shareResult: finishShare' "$JS" || fail 'share callback missing'
 grep -qF 'printerResult: finishPrinter' "$JS" || fail 'printer callback missing'
 # The password is read from the page only after the title event. It must never be
 # encoded into the title query, where it would be visible as window metadata.
-share_title=$(grep "document.title = 'spplus:check-share?server='" "$JS")
+share_title=$(grep "send('spplus:check-share?server='" "$JS")
 [[ "$share_title" != *password* ]] || fail 'share password is exposed in the title bridge'
 grep -qF 'share-password' "$PY" || fail 'share password handoff is missing'
 grep -qF 'Gio.PasswordSave.NEVER' "$PY" || fail 'secure-save opt-out is missing'

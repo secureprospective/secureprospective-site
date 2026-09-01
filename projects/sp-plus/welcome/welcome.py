@@ -1041,32 +1041,71 @@ class WelcomeBridge(QObject):
     def __init__(self, view):
         super().__init__()
         self.view = view
-        self._ask_workers = set()
-        self._tool_workers = set()
-        self._store_workers = set()
-        self._fin_workers = set()
-        self._check_workers = set()
-        self._email_workers = set()
-        self._share_workers = set()
-        self._printer_workers = set()
-        self._theme_workers = set()
-        self._service_workers = set()
-        self._pin_workers = set()
+        # ONE set for every worker family. There used to be eleven, each with
+        # its own spawn method, its own cleanup slot and its own send-result
+        # one-liner. Ten of the eleven discarded the worker inside the
+        # result_ready slot -- exactly what destroys a live QThread (see
+        # _dispatch). The race had been found and fixed once, for the service
+        # worker alone, and never propagated, so adding a feature meant
+        # copying the broken lifecycle rather than the fixed one.
+        self._workers = set()
+        # Genuinely per-verb policy, and nothing else: the last capability
+        # payload per service, and the one-apply-at-a-time rule for themes.
         self._service_cache = {}
+        self._theme_active = False
         view.titleChanged.connect(self.on_title)
 
-    def _worker_sets(self):
-        return (self._ask_workers, self._tool_workers, self._store_workers,
-                self._fin_workers, self._check_workers, self._email_workers,
-                self._share_workers, self._printer_workers, self._theme_workers,
-                self._service_workers, self._pin_workers)
+    def _send(self, sink, payload):
+        """Hand one payload to the page. The single shell -> page channel."""
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.{sink}({encoded})')
+
+    def _dispatch(self, worker, sink, on_result=None):
+        """Start one worker and route its payload to the page.
+
+        The single worker lifecycle. The worker is held in self._workers until
+        QThread.finished, NOT until result_ready: result_ready is emitted at
+        the end of run(), and a queued delivery can arrive while the thread is
+        still unwinding. Dropping the last Python reference at that point
+        destroys a running QThread, which makes Qt abort the process with
+
+            QThread: Destroyed while thread '' is still running
+
+        followed by SIGABRT. Cleanup therefore runs from finished, on the
+        Qt/UI thread. Because every family now goes through here, that
+        guarantee cannot be lost again by a copy that forgets it.
+
+        on_result(worker, payload) may rewrite the payload before it reaches
+        the page, or return None to suppress the send.
+        """
+        self._workers.add(worker)
+        worker.result_ready.connect(
+            lambda w, payload: self._deliver(sink, w, payload, on_result))
+        worker.finished.connect(self._reap_workers)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    def _deliver(self, sink, worker, payload, on_result):
+        if on_result is not None:
+            payload = on_result(worker, payload)
+            if payload is None:
+                return
+        self._send(sink, payload)
+
+    @Slot()
+    def _reap_workers(self):
+        """Drop finished workers. Runs on the Qt/UI thread, from finished."""
+        for worker in list(self._workers):
+            if not worker.isRunning():
+                self._workers.discard(worker)
 
     @Slot()
     def shutdown(self):
         """Let every running worker finish before the interpreter tears down.
 
         Every worker here is a QThread owned by this bridge. When the
-        application quits, Python drops the bridge and its worker sets; a
+        application quits, Python drops the bridge and its worker set; a
         QThread object destroyed while its thread is still running makes Qt
         abort the process with
 
@@ -1081,18 +1120,15 @@ class WelcomeBridge(QObject):
         The workers wrap subprocesses that carry their own time limits, so
         there is nothing to interrupt -- the correct move is to wait for them.
         Each is given a bound slightly past the longest worker time limit. A
-        thread that somehow outlasts even that is parked at module scope rather
-        than destroyed, because leaking one thread object is a correct program
-        that exits, and destroying it is not.
+        thread that somehow outlasts even that is parked at module scope
+        rather than destroyed, because leaking one thread object is a correct
+        program that exits, and destroying it is not.
         """
         bound_ms = int((THEME_APPLY_TIMEOUT + 30) * 1000)
-        for workers in self._worker_sets():
-            for worker in list(workers):
-                if not worker.isRunning():
-                    continue
-                if not worker.wait(bound_ms):
-                    _PARKED_WORKERS.append(worker)
-            workers.clear()
+        for worker in list(self._workers):
+            if worker.isRunning() and not worker.wait(bound_ms):
+                _PARKED_WORKERS.append(worker)
+        self._workers.clear()
 
     def on_title(self, title):
         if not title.startswith(self.PREFIX):
@@ -1167,48 +1203,27 @@ class WelcomeBridge(QObject):
         elif parsed.path == 'finish':
             self.finish()
 
-    def _send_service_result(self, payload):
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.serviceResult({encoded})')
-
     def request_service_capability(self, service, retry=False):
         if service not in SERVICE_ENDPOINTS:
             return
         if retry:
             self._service_cache.pop(service, None)
         elif service in self._service_cache:
-            self._send_service_result(self._service_cache[service])
+            self._send('serviceResult', self._service_cache[service])
             return
-        if any(worker.service == service for worker in self._service_workers):
+        if any(isinstance(worker, ServiceCapabilityWorker) and
+               worker.service == service for worker in self._workers):
             return
-        worker = ServiceCapabilityWorker(service)
-        self._service_workers.add(worker)
-        worker.result_ready.connect(self._service_finished)
-        # Keep the worker in the owning set until QThread has emitted finished.
-        # result_ready is emitted at the end of run(), but a queued delivery can
-        # arrive while the thread is still unwinding. Dropping the last Python
-        # reference from _service_finished at that point destroys a live
-        # QThread and aborts the process during teardown. The bound bridge slot
-        # keeps cleanup on the Qt/UI thread rather than in the worker thread.
-        worker.finished.connect(self._service_threads_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
+        self._dispatch(ServiceCapabilityWorker(service), 'serviceResult',
+                       self._cache_service_result)
 
-    @Slot()
-    def _service_threads_finished(self):
-        for worker in list(self._service_workers):
-            if not worker.isRunning():
-                self._service_workers.discard(worker)
-
-    @Slot(object, object)
-    def _service_finished(self, worker, payload):
+    def _cache_service_result(self, worker, payload):
         self._service_cache[worker.service] = payload
-        self._send_service_result(payload)
+        return payload
 
     def open_service(self, service, action):
         if service not in SERVICE_URLS or action != 'browser':
-            self._send_service_open_result({
+            self._send('serviceOpenResult', {
                 'ok': False,
                 'service': service,
                 'action': action,
@@ -1237,54 +1252,16 @@ class WelcomeBridge(QObject):
                 'action': action,
                 'message': 'The browser could not be opened. Welcome is still here.',
             }
-        self._send_service_open_result(payload)
-
-    def _send_service_open_result(self, payload):
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.serviceOpenResult({encoded})')
+        self._send('serviceOpenResult', payload)
 
     def ask(self, question):
-        worker = AskWorker(question)
-        self._ask_workers.add(worker)
-        worker.result_ready.connect(self._ask_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _ask_finished(self, worker, payload):
-        self._ask_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.answered({encoded})')
+        self._dispatch(AskWorker(question), 'answered')
 
     def check_computer(self):
-        worker = ComputerCheckWorker()
-        self._check_workers.add(worker)
-        worker.result_ready.connect(self._check_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _check_finished(self, worker, payload):
-        self._check_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.checkResult({encoded})')
+        self._dispatch(ComputerCheckWorker(), 'checkResult')
 
     def launch_fin(self):
-        worker = FinLaunchWorker()
-        self._fin_workers.add(worker)
-        worker.result_ready.connect(self._fin_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _fin_finished(self, worker, payload):
-        self._fin_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.finResult({encoded})')
+        self._dispatch(FinLaunchWorker(), 'finResult')
 
     def finish(self):
         """End setup and leave the advisor on their desktop.
@@ -1298,115 +1275,50 @@ class WelcomeBridge(QObject):
             window.close()
 
     def pin_help(self):
-        worker = PinHelpWorker()
-        self._pin_workers.add(worker)
-        worker.result_ready.connect(self._pin_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _pin_finished(self, worker, payload):
-        self._pin_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.pinHelpResult({encoded})')
+        self._dispatch(PinHelpWorker(), 'pinHelpResult')
 
     def connect_email(self, provider):
-        worker = EmailLaunchWorker(provider)
-        self._email_workers.add(worker)
-        worker.result_ready.connect(self._email_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _email_finished(self, worker, payload):
-        self._email_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.emailResult({encoded})')
+        self._dispatch(EmailLaunchWorker(provider), 'emailResult')
 
     def check_share(self, server, folder, username, password, save_securely):
         if not server or not folder or not username or not password:
-            self.view.page().runJavaScript(
-                "window.spWelcome && window.spWelcome.shareResult({ok:false,message:'Enter the server, folder, username and password so Welcome can check it.'})")
+            self._send('shareResult', {
+                'ok': False,
+                'message': 'Enter the server, folder, username and password so Welcome can check it.'})
             return
-        worker = ShareCheckWorker(server, folder, username, password, save_securely)
-        self._share_workers.add(worker)
-        worker.result_ready.connect(self._share_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _share_finished(self, worker, payload):
-        self._share_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.shareResult({encoded})')
+        self._dispatch(
+            ShareCheckWorker(server, folder, username, password, save_securely),
+            'shareResult')
 
     def print_test(self):
-        worker = PrinterWorker()
-        self._printer_workers.add(worker)
-        worker.result_ready.connect(self._printer_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _printer_finished(self, worker, payload):
-        self._printer_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.printerResult({encoded})')
+        self._dispatch(PrinterWorker(), 'printerResult')
 
     def install_tool(self, app_id):
-        worker = FlatpakInstallWorker(app_id)
-        self._tool_workers.add(worker)
-        worker.result_ready.connect(self._tool_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
-
-    @Slot(object, object)
-    def _tool_finished(self, worker, payload):
-        self._tool_workers.discard(worker)
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.toolResult({encoded})')
+        self._dispatch(FlatpakInstallWorker(app_id), 'toolResult')
 
     def browse_store(self):
-        worker = FlathubCheckWorker()
-        self._store_workers.add(worker)
-        worker.result_ready.connect(self._store_finished)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
+        self._dispatch(FlathubCheckWorker(), 'storeResult', self._open_discover)
 
-    @Slot(object, object)
-    def _store_finished(self, worker, payload):
-        self._store_workers.discard(worker)
+    def _open_discover(self, worker, payload):
+        """Open Discover only once the remote check has actually passed."""
         if not payload.get('ok'):
-            encoded = json.dumps(payload, ensure_ascii=True)
-            self.view.page().runJavaScript(
-                f'window.spWelcome && window.spWelcome.storeResult({encoded})')
-            return
+            return payload
         try:
             subprocess.Popen([DISCOVER], stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              start_new_session=True)
-            payload = {'ok': True, 'message': 'Discover is open. Welcome stays available.'}
+            return {'ok': True, 'message': 'Discover is open. Welcome stays available.'}
         except (OSError, subprocess.SubprocessError):
-            payload = {
+            return {
                 'ok': False,
                 'message': 'Discover could not be opened. Welcome is still available.',
             }
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.storeResult({encoded})')
 
     def _send_theme_result(self, payload):
-        encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.themeApplied({encoded})')
+        self._send('themeApplied', payload)
 
     def apply_theme(self, theme_id, reset_layout, correlation_id):
-        if self._theme_workers:
+        if self._theme_active:
             detail = 'Another theme change is already running. Keep this preview open and wait for it to finish.'
             try:
                 emit_theme_event(
@@ -1428,13 +1340,12 @@ class WelcomeBridge(QObject):
             })
             return
         worker = ThemeApplyWorker(theme_id, reset_layout, correlation_id)
-        self._theme_workers.add(worker)
-        worker.result_ready.connect(self._theme_finished)
-        worker.finished.connect(worker.deleteLater)
+        self._theme_active = True
         try:
-            worker.start()
+            self._dispatch(worker, 'themeApplied', self._theme_done)
         except RuntimeError as exc:
-            self._theme_workers.discard(worker)
+            self._theme_active = False
+            self._workers.discard(worker)
             self._send_theme_result({
                 'ok': False,
                 'detail': f'The theme change could not start: {exc}',
@@ -1443,12 +1354,12 @@ class WelcomeBridge(QObject):
                 'correlation_id': correlation_id,
             })
 
-    @Slot(object, object)
-    def _theme_finished(self, worker, payload):
-        self._theme_workers.discard(worker)
+    def _theme_done(self, worker, payload):
         # Report what the helper actually proved; the page never assumes the
-        # click worked from a process exit code alone.
-        self._send_theme_result(payload)
+        # click worked from a process exit code alone. Clearing the busy flag
+        # here, on the result, keeps the old one-apply-at-a-time semantics.
+        self._theme_active = False
+        return payload
 
 
 class WelcomeWindow(QMainWindow):

@@ -41,9 +41,9 @@ grep -qF "parsed.path == 'install'" "$PY" \
   || fail 'install bridge verb is missing'
 grep -qF "parsed.path == 'browse-store'" "$PY" \
   || fail 'browse-store bridge verb is missing'
-grep -qF "document.title = 'spplus:install?app='" "$JS" \
+grep -qF "send('spplus:install?app='" "$JS" \
   || fail 'install title bridge is missing'
-grep -qF "document.title = 'spplus:browse-store'" "$JS" \
+grep -qF "send('spplus:browse-store')" "$JS" \
   || fail 'browse-store title bridge is missing'
 grep -qF 'toolResult: finishTool' "$JS" \
   || fail 'tool callback is missing'
@@ -55,11 +55,11 @@ grep -qF 'data-app-id="org.signal.Signal"' "$HTML" \
   || fail 'Signal action is missing'
 grep -qF 'data-store-action' "$HTML" \
   || fail 'Discover action is missing'
-[ "$(grep -c 'data-stub=\"Bitwarden install\"' "$HTML")" -eq 0 ] \
+[ "$(grep -c 'data-stub="Bitwarden install"' "$HTML")" -eq 0 ] \
   || fail 'Bitwarden remains a stub'
-[ "$(grep -c 'data-stub=\"Signal Desktop install\"' "$HTML")" -eq 0 ] \
+[ "$(grep -c 'data-stub="Signal Desktop install"' "$HTML")" -eq 0 ] \
   || fail 'Signal remains a stub'
-[ "$(grep -c 'data-stub=\"Flathub setup and Discover\"' "$HTML")" -eq 0 ] \
+[ "$(grep -c 'data-stub="Flathub setup and Discover"' "$HTML")" -eq 0 ] \
   || fail 'Discover remains a stub'
 # What matters is the promise this copy makes, not its exact sentence. Flathub is
 # configured in the image, so the store must read as available now; copy that
