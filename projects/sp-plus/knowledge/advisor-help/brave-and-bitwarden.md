@@ -1,43 +1,44 @@
-# Browser and Passwords
+# Browser and passwords
 
-Your browser is Brave. It looks and behaves like Chrome, because it is built from the same foundation. Everything you do on the web works the same: sign in to Google Workspace or Microsoft 365, your CRM, carrier portals, e-signature, and video calls.
+**Brave** is the web browser on SP+. Use it for the business websites you already rely on. Its built-in password saver and credit-card autofill are deliberately turned off, so a password does not end up copied into several places by accident.
 
-## What was set up for you, and why
+## What the browser is set up not to do
 
-A few browser settings were configured before the computer reached you. You will notice them as things that are simply off:
+Brave's work-computer setup turns off its Rewards, Wallet, VPN, browser AI chat, and several promotional or reporting features. Those are not services you need to turn back on to do normal work. If a website points you toward a browser wallet, an AI chat, or an unfamiliar extension, pause and ask Fin before adding anything.
 
-- **Ads and tracking protections are on.** Fewer trackers means faster pages and less of your activity following you around.
-- **Crypto wallet and rewards features are disabled.** They have no business on a work computer handling client data.
-- **Brave's own AI chatbot is disabled.** The Assistant on this computer is the supported way to get AI help, because it is built to respect client-data boundaries. Browser chatbots are not.
-- **Extensions are locked down.** Only Bitwarden is allowed. This is deliberate: extensions are one of the most common ways browsers get compromised. If you genuinely need another extension for work, raise it with support rather than looking for a workaround.
-- **Your start page is the Advisor Assistant.** One click from anywhere gets you help.
+The browser still opens ordinary websites, webmail, carrier portals, CRMs, e-signature tools, and video calls. A protection being on is not a sign that the site is broken.
 
-To confirm what is set up, you can type `brave://policy` in the address bar. That page lists the managed settings. It exists mostly so support can verify your setup quickly.
+## Passwords need one deliberate home
 
-## Passwords: Bitwarden does the remembering
+The verified SP+ image does **not** include Bitwarden by default. SP+ Welcome offers Bitwarden as an optional addition when your practice wants it. Do not assume it is already installed, signed in, or holding your passwords.
 
-Bitwarden is already installed in your browser and it is the only password tool on this computer. The computer's own "remember my password" prompts are turned off on purpose, so every login lives in one encrypted vault instead of being scattered across two tools.
+Choose one approved password manager and use it consistently. Do not let a browser, a note, and a second password tool all remember the same login. If a site offers to save a password in the browser, decline it and use the password method your practice approved instead.
 
-### Three ideas cover everything
+Never give a password, recovery code, or client account information to Fin. Fin can help with the computer and explain the safe route, but you enter your own sign-in details only into the service you intend to use.
 
-1. **Sign in to Bitwarden once.** That is logging into your vault account with your master password. Do it again only if you ever log out.
-2. **Unlock during the day.** After a period of idle time, the vault locks itself. Unlocking takes seconds and needs your PIN or master password. Locked means protected; it does not mean signed out.
-3. **Autofill does the typing.** On a login page, click the Bitwarden icon in the address bar and choose the account, or press **Ctrl+Shift+L** to fill automatically. It fills the right login for the site you are on.
+## Use Bitwarden only when you are ready
 
-### Good habits
+If your practice uses Bitwarden, add it through **SP+ Welcome** and sign in with your own account when you are ready. Start with one non-sensitive work login so you can confirm that the account and password method are correct before relying on it for every site.
 
-- Let the vault lock itself. Fifteen minutes of idle time is a sensible default. This matters more than it sounds: an unlocked vault is an open diary to anyone at your keyboard, including a client who stepped into your office.
-- When a site asks you to change a password, let Bitwarden generate a long random one and save it. You never need to remember it again.
-- Never save client information in notes outside Bitwarden. If it must be written down, it belongs in the vault, which is encrypted.
+Ask Fin for guidance without sharing the secret itself:
 
-## Private browsing windows
+- **"Fin, my practice uses Bitwarden. Help me add it through SP+ Welcome and tell me what I should check first."**
+- **"Fin, this website wants to save my password in the browser. Explain the approved alternative without asking for my password."**
+- **"Fin, I need a separate browser sign-in for [purpose]. Help me choose the safe route."**
 
-For anything you would not want appearing in history, such as researching on a client's behalf from their perspective, use a Private Window (menu, then "New Private Window"). A private window forgets its cookies and history when closed. It is also useful for signing into two accounts of the same service at once.
+## Before you sign in to a work site
 
-Note what private mode does not do: it does not make you anonymous online, and it does not hide activity from websites themselves. It keeps the local browser clean, nothing more.
+Check the address in the browser before entering a password. Use a bookmark you trust or type the known address yourself. If a page appears suddenly, asks for a password again, or offers a download you did not expect, stop and ask Fin what it is before continuing.
+
+Do not solve a browser problem by installing a random extension, cleaner, or Windows `.exe` file. SP+ has a safer software route, and Fin can help you use it.
+
+## When a site needs something extra
+
+A website may need a browser permission, a video-call setting, or approved software. Describe the outcome to Fin rather than guessing at a download: **"Fin, this work site needs [thing]. Check what is safe on this computer before I install or allow it."**
 
 ## Related pages
 
-- [What leaves this computer](../security/what-leaves-this-computer.md): how the Assistant stays out of your browser
-- [Screen lock and privacy](../security/screen-lock-and-privacy.md)
-- [Getting more help](getting-more-help.md)
+- [Fin the assistant](asking-the-assistant.md)
+- [Installing software safely](installing-software.md)
+- [The file portal](../files/the-file-portal.md)
+- [Coming from Windows](coming-from-windows.md)

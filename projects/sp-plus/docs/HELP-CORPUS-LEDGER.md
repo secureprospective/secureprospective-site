@@ -33,7 +33,7 @@ Evidence column.
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
 | E1 | LibreOffice: your Word and Excel | knowledge/advisor-help/libreoffice.md | VERIFIED | verified: live VM Writer/Calc packages, desktop entries, OOXML default-filter config, Documents/Fin; image same plus headless creation of valid .docx and .xlsx. Drift: ledger said existing but target source file was absent; compiled help held stale copy. |
-| E2 | Browser and passwords | knowledge/advisor-help/brave-and-bitwarden.md | TODO | existing, needs re-verification |
+| E2 | Browser and passwords | knowledge/advisor-help/brave-and-bitwarden.md | VERIFIED | verified: live VM and image Brave policy disables password/card autofill, Rewards, Wallet, VPN, AI chat and promotions; Bitwarden absent by default; Welcome offers optional Bitwarden. Drift: prior article's preinstalled Bitwarden, extension allowlist and start-page claims were not present in policy/image. |
 | E3 | Printing | knowledge/advisor-help/printer.md | TODO | existing, needs re-verification |
 | E4 | Scanning documents | knowledge/advisor-help/scanning.md | TODO | |
 | E5 | PDFs: reading, filling in, signing | knowledge/advisor-help/pdfs.md | TODO | |
