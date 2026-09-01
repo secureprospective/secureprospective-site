@@ -80,6 +80,14 @@ check(){ # check <label> <theme id> <expected package>
   esac
 }
 
+# A theme switch that lands the right wallpaper but aborts plasmashell or the
+# look-and-feel tool on the way is not a passing switch. An earlier version of
+# this gate reported twenty green checks while drkonqi crash dialogs were
+# stacking up on Christopher's screen, because it only ever asked what the
+# desktop was showing and never asked what had died getting there.
+CRASH_BASELINE=$(coredumpctl list --no-pager 2>/dev/null | tail -n +2 | wc -l)
+echo "coredumps before: $CRASH_BASELINE"
+
 echo "=== every theme applies its own wallpaper ==="
 for row in "${THEMES[@]}"; do
   check "${row%%|*}" "${row%%|*}" "${row##*|}"
@@ -94,6 +102,16 @@ for pass in 1 2; do
   check "round $pass Windows Light" org.secureprospective.spplus.windows11.light Windows-modern
   check "round $pass back to Breeze Light" org.kde.breeze.desktop SPPlus-Winter-River
 done
+
+echo "=== nothing crashed getting there ==="
+CRASH_AFTER=$(coredumpctl list --no-pager 2>/dev/null | tail -n +2 | wc -l)
+CRASH_NEW=$((CRASH_AFTER - CRASH_BASELINE))
+if [ "$CRASH_NEW" -le 0 ]; then
+  ok "no process crashed during the switches"
+else
+  bad "$CRASH_NEW process crash(es) during the switches:"
+  coredumpctl list --no-pager 2>/dev/null | tail -n "$CRASH_NEW" | sed 's/^/    /'
+fi
 
 echo
 if [ "$FAIL" -eq 0 ]; then
