@@ -15,7 +15,12 @@
   const askDismiss = document.getElementById('ask-dismiss');
   let askTimer = null;
   let current = 0;
-  let selectedTheme = 'SP+ CALM DARK';
+  // No theme has been chosen until the advisor chooses one. This used to
+  // default to a theme name that no longer ships, so the closing summary told
+  // them they had selected something they had never seen and that does not
+  // exist. Saying plainly that the desktop is unchanged is both true and less
+  // alarming than a stranger's choice made on their behalf.
+  let selectedTheme = '';
   let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
   const screenCount = screens.length;
   const routeCount = routes.length;
@@ -508,7 +513,19 @@
   const officeState = { folder: 'NOT STARTED', printer: 'NOT STARTED', email: 'NOT STARTED' };
   const finalOffice = document.getElementById('final-office');
   function updateOfficeSummary() {
-    if (finalOffice) finalOffice.textContent = `${Object.entries(officeState).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' + ')} / YOU CAN RETURN ANY TIME`;
+    if (finalOffice) {
+      // The closing screen exists to settle a nervous advisor, and it used to
+      // greet them with "FOLDER NOT STARTED + PRINTER NOT STARTED + EMAIL NOT
+      // STARTED" -- three failures in a row for someone who has done nothing
+      // wrong. Untouched is not a failure, so the done work is named first and
+      // what is left is described as still waiting, which is what it is.
+      const done = Object.entries(officeState).filter(([, value]) => value !== 'NOT STARTED');
+      const waiting = Object.keys(officeState).filter(key => officeState[key] === 'NOT STARTED');
+      const parts = [];
+      if (done.length) parts.push(done.map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' + '));
+      if (waiting.length) parts.push(`${waiting.map(key => key.toUpperCase()).join(' AND ')} STILL WAITING FOR YOU`);
+      finalOffice.textContent = `${parts.join(' / ')} / NOTHING HERE EXPIRES`;
+    }
   }
   deferredActions.forEach(button => {
     const kind = button.dataset.deferred;
