@@ -97,3 +97,41 @@ the existing 17 articles, not the full manual. `scripts/build-help-data.py`
 regenerates the in-app help from the manual and refuses to write a corpus that
 would lose any article the app already ships; it should be run once the ledger is
 fully VERIFIED.
+
+## Theme round trip
+
+Run on the VM as the acceptance test Christopher set: Breeze to Windows and back,
+twice. All four applies returned exit 0 with the read-back agreeing, and because
+read-back agreeing proves nothing on its own, the desktop was captured in each
+theme and looked at. Breeze gives a light titlebar with a centred title and a
+left-aligned panel; Windows gives a dark titlebar with left-aligned title and a
+centred taskbar. The Welcome window stayed usable across every switch.
+
+Worth recording for whoever runs this next: the helper is
+`/usr/libexec/spplus-apply-theme` and it takes `THEME_ID (--layout|--no-layout)`.
+Passing `1` instead of `--layout` exits 64 with a usage line and changes nothing,
+which looks exactly like a failed theme apply if the stderr is not read. The
+Windows theme id is `org.secureprospective.spplus.windows11.dark`.
+
+## Closing screen
+
+Two defects were found by looking at it rather than by any gate. It reported
+`SP+ CALM DARK / SELECTED` before the advisor had chosen anything, naming a theme
+that no longer ships at all -- the app had stopped shipping its own global theme
+and this default was never updated. It now says the look has not been chosen yet
+and the desktop is unchanged, which is both true and less alarming than a
+stranger's choice made on their behalf.
+
+It also opened with `FOLDER NOT STARTED + PRINTER NOT STARTED + EMAIL NOT
+STARTED`: three failures in a row, on the last screen, for someone who has done
+nothing wrong. Untouched is not a failure. It now names what was done first and
+describes the rest as still waiting, and says nothing here expires.
+
+## The image gate
+
+The Containerfile now refuses to build an image whose help has lost search or
+regrown the answer bar, and whose corpus has fewer than seventeen articles or any
+article missing its title or body. It printed
+`WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact`
+during this build, so the shipped image is verified to carry the work rather than
+assumed to.
