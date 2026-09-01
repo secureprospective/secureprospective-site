@@ -1,48 +1,44 @@
-# Getting More Help
+# Getting more help
 
-Work through help in this order. Most problems die at step 1 or 2.
+Start with the matching help page, then use Fin for a non-sensitive check. This release has no verified SP+ button for a human support session, remote-support workflow, or general device-history record.
 
-## Step 1: Try the Troubleshooting pages
+## Start with the problem, not a random repair
 
-Common problems have step-by-step fixes written out:
+Use the Troubleshooting pages for printer, Wi-Fi, sound, Bluetooth, display, or startup questions. Read the exact wording and make one physical check, such as a cable, power light, paper, or connection. Do not install a driver, extension, repair program, or Windows `.exe` because a web page suggested it.
 
-- [Printer not printing](../troubleshooting/printer-not-printing.md)
-- [Wi-Fi won't connect](../troubleshooting/wifi-wont-connect.md)
-- [Bluetooth devices](../troubleshooting/bluetooth-devices.md)
-- [Second monitor problems](../troubleshooting/second-monitor.md)
-- [No sound](../troubleshooting/no-sound.md)
+If the problem began after a restart, record what changed rather than assuming an update caused it. If startup asks for a passphrase or recovery key, do not guess or change startup settings.
 
-## Step 2: Ask the Assistant
+## Ask Fin for a limited check
 
-Open the Assistant (your browser home page) and describe the problem in plain words. It checks the relevant parts of the system, explains what it found, proposes a fix, and waits for your approval before changing anything. Every diagnosis and fix is recorded automatically.
+Ask Fin to inspect and explain before changing anything: **"Fin, [plain problem]. Check this computer and explain what you find. Do not change anything yet."**
 
-Before asking, one restart is worth trying if the problem started recently and nothing else changed. Half of all computer problems are ghosts that a restart clears. See [Updates and restarts](updates-and-restarts.md).
+Fin questions can go to an AI provider, with no verified content-redaction filter for what you type or Fin reads. Do not include client names, account details, documents, passwords, recovery secrets, full screenshots, or copied email. Read the related Fin and privacy pages before relying on it for a difficult issue.
 
-## Step 3: Request support
+## When you need a person
 
-If the Assistant cannot resolve it, request a support session from the Assistant page.
+Use the support channel, technology provider, or incident contact your practice approved. If none was given, ask the technology or compliance owner. This manual cannot name a universal SP+ contact or promise remote help.
 
-What to expect from support on this computer:
+Give a short factual description: what you were doing, the exact non-secret message, when it began, whether it worked before, one safe check, and the part involved, such as printer, display, headset, or shared folder.
 
-- **Nothing happens without your approval.** A session starts when you approve it, not before.
-- **Access is temporary.** Support access expires when its work is done.
-- **Everything is recorded.** The session appears in your device history like every other event.
-- **Your data stays yours.** Support works technical problems; it has no routine need for your documents, email, or client records.
+## Keep the support conversation safe
 
-## Before you contact support, have this ready
+Do not give a caller, chat, email, or Fin your desktop password, disk passphrase, recovery key, multi-factor code, Bitwarden vault, or client information. A legitimate helper does not need those secrets.
 
-1. What you were doing when the problem appeared.
-2. Whether it ever worked before, and what changed since then.
-3. The exact wording of any error message, or a photo of the screen with your approval to share it.
-4. Whether the problem survives a restart.
+Do not install a remote-access app, share the whole screen, disable protection, or follow an unexpected link. Confirm identity through the approved route first. A support request is not approval to disclose client data.
 
-Four facts make support fast. Their absence makes it slow.
+## Treat these as urgent
 
-## One thing to check right now
+Use your practice's incident process immediately if the computer is lost or stolen, client information may have gone to the wrong place, an unknown person used an unlocked session, or an unexpected secret is requested. Do not wait for Fin to decide whether a possible disclosure matters.
 
-Do you know where your recovery key is? If the answer is "shown once during setup, never stored", fixing that takes ten minutes today and can save days later. Read [Your encryption and recovery key](../security/your-encryption-and-recovery-key.md).
+If it will not start, repeatedly crashes, or asks for an unknown startup secret, preserve exact non-secret wording and seek human help instead of a search-result repair.
+
+## What was not verified
+
+No human contact, ticket, remote connection, screen share, support session, or device-history workflow was tested. The image has general remote-desktop components, but no SP+ support action or configured remote-management agent was found. Office hardware and provider support were not tested.
 
 ## Related pages
 
-- [Welcome to SP+](welcome.md)
-- [Security Evidence Report](security-evidence-report.md)
+- [Fin the assistant](asking-the-assistant.md)
+- [What leaves this computer](../security/what-leaves-this-computer.md)
+- [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md)
+- [If this computer is lost or stolen](../security/lost-or-stolen.md)
