@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Help corpus gate: every article the app offers must actually open and read.
+#
+# The corpus is generated from the manual, so it grows without anyone opening the
+# result. A category button that leads to an empty list, or an article that opens
+# to a blank reader, is the kind of dead end that costs a nervous advisor their
+# trust -- and it is invisible from the JSON alone. This walks the whole tree the
+# way a person does: every category, every article, checking each one renders
+# real text and reports a page count.
+set -uo pipefail
+APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}/app/index.html"
+MIN_CHARS="${MIN_CHARS:-200}"
+WALKER=/tmp/help-corpus-walker.py
+cat > "$WALKER" <<'PYWALK'
+import sys, json
+from PySide6.QtCore import QUrl, QTimer
+from PySide6.QtWidgets import QApplication
+from PySide6.QtWebEngineWidgets import QWebEngineView
+app=QApplication(sys.argv); v=QWebEngineView(); v.resize(1280,800); v.show()
+v.load(QUrl.fromLocalFile(sys.argv[1])); out=[]
+WALK = """
+(function(){
+  var report=[];
+  var cats=[].map.call(document.querySelectorAll('#help-content [data-category]'),
+                       function(b){return b.dataset.category;});
+  return JSON.stringify(cats);
+})()"""
+def finish():
+    print(json.dumps(out, indent=1)); app.quit()
+def walk_cat(cats, i):
+    if i >= len(cats): finish(); return
+    cat = cats[i]
+    js = """(function(){
+      var b=[].filter.call(document.querySelectorAll('#help-content [data-category]'),
+             function(x){return x.dataset.category===%s;})[0];
+      if(!b) return JSON.stringify({cat:%s,err:'category button missing'});
+      b.click();
+      var arts=[].map.call(document.querySelectorAll('#help-content [data-article] b'),
+                           function(x){return x.textContent;});
+      return JSON.stringify({cat:%s, articles:arts});})()""" % (json.dumps(cat),json.dumps(cat),json.dumps(cat))
+    def got(res):
+        d=json.loads(res) if res else {'cat':cat,'err':'no result'}
+        walk_articles(cats, i, d, 0)
+    v.page().runJavaScript(js, got)
+def walk_articles(cats, i, d, j):
+    arts = d.get('articles', [])
+    if j >= len(arts):
+        out.append(d)
+        # back to root for the next category
+        v.page().runJavaScript("(function(){var h=document.getElementById('help-home');if(h)h.click();return 1;})()",
+            lambda _: QTimer.singleShot(500, lambda: walk_cat(cats, i+1)))
+        return
+    js = """(function(){
+      var bs=document.querySelectorAll('#help-content [data-article]');
+      if(!bs[%d]) return JSON.stringify({err:'article button missing'});
+      bs[%d].click();
+      var r=document.querySelector('.article-reader');
+      var pager=document.querySelector('.help-pager span');
+      return JSON.stringify({chars:r?r.textContent.trim().length:0,
+                             pager:pager?pager.textContent:'none',
+                             heading:document.getElementById('help-heading').textContent});})()""" % (j,j)
+    def got(res):
+        a = json.loads(res) if res else {'err':'no result'}
+        d.setdefault('checked', []).append({arts[j]: a})
+        # return to the category listing
+        v.page().runJavaScript("""(function(){
+            var c=document.querySelectorAll('#breadcrumbs .crumb-button');
+            if(c.length>1){c[1].click();return 1;} return 0;})()""",
+            lambda _: QTimer.singleShot(350, lambda: walk_articles(cats, i, d, j+1)))
+    v.page().runJavaScript(js, got)
+def start(_):
+    v.page().runJavaScript("window.spWelcome.go(2);1",
+      lambda _: QTimer.singleShot(1100, lambda: v.page().runJavaScript(WALK,
+        lambda c: walk_cat(json.loads(c) if c else [], 0))))
+v.loadFinished.connect(lambda ok: QTimer.singleShot(2200, lambda: start(None)) if ok else finish())
+QTimer.singleShot(220000, finish); sys.exit(app.exec())
+PYWALK
+QT_QPA_PLATFORM=offscreen timeout 280 python3 "$WALKER" "$APP" > /tmp/help-walk.json 2>/dev/null
+[ -s /tmp/help-walk.json ] || { echo "walker produced nothing"; echo "HELP CORPUS GATE: FAIL"; exit 1; }
+MIN_CHARS="$MIN_CHARS" python3 - <<'PY'
+import json, os, re, sys
+data = json.load(open('/tmp/help-walk.json'))
+floor = int(os.environ['MIN_CHARS'])
+fail = 0
+total = 0
+if not data:
+    print('  no categories were found at all'); sys.exit(1)
+for cat in data:
+    name = cat.get('cat', '?')
+    arts = cat.get('articles', [])
+    if not arts:
+        print('  %-22s leads to an empty list' % name); fail = 1; continue
+    print('  %-22s %d articles' % (name, len(arts)))
+    for entry in cat.get('checked', []):
+        for title, info in entry.items():
+            total += 1
+            chars = info.get('chars', 0)
+            pager = info.get('pager', '') or ''
+            if chars < floor:
+                print('    %s opens with only %d characters' % (title, chars)); fail = 1
+            if not re.match(r'PAGE \d+ OF \d+', pager):
+                print('    %s has no page count (%r)' % (title, pager)); fail = 1
+print('  %d articles opened' % total)
+if total == 0:
+    print('  nothing was opened'); fail = 1
+sys.exit(fail)
+PY
+status=$?
+echo
+[ $status -eq 0 ] && echo "HELP CORPUS GATE: PASS" || echo "HELP CORPUS GATE: FAIL"
+exit $status
