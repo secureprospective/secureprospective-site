@@ -1,0 +1,28 @@
+[Unit]
+Description=SP+ Help (local manual and Fin bridge)
+Documentation=man:spplus-help(1)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/libexec/sp-plus/helpapp/server.py
+Restart=on-failure
+RestartSec=2
+# A USER service, deliberately. Fin holds this advisor's provider login and
+# session; the system sp-plus.service runs as a locked-down account with
+# ProtectHome=true and would either fail to reach Fin or answer as the wrong
+# person. This dies with the advisor's session, which is correct for a help
+# window they opened.
+Environment=SPPLUS_HELP_ROOT=/usr/libexec/sp-plus/helpapp
+Environment=SPPLUS_HELP_ADDRESS=127.0.0.1
+Environment=SPPLUS_HELP_PORT=8766
+NoNewPrivileges=true
+PrivateTmp=true
+# The advisor's laptop sits on client and hotel networks. Nothing here is
+# reachable from any of them, and that is kernel-enforced rather than left to
+# a default the code could drift away from.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=default.target

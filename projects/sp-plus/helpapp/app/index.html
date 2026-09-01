@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0033a0">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <title>SP+ Help</title>
+</head>
+<body>
+  <!-- One column, one job. This opens when something has gone wrong, so the
+       search field is the first thing under the hand and everything else is
+       reachable without a decision. -->
+  <header class="masthead">
+    <div class="brand"><span>SECUREPROSPECTIVE</span><b>HELP</b></div>
+    <button class="text-button" id="help-home" hidden>ALL HELP TOPICS</button>
+  </header>
+
+  <main class="shell">
+    <form class="ask-form" id="ask-form" role="search">
+      <label class="ask-label" for="ask-fin">SEARCH HELP, OR ASK FIN</label>
+      <div class="ask-row">
+        <input id="ask-fin" name="question" type="text" maxlength="500"
+               autocomplete="off" autocapitalize="none" spellcheck="false"
+               placeholder="My printer stopped working">
+        <button class="primary-action" id="ask-submit" type="submit">ASK FIN</button>
+      </div>
+      <p class="ask-hint">Start typing to search the manual. Press ASK FIN to have Fin answer in your own words.</p>
+    </form>
+
+    <div class="ask-feedback" id="ask-feedback" role="status" aria-live="polite" hidden>
+      <div class="ask-feedback-copy" id="ask-feedback-copy"></div>
+      <button class="text-button" id="ask-dismiss" type="button">BACK TO HELP TOPICS</button>
+    </div>
+
+    <nav class="breadcrumbs" id="breadcrumbs" aria-label="Help location"></nav>
+
+    <section class="help-station" aria-labelledby="help-heading">
+      <h1 id="help-heading">PICK A STARTING POINT.</h1>
+      <p class="help-lede" id="help-lede">Choose a topic, follow it at your own pace, then come back when you are ready.</p>
+      <div id="help-content" class="help-content"></div>
+    </section>
+
+    <section class="prompt-panel" id="prompt-panel" hidden aria-labelledby="prompt-panel-title">
+      <div class="prompt-head">
+        <span>ASK FIN IN YOUR OWN WORDS</span>
+        <h2 id="prompt-panel-title">READY-MADE THINGS TO SAY</h2>
+      </div>
+      <p class="prompt-lede">Copy one, then paste it into Fin. You can change any of it first.</p>
+      <ul class="prompt-list" id="prompt-list"></ul>
+    </section>
+  </main>
+
+  <footer class="offline-note" id="offline-note" hidden>
+    The manual is stored on this computer, so it still works with the network down. Asking Fin needs a connection.
+  </footer>
+
+  <script src="/help-core.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

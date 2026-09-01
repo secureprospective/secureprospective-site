@@ -1,0 +1,121 @@
+/* SP+ Help.
+ *
+ * The same tokens and the same square, ledger-like surfaces as Welcome, so
+ * an advisor who has met one recognises the other. It is deliberately a
+ * single scrolling column: Welcome must fit one viewport because it is a
+ * sequence, but this is a manual, and a manual that hides its text behind
+ * pagination to avoid a scrollbar is harder to use, not easier.
+ *
+ * Yellow is a background and an accent here, never text on a light ground.
+ */
+:root{
+  --blue:#0033a0;--yellow:#ffd700;--silver:#e5e4e2;--ink:#222;--white:#fff;
+  --fine:#666;--line:1px solid var(--ink);--hard:6px 6px 0 #0033a02e;
+  --fast:160ms cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--silver);color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.45}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+::selection{background:var(--yellow);color:var(--ink)}
+h1,h2,h3,p{margin:0}
+
+.masthead{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:14px 24px;background:var(--blue);color:var(--white);border-bottom:2px solid var(--ink)}
+.brand{display:grid;gap:2px}
+.brand span{font-size:9px;font-weight:700;letter-spacing:.16em}
+.brand b{font-family:'Noto Sans Condensed Black','Noto Sans Condensed',sans-serif;
+  font-size:26px;line-height:.9;letter-spacing:.04em}
+.masthead .text-button{color:var(--yellow)}
+
+.shell{max-width:900px;margin:0 auto;padding:22px 24px 48px}
+
+.ask-form{display:grid;gap:6px;padding:16px;border:var(--line);background:var(--white);
+  box-shadow:var(--hard)}
+.ask-label{color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.ask-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px}
+.ask-row input{width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--ink);
+  border-radius:0;background:var(--white);color:var(--ink);font-size:15px}
+.ask-hint{color:var(--fine);font-size:12px}
+
+.primary-action,.secondary-action,.text-button{border-radius:2px;font-size:12px;font-weight:800;
+  letter-spacing:.065em;text-transform:uppercase;
+  transition:background var(--fast),color var(--fast),transform var(--fast),border-color var(--fast)}
+.primary-action{min-height:44px;padding:0 18px;border:2px solid var(--blue);background:var(--blue);
+  color:var(--white)}
+.primary-action:hover{background:var(--yellow);border-color:var(--ink);color:var(--ink);
+  transform:translate(-2px,-2px)}
+.primary-action:disabled{cursor:wait;background:var(--fine);border-color:var(--fine);transform:none}
+.secondary-action{min-height:36px;padding:0 13px;border:1px solid var(--ink);background:var(--white);
+  color:var(--ink);box-shadow:var(--hard)}
+.secondary-action:hover{background:var(--yellow);transform:translate(-2px,-2px)}
+.text-button{padding:8px 0;border:0;background:transparent;color:var(--blue)}
+.text-button:hover{text-decoration:underline;text-underline-offset:4px}
+
+.ask-feedback[hidden]{display:none}
+.ask-feedback{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;
+  margin-top:14px;padding:14px;border:var(--line);border-left:5px solid var(--blue);
+  background:var(--white);box-shadow:var(--hard);font-size:14px;line-height:1.5}
+.ask-feedback-copy{min-width:0;max-height:340px;overflow-y:auto;white-space:pre-wrap}
+.ask-feedback[data-kind=error]{border-left-color:var(--yellow)}
+
+.breadcrumbs{display:flex;gap:7px;flex-wrap:wrap;min-height:26px;margin-top:16px;
+  color:var(--blue);font-size:11px;font-weight:700}
+.crumb-button{padding:0;border:0;background:transparent;color:var(--blue);font:inherit;
+  font-weight:800;text-decoration:underline;text-underline-offset:3px}
+
+.help-station{margin-top:6px;padding:20px;border:var(--line);background:var(--white);
+  box-shadow:var(--hard)}
+.help-station h1{font-family:'Noto Sans Condensed Black','Noto Sans Condensed',sans-serif;
+  font-size:clamp(26px,4vw,38px);line-height:.95;text-transform:uppercase}
+.help-lede{margin-top:10px;color:var(--fine);font-size:13px}
+.help-content{margin-top:16px}
+
+.trail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.trail-card{min-height:84px;padding:12px;border:var(--line);background:var(--silver);
+  text-align:left;transition:background var(--fast),transform var(--fast)}
+.trail-card:hover{background:var(--yellow);transform:translate(-2px,-2px)}
+.trail-card b{display:block;font-size:14px;line-height:1.2}
+.trail-card small{display:block;margin-top:8px;color:var(--fine);font-size:10px}
+
+.search-browse{margin-top:18px;padding-top:14px;border-top:var(--line)}
+.search-browse span{color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.08em}
+.browse-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.browse-chip{padding:7px 10px;border:1px solid var(--ink);background:var(--silver);
+  font-size:11px;font-weight:700}
+.browse-chip:hover{background:var(--yellow)}
+.search-empty p{margin:8px 0;font-size:14px}
+
+.article-reader{font-size:15px;line-height:1.6}
+.article-reader h1{font-size:26px}
+.article-reader h2{margin:20px 0 6px;font-size:19px}
+.article-reader h3{margin:16px 0 4px;font-size:16px}
+.article-reader p{margin:9px 0}
+.article-reader ul{margin:9px 0;padding-left:20px}
+.article-reader li{margin:5px 0}
+.article-reader code{padding:1px 4px;background:var(--yellow);color:var(--ink)}
+
+.prompt-panel[hidden]{display:none}
+.prompt-panel{margin-top:16px;padding:18px;border:var(--line);background:var(--blue);
+  color:var(--white);box-shadow:var(--hard)}
+.prompt-head span{font-size:9px;font-weight:800;letter-spacing:.09em;color:var(--yellow)}
+.prompt-head h2{margin-top:5px;font-family:'Noto Sans Condensed Black','Noto Sans Condensed',sans-serif;
+  font-size:23px;text-transform:uppercase}
+.prompt-lede{margin-top:9px;font-size:13px;color:#dcecff}
+.prompt-list{list-style:none;display:grid;gap:8px;margin:14px 0 0;padding:0}
+.prompt-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+  padding:12px;border:1px solid var(--white);background:#0033a0e8}
+.prompt-text{min-width:0;font-size:14px;line-height:1.45}
+.prompt-copy{white-space:nowrap}
+
+.offline-note[hidden]{display:none}
+.offline-note{max-width:900px;margin:0 auto;padding:12px 24px 28px;color:var(--ink);
+  font-size:13px;font-weight:700}
+
+@media (max-width:640px){
+  .shell{padding:16px 14px 40px}
+  .ask-row{grid-template-columns:1fr}
+  .prompt-item{grid-template-columns:1fr}
+}

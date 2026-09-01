@@ -1,4 +1,13 @@
 (() => {
+  // Rendering, search and prompt extraction live in help-core.js, which the
+  // pinned Help app loads verbatim as well. Welcome draws the corpus as one
+  // step of a wizard and the Help app draws it as a reference, but what an
+  // advisor FINDS has to be identical in both, so the deciding logic is
+  // shared rather than reimplemented on each side.
+  const H = window.SPPlusHelp;
+  // Help sits after "Bring Fin into your work": the help screen offers to
+  // hand the advisor to Fin, which only makes sense once Fin exists for them.
+  const HELP_SCREEN = 5;
   const screens = [...document.querySelectorAll('.screen')];
   const routes = [...document.querySelectorAll('.route')];
   const next = document.getElementById('next');
@@ -672,34 +681,56 @@
   // a category the manual adds appears in the tree instead of becoming articles
   // that only search can reach. A category with no description still shows, with
   // an honest line rather than a blank.
-  const categoryNotes = {
-    'Start here':'The first few minutes and your map.',
-    'Your files':'Where your work lives, and what is backed up.',
-    'Everyday work':'The apps and devices you use every day.',
-    'Fix a problem':'Step-by-step help for something that went wrong.',
-    'Safety and privacy':'What is protected and what stays private.',
-    'Updates and recovery':'Restarts, updates and finding your way back.',
-    'Get more help':'When you want the Assistant or a person.'
-  };
+  const categoryNotes = H.CATEGORY_NOTES;
   let categories = {};
-  function buildCategories(){
-    categories = {};
-    articles.forEach(article => {
-      if (!article || !article.category) return;
-      if (categories[article.category]) return;
-      categories[article.category] = categoryNotes[article.category]
-        || 'Guides we have written for this part of the computer.';
-    });
-  }
+  function buildCategories(){ categories = H.categoriesOf(articles); }
   let articles=[];
   let helpView={kind:'root'};
   const helpContent=document.getElementById('help-content'), helpHeading=document.getElementById('help-heading'), helpLede=document.getElementById('help-lede'), crumbs=document.getElementById('breadcrumbs');
-  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
-  function markdown(text){let list=false, out=''; for(const raw of text.split('\n')){const s=raw.trim(); if(!s){if(list){out+='</ul>';list=false;} continue;} if(s.startsWith('#')){if(list){out+='</ul>';list=false;} const level=Math.min(3,s.match(/^#+/)[0].length);out+=`<h${level}>${inline(s.slice(level).trim())}</h${level}>`;continue;} if(s.startsWith('- ')){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.slice(2))}</li>`;continue;} if(/^\d+\.\s/.test(s)){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.replace(/^\d+\.\s/,''))}</li>`;continue;} if(s.startsWith('>')){out+=`<p><strong>${inline(s.slice(1).trim())}</strong></p>`;continue;} out+=`<p>${inline(s)}</p>`;} return out+(list?'</ul>':'');}
+  const esc = H.esc, inline = H.inline;
+  const markdown = H.markdown;
   function crumb(label, action){const b=document.createElement('button');b.className='crumb-button';b.textContent=label;b.addEventListener('click',action);crumbs.append(b);}
   const helpHome = document.getElementById('help-home');
-  function renderHelp(){ crumbs.innerHTML='';
+  const promptPanel=document.getElementById('prompt-panel');
+  const promptList=document.getElementById('prompt-list');
+
+  function renderPrompts(article){
+    const prompts = article ? H.extractPrompts(article.markdown) : [];
+    if(!promptPanel||!promptList) return;
+    if(!prompts.length){ promptPanel.hidden=true; promptList.innerHTML=''; return; }
+    promptPanel.hidden=false;
+    promptList.innerHTML=prompts.map((text,i)=>
+      `<li class="prompt-item"><p class="prompt-text" id="prompt-${i}">${esc(text)}</p>`+
+      `<button class="secondary-action prompt-copy" type="button" data-copy="${i}" `+
+      `aria-label="Copy this to send to Fin">COPY</button></li>`).join('');
+    promptList.querySelectorAll('[data-copy]').forEach(button=>{
+      button.addEventListener('click',()=>copyPrompt(button,prompts[Number(button.dataset.copy)]));
+    });
+  }
+
+  // Welcome runs from file:// inside QtWebEngine, where the async clipboard
+  // API is not available on an opaque origin. The textarea route works in
+  // both that shell and a normal browser window, so it is the one used, and
+  // the button says plainly when it could not copy rather than pretending.
+  function copyPrompt(button,text){
+    let ok=false;
+    try{
+      const scratch=document.createElement('textarea');
+      scratch.value=text;
+      scratch.setAttribute('readonly','');
+      scratch.style.position='fixed';
+      scratch.style.opacity='0';
+      document.body.appendChild(scratch);
+      scratch.select();
+      ok=document.execCommand('copy');
+      document.body.removeChild(scratch);
+    }catch(e){ ok=false; }
+    button.textContent = ok ? 'COPIED' : 'PRESS CTRL+C';
+    if(!ok){ try{ window.getSelection().selectAllChildren(button.previousElementSibling); }catch(e){} }
+    setTimeout(()=>{ button.textContent='COPY'; },2200);
+  }
+
+  function renderHelp(){ crumbs.innerHTML=''; renderPrompts(null);
     // BACK TO HELP TOPICS is only an exit from somewhere. At the topic root it
     // had no visibility rule at all, so it sat on the screen offering to return
     // the advisor to the view they were already looking at, and clicking it just
@@ -746,10 +777,50 @@
       helpContent.querySelectorAll('[data-list]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:cat,page:page+(b.dataset.list==='next'?1:-1)};renderHelp();}));
       return;}
     const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='This guide stays inside Welcome. No browser window opens.';
-    const sections=a.markdown.split(/\n(?=## )/); const pages=[sections.slice(0,2).join('\n'),...sections.slice(2)]; const page=Math.min(helpView.page||0,pages.length-1);
+    // Suggested prompts are lifted out of the prose into their own panel with
+    // a copy button on each. Retyping a sentence into a terminal without a
+    // typo is exactly where a nervous advisor gives up, and it is the one
+    // part of the manual they are most likely to actually want.
+    renderPrompts(a);
+    const body=H.stripPrompts(a.markdown);
+    const sections=body.split(/\n(?=## )/); const pages=[sections.slice(0,2).join('\n'),...sections.slice(2)]; const page=Math.min(helpView.page||0,pages.length-1);
     helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>PAGE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT PAGE</button>':''}</div>`;
     helpContent.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>{helpView={kind:'article',category:helpView.category,article:a,page:button.dataset.page==='next'?page+1:page-1};renderHelp();}));
   }
+  // Pin your help. The Help app is a real installed application with its own
+  // window and its own entry, not a browser tab pointed at a file, so pinning
+  // it is a task-bar operation the shell has to do. Welcome only asks.
+  const pinHelp=document.getElementById('pin-help');
+  const pinHelpResult=document.getElementById('pin-help-result');
+  let pinning=false;
+  if(pinHelp){
+    pinHelp.addEventListener('click',()=>{
+      if(pinning) return;
+      pinning=true;
+      pinHelp.disabled=true;
+      pinHelp.setAttribute('aria-busy','true');
+      pinHelp.textContent='PINNING...';
+      if(pinHelpResult) pinHelpResult.textContent='Putting Help on your task bar.';
+      document.title='spplus:pin-help';
+    });
+  }
+  function finishPinHelp(result){
+    pinning=false;
+    document.title='SP+ Welcome';
+    if(!pinHelp) return;
+    pinHelp.setAttribute('aria-busy','false');
+    const ok=result&&result.ok;
+    pinHelp.textContent=ok?'PINNED':'PIN YOUR HELP';
+    pinHelp.disabled=!!ok;
+    if(pinHelpResult){
+      pinHelpResult.textContent = ok
+        ? 'Help is on your task bar. Open it any time, even with Welcome closed.'
+        : 'Help could not be pinned just now: ' +
+          ((result&&result.reason)||'no detail was reported') +
+          ' You can still open Help from Applications.';
+    }
+  }
+
   askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   helpHome.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
 
@@ -765,111 +836,9 @@
   // Everything here is local. The corpus is already in memory, so this works
   // with the network down, which is exactly when someone is looking for help.
 
-  // The advisor's vocabulary, mapped onto ours. Left side is what they type.
-  const helpSynonyms = {
-    'internet':'wifi network online connect','wifi':'internet network online connect',
-    'online':'internet wifi network','network':'wifi internet online',
-    'print':'printer printing paper','printer':'print printing paper','printing':'printer print',
-    'scan':'scanner scanning document','scanner':'scan scanning',
-    'password':'passwords login sign in bitwarden','passwords':'password login bitwarden',
-    'login':'password sign in log in','email':'mail message inbox','mail':'email inbox',
-    'word':'libreoffice writer document','excel':'libreoffice calc spreadsheet',
-    'office':'libreoffice word excel document','doc':'document libreoffice writer',
-    'screen':'monitor display','monitor':'screen display','display':'screen monitor',
-    'sound':'audio volume speakers','audio':'sound volume speakers','volume':'sound audio',
-    'save':'saving files documents','file':'files documents folder','folder':'files documents',
-    'usb':'flash drive thumb drive external stick','stick':'usb flash drive',
-    'backup':'backups copy protected','copy':'backup backups',
-    'update':'updates restart upgrade','restart':'reboot update restarts',
-    'reboot':'restart updates','slow':'performance speed',
-    'lost':'stolen missing lost','stolen':'lost missing theft',
-    'lock':'screen lock privacy locked','locked':'lock screen locked out',
-    'encrypt':'encryption recovery key','key':'recovery key encryption',
-    'assistant':'fin help ask','fin':'assistant help ask','help':'assistant fin support',
-    'camera':'video calls microphone webcam','video':'camera calls microphone',
-    'bluetooth':'wireless devices pairing','share':'shared sharing folder portal',
-    'portal':'file portal cloud shared','cloud':'portal file online',
-    'windows':'coming from windows migration','pdf':'pdfs reading signing'
-  };
-
-  const normalise = s => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
-  const tokenise = s => normalise(s).split(/\s+/).filter(w => w.length > 1);
-
-  // Small edit distance, capped: enough for a slip or a doubled letter, not
-  // enough to match an unrelated word. Bounded so a long query stays cheap.
-  function within(a, b, limit) {
-    if (a === b) return 0;
-    if (Math.abs(a.length - b.length) > limit) return limit + 1;
-    let prev = Array.from({length: b.length + 1}, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const row = [i];
-      let best = i;
-      for (let j = 1; j <= b.length; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
-        if (row[j] < best) best = row[j];
-      }
-      if (best > limit) return limit + 1;
-      prev = row;
-    }
-    return prev[b.length];
-  }
-
   let searchIndex = [];
-  function buildSearchIndex() {
-    searchIndex = articles.map(article => {
-      const headings = (article.markdown.match(/^#{1,3}\s+.*$/gm) || [])
-        .map(line => line.replace(/^#+\s*/, '')).join(' ');
-      const body = article.markdown.replace(/^#{1,3}\s+.*$/gm, ' ');
-      const expand = words => words.flatMap(w => [w, ...(helpSynonyms[w] || '').split(' ')])
-        .filter(Boolean);
-      return {
-        article,
-        title: normalise(article.title),
-        titleWords: expand(tokenise(article.title)),
-        headWords: expand(tokenise(headings)),
-        bodyWords: new Set(tokenise(body)),
-        category: normalise(article.category)
-      };
-    });
-  }
-
-  // Weighted so a title match always outranks a passing mention in the body.
-  function scoreEntry(entry, words, raw) {
-    let score = 0;
-    if (raw.length > 2 && entry.title.includes(raw)) score += 40;
-    for (const word of words) {
-      if (entry.title.includes(word)) score += 12;
-      else if (entry.titleWords.some(t => t.startsWith(word))) score += 10;
-      else if (word.length > 3 && entry.titleWords.some(t => within(t, word, 1) <= 1)) score += 7;
-      if (entry.category.includes(word)) score += 4;
-      if (entry.headWords.some(h => h.startsWith(word))) score += 5;
-      else if (word.length > 3 && entry.headWords.some(h => within(h, word, 1) <= 1)) score += 3;
-      if (entry.bodyWords.has(word)) score += 2;
-    }
-    return score;
-  }
-
-  function searchHelp(query) {
-    const raw = normalise(query).trim();
-    const typed = tokenise(query);
-    if (!typed.length) return [];
-    const words = typed.flatMap(w => [w, ...(helpSynonyms[w] || '').split(' ')]).filter(Boolean);
-    const scored = searchIndex
-      .map(entry => ({entry, score: scoreEntry(entry, words, raw)}))
-      .filter(hit => hit.score >= 7)
-      .sort((a, b) => b.score - a.score || a.entry.article.title.localeCompare(b.entry.article.title));
-    if (!scored.length) return [];
-    // A fixed threshold alone let weak body mentions ride along behind a strong
-    // title match, so "no internet" answered with Printing and No sound. Six
-    // results where two are right reads as a search that does not understand the
-    // question. Anything far below the best match is dropped instead.
-    const best = scored[0].score;
-    return scored
-      .filter(hit => hit.score >= Math.max(9, best * 0.5))
-      .slice(0, 5)
-      .map(hit => hit.entry.article);
-  }
+  function buildSearchIndex(){ searchIndex = H.buildIndex(articles); }
+  function searchHelp(query){ return H.search(searchIndex, query, 5); }
 
   // The same field asks Fin and searches the manual. One box is simpler than two,
   // and it means the advisor never has to decide which one their problem belongs
@@ -939,6 +908,10 @@
     printerResult: finishPrinter,
     serviceResult: finishServiceCapability,
     serviceOpenResult: finishServiceOpen,
+    pinHelpResult: finishPinHelp,
+    // Named on purpose. The help screen has moved once already, and a test
+    // that hardcodes its index silently tests the wrong screen afterwards.
+    goHelp: function(){ go(HELP_SCREEN); },
     go, helpDepth };
   go(0);
 })();

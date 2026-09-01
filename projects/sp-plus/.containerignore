@@ -19,3 +19,9 @@ scripts/
 !tests/libreoffice-xcd-check.py
 !tests/libreoffice-parity-gate.sh
 !tests/libreoffice-parity-probe.py
+
+# The Help application's gate, same reasoning again: it needs the help server
+# running and a browser engine to drive, neither of which exists inside a build
+# layer, so it ships to be run against the installed system.
+!tests/help-app-gate.sh
+!tests/help-app-probe.py

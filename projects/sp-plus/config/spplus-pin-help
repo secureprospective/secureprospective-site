@@ -1,0 +1,82 @@
+#!/usr/bin/bash
+# Pin SP+ Help to the task bar.
+#
+# The advisor presses one button in Welcome. Everything here is what that
+# button has to mean on a Plasma 6 desktop:
+#
+#   1. the help server must actually be running, or the pinned icon opens a
+#      window that cannot connect, which is worse than no icon at all;
+#   2. the launcher list in plasma-org.kde.plasma.desktop-appletsrc gains this
+#      application, if it is not already there;
+#   3. plasmashell has to be told to re-read that file, because it holds the
+#      applet config in memory and would otherwise overwrite the change on its
+#      next write.
+#
+# It is idempotent on purpose: an advisor who presses the button twice, or who
+# already has Help pinned, should end up with exactly one icon and a success
+# message, not a duplicate and not an error.
+set -uo pipefail
+
+ENTRY="applications:org.secureprospective.spplus.help.desktop"
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
+
+fail() { echo "$1" >&2; exit 1; }
+
+command -v kwriteconfig6 >/dev/null 2>&1 || fail "This desktop does not provide kwriteconfig6."
+[ -f /usr/share/applications/org.secureprospective.spplus.help.desktop ] \
+  || fail "The Help application is not installed on this computer."
+
+# 1. The server. Enable so it comes back after a restart, then start it now.
+systemctl --user enable --now spplus-help.service >/dev/null 2>&1 \
+  || fail "Help could not be started on this computer."
+
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS --max-time 2 http://127.0.0.1:8766/ >/dev/null 2>&1; then break; fi
+  sleep 0.5
+done
+curl -fsS --max-time 2 http://127.0.0.1:8766/ >/dev/null 2>&1 \
+  || fail "Help started but did not answer on this computer."
+
+# 2. The launcher list. Find the Task Manager applet rather than assuming a
+# group number: the panel layout differs between the themes SP+ ships, and a
+# hardcoded group would silently write into the wrong applet.
+[ -f "$CONFIG" ] || fail "This desktop has no panel configuration to pin to."
+
+group=$(awk -F'[][]' '
+  /^\[Containments\]\[[0-9]+\]\[Applets\]\[[0-9]+\]\]?$/ { path=$0 }
+  /^plugin=org\.kde\.plasma\.(taskmanager|icontasks)$/ && path { print path; exit }
+' "$CONFIG")
+[ -n "$group" ] || fail "No task bar was found on this desktop."
+
+# Group path like [Containments][2][Applets][7] -> the arguments kwriteconfig6
+# wants, plus the General subgroup the launcher list lives in.
+mapfile -t parts < <(printf '%s\n' "$group" | grep -oE '[0-9]+|Containments|Applets')
+args=()
+for p in "${parts[@]}"; do args+=(--group "$p"); done
+args+=(--group Configuration --group General)
+
+current=$(kreadconfig6 --file "$CONFIG" "${args[@]}" --key launchers 2>/dev/null || true)
+
+case ",$current," in
+  *",$ENTRY,"*) echo "Help is already on your task bar." ; exit 0 ;;
+esac
+
+if [ -n "$current" ]; then updated="$current,$ENTRY"; else updated="$ENTRY"; fi
+kwriteconfig6 --file "$CONFIG" "${args[@]}" --key launchers "$updated" \
+  || fail "The task bar could not be changed."
+
+# Read it back. A write that did not take must not be reported as a pin.
+verify=$(kreadconfig6 --file "$CONFIG" "${args[@]}" --key launchers 2>/dev/null || true)
+case ",$verify," in
+  *",$ENTRY,"*) ;;
+  *) fail "The task bar did not keep the change." ;;
+esac
+
+# 3. plasmashell holds this config in memory and would write over the change.
+# Ask it to re-read; if the interface is not there, the pin is still on disk
+# and appears at the next login, so say so rather than claiming failure.
+if ! qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.refreshCurrentShell >/dev/null 2>&1; then
+  echo "Help is pinned. It will appear on your task bar after your next sign-in."
+  exit 0
+fi
+echo "Help is on your task bar."

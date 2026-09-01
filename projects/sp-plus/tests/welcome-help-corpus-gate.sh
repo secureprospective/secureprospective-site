@@ -106,8 +106,12 @@ def start(tries=0):
             finish(); return
         QTimer.singleShot(500, lambda: start(tries + 1))
     v.page().runJavaScript(
-        "(function(){try{if(!window.spWelcome||!window.spWelcome.go)return 'wait';"
-        "window.spWelcome.go(2);return 'ok';}catch(e){return 'wait';}})()", got)
+        # goHelp() rather than go(2). The help screen moved when "Know your
+        # way around" was placed after "Bring Fin into your work", and a gate
+        # that hardcodes an index does not fail when that happens: it quietly
+        # tests whichever screen now sits at that number.
+        "(function(){try{if(!window.spWelcome||!window.spWelcome.goHelp)return 'wait';"
+        "window.spWelcome.goHelp();return 'ok';}catch(e){return 'wait';}})()", got)
 def await_cats(tries):
     def got(c):
         cats = json.loads(c) if c else []

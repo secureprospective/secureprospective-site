@@ -51,6 +51,9 @@ THEME_APPLY_TIMEOUT = float(os.environ.get('SPPLUS_THEME_APPLY_TIMEOUT', '600'))
 # outran its own timeout and is worth investigating.
 _PARKED_WORKERS = []
 FIN = os.environ.get('SPPLUS_FIN', '/usr/libexec/sp-plus/fin')
+# Overridable so the gate can exercise the real bridge against a staged
+# helper without needing to write into the immutable /usr.
+PIN_HELP = os.environ.get('SPPLUS_PIN_HELP', '/usr/libexec/spplus-pin-help')
 FIN_DESKTOP = os.environ.get('SPPLUS_FIN_DESKTOP', '/usr/share/applications/fin.desktop')
 GTK_LAUNCH = os.environ.get('SPPLUS_GTK_LAUNCH', '/usr/bin/gtk-launch')
 XDG_OPEN = os.environ.get('SPPLUS_XDG_OPEN', '/usr/bin/xdg-open')
@@ -85,6 +88,39 @@ FLATPAK_APP_NAMES = {
     'org.signal.Signal': 'Signal',
 }
 FLATPAK_APP_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$')
+
+
+class PinHelpWorker(QThread):
+    """Pin the Help application to the task bar, off Qt's UI thread.
+
+    The helper does the desktop work and is the one place that knows how a
+    Plasma panel is configured. Welcome only reports what it said, so a
+    failure reaches the advisor as a sentence rather than as a button that
+    quietly did nothing.
+    """
+
+    result_ready = Signal(object, object)
+
+    def run(self):
+        try:
+            done = subprocess.run([PIN_HELP], capture_output=True, text=True,
+                                  timeout=60)
+        except subprocess.TimeoutExpired:
+            payload = {'ok': False, 'reason': 'Pinning Help took too long.'}
+        except OSError:
+            payload = {'ok': False,
+                       'reason': 'The Help application is not installed on this computer.'}
+        except subprocess.SubprocessError:
+            payload = {'ok': False, 'reason': 'Pinning Help did not complete.'}
+        else:
+            message = (done.stdout or '').strip() or (done.stderr or '').strip()
+            if done.returncode == 0:
+                payload = {'ok': True, 'reason': message}
+            else:
+                payload = {'ok': False,
+                           'reason': message or
+                                     f'The desktop refused the change (exit code {done.returncode}).'}
+        self.result_ready.emit(self, payload)
 
 
 class AskWorker(QThread):
@@ -1015,6 +1051,7 @@ class WelcomeBridge(QObject):
         self._printer_workers = set()
         self._theme_workers = set()
         self._service_workers = set()
+        self._pin_workers = set()
         self._service_cache = {}
         view.titleChanged.connect(self.on_title)
 
@@ -1022,7 +1059,7 @@ class WelcomeBridge(QObject):
         return (self._ask_workers, self._tool_workers, self._store_workers,
                 self._fin_workers, self._check_workers, self._email_workers,
                 self._share_workers, self._printer_workers, self._theme_workers,
-                self._service_workers)
+                self._service_workers, self._pin_workers)
 
     @Slot()
     def shutdown(self):
@@ -1125,6 +1162,8 @@ class WelcomeBridge(QObject):
                                                   password or '', save_securely))
         elif parsed.path == 'print-test':
             self.print_test()
+        elif parsed.path == 'pin-help':
+            self.pin_help()
 
     def _send_service_result(self, payload):
         encoded = json.dumps(payload, ensure_ascii=True)
@@ -1244,6 +1283,20 @@ class WelcomeBridge(QObject):
         encoded = json.dumps(payload, ensure_ascii=True)
         self.view.page().runJavaScript(
             f'window.spWelcome && window.spWelcome.finResult({encoded})')
+
+    def pin_help(self):
+        worker = PinHelpWorker()
+        self._pin_workers.add(worker)
+        worker.result_ready.connect(self._pin_finished)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    @Slot(object, object)
+    def _pin_finished(self, worker, payload):
+        self._pin_workers.discard(worker)
+        encoded = json.dumps(payload, ensure_ascii=True)
+        self.view.page().runJavaScript(
+            f'window.spWelcome && window.spWelcome.pinHelpResult({encoded})')
 
     def connect_email(self, provider):
         worker = EmailLaunchWorker(provider)

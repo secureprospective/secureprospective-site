@@ -1414,6 +1414,60 @@ COPY welcome/app/        /usr/libexec/sp-plus/welcome/app/
 COPY welcome/PREVIEW-CAPTURE-CONTRACT.md /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md
 COPY welcome/welcome.py  /usr/libexec/sp-plus/welcome/welcome.py
 COPY tests/welcome-close-gate.sh /usr/libexec/sp-plus/welcome/welcome-close-gate.sh
+# ---- DN-49: the pinned Help application ----
+#
+# The help screen inside Welcome is a step in a sequence, and Welcome is a
+# first-run wizard the advisor eventually stops opening. Help is what they
+# need at 4pm on a Tuesday when the printer has stopped, so it is also a real
+# application with its own window and its own task-bar entry.
+#
+# It is served over loopback rather than opened from a file because the two
+# things that make it an installable app only exist on an http origin: a
+# service worker cannot register on file://, so there would be no offline copy
+# of the manual, which is precisely what is needed when the network is the
+# thing that broke.
+#
+# The corpus and the search logic are NOT copied here. The server reads the one
+# installed copy under welcome/app, so the pinned help and the help inside
+# Welcome cannot drift into disagreeing about the manual.
+COPY helpapp/server.py /usr/libexec/sp-plus/helpapp/server.py
+COPY helpapp/app/      /usr/libexec/sp-plus/helpapp/app/
+COPY config/spplus-help.service \
+     /usr/lib/systemd/user/spplus-help.service
+COPY config/org.secureprospective.spplus.help.desktop \
+     /usr/share/applications/org.secureprospective.spplus.help.desktop
+COPY config/spplus-pin-help /usr/libexec/spplus-pin-help
+COPY tests/help-app-gate.sh  /usr/libexec/sp-plus/tests/help-app-gate.sh
+COPY tests/help-app-probe.py /usr/libexec/sp-plus/tests/help-app-probe.py
+
+RUN install -Dm644 /usr/libexec/sp-plus/helpapp/app/icon.svg \
+      /usr/share/icons/hicolor/scalable/apps/spplus-help.svg \
+ && chmod 0755 /usr/libexec/spplus-pin-help \
+ && chmod 0755 /usr/libexec/sp-plus/helpapp/server.py \
+ && chmod 0755 /usr/libexec/sp-plus/tests/help-app-gate.sh \
+ && bash -n /usr/libexec/spplus-pin-help \
+ && bash -n /usr/libexec/sp-plus/tests/help-app-gate.sh \
+ && python3 -c "import ast,sys; ast.parse(open(sys.argv[1]).read())" \
+      /usr/libexec/sp-plus/helpapp/server.py \
+ && desktop-file-validate \
+      /usr/share/applications/org.secureprospective.spplus.help.desktop \
+ && for f in index.html app.js styles.css manifest.webmanifest sw.js icon.svg; do \
+      test -s "/usr/libexec/sp-plus/helpapp/app/$f" || exit 1; \
+    done \
+ && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); \
+assert m['display']=='standalone', 'Help must open as an application, not a browser tab'; \
+assert m['start_url']=='/', 'the app must start at its own root'; \
+assert m['icons'], 'an installable app needs an icon'" \
+      /usr/libexec/sp-plus/helpapp/app/manifest.webmanifest \
+ && grep -q "caches.open" /usr/libexec/sp-plus/helpapp/app/sw.js \
+ && grep -q "help-data.json" /usr/libexec/sp-plus/helpapp/app/sw.js \
+ && grep -q "127.0.0.1" /usr/lib/systemd/user/spplus-help.service \
+ && grep -q "^IPAddressDeny=any$" /usr/lib/systemd/user/spplus-help.service \
+ && grep -q "8766" /usr/share/applications/org.secureprospective.spplus.help.desktop \
+ && systemctl --user --global enable spplus-help.service \
+ && test -L /etc/systemd/user/default.target.wants/spplus-help.service \
+ && echo "DN49_HELP_APP_OK pinned help ships, serves loopback only, and caches the manual offline"
+
 COPY welcome/org.secureprospective.spplus.welcome.desktop \
      /usr/share/applications/org.secureprospective.spplus.welcome.desktop
 
@@ -1430,6 +1484,9 @@ RUN printf '%s\n' \
  && test -f /usr/libexec/sp-plus/welcome/app/index.html \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
  && grep -q 'function searchHelp' /usr/libexec/sp-plus/welcome/app/app.js \
+ && test -f /usr/libexec/sp-plus/welcome/app/help-core.js \
+ && grep -q 'SPPlusHelp' /usr/libexec/sp-plus/welcome/app/help-core.js \
+ && grep -q 'help-core.js' /usr/libexec/sp-plus/welcome/app/index.html \
  && grep -q 'ask-feedback\[hidden\]' /usr/libexec/sp-plus/welcome/app/app.css \
  && python3 -c "import json,sys; \
 d=json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json')); \
@@ -1444,7 +1501,7 @@ known={'Start here','Your files','Everyday work','Fix a problem','Safety and pri
 assert c <= known, 'help category the Welcome screen has no blurb for: %s' % (c-known)" \
  && for cat in 'Start here' 'Your files' 'Everyday work' 'Fix a problem' \
                 'Safety and privacy' 'Updates and recovery' 'Get more help'; do \
-      grep -qF "'$cat':'" /usr/libexec/sp-plus/welcome/app/app.js \
+      grep -qF "'$cat': '" /usr/libexec/sp-plus/welcome/app/help-core.js \
         || { echo "WELCOME HELP GATE FAIL: no blurb for category $cat" >&2; exit 1; }; \
     done \
  && echo "WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact" \

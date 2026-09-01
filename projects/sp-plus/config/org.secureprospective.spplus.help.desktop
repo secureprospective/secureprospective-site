@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Help
+GenericName=SP+ Help
+Comment=The SP+ manual, with search and the Fin assistant
+# --app= gives a window with no address bar, no tabs and no browser chrome, so
+# Help looks like an application rather than a web page the advisor could
+# navigate away from. The manifest still makes it a real installable app with
+# an offline cache; this entry is what makes it pinnable and predictable.
+Exec=brave-browser --app=http://127.0.0.1:8766/ --class=spplus-help
+StartupWMClass=spplus-help
+Icon=spplus-help
+Terminal=false
+Categories=Utility;Documentation;
+Keywords=help;manual;support;guide;fin;

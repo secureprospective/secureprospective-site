@@ -508,15 +508,18 @@ if dupes:
     print('       duplicate help titles, the advisor gets the same answer twice: %s' % sorted(dupes)); bad = 1
 sys.exit(bad)
 PYHELP
-  # Every category the corpus uses needs a blurb on the Welcome help screen, or
-  # the advisor meets a heading with nothing under it.
-  python3 - "$HELPJSON" "$REPO/projects/sp-plus/welcome/app/app.js" <<'PYCAT' || HELP_OK=0
+  # Every category the corpus uses needs a blurb, or the advisor meets a
+  # heading with nothing under it. The blurbs moved into help-core.js when the
+  # pinned Help app began sharing this logic with Welcome; both surfaces read
+  # them from there.
+  python3 - "$HELPJSON" "$REPO/projects/sp-plus/welcome/app/help-core.js" <<'PYCAT' || HELP_OK=0
 import json, re, sys
 cats = {e['category'] for e in json.load(open(sys.argv[1]))}
 js = open(sys.argv[2]).read()
-missing = sorted(c for c in cats if ("'%s':'" % c) not in js)
+missing = sorted(c for c in cats
+                 if not re.search(r"'%s'\s*:\s*'" % re.escape(c), js))
 if missing:
-    print('       Welcome has no blurb for help category: %s' % missing)
+    print('       no blurb for help category: %s' % missing)
 sys.exit(1 if missing else 0)
 PYCAT
 fi
@@ -791,6 +794,104 @@ grep -qF 'tests/libreoffice-parity-gate.sh' "$REPO/projects/sp-plus/images/kde/C
 [ "$P15F_OK" -eq 1 ] \
   && ok "DN-48 LibreOffice matches Office in look, behaviour and keys, as a shared layer the advisor can still override" \
   || bad "DN-48 Office parity gate failed" "an advisor arriving from Word would meet a suite that behaves like neither"
+
+# P-16  DN-49 the pinned Help application, and the help screen's new position.
+# "Know your way around" now sits after "Bring Fin into your work", because the
+# help screen offers to hand the advisor to Fin and that only means something
+# once Fin exists for them.
+P16_OK=1
+W="$REPO/projects/sp-plus/welcome"
+HA="$REPO/projects/sp-plus/helpapp"
+
+# The shared core. Welcome and the pinned Help app must decide what an advisor
+# FINDS with the same code; only how they draw it may differ.
+[ -f "$W/app/help-core.js" ] \
+  || { P16_OK=0; echo "       the shared help core is missing"; }
+grep -q 'help-core.js' "$W/app/index.html" \
+  || { P16_OK=0; echo "       Welcome does not load the shared help core"; }
+grep -q 'SPPlusHelp' "$W/app/app.js" \
+  || { P16_OK=0; echo "       Welcome no longer uses the shared help core"; }
+# The old private copies must not come back alongside it.
+grep -q 'const helpSynonyms' "$W/app/app.js" \
+  && { P16_OK=0; echo "       Welcome has its own copy of the search synonyms again"; }
+
+# Screen order, read from the route rail the advisor actually sees.
+order=$(grep -oE 'data-go="[0-9]"><b>[0-9]+</b><span>[^<]*' "$W/app/index.html" \
+        | sed 's/.*<span>//' | tr '\n' '|')
+case "$order" in
+  "Welcome|Choose the look|Office connections|Your services|Bring Fin into your work|Know your way around|Optional tools + store|Ready to work|") ;;
+  *) P16_OK=0; echo "       the setup steps are in the wrong order: $order" ;;
+esac
+# A gate that hardcodes the help screen's number stops testing help the next
+# time it moves, so the route is named.
+grep -q 'goHelp' "$W/app/app.js" \
+  || { P16_OK=0; echo "       Welcome exposes no named route to the help screen"; }
+grep -q 'goHelp' "$REPO/projects/sp-plus/tests/welcome-help-corpus-gate.sh" \
+  || { P16_OK=0; echo "       the corpus gate still hardcodes a help screen index"; }
+
+# Pin your help.
+grep -q 'id="pin-help"' "$W/app/index.html" \
+  || { P16_OK=0; echo "       the PIN YOUR HELP button is missing from the help screen"; }
+grep -q "spplus:pin-help" "$W/app/app.js" \
+  || { P16_OK=0; echo "       the pin button does not reach the shell"; }
+grep -q "parsed.path == 'pin-help'" "$W/welcome.py" \
+  || { P16_OK=0; echo "       the Welcome shell does not handle the pin request"; }
+[ -x "$REPO/projects/sp-plus/config/spplus-pin-help" ] \
+  || { P16_OK=0; echo "       the pin helper is missing or not executable"; }
+bash -n "$REPO/projects/sp-plus/config/spplus-pin-help" 2>/dev/null \
+  || { P16_OK=0; echo "       the pin helper does not parse"; }
+# It must find the task bar rather than assume a group number: the panel layout
+# differs between the themes SP+ ships.
+grep -q 'taskmanager' "$REPO/projects/sp-plus/config/spplus-pin-help" \
+  || { P16_OK=0; echo "       the pin helper does not locate the task bar applet"; }
+
+# Suggested Fin prompts, lifted into a copy box.
+grep -q 'id="prompt-panel"' "$W/app/index.html" \
+  || { P16_OK=0; echo "       Welcome has no panel for the suggested Fin prompts"; }
+grep -q 'extractPrompts' "$W/app/help-core.js" \
+  || { P16_OK=0; echo "       the shared core cannot lift prompts out of an article"; }
+grep -q 'stripPrompts' "$W/app/app.js" \
+  || { P16_OK=0; echo "       Welcome would show each prompt twice"; }
+# There must actually BE prompts in the shipped manual, or the panel is dead code.
+python3 - "$W/app/help-data.json" <<'PYE' || { P16_OK=0; echo "       the manual carries no suggested Fin prompts"; }
+import json, re, sys
+pat = re.compile(r'^\s*[-*]\s*\*\*\s*"(Fin,[^"]*)"\s*\*\*\s*$')
+data = json.load(open(sys.argv[1]))
+n = sum(1 for a in data for line in a['markdown'].split('\n') if pat.match(line))
+sys.exit(0 if n >= 20 else 1)
+PYE
+
+# The Help application itself.
+for f in server.py app/index.html app/app.js app/styles.css \
+         app/manifest.webmanifest app/sw.js app/icon.svg; do
+  [ -s "$HA/$f" ] || { P16_OK=0; echo "       the Help app is missing $f"; }
+done
+python3 -c "import ast,sys; ast.parse(open(sys.argv[1]).read())" "$HA/server.py" 2>/dev/null \
+  || { P16_OK=0; echo "       the Help server does not parse"; }
+# Loopback only. An advisor's laptop sits on client and hotel networks.
+grep -q 'IPAddressDeny=any' "$REPO/projects/sp-plus/config/spplus-help.service" \
+  || { P16_OK=0; echo "       the Help service is not locked to loopback"; }
+grep -q 'refuses to listen off loopback' "$HA/server.py" \
+  || { P16_OK=0; echo "       the Help server would serve a non-loopback address"; }
+# The Help app must read the ONE installed corpus, never carry its own.
+[ -e "$HA/app/help-data.json" ] \
+  && { P16_OK=0; echo "       the Help app ships a second copy of the manual, which will drift"; }
+grep -q 'DN49_HELP_APP_OK' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  || { P16_OK=0; echo "       the DN-49 build marker is missing"; }
+grep -qF 'helpapp/server.py' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  || { P16_OK=0; echo "       the Help app is not installed into the image"; }
+
+# Every guide must be reachable from the search bar. A corpus can be complete
+# and still be unreachable: an advisor only ever meets an article through the
+# search field, so one no query surfaces is, from where they sit, missing.
+# This runs the shipped help-core.js, not a copy of it.
+node "$REPO/projects/sp-plus/tests/help-search-coverage.mjs" \
+  "$W/app/help-core.js" "$W/app/help-data.json" >/dev/null \
+  || { P16_OK=0; echo "       a guide cannot be found from the search bar"; }
+
+[ "$P16_OK" -eq 1 ] \
+  && ok "DN-49 help is pinnable, offline, searchable, and its Fin prompts are copy-ready" \
+  || bad "DN-49 help app gate failed" "the advisor loses the one thing they open when something breaks"
 
 # P-24  DN-43 to DN-45 theme path. This gate is intentionally strict: missing
 # applied-session receipts are a build failure, not a reason to ship swatches.

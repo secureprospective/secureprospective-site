@@ -17,10 +17,10 @@
       <nav class="route-list" aria-label="Setup steps">
         <button class="route current" data-go="0"><b>01</b><span>Welcome</span></button>
         <button class="route" data-go="1"><b>02</b><span>Choose the look</span></button>
-        <button class="route" data-go="2"><b>03</b><span>Know your way around</span></button>
-        <button class="route" data-go="3"><b>04</b><span>Office connections</span></button>
-        <button class="route" data-go="4"><b>05</b><span>Your services</span></button>
-        <button class="route" data-go="5"><b>06</b><span>Bring Fin into your work</span></button>
+        <button class="route" data-go="2"><b>03</b><span>Office connections</span></button>
+        <button class="route" data-go="3"><b>04</b><span>Your services</span></button>
+        <button class="route" data-go="4"><b>05</b><span>Bring Fin into your work</span></button>
+        <button class="route" data-go="5"><b>06</b><span>Know your way around</span></button>
         <button class="route" data-go="6"><b>07</b><span>Optional tools + store</span></button>
         <button class="route" data-go="7"><b>08</b><span>Ready to work</span></button>
       </nav>
@@ -43,7 +43,6 @@
           </div>
           <div class="welcome-side-note"><span class="signal-square"></span><p>Nothing changes until you choose it. Each connection will tell you whether it is ready or still being set up.</p></div>
         </article>
-
         <article class="screen gallery-screen" data-screen="1" aria-labelledby="look-title">
           <header class="page-title theme-page-title"><div><h1 id="look-title">CHOOSE THE LOOK<br>THAT FITS YOUR WORK.</h1><p>Each choice changes the whole desktop, not just the colours. You can change it later in System Settings.</p></div><div class="title-stamp"><span>A GOOD PLACE TO START</span><strong>WINDOWS DARK</strong></div></header>
           <section class="theme-choice" aria-labelledby="theme-choice-heading">
@@ -57,16 +56,7 @@
             <p class="preview-note" id="theme-detail">Choose a theme to see a verified preview. Nothing changes until you choose Apply.</p>
           </section>
         </article>
-
-        <article class="screen map-screen" data-screen="2" aria-labelledby="map-title">
-          <header class="page-title split-title"><div><h1 id="map-title">A QUICK MAP<br>OF YOUR DESKTOP.</h1><p>Your desktop is your map. Applications opens your tools. Files holds documents and shared folders. Settings changes the computer. Help stays right here in Welcome.</p></div><div class="map-key"><span>YOUR DESKTOP MAP</span><b>APPS / FILES / SETTINGS</b></div></header>
-          <div class="map-stage">
-            <section class="desktop-map" aria-label="Desktop guide"><div class="map-window map-files"><span>FILES</span><b>Documents<br>Shared folders</b></div><div class="map-window map-apps"><span>APPLICATIONS</span><b>Your tools<br>Writer, Calc, browser</b></div><div class="map-window map-fin"><span>FIN</span><b>Work assistant<br>Open when you need it</b></div><div class="map-dock"><span class="dock-active">APPLICATIONS</span><span>FILES</span><span>SETTINGS</span><span>HELP</span></div></section>
-            <section class="help-station" aria-label="Help tree"><div class="help-head"><div><span>IN-APP HELP</span><h2 id="help-heading">PICK A STARTING POINT.</h2></div><button class="text-button" id="help-home">BACK TO HELP TOPICS</button></div><p class="help-lede" id="help-lede">Choose a topic, follow it at your own pace, then come back when you are ready.</p><form class="ask-form" id="ask-form"><div class="ask-field"><label for="ask-fin">ASK FIN IF SOMETHING IS STUCK</label><input id="ask-fin" name="question" type="text" maxlength="500" autocomplete="off" placeholder="My printer stopped working"></div><button class="primary-action" id="ask-submit" type="submit">ASK FIN <span>→</span></button></form><div class="ask-feedback" id="ask-feedback" role="status" aria-live="polite" hidden><div class="ask-feedback-copy" id="ask-feedback-copy"></div><button class="ask-dismiss" id="ask-dismiss" type="button">BACK TO HELP TOPICS</button></div><div class="breadcrumbs" id="breadcrumbs" aria-label="Help location"></div><div id="help-content" class="help-content"></div></section>
-          </div>
-        </article>
-
-        <article class="screen office-screen" data-screen="3" aria-labelledby="office-title">
+        <article class="screen office-screen" data-screen="2" aria-labelledby="office-title">
           <header class="page-title"><div><h1 id="office-title">CONNECT THIS<br>COMPUTER TO<br>YOUR OFFICE.</h1><p>These are three separate jobs. Do one now, skip one, and come back when it suits your practice.</p></div><div class="title-stamp"><span>AT YOUR PACE</span><strong>ONE JOB AT A TIME</strong></div></header>
           <div class="office-grid">
             <section class="office-lane"><div class="lane-title"><span>01 / OFFICE FOLDER</span><b>A SAFE CHECK</b></div><p>Check the shared folder without leaving it mounted. The temporary connection is removed when the check finishes.</p><div class="form-grid"><label>Office server<input id="share-server" aria-label="Office server" placeholder="Example: office-files"></label><label>Shared folder<input id="share-folder" aria-label="Shared folder" placeholder="Example: Shared"></label><label>Office username<input id="share-username" aria-label="Office username" placeholder="Your office username"></label><label>Folder password<input id="share-password" type="password" aria-label="Folder password" placeholder="Used for this check only"></label></div><label class="checkline"><input id="share-save" type="checkbox" checked> Save it securely in the desktop wallet</label><button class="secondary-action share-action" id="share-check" type="button">CHECK THE FOLDER</button><p class="lane-result" id="share-result" role="status" aria-live="polite"></p></section>
@@ -75,8 +65,7 @@
           </div>
           <div class="ledger-callout"><span>A QUICK NOTE</span><p>Email opens your provider's webmail and adds a launcher in Applications. SP+ never handles your email password. Folder checks use GVFS and the desktop wallet when you choose secure save. Printer checks send one page only after the print service is ready.</p></div>
         </article>
-
-        <article class="screen service-screen services-screen" data-screen="4" aria-labelledby="services-title">
+        <article class="screen service-screen services-screen" data-screen="3" aria-labelledby="services-title">
           <header class="page-title"><div><h1 id="services-title">YOUR SERVICES<br>IN ONE PLACE.</h1><p>Welcome prepares the connection, then hands you to the right service. Choose a card to see what happens next.</p></div><div class="title-stamp"><span>START HERE</span><strong>ACCESS CHECKS</strong></div></header>
           <div class="services-body">
             <div class="services-status-grid" aria-label="Service access checks">
@@ -107,19 +96,23 @@
             </div>
           </div>
         </article>
-
-        <article class="screen fin-screen" data-screen="5" aria-labelledby="fin-title">
+        <article class="screen fin-screen" data-screen="4" aria-labelledby="fin-title">
           <header class="page-title"><div><h1 id="fin-title">BRING FIN<br>INTO YOUR WORK.</h1><p>Fin can help summarise, organise and revise documents. You stay responsible for the advice and final decision.</p></div><div class="title-stamp"><span>YOU ARE IN CONTROL</span><strong>YOU DECIDE WHAT TO SHARE</strong></div></header>
           <div class="fin-stage"><section class="fin-brief"><div class="fin-index">FIN / START HERE</div><h2>FIN OPENS<br>WITHOUT ASKING<br>FOR A KEY.</h2><p>If no provider is connected, Fin will guide you to type <code>/login</code> and choose one. There is no welcome email and nothing to paste.</p><button class="primary-action fin-action" id="fin-check" type="button">LET FIN CHECK THIS COMPUTER <span>→</span></button><p class="lane-result" id="check-result" role="status" aria-live="polite"></p><button class="primary-action fin-action" id="fin-launch" type="button">OPEN FIN <span>→</span></button><p class="lane-result" id="fin-result" role="status" aria-live="polite"></p></section><section class="fin-ledger"><div><span>YOUR CONNECTION</span><strong>CHOOSE A PROVIDER<br>WHEN FIN ASKS</strong></div><div><span>A SAFE FIRST TRY</span><strong>USE A NON-SENSITIVE<br>DOCUMENT FIRST</strong></div><div><span>TRY THIS FIRST</span><strong>WHAT ARE THE THREE THINGS<br>I NEED TO KNOW?</strong></div><ul class="check-summary" id="check-summary" hidden></ul><p>Fin opens in its own window and stays open if you close Welcome.</p></section></div>
         </article>
-
+        <article class="screen map-screen" data-screen="5" aria-labelledby="map-title">
+          <header class="page-title split-title"><div><h1 id="map-title">A QUICK MAP<br>OF YOUR DESKTOP.</h1><p>Your desktop is your map. Applications opens your tools. Files holds documents and shared folders. Settings changes the computer. Help stays right here in Welcome.</p></div><div class="map-key"><span>YOUR DESKTOP MAP</span><b>APPS / FILES / SETTINGS</b></div></header>
+          <div class="map-stage">
+            <section class="desktop-map" aria-label="Desktop guide"><div class="map-window map-files"><span>FILES</span><b>Documents<br>Shared folders</b></div><div class="map-window map-apps"><span>APPLICATIONS</span><b>Your tools<br>Writer, Calc, browser</b></div><div class="map-window map-fin"><span>FIN</span><b>Work assistant<br>Open when you need it</b></div><div class="map-dock"><span class="dock-active">APPLICATIONS</span><span>FILES</span><span>SETTINGS</span><span>HELP</span></div></section>
+            <section class="help-station" aria-label="Help tree"><div class="help-head"><div><span>IN-APP HELP</span><h2 id="help-heading">PICK A STARTING POINT.</h2></div><div class="help-head-actions"><button class="text-button" id="help-home">BACK TO HELP TOPICS</button><button class="secondary-action" id="pin-help" type="button" aria-describedby="pin-help-note">PIN YOUR HELP</button></div></div><p class="help-pin-note" id="pin-help-note">Keeps this help on your task bar, so it is one click away when Welcome is closed.</p><p class="lane-result" id="pin-help-result" role="status" aria-live="polite"></p><p class="help-lede" id="help-lede">Choose a topic, follow it at your own pace, then come back when you are ready.</p><form class="ask-form" id="ask-form"><div class="ask-field"><label for="ask-fin">ASK FIN IF SOMETHING IS STUCK</label><input id="ask-fin" name="question" type="text" maxlength="500" autocomplete="off" placeholder="My printer stopped working"></div><button class="primary-action" id="ask-submit" type="submit">ASK FIN <span>→</span></button></form><div class="ask-feedback" id="ask-feedback" role="status" aria-live="polite" hidden><div class="ask-feedback-copy" id="ask-feedback-copy"></div><button class="ask-dismiss" id="ask-dismiss" type="button">BACK TO HELP TOPICS</button></div><div class="breadcrumbs" id="breadcrumbs" aria-label="Help location"></div><div id="help-content" class="help-content"></div><section class="prompt-panel" id="prompt-panel" hidden aria-labelledby="prompt-panel-title"><div class="prompt-head"><span>ASK FIN IN YOUR OWN WORDS</span><h3 id="prompt-panel-title">READY-MADE THINGS TO SAY</h3></div><p class="prompt-lede">Copy one, then paste it into Fin. You can change any of it first.</p><ul class="prompt-list" id="prompt-list"></ul></section></section>
+          </div>
+        </article>
         <article class="screen tools-screen" data-screen="6" aria-labelledby="tools-title">
           <header class="page-title"><div><h1 id="tools-title">OPTIONAL TOOLS.<br>ONLY IF THEY HELP.</h1><p>Add a tool only if it helps. You can also browse the software library; your practice still decides which apps are approved for client work.</p></div><div class="title-stamp"><span>OPTIONAL INSTALLS</span><strong>NO CORE CHANGE</strong></div></header>
           <div class="tool-register"><section class="tool-row"><span class="tool-index">01</span><div><h2>BITWARDEN</h2><p>Keeps your work logins in one place.</p></div><div class="tool-detail">FLATHUB<br>com.bitwarden.desktop</div><div class="tool-state" data-state="idle">OPTIONAL INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="com.bitwarden.desktop" data-tool-name="Bitwarden" data-state="idle" aria-busy="false">ADD BITWARDEN</button></section><section class="tool-row"><span class="tool-index">02</span><div><h2>SIGNAL DESKTOP</h2><p>A private way to reach a client or colleague when email is not the right channel.</p></div><div class="tool-detail">FLATHUB<br>org.signal.Signal</div><div class="tool-state" data-state="idle">OPTIONAL INSTALL<br><small>READY</small></div><button class="secondary-action tool-action" data-app-id="org.signal.Signal" data-tool-name="Signal" data-state="idle" aria-busy="false">ADD SIGNAL</button></section></div>
           <section class="discover-strip"><div><span>03 / BROWSE EVERYTHING</span><h2>THE SOFTWARE LIBRARY IS READY.</h2><p>Discover, Flatpak and its supporting service are already on this computer. Flathub is ready to browse. Your practice still decides which apps are approved for client work.</p></div><button class="primary-action" data-store-action>OPEN DISCOVER <span>→</span></button></section>
           <div class="ledger-callout"><span>A QUICK SAFETY CHECK</span><p>Check an app with your practice before using it for client work. The two optional apps install only when you choose them. Discover opens the configured Flathub source.</p></div>
         </article>
-
         <article class="screen done-screen" data-screen="7" aria-labelledby="done-title">
           <div class="done-field"><div class="done-mark">SP+</div><div><h1 id="done-title">READY<br>TO WORK.</h1><p>Anything you skipped is still here in SP+ Welcome whenever you are ready.</p></div></div>
           <section class="handoff-register" aria-label="Setup handoff"><div><span>YOUR LOOK</span><strong id="final-theme">NOT CHOSEN YET / YOUR DESKTOP IS UNCHANGED</strong></div><div><span>OFFICE CONNECTIONS</span><strong id="final-office">FOLDER AND PRINTER AND EMAIL STILL WAITING FOR YOU / NOTHING HERE EXPIRES</strong></div><div><span>FIN</span><strong id="final-fin">READY WHEN YOU CONNECT IT</strong></div><div><span>OPTIONAL TOOLS</span><strong id="final-tools">NOTHING ADDED YET</strong></div></section>
@@ -172,6 +165,7 @@
     </div>
   </section>
   <script src="hero.js"></script>
+  <script src="help-core.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

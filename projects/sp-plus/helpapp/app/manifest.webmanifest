@@ -1,0 +1,13 @@
+{
+  "name": "SP+ Help",
+  "short_name": "Help",
+  "description": "The SP+ manual, with search and the Fin assistant, on this computer.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f2",
+  "theme_color": "#0033a0",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
