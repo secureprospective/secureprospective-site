@@ -58,7 +58,13 @@ EOF
 # XFS layout keeps /boot disk-backed and avoids ext4's auto-created lost+found
 # directory, which bootc rejects on an empty root. Root and /var/home are inside
 # encrypted storage.
-bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike --target-imgref ghcr.io/secureprospective/sp-plus-kde:edge
+# The target image reference is the origin every installed machine checks for
+# updates. It must be a tag that is actually published: an unpublished tag makes
+# every update check fail, and KDE Discover surfaces the raw skopeo error
+# ("manifest unknown", "docker://...") to the advisor as a fatal dialog. The tag
+# ghcr.io/secureprospective/sp-plus-kde:edge was never published and returned
+# HTTP 404; the published tags are latest and the dated/build-numbered ones.
+bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike --target-imgref ghcr.io/secureprospective/sp-plus-kde:latest
 
 # No account is declared here, deliberately. SP+ ships no human account at all:
 # the person installing creates their own user in the installer's user spoke, the
