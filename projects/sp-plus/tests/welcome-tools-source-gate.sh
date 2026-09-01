@@ -61,6 +61,37 @@ grep -qF 'data-store-action' "$HTML" \
   || fail 'Signal remains a stub'
 [ "$(grep -c 'data-stub=\"Flathub setup and Discover\"' "$HTML")" -eq 0 ] \
   || fail 'Discover remains a stub'
-grep -qF 'Flathub is configured and ready to browse.' "$HTML" \
-  || fail 'Flathub copy still claims setup is pending'
+# What matters is the promise this copy makes, not its exact sentence. Flathub is
+# configured in the image, so the store must read as available now; copy that
+# still describes setup as pending tells the advisor a working feature is
+# unfinished. Pinning the literal string made every honest rewording look like a
+# regression, so the meaning is gated instead.
+python3 - "$HTML" <<'PYFLAT' || fail 'Flathub copy does not read as ready to browse'
+import re, sys
+html = open(sys.argv[1]).read()
+text = re.sub(r'<[^>]+>', ' ', html)
+# Scope to the store strip's own prose. The optional-tool rows also mention
+# Flathub and carry an unrelated READY state chip, and letting those into the
+# sample made the readiness check pass on copy that never claimed readiness.
+strip = re.search(r'<section class="discover-strip".*?</section>', html, re.S)
+if not strip:
+    print('       the software library strip is missing entirely')
+    sys.exit(1)
+prose = ' '.join(re.findall(r'<p[^>]*>(.*?)</p>', strip.group(0), re.S))
+prose = re.sub(r'<[^>]+>', ' ', prose)
+sentences = [s for s in re.split(r'(?<=[.!])\s+', prose) if 'flathub' in s.lower()]
+if not sentences:
+    print('       the software library strip never mentions Flathub')
+    sys.exit(1)
+blob = ' '.join(sentences).lower()
+if not re.search(r'\bready\b|\bavailable\b|\bconfigured\b', blob):
+    print('       Flathub copy never says it is ready:', ' '.join(sentences).strip()[:120])
+    sys.exit(1)
+for phrase in ('coming soon', 'being set up', 'not yet', 'pending', 'will be available',
+               'once we', 'setup required', 'still setting'):
+    if phrase in blob:
+        print('       Flathub copy still describes setup as pending:', phrase)
+        sys.exit(1)
+sys.exit(0)
+PYFLAT
 pass 'Optional Tools actions and bridge wiring'

@@ -377,8 +377,27 @@ DN32T="$REPO/projects/sp-plus/config/spplus-tune"
 DN32_OK=1
 grep -qF 'id="fin-check"' "$DN32H" \
   || { DN32_OK=0; echo "       the check button is not on the Fin screen"; }
-grep -qF 'HAVE FIN CHECK MY COMPUTER' "$DN32H" \
-  || { DN32_OK=0; echo "       the check button is not named 'HAVE FIN CHECK MY COMPUTER'"; }
+# The wording is gated on its PROMISE, not on one exact string: copy passes
+# rewrite this button legitimately, and pinning the literal made an honest
+# rewording look like a regression. What must hold is that the button offers to
+# LOOK at the computer and never to change it, because the engine behind it only
+# surveys. Any verb that promises repair is the actual defect.
+python3 - "$DN32H" <<'PYWORD' || { DN32_OK=0; echo "       the check button's wording overpromises for a survey-only engine"; }
+import re, sys
+html = open(sys.argv[1]).read()
+m = re.search(r'id="fin-check"[^>]*>(.*?)</button>', html, re.S)
+if not m:
+    sys.exit(1)
+label = re.sub(r'<[^>]+>', ' ', m.group(1)).upper()
+if 'CHECK' not in label:
+    print('       button label does not offer a check:', label.strip())
+    sys.exit(1)
+for verb in ('FIX', 'REPAIR', 'IMPROVE', 'OPTIMI', 'SPEED UP', 'TUNE', 'CLEAN UP', 'BETTER'):
+    if verb in label:
+        print('       button label promises to change the computer:', verb)
+        sys.exit(1)
+sys.exit(0)
+PYWORD
 # It must come BEFORE "OPEN FIN": it is the advisor's first experience of Fin.
 python3 - "$DN32H" <<'PYCHK' || { DN32_OK=0; echo "       the check button is not the FIRST action on the Fin screen"; }
 import sys
