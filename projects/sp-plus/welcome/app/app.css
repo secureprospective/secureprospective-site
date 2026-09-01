@@ -503,3 +503,11 @@ body.service-panel-open{overflow:hidden}
 .map-apps{width:62%;margin-left:8%}
 .desktop-map{display:grid;align-content:start;gap:16px}
 .map-fin{margin:6px 0 0 auto}
+
+/* The Fin stage was pinned to 390px while the screen is far taller, leaving a
+   band of empty grey under it that read as a page still being built. The map
+   screen already solves this by filling the space below its heading; the Fin
+   screen now does the same, as a flex column so the stage grows to whatever is
+   left rather than to a number that only happens to suit one window size. */
+.fin-screen.active{display:flex;flex-direction:column}
+.fin-screen .fin-stage{height:auto;flex:1 1 auto;min-height:0}
