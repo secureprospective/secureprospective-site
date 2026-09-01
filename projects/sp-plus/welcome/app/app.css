@@ -429,3 +429,18 @@ body.service-panel-open{overflow:hidden}
   .service-card-description{min-height:2.6em}
   .social-expectations{align-self:center}
 }
+
+/* Advisor-facing service copy stays at a readable desktop size even on the
+   short 768px and 800px evidence viewports. Status and index labels remain
+   deliberately compact; explanatory text does not. */
+@media (min-width:901px){
+  .service-status p,
+  .service-card-description,
+  .folder-caption,
+  .service-password-note,
+  .service-feature-list li,
+  .service-panel-note p,
+  .service-panel-footer p,
+  .platform-info-empty,
+  .social-expectations p{font-size:11px}
+}

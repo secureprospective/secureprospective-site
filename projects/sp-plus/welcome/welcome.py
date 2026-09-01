@@ -105,24 +105,24 @@ class AskWorker(QThread):
                 payload = {'ok': True, 'answer': answer, 'reason': ''}
             elif result.returncode != 0:
                 output = (result.stdout or '').strip()
-                reason = f'Fin stopped before answering (exit code {result.returncode}).'
+                reason = f'Fin stopped before it could answer (exit code {result.returncode}).'
                 if output == 'Fin is not connected yet.':
                     reason = output
                 payload = {'ok': False, 'answer': '', 'reason': reason}
             else:
-                payload = {'ok': False, 'answer': '', 'reason': 'Fin returned no answer.'}
+                payload = {'ok': False, 'answer': '', 'reason': 'Fin did not return an answer.'}
         except subprocess.TimeoutExpired:
             payload = {'ok': False, 'answer': '',
-                       'reason': 'Fin took too long to answer.'}
+                       'reason': 'Fin took too long to answer this time.'}
         except OSError:
             payload = {'ok': False, 'answer': '',
-                       'reason': 'Fin is not available on this computer.'}
+                       'reason': 'Fin is not available on this computer yet.'}
         except subprocess.SubprocessError:
             payload = {'ok': False, 'answer': '',
-                       'reason': 'Fin could not be started.'}
+                       'reason': 'Fin could not start this time.'}
         except Exception:
             payload = {'ok': False, 'answer': '',
-                       'reason': 'Fin could not answer.'}
+                       'reason': 'Fin could not answer this time.'}
         self.result_ready.emit(self, payload)
 
 
@@ -381,14 +381,14 @@ class ThemeApplyWorker(QThread):
                     'The theme helper exited successfully without a success readback verdict.',
                 )
         except subprocess.TimeoutExpired:
-            payload = self._payload(False, 'Theme apply reached its time limit and was rolled back.')
+            payload = self._payload(False, 'The theme took too long to apply, so the previous setup was restored.')
         except subprocess.CalledProcessError as exc:
             payload = self._payload(False, self._summary(exc.stdout, exc.stderr) or
-                                    f'Theme apply failed with exit code {exc.returncode}.')
+                                    f'The theme could not be applied (exit code {exc.returncode}).')
         except (OSError, subprocess.SubprocessError) as exc:
-            payload = self._payload(False, f'Theme apply could not be started: {exc}')
+            payload = self._payload(False, f'The theme could not be started: {exc}')
         except Exception as exc:
-            payload = self._payload(False, f'Theme apply failed: {type(exc).__name__}: {exc}')
+            payload = self._payload(False, f'The theme could not be applied: {type(exc).__name__}: {exc}')
         self.result_ready.emit(self, payload)
 
 
@@ -412,7 +412,7 @@ class FlatpakInstallWorker(QThread):
                                       capture_output=True, text=True, timeout=30)
             if existing.returncode == 0:
                 payload = self._result(
-                    True, 'installed', f'{self.name} is already ready on this computer.')
+                    True, 'installed', f'{self.name} is already ready to use on this computer.')
                 self.result_ready.emit(self, payload)
                 return
 
@@ -438,23 +438,23 @@ class FlatpakInstallWorker(QThread):
                                       capture_output=True, text=True, timeout=30)
             if verified.returncode == 0:
                 payload = self._result(
-                    True, 'installed', f'{self.name} is ready on this computer.')
+                    True, 'installed', f'{self.name} is ready to use on this computer.')
             else:
                 payload = self._result(
                     False, 'failed',
-                    f'{self.name} could not be added. Your computer was left as it was.')
+                    f'{self.name} could not be added. Your computer was left unchanged.')
         except subprocess.TimeoutExpired:
             payload = self._result(
                 False, 'failed',
-                f'{self.name} could not be added. Your computer was left as it was.')
+                f'{self.name} could not be added. Your computer was left unchanged.')
         except (OSError, subprocess.SubprocessError):
             payload = self._result(
                 False, 'failed',
-                f'{self.name} could not be added. Your computer was left as it was.')
+                f'{self.name} could not be added. Your computer was left unchanged.')
         except Exception:
             payload = self._result(
                 False, 'failed',
-                f'{self.name} could not be added. Your computer was left as it was.')
+                f'{self.name} could not be added. Your computer was left unchanged.')
         self.result_ready.emit(self, payload)
 
 
@@ -475,12 +475,12 @@ class FlathubCheckWorker(QThread):
             else:
                 payload = {
                     'ok': False,
-                    'message': 'Flathub is not available on this computer. Discover was not opened.',
+                    'message': 'Flathub is not available right now, so Discover was not opened.',
                 }
         except Exception:
             payload = {
                 'ok': False,
-                'message': 'Flathub is not available on this computer. Discover was not opened.',
+                'message': 'Flathub is not available right now, so Discover was not opened.',
             }
         self.result_ready.emit(self, payload)
 
@@ -587,7 +587,7 @@ class ComputerCheckWorker(QThread):
         try:
             if not Path(TUNE).is_file():
                 payload = {'ok': False,
-                           'message': 'The system check is not installed on this computer.'}
+                           'message': 'The system check is not installed on this computer yet.'}
                 self.result_ready.emit(self, payload)
                 return
             # Writes /var/lib/sp-plus, which the advisor does not own.
@@ -597,7 +597,7 @@ class ComputerCheckWorker(QThread):
             broken = proc.returncode == 10
             if not healthy and not broken:
                 payload = {'ok': False,
-                           'message': 'The check could not finish. Nothing on this computer was changed.'}
+                           'message': 'The check could not finish this time. Nothing on this computer was changed.'}
                 self.result_ready.emit(self, payload)
                 return
 
@@ -610,7 +610,7 @@ class ComputerCheckWorker(QThread):
             if broken:
                 payload = {'ok': True, 'healthy': False,
                            'message': 'This computer can no longer receive updates. '
-                                      'Nothing was changed. Show this to support.',
+                                      'Nothing was changed. Please show this to support.',
                            'summary': summary}
             else:
                 payload = {'ok': True, 'healthy': True,
@@ -622,7 +622,7 @@ class ComputerCheckWorker(QThread):
                        'message': 'The check took too long and was stopped. Nothing was changed.'}
         except (OSError, subprocess.SubprocessError):
             payload = {'ok': False,
-                       'message': 'The check could not run. Nothing on this computer was changed.'}
+                       'message': 'The check could not run this time. Nothing on this computer was changed.'}
         self.result_ready.emit(self, payload)
 
 
@@ -635,7 +635,7 @@ class FinLaunchWorker(QThread):
         try:
             desktop_id = Path(FIN_DESKTOP).stem
             if not Path(FIN_DESKTOP).is_file():
-                payload = {'ok': False, 'message': 'Fin is not installed on this computer.'}
+                payload = {'ok': False, 'message': 'Fin is not installed on this computer yet.'}
             else:
                 running = subprocess.run(
                     ['pgrep', '-f', '[/]usr/libexec/sp-plus/fin'],
@@ -644,15 +644,15 @@ class FinLaunchWorker(QThread):
                                  if 'pgrep' not in line]
                 if running.returncode == 0 and running_lines:
                     payload = {'ok': True, 'reused': True,
-                               'message': 'Fin is already open. Use that window.'}
+                               'message': 'Fin is already open. You can use that window.'}
                 else:
                     subprocess.Popen([GTK_LAUNCH, desktop_id], stdin=subprocess.DEVNULL,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                      start_new_session=True)
                     payload = {'ok': True, 'reused': False,
-                               'message': 'Fin is open. If it asks, type /login and choose a provider.'}
+                               'message': 'Fin is open. If it asks, type /login and choose your provider.'}
         except (OSError, subprocess.SubprocessError):
-            payload = {'ok': False, 'message': 'Fin could not be opened. Welcome is still available.'}
+            payload = {'ok': False, 'message': 'Fin could not be opened. Welcome is still here.'}
         self.result_ready.emit(self, payload)
 
 
@@ -703,7 +703,7 @@ class EmailLaunchWorker(QThread):
         except (OSError, subprocess.SubprocessError):
             self.result_ready.emit(self, {
                 'ok': False,
-                'message': f'{name} could not be opened. No email password was requested or stored.'})
+                'message': f'{name} could not be opened this time. No email password was requested or stored.'})
 
 
 class ShareCheckWorker(QThread):
@@ -819,7 +819,7 @@ class ShareCheckWorker(QThread):
             return 'The server answered, but the username or password was not accepted.'
         if any(word in text for word in ('not found', 'no such', 'does not exist')):
             return 'The server was reached, but that shared folder was not found. Check the folder name.'
-        return 'The folder could not be checked. Check the server, folder name and network connection.'
+        return 'The folder could not be checked this time. Check the server, folder name and network connection.'
 
     def run(self):
         # DN-39. The previous implementation called mount_enclosing_volume as if
@@ -834,7 +834,7 @@ class ShareCheckWorker(QThread):
         if not self.server or not self.folder:
             self.result_ready.emit(self, {
                 'ok': False,
-                'message': 'Enter the server and folder name first.'})
+                'message': 'Enter the server and folder name so Welcome can check it.'})
             return
 
         # Decide reachability BEFORE any GIO error-string classification, so
@@ -960,7 +960,7 @@ class PrinterWorker(QThread):
                 self.result_ready.emit(self, {
                     'ok': False,
                     'jobs': 0,
-                    'message': 'CUPS is running, but no usable printer is configured yet. Open printer settings to add one.'})
+                    'message': 'The print service is running, but no usable printer is set up yet. Open printer settings to add one.'})
                 return
             default = connection.getDefault()
             printer = default if default in usable else sorted(usable)[0]
@@ -987,7 +987,7 @@ class PrinterWorker(QThread):
         except Exception:
             self.result_ready.emit(self, {
                 'ok': False, 'jobs': 0,
-                'message': 'CUPS could not be checked. The print service may not be running. No test page was submitted.'})
+                'message': 'The print service could not be checked. It may not be running. No test page was submitted.'})
 
 
 class WelcomeBridge(QObject):
@@ -1090,7 +1090,7 @@ class WelcomeBridge(QObject):
                 except ThemeEventFailure as exc:
                     self._send_theme_result({
                         'ok': False,
-                        'detail': f'Apply was not started because it could not be logged: {exc}',
+                        'detail': f'We could not start this change because it could not be logged: {exc}',
                         'theme': theme,
                         'layout': layout_value == '1',
                         'correlation_id': correlation_id,
@@ -1171,7 +1171,7 @@ class WelcomeBridge(QObject):
                 'ok': False,
                 'service': service,
                 'action': action,
-                'message': 'That service link is not available. Welcome stayed open.',
+                'message': 'That service link is not available. Welcome is still here.',
             })
             return
         try:
@@ -1180,9 +1180,9 @@ class WelcomeBridge(QObject):
                              stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL,
                              start_new_session=True)
-            message = ('Browser launch requested for the SecureProspective File Portal.'
+            message = ('Browser launch requested for the SecureProspective File Portal. Welcome is still here when you return.'
                        if service == 'files' else
-                       'Browser launch requested for SecureProspective Social.')
+                       'Browser launch requested for SecureProspective Social. Welcome is still here when you return.')
             payload = {
                 'ok': True,
                 'service': service,
@@ -1194,7 +1194,7 @@ class WelcomeBridge(QObject):
                 'ok': False,
                 'service': service,
                 'action': action,
-                'message': 'The browser could not be opened. Welcome stayed open.',
+                'message': 'The browser could not be opened. Welcome is still here.',
             }
         self._send_service_open_result(payload)
 
@@ -1262,7 +1262,7 @@ class WelcomeBridge(QObject):
     def check_share(self, server, folder, username, password, save_securely):
         if not server or not folder or not username or not password:
             self.view.page().runJavaScript(
-                "window.spWelcome && window.spWelcome.shareResult({ok:false,message:'Enter the server, folder, username and password first.'})")
+                "window.spWelcome && window.spWelcome.shareResult({ok:false,message:'Enter the server, folder, username and password so Welcome can check it.'})")
             return
         worker = ShareCheckWorker(server, folder, username, password, save_securely)
         self._share_workers.add(worker)
@@ -1341,7 +1341,7 @@ class WelcomeBridge(QObject):
 
     def apply_theme(self, theme_id, reset_layout, correlation_id):
         if self._theme_workers:
-            detail = 'Another theme apply is already running. Keep the current preview open and wait for its result.'
+            detail = 'Another theme change is already running. Keep this preview open and wait for it to finish.'
             try:
                 emit_theme_event(
                     correlation_id,
@@ -1371,7 +1371,7 @@ class WelcomeBridge(QObject):
             self._theme_workers.discard(worker)
             self._send_theme_result({
                 'ok': False,
-                'detail': f'Theme apply worker could not start: {exc}',
+                'detail': f'The theme change could not start: {exc}',
                 'theme': theme_id,
                 'layout': reset_layout,
                 'correlation_id': correlation_id,

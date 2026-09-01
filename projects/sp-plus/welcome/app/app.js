@@ -19,8 +19,8 @@
   let adjustments = { wallpaper: 'Theme default', palette: 'Theme default' };
   const screenCount = screens.length;
   const routeCount = routes.length;
-  const names = ['WELCOME','CHOOSE THE LOOK','KNOW YOUR WAY AROUND','OFFICE CONNECTIONS','YOUR SERVICES','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
-  const nextLabels = ["LET'S MAKE IT MINE",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
+  const names = ['WELCOME','CHOOSE YOUR LOOK','YOUR DESKTOP MAP','CONNECT YOUR OFFICE','YOUR SERVICES','FIN','OPTIONAL TOOLS + STORE','READY TO WORK'];
+  const nextLabels = ["LET'S GET STARTED",'USE THIS LOOK','CONTINUE','CONTINUE','CONTINUE','CONTINUE','FINISH SETUP','OPEN THE DESKTOP'];
   const serviceScreens = { files: 4, social: 4 };
   const serviceCache = { files: null, social: null };
   const servicePending = { files: false, social: false };
@@ -38,13 +38,13 @@
     const stateLabels = {
       pending: 'CHECKING...',
       ready: 'READY',
-      provisioning: 'PROVISIONING',
-      unavailable: 'UNAVAILABLE'
+      provisioning: 'SETTING UP',
+      unavailable: 'NOT READY'
     };
     const actionLabels = {
-      pending: 'CHECKING ACCESS',
-      ready: card.dataset.readyLabel || 'OPEN SERVICE',
-      provisioning: service === 'files' ? 'WAITING FOR PORTAL' : 'WAITING FOR SOCIAL',
+      pending: 'CHECKING...',
+      ready: card.dataset.readyLabel || 'SEE NEXT STEP',
+      provisioning: service === 'files' ? 'PORTAL IS SETTING UP' : 'SOCIAL IS SETTING UP',
       unavailable: 'TRY AGAIN ABOVE'
     };
     card.disabled = !ready;
@@ -62,8 +62,8 @@
       const item = document.createElement('p');
       item.className = 'platform-info-empty';
       item.textContent = state === 'provisioning'
-        ? 'Platform status will appear when Social is ready.'
-        : 'Platform status is unavailable until Social returns.';
+        ? 'Platform details will appear when Social is ready.'
+        : 'Social will show platform details when it is back.';
       list.append(item);
       return;
     }
@@ -71,7 +71,7 @@
     if (!declared.length) {
       const item = document.createElement('p');
       item.className = 'platform-info-empty';
-      item.textContent = 'No platform status was declared by Social.';
+      item.textContent = 'Social has not reported any platform details yet.';
       list.append(item);
       return;
     }
@@ -85,9 +85,9 @@
       label.textContent = platform.label;
       const stateLabel = document.createElement('span');
       stateLabel.className = 'platform-info-state';
-      stateLabel.textContent = live ? 'LIVE / CONNECT ON SITE' : 'APPROVAL IN PROGRESS';
+      stateLabel.textContent = live ? 'LIVE / CONNECT ON SOCIAL' : 'WAITING FOR APPROVAL';
       const owner = document.createElement('small');
-      owner.textContent = live ? 'READY TO USE' : 'SECUREPROSPECTIVE HANDLES THIS';
+      owner.textContent = live ? 'READY WHEN YOU ARE' : 'SECUREPROSPECTIVE IS HANDLING THIS';
       item.append(label, stateLabel, owner);
       list.append(item);
     });
@@ -101,7 +101,9 @@
     const retry = document.querySelector(`[data-service-retry="${service}"]`);
     if (state) { state.dataset.kind = 'pending'; state.removeAttribute('data-http-status'); }
     if (title) title.textContent = service === 'files' ? 'CHECKING FILE PORTAL...' : 'CHECKING SOCIAL...';
-    if (detail) detail.textContent = 'Welcome is checking the service before it opens the details.';
+    if (detail) detail.textContent = service === 'files'
+      ? 'Welcome is checking that the portal is ready. No files are opened.'
+      : 'Welcome is checking that Social is ready. No accounts are changed.';
     if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
     setReadyOnlyControls(service, false, 'pending');
     if (service === 'social') renderSocialPlatforms([], 'pending');
@@ -119,21 +121,21 @@
       if (httpStatus) state.dataset.httpStatus = httpStatus; else state.removeAttribute('data-http-status');
     }
     if (stateName === 'ready') {
-      if (title) title.textContent = service === 'files' ? 'FILE PORTAL READY.' : 'SOCIAL READY.';
+      if (title) title.textContent = service === 'files' ? 'FILE PORTAL IS READY.' : 'SOCIAL IS READY.';
       if (detail) detail.textContent = service === 'files'
-        ? 'Open the card for a short handoff. Sign-in and file work happen on the service site.'
-        : 'Open the card for the declared platform status and the service link.';
+        ? 'The portal is ready. Open its card for the next step. Sign-in and file work happen on the service site.'
+        : 'Social is ready. Open its card to see what is available. The Social site handles connections and scheduling.';
     } else if (stateName === 'provisioning') {
-      if (title) title.textContent = 'SETTING UP THE SERVICE...';
-      if (detail) detail.textContent = 'Setup is still in flight. Check again later.';
+      if (title) title.textContent = 'WE ARE STILL SETTING UP THE SERVICE.';
+      if (detail) detail.textContent = 'We are still setting this up. Check again when you are ready.';
     } else if (payload && payload.failure === 'network') {
       if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
-      if (detail) detail.textContent = 'Connect to the internet, then choose Retry. No sign-in was requested.';
+      if (detail) detail.textContent = 'Connect to the internet, then choose Retry. Welcome did not ask you to sign in.';
     } else {
       if (title) title.textContent = 'WE WILL BE BACK.';
       if (detail) detail.textContent = service === 'social'
-        ? 'SecureProspective Social is not answering right now. This is on our side and it is temporary.'
-        : 'SecureProspective File Portal is not answering right now. This is on our side and it is temporary.';
+        ? 'The Social service is not answering right now. This is on our side and temporary. No accounts were changed.'
+        : 'The File Portal is not answering right now. This is on our side and temporary. No files were opened or changed.';
     }
     if (retry) { retry.disabled = false; retry.textContent = stateName === 'unavailable' ? 'TRY AGAIN' : 'RETRY'; }
     serviceReady[service] = stateName === 'ready';
@@ -176,7 +178,7 @@
   function openServicePanel(service, origin) {
     if (!serviceUrls[service]) return;
     if (!serviceReady[service]) {
-      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
+      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY YET. CHOOSE RETRY FIRST.`, 'stub');
       return;
     }
     activeServicePanel = service;
@@ -189,8 +191,8 @@
     servicePanelLink.href = serviceUrls[service];
     servicePanelLinkLabel.textContent = service === 'files' ? 'OPEN FILE PORTAL' : 'OPEN SOCIAL';
     servicePanelResult.textContent = service === 'files'
-      ? 'The File Portal site handles sign-in, uploads and sharing.'
-      : 'The Social site handles account connections and scheduling.';
+      ? 'The File Portal site handles sign-in, uploads and sharing. Welcome will not open your files.'
+      : 'The Social site handles account connections and scheduling. Welcome does not connect accounts.';
     servicePanel.hidden = false;
     document.body.classList.add('service-panel-open');
     servicePanelClose.focus();
@@ -207,7 +209,7 @@
   function openService(service) {
     if (!serviceUrls[service]) return;
     if (!serviceReady[service]) {
-      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY. CHOOSE RETRY FIRST.`, 'stub');
+      announce(`${service === 'files' ? 'THE FILE PORTAL' : 'SOCIAL'} IS NOT READY YET. CHOOSE RETRY FIRST.`, 'stub');
       return;
     }
     document.title = `spplus:open-service?service=${encodeURIComponent(service)}&action=browser`;
@@ -216,12 +218,12 @@
     document.title = 'SP+ Welcome';
     const message = result && result.message;
     if (!result || !result.ok) {
-      if (servicePanelResult) servicePanelResult.textContent = message || 'The browser could not be opened. Welcome stayed open.';
-      announce((message || 'THE BROWSER COULD NOT BE OPENED.').toUpperCase(), 'stub');
+      if (servicePanelResult) servicePanelResult.textContent = message || 'The browser could not be opened. Welcome is still here.';
+      announce((message || 'THE BROWSER COULD NOT BE OPENED. WELCOME IS STILL HERE.').toUpperCase(), 'stub');
       return;
     }
-    if (servicePanelResult) servicePanelResult.textContent = 'Browser launch requested. Welcome stayed open.';
-    announce((message || 'THE BROWSER LAUNCH WAS REQUESTED.').toUpperCase());
+    if (servicePanelResult) servicePanelResult.textContent = 'Browser launch requested. Welcome is still here when you return.';
+    announce((message || 'THE BROWSER LAUNCH WAS REQUESTED. WELCOME IS STILL HERE.').toUpperCase());
   }
   document.querySelectorAll('[data-service-retry]').forEach(button => {
     button.addEventListener('click', () => requestServiceCapability(button.dataset.serviceRetry, true));
@@ -283,11 +285,11 @@
     }
     const reason = (result && result.reason) || 'Fin did not return an answer.';
     if (reason === 'Fin is not connected yet.') {
-      showAskFeedback(`${reason} Open Fin from Applications, type /login, and pick a provider.`, 'error');
+      showAskFeedback(`${reason} Open Fin from Applications, type /login, and choose a provider.`, 'error');
     } else {
-      showAskFeedback(`${reason} Try again. If it keeps happening, open Fin from Applications.`, 'error');
+      showAskFeedback(`${reason} Try again. If it keeps happening, open Fin from Applications and ask for help.`, 'error');
     }
-    announce('FIN COULD NOT ANSWER.','stub');
+    announce('FIN COULD NOT ANSWER THIS TIME.','stub');
   }
   function go(index) {
     const lastScreen = screenCount - 1;
@@ -305,10 +307,10 @@
     if (current === 0) window.spHero?.start(); else window.spHero?.stop();
     if (current === serviceScreens.files) requestServiceCapability('files');
     if (current === serviceScreens.social) requestServiceCapability('social');
-    announce(current === lastScreen ? 'SETUP HANDOFF READY.' : 'READY WHEN YOU ARE.');
+    announce(current === lastScreen ? 'SETUP HANDOFF IS READY.' : 'READY WHEN YOU ARE.');
   }
   routes.forEach(route => route.addEventListener('click', () => go(Number(route.dataset.go))));
-  next.addEventListener('click', () => { if(current===screenCount-1){ announce('WELCOME STAYS AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
+  next.addEventListener('click', () => { if(current===screenCount-1){ announce('WELCOME IS STILL AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
   skip.addEventListener('click', () => go(current+1));
   // A theme card opens a preview receipt. Nothing reaches the shell until the
@@ -359,7 +361,7 @@
     const label = (card.dataset.theme || 'THIS THEME').toUpperCase();
     const resetsLayout = card.dataset.layoutReset === 'true';
     previewTitle.textContent = label;
-    previewCaption.textContent = 'Verified applied-session capture. The image is not a drawn approximation.';
+    previewCaption.textContent = 'Verified desktop capture. This is the real applied session, not a drawing.';
     previewImage.alt = `${label} verified desktop preview`;
     previewImage.onload = () => {
       previewImage.hidden = false;
@@ -372,7 +374,7 @@
       previewMissing.hidden = false;
       previewApply.disabled = true;
       previewApply.setAttribute('aria-busy', 'false');
-      setPreviewResult('This choice is not available until its verification capture is installed.', 'error');
+      setPreviewResult('This choice is not available until its verification preview is installed.', 'error');
     };
     previewImage.removeAttribute('src');
     previewImage.hidden = true;
@@ -383,7 +385,7 @@
     previewApply.textContent = `APPLY ${label}`;
     previewClose.disabled = false;
     previewKeep.disabled = false;
-    setPreviewResult('Nothing changes until you apply.');
+    setPreviewResult('Nothing changes until you choose Apply.');
     if (resetsLayout) {
       // Five of the eight themes ship a layout of their own. Nordic and the two
       // Catppuccin themes do not, so applying them lays down the standard
@@ -396,32 +398,32 @@
         ? "this theme's arrangement"
         : 'the standard arrangement, because this theme does not define its own';
       fillPreviewList(previewChanges, [
-        'Colours, window style and desktop theme.',
+        'Colours, window style, and desktop theme.',
         `Panel and pinned apps: replaced with ${arrangement}.`,
         `Desktop widgets: replaced with ${arrangement}.`,
-        'Splash screen: changes next time you sign in.'
+        'Splash screen: changes the next time you sign in.'
       ]);
       fillPreviewList(previewUnchanged, [
-        'Apps already open may keep their current look. Reopen them to see the new style.',
+        'Apps already open may keep their current look. Reopen them to see the new one.',
         card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
         'The lock screen and on-screen messages stay unchanged.',
         'Start-menu favourites are not removed. Their order is not guaranteed.'
       ]);
-      previewSave.textContent = 'Your current panel is saved. You can restore the previous panel and pinned apps later.';
+      previewSave.textContent = 'Your current panel is saved first. You can restore the previous panel and pinned apps later.';
     } else {
       fillPreviewList(previewChanges, [
-        'Colours, window style and desktop theme.',
-        'Splash screen: changes next time you sign in.',
-        'Cursor, fonts and application icon theme.'
+        'Colours, window style, and desktop theme.',
+        'Splash screen: changes the next time you sign in.',
+        'Cursor, fonts, and application icon theme.'
       ]);
       fillPreviewList(previewUnchanged, [
         'Your panel and pinned apps stay as they are.',
-        'Apps already open may keep their current look. Reopen them to see the new style.',
+        'Apps already open may keep their current look. Reopen them to see the new one.',
         card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
         'The lock screen and on-screen messages stay unchanged.',
         'Start-menu favourites are not removed. Their order is not guaranteed.'
       ]);
-      previewSave.textContent = 'No panel backup is needed because this theme does not change the panel.';
+      previewSave.textContent = 'No panel backup is needed. This theme does not change the panel.';
     }
     previewImage.src = card.dataset.preview || '';
     themePreview.hidden = false;
@@ -445,7 +447,7 @@
     previewApply.textContent = 'APPLYING...';
     previewClose.disabled = true;
     previewKeep.disabled = true;
-    setPreviewResult('Applying the package, saving the current panel, then checking the live readback.', 'working');
+    setPreviewResult('Applying the package, saving the current panel, and checking that the change landed.', 'working');
     announce(`APPLYING ${label} TO THE WHOLE DESKTOP...`);
     // The shell watches the title. Navigating instead would replace the page.
     document.title = 'spplus:apply-theme?theme=' + encodeURIComponent(previewCard.dataset.lnf) + `&layout=${layout}`;
@@ -459,20 +461,20 @@
     button.disabled = state === 'working' || state === 'installed';
     button.setAttribute('aria-busy', state === 'working' ? 'true' : 'false');
     const stateCopy = button.closest('.tool-row')?.querySelector('.tool-state small');
-    if (stateCopy) stateCopy.textContent = ({idle:'READY', working:'ADDING...', installed:'ADDED', failed:'NOT ADDED'})[state] || 'READY';
+    if (stateCopy) stateCopy.textContent = ({idle:'READY', working:'ADDING...', installed:'ADDED', failed:'NOT ADDED THIS TIME'})[state] || 'READY';
     button.textContent = ({idle:`ADD ${toolLabel(button).toUpperCase()}`, working:'ADDING...', installed:'ADDED', failed:`TRY ${toolLabel(button).toUpperCase()} AGAIN`})[state] || 'ADD';
   }
   function updateFinalTools() {
     const ready = toolActions.filter(button => button.dataset.state === 'installed').map(toolLabel);
     const finalTools = document.getElementById('final-tools');
-    if (finalTools) finalTools.textContent = ready.length ? `${ready.join(' / ').toUpperCase()} READY` : 'NONE ADDED YET';
+    if (finalTools) finalTools.textContent = ready.length ? `${ready.join(' / ').toUpperCase()} READY` : 'NOTHING ADDED YET';
   }
   function startToolInstall(button) {
     if (activeTool || button.dataset.state === 'installed') return;
     activeTool = button;
     toolActions.forEach(item => { if (item !== button) item.disabled = true; });
     setToolState(button, 'working');
-    announce(`ADDING ${toolLabel(button).toUpperCase()}. THIS MAY TAKE A FEW MINUTES.`);
+    announce(`ADDING ${toolLabel(button).toUpperCase()}. THIS MAY TAKE A FEW MINUTES. WELCOME WILL STAY AVAILABLE.`);
     document.title = 'spplus:install?app=' + encodeURIComponent(button.dataset.appId);
   }
   toolActions.forEach(button => {
@@ -489,24 +491,24 @@
     }
     document.title = 'SP+ Welcome';
     if (result && result.ok) {
-      announce((result.message || `${name} is ready on this computer.`).toUpperCase());
+      announce((result.message || `${name} is ready to use on this computer.`).toUpperCase());
       updateFinalTools();
     } else {
-      announce((result && result.message) || `${name} could not be added. Your computer was left as it was.`, 'stub');
+      announce((result && result.message) || `${name} could not be added. Your computer was left unchanged.`, 'stub');
     }
   }
   function finishStore(result) {
     const button = document.querySelector('[data-store-action]');
     if (button) button.disabled = false;
     document.title = 'SP+ Welcome';
-    if (result && result.ok) announce(result.message || 'DISCOVER IS OPEN. WELCOME STAYS AVAILABLE.');
-    else announce((result && result.message) || 'FLATHUB IS NOT AVAILABLE. DISCOVER WAS NOT OPENED.', 'stub');
+    if (result && result.ok) announce(result.message || 'Discover is open. Welcome is still here when you need it.');
+    else announce((result && result.message) || 'Flathub is not available right now, so Discover was not opened.', 'stub');
   }
   const deferredActions = [...document.querySelectorAll('.deferred-action')];
   const officeState = { folder: 'NOT STARTED', printer: 'NOT STARTED', email: 'NOT STARTED' };
   const finalOffice = document.getElementById('final-office');
   function updateOfficeSummary() {
-    if (finalOffice) finalOffice.textContent = `${Object.entries(officeState).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' + ')} / RETURN WHEN READY`;
+    if (finalOffice) finalOffice.textContent = `${Object.entries(officeState).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' + ')} / YOU CAN RETURN ANY TIME`;
   }
   deferredActions.forEach(button => {
     const kind = button.dataset.deferred;
@@ -520,7 +522,7 @@
       localStorage.setItem(`spplus-welcome-skipped-${kind}`, 'true');
       button.disabled = true;
       button.textContent = 'SKIPPED FOR NOW';
-      announce(`${kind.toUpperCase()} SKIPPED. NOTHING WAS CHANGED. RETURN WHEN READY.`);
+      announce(`${kind.toUpperCase()} SKIPPED. NOTHING WAS CHANGED. COME BACK ANY TIME.`);
       updateOfficeSummary();
     });
   });
@@ -529,14 +531,14 @@
   const finResult = document.getElementById('fin-result');
   function finishFin(result) {
     if (finButton) finButton.disabled = false;
-    if (finResult) finResult.textContent = (result && result.message) || 'Fin could not be opened. Welcome is still available.';
-    announce((result && result.message) || 'FIN COULD NOT BE OPENED.', result && result.ok ? '' : 'stub');
+    if (finResult) finResult.textContent = (result && result.message) || 'Fin could not be opened. Welcome is still here.';
+    announce((result && result.message) || 'FIN COULD NOT BE OPENED. WELCOME IS STILL HERE.', result && result.ok ? '' : 'stub');
     if (result && result.ok) document.getElementById('final-fin').textContent = 'OPEN OR READY / /LOGIN IF ASKED';
     document.title = 'SP+ Welcome';
   }
   finButton.addEventListener('click', () => {
     finButton.disabled = true;
-    if (finResult) finResult.textContent = 'Opening Fin in its own window...';
+    if (finResult) finResult.textContent = 'Opening Fin in its own window. Welcome will stay available.';
     announce('OPENING FIN. WELCOME WILL STAY AVAILABLE.');
     document.title = 'spplus:launch-fin';
   });
@@ -545,7 +547,7 @@
   const checkSummaryEl = document.getElementById('check-summary');
   function finishCheck(result){
     if (checkButton) checkButton.disabled = false;
-    const msg = (result && result.message) || 'The check could not run.';
+    const msg = (result && result.message) || 'The check could not run this time.';
     if (checkResultEl) checkResultEl.textContent = msg;
     if (checkSummaryEl) {
       checkSummaryEl.textContent = '';
@@ -560,7 +562,7 @@
   }
   if (checkButton) checkButton.addEventListener('click', () => {
     checkButton.disabled = true;
-    if (checkResultEl) checkResultEl.textContent = 'Fin is looking at this computer. Nothing will be changed.';
+    if (checkResultEl) checkResultEl.textContent = 'Fin is checking this computer. Nothing will be changed.';
     announce('FIN IS CHECKING THIS COMPUTER. NOTHING WILL BE CHANGED.');
     document.title = 'spplus:check-computer';
   });
@@ -569,15 +571,15 @@
   function finishEmail(result) {
     if (emailButton) emailButton.disabled = false;
     if (result && result.ok) officeState.email = 'OPENED';
-    if (emailResult) emailResult.textContent = (result && result.message) || 'Email could not be opened.';
+    if (emailResult) emailResult.textContent = (result && result.message) || 'Email could not be opened this time.';
     updateOfficeSummary();
-    announce((result && result.message) || 'EMAIL COULD NOT BE OPENED.', result && result.ok ? '' : 'stub');
+    announce((result && result.message) || 'EMAIL COULD NOT BE OPENED THIS TIME.', result && result.ok ? '' : 'stub');
     document.title = 'SP+ Welcome';
   }
   emailButton.addEventListener('click', () => {
     const provider = document.querySelector('input[name="email"]:checked')?.value || 'other';
     emailButton.disabled = true;
-    if (emailResult) emailResult.textContent = 'Opening the provider page. SP+ will not ask for your email password.';
+    if (emailResult) emailResult.textContent = 'Opening your provider page. SP+ will not ask for your email password.';
     announce('OPENING THE PROVIDER SIGN-IN PAGE. SP+ NEVER HANDLES YOUR EMAIL PASSWORD.');
     document.title = 'spplus:connect-email?provider=' + encodeURIComponent(provider);
   });
@@ -586,9 +588,9 @@
   function finishShare(result) {
     if (shareButton) shareButton.disabled = false;
     if (result && result.ok) officeState.folder = 'CHECKED';
-    if (shareResult) shareResult.textContent = (result && result.message) || 'The folder could not be checked.';
+    if (shareResult) shareResult.textContent = (result && result.message) || 'The folder could not be checked this time.';
     updateOfficeSummary();
-    announce((result && result.message) || 'THE FOLDER COULD NOT BE CHECKED.', result && result.ok ? '' : 'stub');
+    announce((result && result.message) || 'THE FOLDER COULD NOT BE CHECKED THIS TIME.', result && result.ok ? '' : 'stub');
     document.title = 'SP+ Welcome';
   }
   shareButton.addEventListener('click', () => {
@@ -597,11 +599,11 @@
     const username = document.getElementById('share-username').value.trim();
     if (!server || !folder || !username) {
       announce('ENTER THE SERVER, FOLDER AND USERNAME FIRST.', 'stub');
-      if (shareResult) shareResult.textContent = 'Server, folder and username are required.';
+      if (shareResult) shareResult.textContent = 'Enter the server, folder and username so Welcome can check it.';
       return;
     }
     shareButton.disabled = true;
-    if (shareResult) shareResult.textContent = 'Checking the folder through the desktop connection service...';
+    if (shareResult) shareResult.textContent = 'Checking the folder through the desktop connection service. No permanent mount will be left behind.';
     announce('CHECKING THE SHARED FOLDER. NO PERMANENT MOUNT WILL BE LEFT BEHIND.');
     const save = document.getElementById('share-save').checked;
     document.title = 'spplus:check-share?server=' + encodeURIComponent(server) + '&folder=' + encodeURIComponent(folder) + '&username=' + encodeURIComponent(username) + '&save=' + save;
@@ -611,15 +613,15 @@
   function finishPrinter(result) {
     if (printerButton) printerButton.disabled = false;
     if (result && result.ok) officeState.printer = 'PRINTED';
-    if (printerResult) printerResult.textContent = (result && result.message) || 'The printer test did not complete.';
+    if (printerResult) printerResult.textContent = (result && result.message) || 'The printer test did not complete this time.';
     updateOfficeSummary();
-    announce((result && result.message) || 'THE PRINTER TEST DID NOT COMPLETE.', result && result.ok ? '' : 'stub');
+    announce((result && result.message) || 'THE PRINTER TEST DID NOT COMPLETE THIS TIME.', result && result.ok ? '' : 'stub');
     document.title = 'SP+ Welcome';
   }
   printerButton.addEventListener('click', () => {
     printerButton.disabled = true;
-    if (printerResult) printerResult.textContent = 'Checking CUPS and the configured printer before submitting one page...';
-    announce('CHECKING CUPS FIRST. EXACTLY ONE PAGE WILL BE SUBMITTED IF A PRINTER IS READY.');
+    if (printerResult) printerResult.textContent = 'Checking the print service and the configured printer before sending one page.';
+    announce('CHECKING THE PRINT SERVICE FIRST. EXACTLY ONE PAGE WILL BE SENT IF A PRINTER IS READY.');
     document.title = 'spplus:print-test';
   });
   document.querySelector('[data-store-action]').addEventListener('click', event => {
@@ -634,7 +636,7 @@
     event.preventDefault();
     const question = askInput.value.trim();
     if (!question) {
-      showAskFeedback('Type a question first, then choose ASK FIN.', 'error');
+      showAskFeedback('Write a question first, then choose ASK FIN.', 'error');
       announce('TYPE A QUESTION FOR FIN FIRST.','stub');
       askInput.focus();
       return;
@@ -642,19 +644,19 @@
     askInput.disabled = true;
     askSubmit.disabled = true;
     askForm.setAttribute('aria-busy', 'true');
-    showAskFeedback('FIN IS THINKING. YOUR QUESTION WAS RECEIVED.', 'pending');
-    announce('FIN IS THINKING. YOUR QUESTION WAS RECEIVED.');
+    showAskFeedback('FIN IS THINKING. YOUR QUESTION IS WITH FIN.', 'pending');
+    announce('FIN IS THINKING. YOUR QUESTION IS WITH FIN.');
     document.title = 'spplus:ask?q=' + encodeURIComponent(question);
     askTimer = setTimeout(() => finishAsk({ok:false, reason:'Fin did not respond.'}), 125000);
   });
 
   const categories = {
-    'Start here':'First five minutes and your map.',
-    'Everyday work':'Apps and devices for work.',
-    'Fix a problem':'Symptom-led fixes in order.',
-    'Safety and privacy':'Protection, privacy and boundaries.',
-    'Updates and recovery':'Restarts and recovery.',
-    'Get more help':'Assistant and human support.'
+    'Start here':'The first few minutes and your map.',
+    'Everyday work':'The apps and devices you use every day.',
+    'Fix a problem':'Step-by-step help for something that went wrong.',
+    'Safety and privacy':'What is protected and what stays private.',
+    'Updates and recovery':'Restarts, updates and finding your way back.',
+    'Get more help':'When you want the Assistant or a person.'
   };
   let articles=[];
   let helpView={kind:'root'};
@@ -663,17 +665,17 @@
   const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   function markdown(text){let list=false, out=''; for(const raw of text.split('\n')){const s=raw.trim(); if(!s){if(list){out+='</ul>';list=false;} continue;} if(s.startsWith('#')){if(list){out+='</ul>';list=false;} const level=Math.min(3,s.match(/^#+/)[0].length);out+=`<h${level}>${inline(s.slice(level).trim())}</h${level}>`;continue;} if(s.startsWith('- ')){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.slice(2))}</li>`;continue;} if(/^\d+\.\s/.test(s)){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.replace(/^\d+\.\s/,''))}</li>`;continue;} if(s.startsWith('>')){out+=`<p><strong>${inline(s.slice(1).trim())}</strong></p>`;continue;} out+=`<p>${inline(s)}</p>`;} return out+(list?'</ul>':'');}
   function crumb(label, action){const b=document.createElement('button');b.className='crumb-button';b.textContent=label;b.addEventListener('click',action);crumbs.append(b);}
-  function renderHelp(){ crumbs.innerHTML=''; if(helpView.kind==='root'){helpHeading.textContent='CHOOSE A TRAIL.';helpLede.textContent='Open a card, follow the breadcrumbs, then return to setup when you are ready.'; helpContent.innerHTML=`<div class="trail-grid">${Object.entries(categories).map(([name,desc])=>`<button class="trail-card" data-category="${name}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>`; helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:b.dataset.category};renderHelp();}));return;}
-    crumb('CHOOSE A TRAIL',()=>{helpView={kind:'root'};renderHelp()});
-    if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat]; const entries=articles.filter(a=>a.category===cat);helpContent.innerHTML=`<div class="article-grid">${entries.map((a,i)=>`<button class="article-link" data-article="${i}"><b>${a.title}</b><small>OPEN THIS GUIDE INSIDE WELCOME</small></button>`).join('')}</div>`;helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:entries[i]};renderHelp();}));return;}
-    const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='Read inside Welcome. No browser or external window is opened.';
+  function renderHelp(){ crumbs.innerHTML=''; if(helpView.kind==='root'){helpHeading.textContent='PICK A STARTING POINT.';helpLede.textContent='Choose a topic, follow it at your own pace, then come back when you are ready.'; helpContent.innerHTML=`<div class="trail-grid">${Object.entries(categories).map(([name,desc])=>`<button class="trail-card" data-category="${name}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>`; helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:b.dataset.category};renderHelp();}));return;}
+    crumb('HELP TOPICS',()=>{helpView={kind:'root'};renderHelp()});
+    if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat]; const entries=articles.filter(a=>a.category===cat);helpContent.innerHTML=`<div class="article-grid">${entries.map((a,i)=>`<button class="article-link" data-article="${i}"><b>${a.title}</b><small>READ THIS GUIDE HERE</small></button>`).join('')}</div>`;helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:entries[i]};renderHelp();}));return;}
+    const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='This guide stays inside Welcome. No browser window opens.';
     const sections=a.markdown.split(/\n(?=## )/); const pages=[sections.slice(0,2).join('\n'),...sections.slice(2)]; const page=Math.min(helpView.page||0,pages.length-1);
-    helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>GUIDANCE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT GUIDANCE</button>':''}</div>`;
+    helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>PAGE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT PAGE</button>':''}</div>`;
     helpContent.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>{helpView={kind:'article',category:helpView.category,article:a,page:button.dataset.page==='next'?page+1:page-1};renderHelp();}));
   }
   askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   document.getElementById('help-home').addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
-  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;renderHelp();}).catch(()=>{helpContent.textContent='Help is not available in this draft.';});
+  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
   function helpDepth(depth) {
     if (depth === 1) { helpView = {kind:'category', category:'Everyday work'}; renderHelp(); return; }
     const article = articles.find(item => item.category === 'Everyday work' && item.title === 'LibreOffice: your Word and Excel');
@@ -694,9 +696,9 @@
         selectedTheme = (result.theme || '').toUpperCase();
         document.getElementById('final-theme').textContent = `${selectedTheme} / SELECTED`;
         announce(`${selectedTheme} APPLIED. THE WHOLE DESKTOP CHANGED.`);
-        if (detail) detail.textContent = 'Applied after package validation and readback. Visual Qt, app-cache, splash and Dell evidence still need the hardware session.';
+        if (detail) detail.textContent = 'Applied after package validation and readback. The hardware session still needs to confirm the visuals, app cache, splash screen, and Dell-specific evidence.';
         if (samePreview) {
-          setPreviewResult('Applied. The helper verified the package settings, wallpaper, decoration and requested layout.', 'success');
+          setPreviewResult('Applied. The helper verified the package settings, wallpaper, decoration, and requested layout.', 'success');
           previewApply.dataset.state = 'applied';
           previewApply.textContent = 'APPLIED';
           previewApply.disabled = true;
@@ -705,10 +707,10 @@
           previewKeep.disabled = false;
         }
       } else {
-        announce('THAT THEME COULD NOT BE APPLIED. THE DESKTOP WAS LEFT AS IT WAS.', 'stub');
-        if (detail) detail.textContent = 'The desktop was left unchanged after rollback. Detail: ' + ((result && result.detail) || 'no detail reported') + '.';
+        announce('THAT THEME COULD NOT BE APPLIED. THE DESKTOP WAS LEFT UNCHANGED.', 'stub');
+        if (detail) detail.textContent = 'The desktop was left unchanged after rollback. Here is the detail: ' + ((result && result.detail) || 'no detail was reported') + '.';
         if (samePreview) {
-          setPreviewResult('Apply failed and the saved configuration was restored. No new theme was selected.', 'error');
+          setPreviewResult('Apply did not finish, so the saved configuration was restored. No new theme was selected.', 'error');
           previewApply.dataset.state = 'failed';
           previewApply.textContent = 'APPLY FAILED';
           previewApply.disabled = true;
