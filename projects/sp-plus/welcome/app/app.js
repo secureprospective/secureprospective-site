@@ -822,8 +822,15 @@
     pinHelp.textContent=ok?'PINNED':'PIN YOUR HELP';
     pinHelp.disabled=!!ok;
     if(pinHelpResult){
+      // Report what the helper actually said. It distinguishes three real
+      // outcomes -- pinned and live, already pinned, and pinned but only
+      // visible after the next sign-in -- and this used to discard all of
+      // them for one hardcoded sentence claiming the icon was on the task
+      // bar. On an image where the live refresh could not run, that sentence
+      // was simply false, and the advisor was told to look for something
+      // that was not there.
       pinHelpResult.textContent = ok
-        ? 'Help is on your task bar. Open it any time, even with Welcome closed.'
+        ? ((result && result.reason) || 'Help is on your task bar.')
         : 'Help could not be pinned just now: ' +
           ((result&&result.reason)||'no detail was reported') +
           ' You can still open Help from Applications.';

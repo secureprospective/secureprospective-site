@@ -72,11 +72,34 @@ case ",$verify," in
   *) fail "The task bar did not keep the change." ;;
 esac
 
-# 3. plasmashell holds this config in memory and would write over the change.
-# Ask it to re-read; if the interface is not there, the pin is still on disk
-# and appears at the next login, so say so rather than claiming failure.
-if ! qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.refreshCurrentShell >/dev/null 2>&1; then
-  echo "Help is pinned. It will appear on your task bar after your next sign-in."
-  exit 0
-fi
-echo "Help is on your task bar."
+# 3. plasmashell holds this config in memory and would write over the change,
+# so the pin has to survive that. What this must NOT do is ask plasmashell to
+# reload the running shell.
+#
+# History, measured on the test VM 2026-09-01, the first time this helper was
+# ever executed on any machine:
+#
+#   * It called `qdbus6`, which is not on the SP+ image -- Fedora ships the
+#     Qt6 tool as qdbus-qt6 -- so the call failed with exit 127 every time and
+#     the refresh never once happened. Nothing looked broken: the pin was
+#     written and read back correctly, and the icon simply did not appear
+#     until the next sign-in.
+#
+#   * Repairing the tool name made it far worse. With the call actually
+#     reaching plasmashell, org.kde.PlasmaShell.refreshCurrentShell killed the
+#     shell 3 times out of 3 -- the panel disappeared entirely -- and returned
+#     exit 0 each time, so the caller was told it had succeeded. That is not
+#     the intermittent churn segfault in DEFECT-plasmashell-segv-theme-churn;
+#     it was deterministic.
+#
+# Losing the whole task bar is far worse for an advisor than an icon that
+# arrives at the next sign-in, so this no longer asks for a live reload. The
+# pin is on disk, verified by readback above, and the message says plainly
+# when it will be visible rather than claiming an icon that is not there yet.
+#
+# Making it appear immediately is possible through plasmashell's own
+# evaluateScript API, which does not restart the shell -- but it must write
+# through plasmashell rather than the file, because the two disagree while the
+# shell is running. That is a design change, not a bug fix, and is not
+# attempted here.
+echo "Help is pinned. It will appear on your task bar after your next sign-in."

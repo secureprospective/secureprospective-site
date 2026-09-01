@@ -34,7 +34,7 @@ test -x "$C/spplus-apply-theme" || fail 'spplus-apply-theme helper missing'
 grep -qF 'plasma-apply-lookandfeel' "$C/spplus-apply-theme" || fail 'helper does not invoke Plasma'
 grep -qF 'spplus-apply-theme' "$C/spplus-first-login" || fail 'first-login does not apply via the helper'
 grep -qF 'themeApplied' "$ROOT/welcome/app/app.js" || fail 'Welcome does not report the real apply result'
-grep -qF "document.title = 'spplus:apply-theme" "$ROOT/welcome/app/app.js" || fail 'Welcome theme bridge is not wired'
+grep -qF "send('spplus:apply-theme" "$ROOT/welcome/app/app.js" || fail 'Welcome theme bridge is not wired'
 grep -qF 'class WelcomeBridge' "$ROOT/welcome/welcome.py" || fail 'Welcome shell bridge missing'
 python3 "$ROOT/theme/tools/validate-global-themes.py" --root "${SPPLUS_IMAGE_ROOT:-/}" >/dev/null 2>&1 \
   || echo 'NOTE global-theme gate needs an image root; run it in the guest with --root'
