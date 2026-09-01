@@ -22,7 +22,7 @@ Evidence column.
 
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
-| F1 | Where your files live | knowledge/files/where-your-files-live.md | TODO | |
+| F1 | Where your files live | knowledge/files/where-your-files-live.md | VERIFIED | verified: live VM XDG Documents and Downloads, home resolves under encrypted /var, Documents/Fin exists, Dolphin installed; no sync/backup clients or units. Image skel Documents/Fin plus Fin workspace extension confines saves there; same sync/backup-client absence. |
 | F2 | The file portal | knowledge/files/the-file-portal.md | TODO | |
 | F3 | Private and Shared: the rule that stops misfiling | knowledge/files/private-and-shared.md | TODO | |
 | F4 | USB drives and external storage | knowledge/files/usb-and-external-drives.md | TODO | |
