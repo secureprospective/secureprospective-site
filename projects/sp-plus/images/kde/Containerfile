@@ -1926,7 +1926,9 @@ RUN printf '%s\n' \
 # passwords in competition with the KeePassXC we ship, and surfaces Rewards,
 # Wallet and VPN -- crypto promotion is the wrong thing to put in front of an
 # advisor's clients. Brave reads Chromium enterprise policy from
-# /etc/brave/policies/managed, which the package already creates.
+# /etc/brave/policies/managed. The brave-browser package does NOT create it --
+# verified against brave-browser-1.94.117, whose RPM owns no path under
+# /etc/brave at all -- so this layer creates the directory before writing.
 #
 # Brave opens on Help (DN-49), and the home button returns there. Christopher's
 # call, 2026-09-01. An advisor who does not yet know what this computer can do
@@ -1943,7 +1945,8 @@ RUN printf '%s\n' \
 # and AI Chat still appearing despite policy on some builds. Treat this as
 # best-effort suppression, NOT as a guarantee, and check brave://policy on the
 # demo machine before standing in front of anyone.
-RUN printf '%s\n' \
+RUN install -d -m 0755 /etc/brave/policies/managed \
+ && printf '%s\n' \
       '{' \
       '  "HomepageLocation": "http://127.0.0.1:8766/",' \
       '  "HomepageIsNewTabPage": false,' \
@@ -1973,6 +1976,7 @@ assert d['BraveRewardsDisabled'] and d['PromotionalTabsEnabled'] is False, 'prom
 assert d['HomepageLocation'] == 'http://127.0.0.1:8766/', 'the home button does not go to Help'; \
 assert d['RestoreOnStartup'] == 4 and d['RestoreOnStartupURLs'] == ['http://127.0.0.1:8766/'], 'Brave does not open on Help'; \
 assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help'" \
+ && test -d /etc/brave/policies/managed \
  && echo "BRAVE_POLICY_OK $(python3 -c "import json; print(len(json.load(open('/etc/brave/policies/managed/sp-plus.json'))))") policies, valid JSON"
 
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
