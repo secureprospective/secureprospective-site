@@ -41,11 +41,27 @@ JS = """
 # overflowed the help panel, and a gate that only ever looked at the untouched
 # screen reported PASS while the bottom row was visibly cut off.
 STATES = [(2, 'printr wont wrk'), (2, 'zzzqqq nonsense')]
+# Reading a guide is a state too, and the longest one: an article page plus its
+# pager has to sit inside the same bounded panel. It is checked at every depth
+# the advisor can reach -- the topic list, and the article itself.
+DEPTHS = [(2, 1, 'category list'), (2, 2, 'article page')]
+
+def check_depths(i):
+    if i >= len(DEPTHS):
+        for r in out: print(r)
+        app.quit(); return
+    screen, depth, label = DEPTHS[i]
+    js = ("(function(){var f=document.getElementById('ask-fin');f.value='';"
+          "f.dispatchEvent(new Event('input',{bubbles:true}));"
+          "window.spWelcome.go(%d);window.spWelcome.helpDepth(%d);return 1;})()" % (screen, depth))
+    v.page().runJavaScript(js,
+      lambda _: QTimer.singleShot(1400, lambda: v.page().runJavaScript(JS,
+        lambda m: (out.append(m.replace('"screen":"', '"screen":"%d/%s ' % (screen, label))),
+                   check_depths(i+1)))))
 
 def check_states(i):
     if i >= len(STATES):
-        for r in out: print(r)
-        app.quit(); return
+        check_depths(0); return
     screen, query = STATES[i]
     js = """(function(){window.spWelcome.go(%d);
       var f=document.getElementById('ask-fin');f.value=%s;
@@ -72,7 +88,7 @@ for size in "1280 800" "1024 768"; do
   res=$(QT_QPA_PLATFORM=offscreen timeout 200 python3 "$PROBE" "$APP" "$1" "$2" 2>/dev/null)
   [ -z "$res" ] && { echo "  probe produced nothing"; fail=1; continue; }
   n=$(printf '%s\n' "$res" | grep -c '^{')
-  [ "$n" -eq 10 ] || { echo "  expected 8 screens plus 2 search states, got $n"; fail=1; }
+  [ "$n" -eq 12 ] || { echo "  expected 8 screens, 2 search states and 2 help depths, got $n"; fail=1; }
   while IFS= read -r line; do
     printf '%s' "$line" | python3 -c '
 import sys,json
