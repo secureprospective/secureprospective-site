@@ -476,11 +476,11 @@ COPY config/49-sp-plus-updates.rules /usr/share/polkit-1/rules.d/49-sp-plus-upda
 RUN set -eux; \
     R=/usr/share/polkit-1/rules.d/49-sp-plus-updates.rules; \
     chmod 0644 "$R"; \
-    # polkit ships no linter, but its rules are JavaScript and node is already in
-    # this image. A syntax error here is silent at runtime -- polkitd logs and
-    # carries on with the rule unapplied -- so it must be caught at build time.
-    # node --check refuses a file without a .js extension, so check a copy.
-    cp "$R" /tmp/polkit-rules-check.js; node --check /tmp/polkit-rules-check.js; rm -f /tmp/polkit-rules-check.js; \
+    # polkit ships no linter and its rules are JavaScript, so a syntax error here
+    # is silent at runtime: polkitd logs and carries on with the rule unapplied.
+    # It IS checked with node --check, but node does not exist yet at this layer
+    # -- it arrives with the Fin/pi install further down -- so that check lives
+    # there, next to the interpreter it needs. Search DN47_POLKIT_SYNTAX_OK.
     # The guard is the session, not the verb. Without all three of these the file
     # would hand the update verbs to anyone with an SSH login.
     grep -q 'subject.active' "$R"; \
@@ -613,6 +613,10 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && dnf remove -y nodejs22-npm nodejs22-npm-bin \
  && dnf clean all \
  && test -x /usr/bin/node \
+ && cp /usr/share/polkit-1/rules.d/49-sp-plus-updates.rules /tmp/polkit-rules-check.js \
+ && node --check /tmp/polkit-rules-check.js \
+ && rm -f /tmp/polkit-rules-check.js \
+ && echo "DN47_POLKIT_SYNTAX_OK the update rules file parses as JavaScript" \
  && test -x /usr/bin/node-22 \
  && test -x /usr/bin/pi \
  && test ! -e /usr/bin/npm \
