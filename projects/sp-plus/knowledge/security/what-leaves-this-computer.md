@@ -1,58 +1,47 @@
-# What Leaves This Computer
+# What leaves this computer
 
-Trust is easier to keep when you can check it. This page states plainly which information goes where, so you never have to wonder.
+Built-in help and local checks stay on this computer. Information leaves through online services, network shares, printers, or AI. Before sending anything, know who receives it and why.
 
-## The short version
+## What stays local
 
-- Your work stays on your side: documents, email, browsing, passwords, client records.
-- The Assistant sends only technical facts about the computer itself when diagnosing a problem, with identifying details removed first.
-- Every transmission is logged locally where you can read it.
+Help in Welcome uses its installed copy. The local SP+ helper service is available only on this computer. **Let Fin check this computer** runs a local survey and creates a local machine record.
 
-## When the Assistant diagnoses a problem
+**Ask Fin** is different. It starts Fin with the words you entered.
 
-Some diagnoses benefit from consulting advanced diagnostics online (the same way a good mechanic might phone the manufacturer). Before anything is sent, a filtering layer reduces it to an allowlist:
+## What happens when you use Fin
 
-**Allowed to leave:**
+Fin needs an AI provider. Once a provider is connected, questions typed into Ask Fin or Fin itself are sent to that provider for an answer. The current setup uses an Anthropic API key or a provider chosen in Fin.
 
-- Operating system version
-- Computer model and hardware capabilities
-- Driver and component status ("print service stopped", "Wi-Fi chip present")
-- Error codes, scrubbed of identifying details
-- Network state, without passwords or credentials
-- Update status
-- The Assistant's own recent diagnostic history, sanitized
+Fin's instructions say not to send client names, account numbers, balances, documents, or passwords. That is not a verified technical filter. Its safeguards control some actions and writes, not a content-redaction barrier for text you type or information it reads.
 
-**Never leaves unless you approve that specific item:**
+Use Fin for a non-sensitive description, such as "my printer is offline." Do not paste a client record, document, full screenshot, password, or recovery key. Provider retention and training terms are unverified. Your practice must approve a provider before client information is used with it.
 
-- Documents, spreadsheets, PDFs, anything in your files
-- Email, calendar, contacts, CRM records
-- Browser history, bookmarks, open tabs
-- Passwords, cookies, Bitwarden vault contents
-- Anything on your clipboard
-- Client names and policy information
-- File names and folder paths
-- Screenshots: each one needs your explicit, separate approval
+## Websites and service accounts
 
-The filtering is enforced by the system itself, not by instructions the Assistant is asked to follow. You can see this working: every diagnosis shows exactly what was sent, in a "technical information sent for diagnosis" panel.
+A browser sends information to the site you visit. Webmail sends credentials to its provider. File Portal uploads send selected files there. Social connections and post scheduling happen on the Social site, not inside Welcome.
 
-## Where AI requests go
+Welcome can contact the File Portal and Social sites to check whether they are ready. That request asks for a small public status record. It does not open files, upload documents, or sign in to an account. Opening a service afterward is a separate choice.
 
-Diagnosis requests reach online AI services through Secureprospective. Providers may retain processed requests under their own commercial terms; the current provider and its retention policy are documented in your service materials and may change as providers change. What does not change: only the allowlisted technical facts above are ever in the request.
+The installed Brave policy disables several browser metrics and discovery features. That does not make websites local or control other applications.
 
-## What support sessions see and record
+## Shares, printing, calls, and software
 
-When you approve a support session, three things are true at once: access is temporary, it requires your approval, and it is recorded in your device history like everything else. Support works technical problems; there is no routine reason for anyone to open your documents.
+A shared-folder connection sends the sign-in details and file requests to the office server you name. Printing sends a document to the selected printer or print service. A video call sends the audio, video, chat, or screen share you choose to its meeting service. Browsing or installing optional software contacts the configured app source.
 
-## What you can check anytime
+These are disclosures. Use only services your practice has approved. Encryption in transit is not approval to send client information.
 
-1. **Device history**: the Assistant page keeps the readable log of events: diagnoses, approvals, fixes, support sessions, each timestamped.
-2. **Sent-request records**: any diagnosis that went online shows its full payload under "technical information sent".
-3. **Security Evidence Report**: generates a summary of protections and significant events, ready to share. See [Security Evidence Report](../advisor-help/security-evidence-report.md).
+## What a history screen cannot prove
 
-If anything in the history ever looks wrong to you, that is precisely what [support](../advisor-help/getting-more-help.md) is for.
+This release has no verified general record of every outgoing request, its full contents, and every recipient. It also has no verified remote-support session feature. A missing history entry is not proof that nothing left the computer.
+
+Apps and providers may keep their own records. Their privacy, retention, and support arrangements are outside the tested SP+ boundary. No whole-system traffic capture or provider-retention test was performed.
+
+## A safe rule before sending
+
+Before uploading, sharing, printing, starting a call, or asking Fin about a real client, ask: **Who receives this, what exactly leaves, and has my practice approved it?** If the answer is unclear, use a non-sensitive description or stop and ask for human guidance.
 
 ## Related pages
 
-- [The Assistant](../advisor-help/asking-the-assistant.md)
-- [Your encryption and recovery key](your-encryption-and-recovery-key.md)
-- [Screen lock and privacy](screen-lock-and-privacy.md)
+- [Fin the assistant](../advisor-help/asking-the-assistant.md)
+- [The File Portal](../files/the-file-portal.md)
+- [Private and Shared: the rule that stops misfiling](../files/private-and-shared.md)

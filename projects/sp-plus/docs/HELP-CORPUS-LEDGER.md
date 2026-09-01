@@ -59,7 +59,7 @@ Evidence column.
 
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
-| Y1 | What leaves this computer | knowledge/security/what-leaves-this-computer.md | TODO | existing, needs re-verification |
+| Y1 | What leaves this computer | knowledge/security/what-leaves-this-computer.md | VERIFIED | verified: image local Help blocks web-content remote access, but Ask Fin invokes `fin --ask`; Fin supports provider auth/API and its workspace extension explicitly says cloud content control is not implemented. Welcome capability checks GET Cloud/Social status endpoints; local SP+ service is loopback-only; Brave policy disables named metrics/discovery features. VM local service is active with no matching generic outbound-history implementation. No provider call, packet capture, provider retention, File Portal upload, Social, email, share, printing, call, or remote-support test performed. Drift: prior claims of an enforced outbound allowlist, sanitized payloads, universal local transmission log, and recorded support sessions were unsupported. |
 | Y2 | Your encryption and recovery key | knowledge/security/your-encryption-and-recovery-key.md | TODO | existing, needs re-verification |
 | Y3 | Screen lock and privacy | knowledge/security/screen-lock-and-privacy.md | TODO | existing, needs re-verification |
 | Y4 | If this computer is lost or stolen | knowledge/security/lost-or-stolen.md | TODO | |
