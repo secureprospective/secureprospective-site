@@ -63,13 +63,16 @@ grep -qF 'lm_sensors' "$CF" || fail 'lm_sensors is not installed by the image'
 grep -qF 'SENSORS_OK' "$CF" || fail 'lm_sensors runtime gate missing'
 pass 'lm_sensors package and runtime gate'
 
-# FIX 7: the visible launcher whitelists only the image-mode backends and does
-# not turn PackageKit back on.
-grep -qF -- '--backends flatpak,rpm-ostree' "$C/spplus-discover" || fail 'Discover backend policy missing'
-grep -qF 'COPY config/spplus-discover /usr/bin/spplus-discover' "$CF" || fail 'Discover wrapper not installed'
-grep -qF 'Exec=/usr/bin/spplus-discover' "$CF" || fail 'Discover desktop wiring missing'
+# FIX 7: the store is the stock Discover. The old backend allowlist wrapper is
+# gone -- it silently dropped the fwupd backend, so firmware updates were never
+# offered -- and the image-level assertions replace it: the backends we want are
+# present, PackageKit stays absent, and no wrapper is left behind.
+grep -qF 'STORE_GATE_OK' "$CF" || fail 'stock-Discover store gate missing'
 grep -qF 'packagekit-backend.so' "$CF" || fail 'Discover PackageKit exclusion gate missing'
-pass 'Discover Flatpak/rpm-ostree backend policy'
+grep -qF 'for b in flatpak rpm-ostree fwupd; do' "$CF" || fail 'fwupd backend is not asserted; firmware updates would go missing again'
+grep -qF 'test ! -e /usr/bin/spplus-discover' "$CF" || fail 'removed Discover wrapper is not asserted absent'
+[ ! -e "$C/spplus-discover" ] || fail 'the removed Discover wrapper is still in config/'
+pass 'stock Discover, all installed backends, no PackageKit'
 
 # FIX 8 is intentionally absent: its live desktop test was a false alarm, not a
 # defect. No source change is permitted for it.

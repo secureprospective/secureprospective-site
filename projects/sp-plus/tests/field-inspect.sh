@@ -497,16 +497,32 @@ else
   r lm_sensors_runtime missing_or_broken PROBLEM
   PRODUCT_FAIL=1
 fi
-DISCOVER_WRAPPER=/usr/bin/spplus-discover
-if [ -x "$DISCOVER_WRAPPER" ] \
-   && grep -q -- '--backends flatpak,rpm-ostree' "$DISCOVER_WRAPPER" \
-   && grep -q '^Exec=/usr/bin/spplus-discover %F$' /usr/share/applications/org.kde.discover.desktop 2>/dev/null \
+# The store is stock Discover loading every backend the image ships. The old
+# wrapper forced an allowlist that omitted fwupd, so firmware updates silently
+# never appeared; the image controls which backends exist, and this reads back
+# that outcome rather than a wrapper's argument string.
+if test ! -e /usr/bin/spplus-discover \
+   && grep -q '^Exec=plasma-discover %F$' /usr/share/applications/org.kde.discover.desktop 2>/dev/null \
    && test -e /usr/lib64/qt6/plugins/discover/flatpak-backend.so \
    && test -e /usr/lib64/qt6/plugins/discover/rpm-ostree-backend.so \
+   && test -e /usr/lib64/qt6/plugins/discover/fwupd-backend.so \
    && test ! -e /usr/lib64/qt6/plugins/discover/packagekit-backend.so; then
-  r discover_backends flatpak,rpm-ostree OK
+  r discover_backends flatpak,rpm-ostree,fwupd OK
 else
   r discover_backends mismatch PROBLEM
+  PRODUCT_FAIL=1
+fi
+
+# $releasever must name the Fedora base, not the SP+ release number. When it is
+# wrong every rpm-md repo fails on a GPG key path that does not exist, which
+# takes out rpm-ostree and every Discover operation that resolves a package.
+RELEASEVER_FILE=/etc/dnf/vars/releasever
+RELEASEVER_VALUE=$(cat "$RELEASEVER_FILE" 2>/dev/null || echo missing)
+FEDORA_REL=$(rpm -q --queryformat '%{VERSION}' fedora-release 2>/dev/null || echo unknown)
+if [ "$RELEASEVER_VALUE" = "$FEDORA_REL" ] && [ "$FEDORA_REL" != unknown ]; then
+  r releasever "$RELEASEVER_VALUE" OK
+else
+  r releasever "$RELEASEVER_VALUE (fedora-release=$FEDORA_REL)" PROBLEM
   PRODUCT_FAIL=1
 fi
 # The GUI close gate is intentionally explicit: field-inspect is also run over

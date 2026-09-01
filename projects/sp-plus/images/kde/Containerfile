@@ -672,6 +672,37 @@ RUN printf '%s\n' \
  && printf '%s\n' '\S' 'Kernel \r on an \m (\l)' '' > /etc/issue \
  && printf '%s\n' '\S' 'Kernel \r on an \m (\l)' '' > /etc/issue.net
 
+# ---- $releasever must name the FEDORA base, not the SP+ release -------------
+# The os-release written directly above sets VERSION_ID to the SP+ release
+# number (1). libdnf derives $releasever from VERSION_ID, so every rpm-md repo
+# in the image silently re-pointed at release "1": the metadata URLs and,
+# fatally, the GPG key path. Observed on the cycle44 VM, verbatim:
+#
+#   error: Updating rpm-md repo 'fedora-cisco-openh264': Failed to download gpg
+#   key for repo 'fedora-cisco-openh264': Curl error (37): Could not read a
+#   file:// file for file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-1-x86_64
+#
+# That key does not exist and never will. The effect is that NO rpm-md repo can
+# refresh, which takes out `rpm-ostree install` and every Discover operation
+# that has to resolve a package -- the store looks deliberately locked down when
+# it is simply broken.
+#
+# The fix is the documented override, /etc/dnf/vars/releasever. It is DERIVED
+# from fedora-release rather than hardcoded, so a base bump carries it along; it
+# ships in /etc because that is where libdnf reads vars from, which also leaves
+# it overridable on a running machine.
+RUN set -eux; \
+    rel=$(rpm -q --queryformat '%{VERSION}' fedora-release); \
+    case "$rel" in ''|*[!0-9]*) echo "RELEASEVER GATE FAIL: fedora-release version '$rel' is not an integer" >&2; exit 1;; esac; \
+    [ "$rel" -ge 40 ] || { echo "RELEASEVER GATE FAIL: implausible Fedora release '$rel'" >&2; exit 1; }; \
+    mkdir -p /etc/dnf/vars; \
+    printf '%s\n' "$rel" > /etc/dnf/vars/releasever; \
+    chmod 0644 /etc/dnf/vars/releasever; \
+    . /usr/lib/os-release; \
+    [ "$VERSION_ID" != "$rel" ] || { echo "RELEASEVER GATE FAIL: VERSION_ID already equals the base release; this override would be dead code" >&2; exit 1; }; \
+    dnf -q --refresh repoquery --qf '%{name}' bash >/dev/null; \
+    echo "RELEASEVER_GATE_OK \$releasever pinned to Fedora $rel, not SP+ $VERSION_ID"
+
 # The SP+ mark, under the name LOGO= points at, plus every visible Fedora logo
 # surface. The surfaces are ENUMERATED from the rpm database, not guessed:
 # fedora-logos owns them and `rpm -V` is what the gate reads back.
@@ -971,23 +1002,45 @@ RUN dnf install -y --setopt=install_weak_deps=False gvfs gvfs-smb \
  && test -x /usr/libexec/gvfsd-smb \
  && test -s /usr/share/gvfs/mounts/smb.mount \
  && echo "DN40_GVFS_SMB_OK office folder mounting is actually installed"
-COPY config/spplus-discover /usr/bin/spplus-discover
 
-RUN chmod 0755 /usr/bin/spplus-discover \
- && test -x /usr/bin/spplus-discover \
- && grep -q -- '--backends flatpak,rpm-ostree' /usr/bin/spplus-discover \
- && sed -i \
-      -e 's#^Exec=plasma-discover %F$#Exec=/usr/bin/spplus-discover %F#' \
-      -e 's#^Exec=plasma-discover %U$#Exec=/usr/bin/spplus-discover %U#' \
-      -e 's#^Exec=plasma-discover --mode update$#Exec=/usr/bin/spplus-discover --mode update#' \
-      /usr/share/applications/org.kde.discover.desktop /usr/share/applications/org.kde.discover.flatpak.desktop \
- && grep -q '^Exec=/usr/bin/spplus-discover %F$' /usr/share/applications/org.kde.discover.desktop \
- && grep -q '^Exec=/usr/bin/spplus-discover --mode update$' /usr/share/applications/org.kde.discover.desktop \
- && test ! -e /usr/lib64/qt6/plugins/discover/packagekit-backend.so \
- && test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
- && grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
- && grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
- && echo "FLATHUB_OK vendor remote shipped in the image"
+# ---- The software store is the stock one (DN-45) ----------------------------
+# SP+ used to launch Discover through a wrapper, /usr/bin/spplus-discover, that
+# forced `--backends flatpak,rpm-ostree`, and rewrote the .desktop files to call
+# it. The stated reason was to keep PackageKit out of the store.
+#
+# That reason was already satisfied without the wrapper. PackageKit is not
+# installed in this image and packagekit-backend.so does not exist -- asserted
+# below, which is the real guard. What the wrapper actually did was hide the two
+# backends it forgot to name: fwupd, so the advisor was never offered a firmware
+# update, and kns. It also diverged from SP+ Welcome, which has always launched
+# /usr/bin/plasma-discover directly, so the store behaved differently depending
+# on whether it was opened from the menu or from Welcome.
+#
+# An allowlist that has to be kept in sync with the set of installed backends is
+# the wrong shape for this. The image controls which backends exist; Discover
+# should load what is there. So the wrapper is gone and the stock .desktop files
+# are left alone, and the assertions below pin the outcome instead: the backends
+# we want present, the one we refuse absent, and no wrapper left behind.
+RUN set -eux; \
+    P=/usr/lib64/qt6/plugins/discover; \
+    for b in flatpak rpm-ostree fwupd; do \
+        test -e "$P/$b-backend.so" || { echo "STORE GATE FAIL: missing backend $b" >&2; exit 1; }; \
+    done; \
+    if test -e "$P/packagekit-backend.so"; then \
+        echo "STORE GATE FAIL: PackageKit backend is present on an image-mode host" >&2; exit 1; \
+    fi; \
+    test ! -e /usr/bin/spplus-discover; \
+    for d in org.kde.discover.desktop org.kde.discover.flatpak.desktop; do \
+        f=/usr/share/applications/$d; \
+        test -f "$f" || continue; \
+        grep -q '^Exec=plasma-discover' "$f" || { echo "STORE GATE FAIL: $d does not launch stock plasma-discover" >&2; exit 1; }; \
+        if grep -q 'spplus-discover' "$f"; then echo "STORE GATE FAIL: $d still points at the removed wrapper" >&2; exit 1; fi; \
+        desktop-file-validate "$f"; \
+    done; \
+    test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    echo "STORE_GATE_OK stock Discover, backends flatpak+rpm-ostree+fwupd, no PackageKit, Flathub shipped"
 
 # ---- 6a. SP+ Calm, the shipped default look (DN-27) --------------------------
 # SP+ Calm is the OS's own visual language and is deliberately NOT branded to
