@@ -1164,6 +1164,8 @@ class WelcomeBridge(QObject):
             self.print_test()
         elif parsed.path == 'pin-help':
             self.pin_help()
+        elif parsed.path == 'finish':
+            self.finish()
 
     def _send_service_result(self, payload):
         encoded = json.dumps(payload, ensure_ascii=True)
@@ -1283,6 +1285,17 @@ class WelcomeBridge(QObject):
         encoded = json.dumps(payload, ensure_ascii=True)
         self.view.page().runJavaScript(
             f'window.spWelcome && window.spWelcome.finResult({encoded})')
+
+    def finish(self):
+        """End setup and leave the advisor on their desktop.
+
+        Welcome sets up and then hands off, so the last button closes it. The
+        window's own closeEvent is the single place that shuts the app down, so
+        this goes through close() rather than quitting the application here.
+        """
+        window = self.view.window()
+        if window is not None:
+            window.close()
 
     def pin_help(self):
         worker = PinHelpWorker()

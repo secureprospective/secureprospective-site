@@ -324,7 +324,16 @@
     announce(current === lastScreen ? 'SETUP HANDOFF IS READY.' : 'READY WHEN YOU ARE.');
   }
   routes.forEach(route => route.addEventListener('click', () => go(Number(route.dataset.go))));
-  next.addEventListener('click', () => { if(current===screenCount-1){ announce('WELCOME IS STILL AVAILABLE FROM APPLICATIONS.', ''); return; } go(current+1); });
+  // The last button is the handoff. Welcome's job ends here, so it closes and
+  // leaves the advisor on the desktop it just set up. Announcing and staying
+  // open made the button look broken: it is the one control on the screen that
+  // did nothing visible.
+  function finishSetup(){
+    announce('OPENING YOUR DESKTOP.', '');
+    document.title = 'spplus:finish';
+    setTimeout(() => { document.title = 'SP+ Welcome'; }, 400);
+  }
+  next.addEventListener('click', () => { if(current===screenCount-1){ finishSetup(); return; } go(current+1); });
   back.addEventListener('click', () => go(current-1));
   skip.addEventListener('click', () => go(current+1));
   // A theme card opens a preview receipt. Nothing reaches the shell until the
