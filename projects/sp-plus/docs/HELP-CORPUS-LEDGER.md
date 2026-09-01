@@ -70,7 +70,7 @@ Evidence column.
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
 | U1 | Updates and restarts | knowledge/advisor-help/updates-and-restarts.md | VERIFIED | verified: image/VM have bootc but `bootc-fetch-apply-updates.timer` is disabled; VM has booted status with no staged or rollback target and no advisor-facing update/rollback UI found. Separate `spplus-flatpak-update.timer` is enabled daily/persistent, runs non-interactive system Flatpak updates, and was observed reporting no update available. No system-image update, real app update, notification, staged restart, rollback, return, or advisor-hardware test performed. Drift: prior automatic-system-update, notice, restart-completion, and self-service rollback promises were unsupported. |
-| U2 | Changing how it looks | knowledge/advisor-help/changing-how-it-looks.md | TODO | |
+| U2 | Changing how it looks | knowledge/advisor-help/changing-how-it-looks.md | VERIFIED | verified: image has SP+ Windows 11 Dark and Light global-theme packages plus Global Theme, Fonts, Colors, Application Style, Icons, and Pointers settings components. VM reads back SP+ Windows 11 Dark, WindowsModernDark, and supplied cursor. No interactive theme application, panel/layout result, rollback-to-prior-theme, appearance on physical displays, scaling, font, wallpaper, or multi-monitor test performed. Article limits claims accordingly and does not recommend downloads. |
 | U3 | Getting a new computer | knowledge/advisor-help/getting-a-new-computer.md | TODO | |
 
 ## Batch 7 — Get more help
