@@ -723,9 +723,9 @@
       // Names only. The descriptions belong on the topic screen where they have
       // room; repeated here they pushed the last row past the panel edge on a
       // 1024-wide screen, cutting it off with no scrollbar to reveal it.
-      const browse = `<div class="search-browse"><span>OR BROWSE EVERY TOPIC</span><div class="trail-grid trail-grid--compact">${Object.keys(categories).map(name=>`<button class="trail-card" data-category="${esc(name)}"><b>${esc(name)}</b></button>`).join('')}</div></div>`;
+      const browse = `<div class="search-browse"><span>OR BROWSE EVERY TOPIC</span><div class="browse-chips">${Object.keys(categories).map(name=>`<button class="browse-chip" data-category="${esc(name)}">${esc(name)}</button>`).join('')}</div></div>`;
       helpContent.innerHTML = (found.length
-        ? `<div class="article-grid">${found.map((a,i)=>`<button class="article-link" data-found="${i}"><b>${esc(a.title)}</b><small>${esc(a.category.toUpperCase())}</small></button>`).join('')}</div>`
+        ? `<div class="trail-grid trail-grid--compact">${found.map((a,i)=>`<button class="trail-card" data-found="${i}"><b>${esc(a.title)}</b><small>${esc(a.category.toUpperCase())}</small></button>`).join('')}</div>`
         : '<div class="search-empty"><p>Nothing here matches those words yet. That is our gap, not your mistake.</p><p>Fin reads plain English and can answer from the whole manual, so pressing ASK FIN above is the fastest way on.</p></div>') + browse;
       helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{
         askInput.value=''; helpView={kind:'category',category:b.dataset.category};renderHelp();}));
@@ -733,7 +733,18 @@
         helpView={kind:'article',category:found[i].category,article:found[i]};renderHelp();}));
       return;
     }
-    if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat]; const entries=articles.filter(a=>a.category===cat);helpContent.innerHTML=`<div class="article-grid">${entries.map((a,i)=>`<button class="article-link" data-article="${i}"><b>${a.title}</b><small>READ THIS GUIDE HERE</small></button>`).join('')}</div>`;helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:entries[i]};renderHelp();}));return;}
+    if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat];
+      // A category can hold more guides than the panel is tall, and the panel
+      // does not scroll. Page the list with the same pager the reader uses, so
+      // nothing is ever silently cut off the bottom.
+      const entries=articles.filter(a=>a.category===cat);
+      const per=6, pageCount=Math.max(1,Math.ceil(entries.length/per));
+      const page=Math.min(Math.max(helpView.page||0,0),pageCount-1);
+      const shown=entries.slice(page*per,page*per+per);
+      helpContent.innerHTML=`<div class="trail-grid trail-grid--compact">${shown.map((a,i)=>`<button class="trail-card" data-article="${i}"><b>${esc(a.title)}</b><small>READ THIS GUIDE HERE</small></button>`).join('')}</div>`+(pageCount>1?`<div class="help-pager"><span>GUIDES ${page*per+1}-${page*per+shown.length} OF ${entries.length}</span>${page>0?'<button class="text-button" data-list="prev">PREVIOUS</button>':''}${page<pageCount-1?'<button class="text-button" data-list="next">MORE GUIDES</button>':''}</div>`:'');
+      helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:shown[i]};renderHelp();}));
+      helpContent.querySelectorAll('[data-list]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:cat,page:page+(b.dataset.list==='next'?1:-1)};renderHelp();}));
+      return;}
     const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='This guide stays inside Welcome. No browser window opens.';
     const sections=a.markdown.split(/\n(?=## )/); const pages=[sections.slice(0,2).join('\n'),...sections.slice(2)]; const page=Math.min(helpView.page||0,pages.length-1);
     helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>PAGE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT PAGE</button>':''}</div>`;

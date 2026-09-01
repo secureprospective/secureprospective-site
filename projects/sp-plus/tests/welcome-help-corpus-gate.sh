@@ -35,8 +35,21 @@ def walk_cat(cats, i):
              function(x){return x.dataset.category===%s;})[0];
       if(!b) return JSON.stringify({cat:%s,err:'category button missing'});
       b.click();
-      var arts=[].map.call(document.querySelectorAll('#help-content [data-article] b'),
-                           function(x){return x.textContent;});
+      // A long category is paged. Read every page before walking, then come
+      // back to the first: collecting lazily mid-walk fights the reset that
+      // happens each time we return from a guide.
+      var arts=[], guard=0;
+      function titles(){return [].map.call(
+        document.querySelectorAll('#help-content [data-article] b'),
+        function(x){return x.textContent;});}
+      arts=titles();
+      while(guard++ < 20){
+        var n=document.querySelector('#help-content [data-list=\"next\"]');
+        if(!n) break;
+        n.click(); arts=arts.concat(titles());
+      }
+      var p=document.querySelector('#help-content [data-list=\"prev\"]');
+      while(p){p.click(); p=document.querySelector('#help-content [data-list=\"prev\"]');}
       return JSON.stringify({cat:%s, articles:arts});})()""" % (json.dumps(cat),json.dumps(cat),json.dumps(cat))
     def got(res):
         d=json.loads(res) if res else {'cat':cat,'err':'no result'}
@@ -50,15 +63,27 @@ def walk_articles(cats, i, d, j):
         v.page().runJavaScript("(function(){var h=document.getElementById('help-home');if(h)h.click();return 1;})()",
             lambda _: QTimer.singleShot(500, lambda: walk_cat(cats, i+1)))
         return
+    # Find the guide by its title, paging forward if it is not on the page in
+    # front of us. Index alone is wrong once a category pages: the buttons
+    # renumber from zero on every page.
     js = """(function(){
-      var bs=document.querySelectorAll('#help-content [data-article]');
-      if(!bs[%d]) return JSON.stringify({err:'article button missing'});
-      bs[%d].click();
+      var want=%s;
+      function find(){return [].filter.call(
+        document.querySelectorAll('#help-content [data-article]'),
+        function(x){var b=x.querySelector('b');return b&&b.textContent===want;})[0];}
+      var b=find(), guard=0;
+      while(!b && guard++ < 20){
+        var n=document.querySelector('#help-content [data-list=\"next\"]');
+        if(!n) break;
+        n.click(); b=find();
+      }
+      if(!b) return JSON.stringify({err:'article button missing'});
+      b.click();
       var r=document.querySelector('.article-reader');
       var pager=document.querySelector('.help-pager span');
       return JSON.stringify({chars:r?r.textContent.trim().length:0,
                              pager:pager?pager.textContent:'none',
-                             heading:document.getElementById('help-heading').textContent});})()""" % (j,j)
+                             heading:document.getElementById('help-heading').textContent});})()""" % json.dumps(arts[j])
     def got(res):
         a = json.loads(res) if res else {'err':'no result'}
         d.setdefault('checked', []).append({arts[j]: a})
@@ -77,7 +102,7 @@ QTimer.singleShot(220000, finish); sys.exit(app.exec())
 PYWALK
 QT_QPA_PLATFORM=offscreen timeout 280 python3 "$WALKER" "$APP" > /tmp/help-walk.json 2>/dev/null
 [ -s /tmp/help-walk.json ] || { echo "walker produced nothing"; echo "HELP CORPUS GATE: FAIL"; exit 1; }
-MIN_CHARS="$MIN_CHARS" python3 - <<'PY'
+MIN_CHARS="$MIN_CHARS" APP_PATH="$APP" python3 - <<'PY'
 import json, os, re, sys
 data = json.load(open('/tmp/help-walk.json'))
 floor = int(os.environ['MIN_CHARS'])
@@ -103,6 +128,13 @@ for cat in data:
 print('  %d articles opened' % total)
 if total == 0:
     print('  nothing was opened'); fail = 1
+# Every article the app ships must be reachable by clicking. Counting them
+# against the corpus is what catches a guide that exists in the data but has
+# no route to it -- the failure paging introduced and this gate first missed.
+corpus = json.load(open(os.path.join(os.path.dirname(os.environ['APP_PATH']), 'help-data.json')))
+if total != len(corpus):
+    print('  corpus ships %d articles but only %d could be reached by clicking'
+          % (len(corpus), total)); fail = 1
 sys.exit(fail)
 PY
 status=$?
