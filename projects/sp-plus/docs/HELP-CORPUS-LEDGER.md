@@ -26,7 +26,7 @@ Evidence column.
 | F2 | The file portal | knowledge/files/the-file-portal.md | VERIFIED | verified: image localhost/sp-plus-kde:spike has File Portal capability check and browser launch, Private/Shared copy, and separate portal-password guidance; public portal returns HTTP 200 and ready capability JSON. Drift: current running VM has older Welcome code with no File Portal service. |
 | F3 | Private and Shared: the rule that stops misfiling | knowledge/files/private-and-shared.md | VERIFIED | verified: image localhost/sp-plus-kde:spike Welcome explicitly says Private is advisor alone and Shared - YOUR NAME is advisor plus SecureProspective; File Portal capability endpoint returns ready. Drift: current running VM has older Welcome code with no Private/Shared UI. |
 | F4 | USB drives and external storage | knowledge/files/usb-and-external-drives.md | VERIFIED | verified: live VM udisks2 active, Dolphin, kio-extras, exFAT/NTFS/FAT tools, Device Notifier, KIO eject/unmount strings; image same packages and UDisks unit. No physical-drive hotplug test performed. |
-| F5 | Backups: what is protected and what is not | knowledge/files/backups.md | TODO | |
+| F5 | Backups: what is protected and what is not | knowledge/files/backups.md | VERIFIED | verified: live VM and image have no known backup/sync client or service; VM bootc with home under encrypted /var; image Fin guardrail says rollback restores nothing under /var or /home. File Portal retention/recovery policy remains unverified. |
 
 ## Batch 3 — Everyday work
 
