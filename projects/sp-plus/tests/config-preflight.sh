@@ -895,6 +895,22 @@ grep -qF 'COPY pwa/' "$REPO/projects/sp-plus/images/kde/Containerfile" \
 grep -qF 'COPY config/brave-policies.json' "$REPO/projects/sp-plus/images/kde/Containerfile" \
   && { P16_OK=0; echo "       a Brave policy COPY is back, and it is overwritten later in the same build"; }
 
+# Brave opens on Help. The policy is written by a RUN block in the image, not
+# copied from config/, so this asserts against the Containerfile that generates
+# it. Checking the copied file instead would pass while the built image did
+# something else entirely.
+CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+for key in '"HomepageLocation": "http://127.0.0.1:8766/"' \
+           '"RestoreOnStartup": 4' \
+           '"RestoreOnStartupURLs": ["http://127.0.0.1:8766/"]' \
+           '"HomepageIsNewTabPage": false'; do
+  grep -qF "$key" "$CF" \
+    || { P16_OK=0; echo "       Brave policy does not set $key"; }
+done
+# The port has to be the one the Help service actually listens on.
+grep -q 'SPPLUS_HELP_PORT=8766' "$REPO/projects/sp-plus/config/spplus-help.service" \
+  || { P16_OK=0; echo "       the Help service does not listen on the port Brave opens"; }
+
 # Every guide must be reachable from the search bar. A corpus can be complete
 # and still be unreachable: an advisor only ever meets an article through the
 # search field, so one no query surfaces is, from where they sit, missing.
