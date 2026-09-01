@@ -149,3 +149,27 @@ built image; the errant button is fixed; the close gate can now fail; and an
 installable ISO exists if he wants it tonight.
 
 Nothing here should be reported as done. Bee's pass is unread.
+
+## ADDENDUM 2026-08-31 21:17 — how to tell Bee is alive
+
+Bee runs `pi` with `--no-session`, so **there is no session transcript** and the
+generic "poll the transcript mtime" check does not apply. Absence of a JSONL under
+`~/.pi/agent` is normal, not death.
+
+The brief also confines all work to the VM (`ssh -p 2222 test@127.0.0.1`), so **no
+files move in the repo on the Beelink while Bee works**. A quiet worktree is normal
+too. Judging either of these as a stall is the mistake that produced a false death
+call earlier in this session.
+
+The three checks that actually mean something:
+
+1. `systemctl --user show bee-welcome-finish --property=ActiveState` — `activating`
+   is alive for a `Type=oneshot` unit. Never use the exit code of `is-active`; it
+   returns 3 while the unit runs normally.
+2. `ps -o time= -p <pi pid>` plus `ss -tnp | grep pid=<pi pid>` — accumulating CPU
+   and an ESTABLISHED :443 connection mean it is still talking to the model.
+3. `ssh -p 2222 test@127.0.0.1 'ls -lt ~/*.png | head'` — **the real progress
+   signal.** Fresh screenshot mtimes on the VM are Bee's actual output.
+
+Observed at 21:17: unit `activating` (26 min), pi at 28s CPU / 275 MB RSS with a live
+TLS connection, and 44 screenshots on the VM with the newest written that minute.
