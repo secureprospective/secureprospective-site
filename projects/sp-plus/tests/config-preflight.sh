@@ -396,6 +396,37 @@ grep -qF 'systemctl --global enable spplus-update-notify.timer' "$DN46CF" \
   && ok "DN-46 updates stage daily, apply at shutdown, never reboot, announce once" \
   || bad "DN-46 update policy gate failed" "either updates stop arriving or the machine reboots on the advisor"
 
+# P-15c  The Pi pin. ISO-44-QUEUE item 4. A security product must not float an
+# npm dependency: a build that silently picks up a new agent release is not
+# reproducible, and on an advisor's machine the agent is the thing with the most
+# reach. The version must be one exact literal, in one place, and the runtime
+# npm that could pull a different one must be gone from the finished image.
+PICF="$REPO/projects/sp-plus/images/kde/Containerfile"
+PI_OK=1
+PI_PIN=$(grep -m1 '^ARG PI_VERSION=' "$PICF" | cut -d= -f2)
+case "$PI_PIN" in
+  ''|*[!0-9.]*|*..*|.*|*.) PI_OK=0; echo "       Pi pin '$PI_PIN' is not a bare version (a ^, ~ or 'latest' floats it)";;
+esac
+[ "$(printf '%s' "$PI_PIN" | awk -F. 'NF==3{print "ok"}')" = ok ] \
+  || { PI_OK=0; echo "       Pi pin '$PI_PIN' is not an exact three-part version"; }
+# The version must appear once. It used to be written twice -- install and
+# read-back -- so a bump could update one and leave the assertion checking the
+# old number, at which point the gate is verifying nothing.
+grep -q 'pi-coding-agent@\${PI_VERSION}' "$PICF" \
+  || { PI_OK=0; echo "       the Pi install does not use the pinned ARG"; }
+grep -qF 'grep -qFx "$PI_VERSION"' "$PICF" \
+  || { PI_OK=0; echo "       the built image never reads back pi --version against the pin"; }
+if grep -oE 'pi-coding-agent@[0-9]+\.[0-9]+\.[0-9]+' "$PICF" | grep -q .; then
+  PI_OK=0; echo "       a hardcoded Pi version is back alongside the ARG; they will drift"
+fi
+grep -qF 'test ! -e /usr/bin/npm' "$PICF" \
+  || { PI_OK=0; echo "       npm is not asserted absent; the machine could pull code at runtime"; }
+grep -qF 'PI_PIN_GATE_OK' "$PICF" \
+  || { PI_OK=0; echo "       Containerfile has no Pi pin build gate"; }
+[ "$PI_OK" -eq 1 ] \
+  && ok "Pi is pinned to one exact literal ($PI_PIN), read back, and npm is gone" \
+  || bad "Pi pin gate failed" "a floating agent version is not reproducible and not auditable"
+
 # P-16  DN-36 wifi powersave. The value reads BACKWARDS: NetworkManager's
 # wifi.powersave is 0=default 1=ignore 2=disable 3=enable, so 2 disables power
 # saving and 3 would enable it. A well-meaning "fix" to 3 would silently

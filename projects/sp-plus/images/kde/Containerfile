@@ -515,9 +515,24 @@ assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72
 #     nodejs22-npm + nodejs22-npm-bin, and removing the name `npm` matches
 #     nothing while still exiting 0. `dnf remove --assumeno` confirmed those
 #     two packages come out alone and nodejs itself stays.
+# ONE source of truth for the version. It used to appear twice -- in the install
+# and in the read-back assertion -- which meant a bump could update the install
+# and leave the assertion checking the old number, and the gate would then be
+# verifying nothing. The ARG is the pin; the gate below proves it is an exact
+# literal before anything uses it.
+ARG PI_VERSION=0.84.4
+
+RUN set -eux; \
+    case "$PI_VERSION" in \
+        ''|*[!0-9.]*|*..*|.*|*.) echo "PI PIN GATE FAIL: '$PI_VERSION' is not a bare version" >&2; exit 1;; \
+    esac; \
+    [ "$(printf '%s' "$PI_VERSION" | awk -F. 'NF==3{print "ok"}')" = ok ] \
+        || { echo "PI PIN GATE FAIL: '$PI_VERSION' is not an exact three-part version" >&2; exit 1; }; \
+    echo "PI_PIN_GATE_OK pinned to an exact literal $PI_VERSION"
+
 RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18n \
  && HOME=/tmp/npmhome npm_config_cache=/tmp/npmcache \
-    npm install -g --prefix /usr @earendil-works/pi-coding-agent@0.84.3 \
+    npm install -g --prefix /usr "@earendil-works/pi-coding-agent@${PI_VERSION}" \
  && rm -rf /tmp/npmhome /tmp/npmcache \
  && dnf remove -y nodejs22-npm nodejs22-npm-bin \
  && dnf clean all \
@@ -526,7 +541,7 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && test -x /usr/bin/pi \
  && test ! -e /usr/bin/npm \
  && /usr/bin/node-22 -e 'new Intl.Segmenter("en",{granularity:"grapheme"}).segment("hello")' \
- && /usr/bin/pi --version | grep -q '^0\.84\.3$' \
+ && /usr/bin/pi --version | grep -qFx "$PI_VERSION" \
  && echo "NODE_INTL_OK node-22 Intl.Segmenter" \
  && chmod 0755 /usr/libexec/spplus-fix \
  && bash -n /usr/libexec/spplus-fix \

@@ -48,6 +48,13 @@ already sets `--target-imgref ghcr.io/secureprospective/sp-plus-kde:edge`, so th
 knows where its updates come from.
 
 1. Bump the pin in `images/kde/Containerfile` to the chosen version. Pin it; never float it.
+   **DONE 2026-09-01: 0.84.3 -> 0.84.4**, which is `latest` on npm (published 2026-08-28; 43
+   versions exist). The version is now a single `ARG PI_VERSION` rather than the two hardcoded
+   copies it used to be -- install and read-back -- because a bump could update one and leave
+   the assertion checking the old number, at which point the gate verified nothing.
+   Verified: 0.84.4 installs from the registry and `pi --version` prints `0.84.4`; the Fin
+   guardrails extension gate still passes 49/49 against it, and 0.84.4 still ships jiti at the
+   path that gate imports.
 2. Make `bootc upgrade` actually work end to end: publish the payload image to
    `ghcr.io/secureprospective/sp-plus-kde:edge`, then verify on the Dell that
    `sudo bootc upgrade` stages a new deployment and `bootc status` shows it.
@@ -59,6 +66,12 @@ knows where its updates come from.
 4. Build gate, in the DN-27/28/29 style: assert the pinned version is an exact literal (no `^`,
    no `~`, no `latest`), that `pi --version` in the built image reports that same version, and
    that npm is absent from the finished image.
+   **DONE 2026-09-01.** `PI_PIN_GATE_OK` in the Containerfile rejects anything that is not a
+   bare three-part version before it is used, and the image still reads `pi --version` back
+   against the pin and asserts `/usr/bin/npm` is gone. A source-level twin runs in
+   `config-preflight.sh` so a float is caught without a build. Mutation-tested four ways: a
+   caret on the pin, a hardcoded version reintroduced alongside the ARG, the npm-absent
+   assertion dropped, and the version read-back weakened each fail on their own line.
 
 **OPEN QUESTION for Christopher — needed before the fix is finalised:** what were you actually
 doing when it "had troubles", and what did it say? Three different failures hide behind that

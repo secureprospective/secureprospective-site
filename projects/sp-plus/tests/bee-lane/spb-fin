@@ -34,7 +34,7 @@ check() { # check <label> <command> <expected-substring>
 echo "SPB-FIN: checking Fin on the installed guest ($CYCLE)"
 
 # The agent and its runtime survived npm being removed in the same layer.
-check "pi runs and is the pinned version" '/usr/bin/pi --version' '0.84.3'
+check "pi runs and is the pinned version" '/usr/bin/pi --version' '0.84.4'
 check "node is present"                   'node --version' 'v22'
 check "npm is NOT present"                'command -v npm || echo NPM_ABSENT' 'NPM_ABSENT'
 

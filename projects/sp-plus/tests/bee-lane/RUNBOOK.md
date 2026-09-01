@@ -87,12 +87,12 @@ been observed working on an installed machine.** Build gates proved the FILES ar
 right; that is not the same claim.
 
 **1. Fin is now a real agent, not a menu.** Fin was four menu items over an RPC
-allowlist. It is now the Pi agent (`/usr/bin/pi`, pinned 0.84.3) behind
+allowlist. It is now the Pi agent (`/usr/bin/pi`, pinned 0.84.4) behind
 `/usr/libexec/sp-plus/fin`. The risky part: `npm` was REMOVED in the same build layer
 that installed it, so the question is whether `pi` still has a runtime on a real
 machine. Prove:
 
-- `pi --version` prints `0.84.3`
+- `pi --version` prints `0.84.4`
 - `node --version` works, and `command -v npm` finds NOTHING
 - `/usr/libexec/sp-plus/fin < /dev/null` exits **1** and names `spplus-fix printer`.
   It must NOT traceback and must NOT hang. This is what an advisor sees if they open
