@@ -66,3 +66,33 @@ FullScreenScreenShot=none,none,Capture Entire Desktop
 OpenWithoutScreenshot=none,none,Launch Spectacle without capturing
 RectangularRegionScreenShot=none,none,Capture Rectangular Region
 WindowUnderCursorScreenShot=none,none,Capture Window Under Cursor
+
+# ---- Office keys, freed from Plasma (2026-09-01) ----
+#
+# Christopher's call: an advisor coming from Windows needs Office's function
+# keys more than they need KDE virtual desktops. Plasma claims Ctrl+F1 through
+# Ctrl+F4 for desktop switching and Ctrl+F7/F9/F10 for Present Windows, so
+# LibreOffice never sees the keypress: Ctrl+F2 print preview and Ctrl+F4 close
+# document simply do nothing, which reads as broken software rather than as a
+# choice.
+#
+# Each of these actions also has a Meta+Fn binding, so this drops ONLY the
+# Ctrl+Fn half and leaves the capability reachable. Nothing is taken away from
+# an advisor who does use virtual desktops; they press Meta+F2 instead. The
+# exception is the dashboard, which has no alternative and is disabled outright
+# because Ctrl+F12 is Word's and Excel's.
+#
+# Field order is current,default,friendly-name. Leaving the default field
+# untouched means System Settings still shows Plasma's stock binding as the
+# thing to restore, and an advisor who wants it back gets it back.
+[kwin]
+Expose=Meta+F9,Ctrl+F9\tMeta+F9,Toggle Present Windows (Current desktop)
+ExposeAll=Launch (C)\tMeta+F10,Launch (C)\tCtrl+F10\tMeta+F10,Toggle Present Windows (All desktops)
+ExposeClass=Meta+F7,Ctrl+F7\tMeta+F7,Toggle Present Windows (Window class)
+Switch to Desktop 1=Meta+F1,Ctrl+F1\tMeta+F1,Switch to Desktop 1
+Switch to Desktop 2=Meta+F2,Ctrl+F2\tMeta+F2,Switch to Desktop 2
+Switch to Desktop 3=Meta+F3,Ctrl+F3\tMeta+F3,Switch to Desktop 3
+Switch to Desktop 4=Meta+F4,Ctrl+F4\tMeta+F4,Switch to Desktop 4
+
+[plasmashell]
+show dashboard=none,Ctrl+F12,Show Desktop

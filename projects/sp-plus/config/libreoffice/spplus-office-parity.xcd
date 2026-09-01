@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SP+ LibreOffice / Microsoft Office parity: appearance and behaviour.
+
+  WHY THIS IS A .xcd AND NOT /etc/skel
+
+  SP+ previously seeded these settings as a user-layer
+  registrymodifications.xcu through /etc/skel. That vehicle reaches only
+  accounts created after the image lands, and once an account exists the
+  file is the advisor's own - a later SP+ image can never improve it.
+  This file is the shared configuration layer instead. LibreOffice's
+  config manager reads every .xcd in this directory beneath the user
+  layer, so:
+
+    - new and existing advisors both get these defaults;
+    - an advisor who changes any of them keeps their change, because the
+      user layer still wins;
+    - the file is owned by SP+ rather than by libreoffice-core, so a
+      LibreOffice RPM update cannot remove it.
+
+  Nothing here is oor:finalized or oor:mandatory. These are defaults, not
+  policy. The advisor owns the machine; SP+ only picks the starting point.
+
+  Values verified against libreoffice-core-26.2.5.2-1.fc44 as shipped, by
+  reading the schema in /usr/lib64/libreoffice/share/registry/main.xcd.
+-->
+<oor:data
+    xmlns:oor="http://openoffice.org/2001/registry"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <!-- Processed after these components, not merely after main. Without the
+       writer dependency, writer.xcd reimposes ooSetupFactoryDefaultFilter=
+       writer8 and new Writer documents silently save as .odt again. This
+       was caught by read-back, not by review: the file parsed cleanly and
+       the other two modules worked. -->
+  <dependency file="main"/>
+  <dependency file="writer"/>
+  <dependency file="calc"/>
+  <dependency file="impress"/>
+  <dependency file="draw"/>
+
+  <!-- ================= appearance ================= -->
+  <oor:component-data oor:name="Common" oor:package="org.openoffice.Office">
+
+    <node oor:name="Misc">
+      <!-- Colibre follows Microsoft's own icon design guidelines. Left on
+           "auto" a KDE desktop selects Breeze, which is the single most
+           obvious tell that this is not Office. -->
+      <prop oor:name="SymbolStyle"><value>colibre</value></prop>
+      <!-- Nothing in the suite should ask the advisor for money or offer
+           to update itself; updates are the operating system's job. -->
+      <prop oor:name="ShowDonation"><value>false</value></prop>
+      <prop oor:name="CrashReport"><value>false</value></prop>
+      <prop oor:name="ShowTipOfTheDay"><value>false</value></prop>
+    </node>
+
+    <node oor:name="Appearance">
+      <!-- 1 = Light. Office is light; automatic would follow a dark Plasma
+           palette and produce a dark-chrome office suite the advisor has
+           never seen. -->
+      <prop oor:name="ApplicationAppearance"><value>1</value></prop>
+      <prop oor:name="UseOnlyWhiteDocBackground"><value>true</value></prop>
+      <prop oor:name="UseBmpForAppBack"><value>false</value></prop>
+    </node>
+
+    <node oor:name="Help">
+      <node oor:name="StartCenter">
+        <!-- Stock is dark grey (0x666666) behind pale text. Office's start
+             screen is light. 16777215 = 0xffffff, 0 = black text. -->
+        <prop oor:name="StartCenterThumbnailsBackgroundColor"><value>16777215</value></prop>
+        <prop oor:name="StartCenterThumbnailsTextColor"><value>0</value></prop>
+      </node>
+    </node>
+
+    <node oor:name="History">
+      <!-- Recent documents across the whole suite, the way Office does it,
+           rather than only the module that happens to be open. -->
+      <prop oor:name="PickListSize"><value>25</value></prop>
+      <prop oor:name="ShowCurrentModuleOnly"><value>false</value></prop>
+    </node>
+
+    <!-- ================= saving ================= -->
+    <node oor:name="Save">
+      <node oor:name="Document">
+        <!-- The "keep current format?" dialog, off. An advisor exchanging
+             documents with clients and carriers should not answer a
+             question about file formats on every save. The trade is real
+             and recorded in the ledger: that dialog is also how
+             LibreOffice warns that a feature may not survive the round
+             trip. Backups stay on, so the trade is recoverable. -->
+        <prop oor:name="WarnAlienFormat"><value>false</value></prop>
+        <prop oor:name="CreateBackup"><value>true</value></prop>
+        <prop oor:name="AlwaysSaveAs"><value>false</value></prop>
+      </node>
+    </node>
+
+    <!-- ================= fonts ================= -->
+    <!-- Fonts a client's document asks for that SP+ cannot license.
+         Carlito, Caladea, Tinos and the Liberation family are metrically
+         compatible, so line and page breaks land where the sender put
+         them. Always=false so a properly licensed original still wins if
+         it is ever installed; OnScreenOnly=false so print matches screen. -->
+    <node oor:name="Font">
+      <node oor:name="Substitution">
+        <prop oor:name="Replacement"><value>true</value></prop>
+        <node oor:name="FontPairs">
+          <node oor:name="Calibri-to-Carlito" oor:op="replace">
+            <prop oor:name="ReplaceFont"><value>Calibri</value></prop>
+            <prop oor:name="SubstituteFont"><value>Carlito</value></prop>
+            <prop oor:name="Always"><value>false</value></prop>
+            <prop oor:name="OnScreenOnly"><value>false</value></prop>
+          </node>
+          <node oor:name="Cambria-to-Caladea" oor:op="replace">
+            <prop oor:name="ReplaceFont"><value>Cambria</value></prop>
+            <prop oor:name="SubstituteFont"><value>Caladea</value></prop>
+            <prop oor:name="Always"><value>false</value></prop>
+            <prop oor:name="OnScreenOnly"><value>false</value></prop>
+          </node>
+          <node oor:name="Times-New-Roman-to-Tinos" oor:op="replace">
+            <prop oor:name="ReplaceFont"><value>Times New Roman</value></prop>
+            <prop oor:name="SubstituteFont"><value>Tinos</value></prop>
+            <prop oor:name="Always"><value>false</value></prop>
+            <prop oor:name="OnScreenOnly"><value>false</value></prop>
+          </node>
+          <node oor:name="Arial-to-Liberation-Sans" oor:op="replace">
+            <prop oor:name="ReplaceFont"><value>Arial</value></prop>
+            <prop oor:name="SubstituteFont"><value>Liberation Sans</value></prop>
+            <prop oor:name="Always"><value>false</value></prop>
+            <prop oor:name="OnScreenOnly"><value>false</value></prop>
+          </node>
+          <node oor:name="Courier-New-to-Liberation-Mono" oor:op="replace">
+            <prop oor:name="ReplaceFont"><value>Courier New</value></prop>
+            <prop oor:name="SubstituteFont"><value>Liberation Mono</value></prop>
+            <prop oor:name="Always"><value>false</value></prop>
+            <prop oor:name="OnScreenOnly"><value>false</value></prop>
+          </node>
+        </node>
+      </node>
+    </node>
+
+    <!-- ================= security ================= -->
+    <node oor:name="Security">
+      <node oor:name="Scripting">
+        <!-- 3 = Very high: macros run only from trusted locations, and SP+
+             ships none. An advisor receives documents from strangers all
+             day; Office's own Protected View exists for the same reason
+             and LibreOffice has no equivalent. -->
+        <prop oor:name="MacroSecurityLevel"><value>3</value></prop>
+        <prop oor:name="CheckDocumentEvents"><value>true</value></prop>
+      </node>
+      <prop oor:name="HyperlinksWithCtrlClick"><value>true</value></prop>
+      <prop oor:name="BlockUntrustedRefererLinks"><value>true</value></prop>
+    </node>
+
+  </oor:component-data>
+
+  <!-- ================= default save formats ================= -->
+  <!-- These are filter NAMES, not internal type names; the factory
+       property rejects forms such as writer_OOXML. Base, Draw and Math
+       keep their own defaults deliberately: no Office equivalent exists
+       for those document types. Opening an existing .odt still saves
+       .odt; this governs new documents and the Save As default. -->
+  <oor:component-data oor:name="Setup" oor:package="org.openoffice">
+    <node oor:name="Office">
+      <node oor:name="Factories">
+        <node oor:name="com.sun.star.text.TextDocument" oor:op="fuse">
+          <prop oor:name="ooSetupFactoryDefaultFilter">
+            <value>Office Open XML Text</value>
+          </prop>
+        </node>
+        <node oor:name="com.sun.star.sheet.SpreadsheetDocument" oor:op="fuse">
+          <prop oor:name="ooSetupFactoryDefaultFilter">
+            <value>Calc Office Open XML</value>
+          </prop>
+        </node>
+        <node oor:name="com.sun.star.presentation.PresentationDocument" oor:op="fuse">
+          <prop oor:name="ooSetupFactoryDefaultFilter">
+            <value>Impress Office Open XML</value>
+          </prop>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= the ribbon ================= -->
+  <!-- Full Tabbed, not Tabbed Compact: closest thing LibreOffice has to
+       the Microsoft 365 ribbon. The per-application Active property is
+       what actually selects the mode; the ActiveWriter/ActiveCalc
+       properties only name the implementation file.
+       HasMenubar=false everywhere, including Draw, whose stock Tabbed
+       mode leaves the menu bar visible - an Office user should see one
+       command surface, not a ribbon with a menu bar above it.
+       Sidebar=Arrow collapses the task pane to its reveal control; there
+       is no "never show" value. -->
+  <oor:component-data oor:name="ToolbarMode" oor:package="org.openoffice.Office.UI">
+      <prop oor:name="ActiveWriter"><value>notebookbar.ui</value></prop>
+      <prop oor:name="ActiveCalc"><value>notebookbar.ui</value></prop>
+      <prop oor:name="ActiveImpress"><value>notebookbar.ui</value></prop>
+      <prop oor:name="ActiveDraw"><value>notebookbar.ui</value></prop>
+      <node oor:name="Applications">
+        <node oor:name="Writer" oor:op="fuse">
+          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <node oor:name="Modes">
+            <node oor:name="Tabbed" oor:op="fuse">
+              <prop oor:name="HasMenubar"><value>false</value></prop>
+              <prop oor:name="Sidebar"><value>Arrow</value></prop>
+            </node>
+          </node>
+        </node>
+        <node oor:name="Calc" oor:op="fuse">
+          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <node oor:name="Modes">
+            <node oor:name="Tabbed" oor:op="fuse">
+              <prop oor:name="HasMenubar"><value>false</value></prop>
+              <prop oor:name="Sidebar"><value>Arrow</value></prop>
+            </node>
+          </node>
+        </node>
+        <node oor:name="Impress" oor:op="fuse">
+          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <node oor:name="Modes">
+            <node oor:name="Tabbed" oor:op="fuse">
+              <prop oor:name="HasMenubar"><value>false</value></prop>
+              <prop oor:name="Sidebar"><value>Arrow</value></prop>
+            </node>
+          </node>
+        </node>
+        <node oor:name="Draw" oor:op="fuse">
+          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <node oor:name="Modes">
+            <node oor:name="Tabbed" oor:op="fuse">
+              <prop oor:name="HasMenubar"><value>false</value></prop>
+              <prop oor:name="Sidebar"><value>Arrow</value></prop>
+            </node>
+          </node>
+        </node>
+      </node>
+  </oor:component-data>
+
+  <oor:component-data oor:name="UI" oor:package="org.openoffice.Office">
+    <node oor:name="ColorScheme">
+      <prop oor:name="CurrentColorScheme">
+        <value>COLOR_SCHEME_LIBREOFFICE_LIGHT</value>
+      </prop>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= Writer ================= -->
+  <oor:component-data oor:name="Writer" oor:package="org.openoffice.Office">
+    <!-- Office 2021 bodies text at Calibri 11pt; LibreOffice's stock
+         template is Liberation Serif 12pt. Heights are twips, so 11pt is
+         220 and 14pt is 280. Verified by read-back on the test VM. -->
+    <node oor:name="DefaultFont">
+      <prop oor:name="Standard"><value>Carlito</value></prop>
+      <prop oor:name="StandardHeight"><value>220</value></prop>
+      <prop oor:name="Heading"><value>Caladea</value></prop>
+      <prop oor:name="HeadingHeight"><value>280</value></prop>
+      <prop oor:name="List"><value>Carlito</value></prop>
+      <prop oor:name="ListHeight"><value>220</value></prop>
+      <prop oor:name="Caption"><value>Carlito</value></prop>
+      <prop oor:name="CaptionHeight"><value>200</value></prop>
+      <prop oor:name="Index"><value>Carlito</value></prop>
+      <prop oor:name="IndexHeight"><value>220</value></prop>
+    </node>
+    <node oor:name="Layout">
+      <!-- 8 = inch. A US advisor thinks in inches; the stock unit is
+           locale-derived and lands on centimetres often enough to matter. -->
+      <node oor:name="Other">
+        <prop oor:name="MeasureUnit"><value>8</value></prop>
+      </node>
+      <node oor:name="Window">
+        <prop oor:name="HorizontalRulerUnit"><value>8</value></prop>
+        <prop oor:name="VerticalRulerUnit"><value>8</value></prop>
+      </node>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= Calc ================= -->
+  <oor:component-data oor:name="Calc" oor:package="org.openoffice.Office">
+    <node oor:name="Formula">
+      <node oor:name="Syntax">
+        <!-- 1 = Excel A1. This is the single most valuable Calc setting:
+             a formula pasted out of a client's spreadsheet parses. -->
+        <prop oor:name="Grammar"><value>1</value></prop>
+        <prop oor:name="EnglishFunctionName"><value>true</value></prop>
+        <prop oor:name="StringRefAddressSyntax"><value>1</value></prop>
+        <prop oor:name="SeparatorArg"><value>,</value></prop>
+        <prop oor:name="SeparatorArrayCol"><value>,</value></prop>
+        <prop oor:name="SeparatorArrayRow"><value>;</value></prop>
+        <!-- EmptyStringAsZero is deliberately NOT set. Excel treats a
+             formula returning "" as zero and Calc does not, but flipping
+             it silently changes the result of a financial model, which is
+             precisely the kind of document these advisors carry. Parity
+             stops where it would change arithmetic. -->
+      </node>
+    </node>
+    <node oor:name="Layout">
+      <node oor:name="Other">
+        <node oor:name="MeasureUnit">
+          <prop oor:name="Metric"><value>8</value></prop>
+          <prop oor:name="NonMetric"><value>8</value></prop>
+        </node>
+      </node>
+    </node>
+    <node oor:name="Filter">
+      <node oor:name="Import">
+        <node oor:name="VBA">
+          <!-- Keep client VBA intact on the round trip, but do not let an
+               imported macro become executable Basic. -->
+          <prop oor:name="Load"><value>true</value></prop>
+          <prop oor:name="Save"><value>true</value></prop>
+          <prop oor:name="UseExport"><value>true</value></prop>
+          <prop oor:name="Executable"><value>false</value></prop>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= Impress / Draw ================= -->
+  <oor:component-data oor:name="Impress" oor:package="org.openoffice.Office">
+    <node oor:name="Layout">
+      <node oor:name="Other">
+        <node oor:name="MeasureUnit">
+          <prop oor:name="Metric"><value>8</value></prop>
+          <prop oor:name="NonMetric"><value>8</value></prop>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+
+  <oor:component-data oor:name="Draw" oor:package="org.openoffice.Office">
+    <node oor:name="Layout">
+      <node oor:name="Other">
+        <node oor:name="MeasureUnit">
+          <prop oor:name="Metric"><value>8</value></prop>
+          <prop oor:name="NonMetric"><value>8</value></prop>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= Word compatibility ================= -->
+  <!-- Only the GUI-level and chart-orientation flags are set here. The
+       per-document formatting flags under AllFileFormats are deliberately
+       left at stock: forcing them globally silently reflows client
+       documents, and a reflowed client document is worse than an
+       unfamiliar one. -->
+  <oor:component-data oor:name="Compatibility" oor:package="org.openoffice.Office">
+    <node oor:name="View">
+      <prop oor:name="MSCompatibleFormsMenu"><value>true</value></prop>
+      <prop oor:name="AllowCommentsInFootnotes"><value>false</value></prop>
+      <prop oor:name="ReverseSeriesOrderAreaAndNetChart"><value>false</value></prop>
+      <prop oor:name="ReverseXAxisOrientationDoughnutChart"><value>false</value></prop>
+      <prop oor:name="ClockwisePieChartDirection"><value>true</value></prop>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= recovery ================= -->
+  <!-- Five minutes rather than ten. UserAutoSaveEnabled stays false: that
+       one overwrites the advisor's actual file on a timer, which is not
+       what Office's AutoRecover does. -->
+  <oor:component-data oor:name="Recovery" oor:package="org.openoffice.Office">
+    <node oor:name="AutoSave">
+      <prop oor:name="Enabled"><value>true</value></prop>
+      <prop oor:name="TimeIntervall"><value>5</value></prop>
+      <prop oor:name="UserAutoSaveEnabled"><value>false</value></prop>
+    </node>
+  </oor:component-data>
+
+  <!-- ================= self-update ================= -->
+  <!-- SP+ updates through the operating system image. A LibreOffice
+       update prompt an advisor cannot act on is worse than none. -->
+  <oor:component-data oor:name="Update" oor:package="org.openoffice.Office">
+    <node oor:name="Update">
+      <prop oor:name="Enabled"><value>false</value></prop>
+    </node>
+  </oor:component-data>
+
+</oor:data>

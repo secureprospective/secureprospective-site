@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SP+ LibreOffice / Microsoft Office parity: keyboard.
+
+  LibreOffice 26.2 ships no Microsoft Office key preset. The belief that
+  one exists is wrong, and the third-party maps on GitHub and the
+  extension site are variously unmaintained, unreleased or unlicensed, so
+  SP+ owns this map rather than depending on one.
+
+  DELIBERATE DISPLACEMENT. Christopher's ruling, 2026-09-01: bind Office's
+  keys even where that costs a LibreOffice default. An advisor arriving
+  from twenty years of Word has muscle memory for Ctrl+D opening the font
+  dialog and Ctrl+1 setting single line spacing; a LibreOffice veteran
+  would be surprised by this file, but that person is not who SP+ is for.
+  Every displaced command remains reachable from the ribbon.
+
+  Ctrl+Q is the one Office key NOT taken. In Word it clears paragraph
+  formatting; in LibreOffice it quits the application. Rebinding it would
+  leave the advisor no keyboard route out of the program, and losing
+  unsaved work to a parity nicety is not a trade worth making.
+
+  MODULE NODES USE oor:op="fuse", NOT "replace". A module node marked
+  replace discards every other binding LibreOffice defines for that
+  module, which would strip Ctrl+S, Ctrl+C and the rest. fuse merges
+  these keys into the existing set. Individual key nodes are replace,
+  because each one does deliberately take over that key.
+
+  Nothing here is oor:finalized. Tools > Customize > Keyboard still wins.
+
+  Every .uno: command below was checked against the commands actually
+  registered in libreoffice-core-26.2.5.2-1.fc44 before being written
+  here. That check caught three names carried in from research that do
+  not exist in the shipping build: SpacePara1_5 (it is SpacePara15),
+  IncreaseIndent and DecreaseIndent (they are IncrementIndent and
+  DecrementIndent). Calc's F5 is left on Navigator because there is no
+  GotoCell command to bind Excel's Go To to.
+-->
+<oor:data
+    xmlns:oor="http://openoffice.org/2001/registry"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <dependency file="main"/>
+
+  <oor:component-data
+      oor:name="Accelerators"
+      oor:package="org.openoffice.Office">
+    <node oor:name="PrimaryKeys">
+      <node oor:name="Modules">
+        <!-- ===== Writer / Word ===== -->
+        <node oor:name="com.sun.star.text.TextDocument" oor:op="fuse">
+          <!-- Word: paste text only. Takes Paste Special, which moves to Ctrl+Alt+V below, exactly as in Word. -->
+          <node oor:name="V_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:PasteUnformatted</value>
+            </prop>
+          </node>
+          <!-- Word: Paste Special. Unbound in stock Writer. -->
+          <node oor:name="V_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:PasteSpecial</value>
+            </prop>
+          </node>
+          <!-- Word: copy formatting. Takes Insert Comment, which moves to Ctrl+Alt+M. -->
+          <node oor:name="C_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:FormatPaintbrush</value>
+            </prop>
+          </node>
+          <!-- Word: insert comment. Unbound in stock Writer. -->
+          <node oor:name="M_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:InsertAnnotation</value>
+            </prop>
+          </node>
+          <!-- Word: toggle track changes. Unbound in stock Writer. -->
+          <node oor:name="E_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:TrackChanges</value>
+            </prop>
+          </node>
+          <!-- Word: single line spacing. Takes Heading 1, which moves to Ctrl+Alt+1. -->
+          <node oor:name="1_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SpacePara1</value>
+            </prop>
+          </node>
+          <!-- Word: double line spacing. Takes Heading 2, which moves to Ctrl+Alt+2. -->
+          <node oor:name="2_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SpacePara2</value>
+            </prop>
+          </node>
+          <!-- Word: 1.5 line spacing. Takes Heading 5. -->
+          <node oor:name="5_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SpacePara15</value>
+            </prop>
+          </node>
+          <!-- Word: apply Heading 1. Where Writer's Ctrl+1 went. -->
+          <node oor:name="1_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:StyleApply?Style:string=Heading 1&amp;FamilyName:string=ParagraphStyles</value>
+            </prop>
+          </node>
+          <!-- Word: apply Heading 2. -->
+          <node oor:name="2_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:StyleApply?Style:string=Heading 2&amp;FamilyName:string=ParagraphStyles</value>
+            </prop>
+          </node>
+          <!-- Word: apply Heading 3. -->
+          <node oor:name="3_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:StyleApply?Style:string=Heading 3&amp;FamilyName:string=ParagraphStyles</value>
+            </prop>
+          </node>
+          <!-- Word: Font dialog. Takes double underline, which moves to Ctrl+Shift+D. -->
+          <node oor:name="D_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:FontDialog</value>
+            </prop>
+          </node>
+          <!-- Word: double underline. Where Writer's Ctrl+D went. -->
+          <node oor:name="D_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:UnderlineDouble</value>
+            </prop>
+          </node>
+          <!-- Word: bulleted list. Unbound in stock Writer. -->
+          <node oor:name="L_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:DefaultBullet</value>
+            </prop>
+          </node>
+          <!-- Word: increase indent. Takes Clear Direct Formatting. -->
+          <node oor:name="M_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:IncrementIndent</value>
+            </prop>
+          </node>
+          <!-- Word: decrease indent. Unbound in stock Writer. -->
+          <node oor:name="M_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:DecrementIndent</value>
+            </prop>
+          </node>
+          <!-- Word: show nonprinting characters. Unbound in stock Writer. -->
+          <node oor:name="8_SHIFT_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:ControlCodes</value>
+            </prop>
+          </node>
+          <!-- Word: clear character formatting. Closest available; this clears somewhat more than Word does. -->
+          <node oor:name="SPACE_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:ResetAttributes</value>
+            </prop>
+          </node>
+          <!-- Word: print preview. Takes Insert Formula. -->
+          <node oor:name="F2_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:PrintPreview</value>
+            </prop>
+          </node>
+          <!-- Word: print. Takes Insert Table. -->
+          <node oor:name="F12_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:Print</value>
+            </prop>
+          </node>
+          <!-- Word: Save As. Takes Numbering. -->
+          <node oor:name="F12" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SaveAs</value>
+            </prop>
+          </node>
+        </node>
+
+        <!-- ===== Calc / Excel ===== -->
+        <node oor:name="com.sun.star.sheet.SpreadsheetDocument" oor:op="fuse">
+          <!-- Excel: Fill Right. Takes Align Right, which stays on the ribbon. -->
+          <node oor:name="R_MOD1" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:FillRight</value>
+            </prop>
+          </node>
+          <!-- Excel: Paste Special. Unbound in stock Calc. -->
+          <node oor:name="V_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:PasteSpecial</value>
+            </prop>
+          </node>
+          <!-- Excel: Save As. Takes Group. -->
+          <node oor:name="F12" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SaveAs</value>
+            </prop>
+          </node>
+        </node>
+
+        <!-- ===== Impress / PowerPoint ===== -->
+        <node oor:name="com.sun.star.presentation.PresentationDocument" oor:op="fuse">
+          <!-- PowerPoint: Paste Special. Unbound in stock Impress. -->
+          <node oor:name="V_MOD1_MOD2" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:PasteSpecial</value>
+            </prop>
+          </node>
+          <!-- PowerPoint: Save As. Unbound in stock Impress. -->
+          <node oor:name="F12" oor:op="replace">
+            <prop oor:name="Command">
+              <value xml:lang="en-US">.uno:SaveAs</value>
+            </prop>
+          </node>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+
+</oor:data>

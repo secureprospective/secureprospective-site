@@ -80,28 +80,12 @@ else
   bad "sudoers-sp-plus is invalid" "a bad sudoers file locks admin out of the installed machine"
 fi
 
-# P-5  LibreOffice defaults: well-formed XML, required filter NAMES present, and no
-# internal type name used as an actual value. Comments are stripped first -- prose
-# that MENTIONS an internal name is documentation, not a defect.
-LOX="$C/skel/.config/libreoffice/4/user/registrymodifications.xcu"
-if python3 -c "import sys,xml.dom.minidom as m; m.parse(sys.argv[1])" "$LOX" 2>/dev/null; then
-  ok "registrymodifications.xcu is well-formed XML"
-else
-  bad "registrymodifications.xcu is not well-formed XML" "LibreOffice silently discards the whole user layer"
-fi
-LOX_OK=1
-for s in "notebookbar.ui" "colibre" "Office Open XML Text" "Calc Office Open XML" "Impress Office Open XML"; do
-  grep -qF "$s" "$LOX" || { LOX_OK=0; echo "       missing: $s"; }
-done
-[ $LOX_OK -eq 1 ] && ok "all required LibreOffice settings present" || bad "a LibreOffice setting is missing" "see above"
-if python3 -c "
-import sys, re
-d = re.sub(r'<!--.*?-->', '', open(sys.argv[1]).read(), flags=re.S)
-sys.exit(1 if 'writer_OOXML' in d else 0)" "$LOX"; then
-  ok "no internal type name used as a filter value (comments excluded)"
-else
-  bad "an internal type name is used as a real value" "ooSetupFactoryDefaultFilter takes filter NAMES, not type names"
-fi
+# P-5  LibreOffice defaults moved to P-15f on 2026-09-01. They are no longer a
+# user-layer registrymodifications.xcu seeded through /etc/skel: that vehicle
+# reaches only accounts created after the image lands and can never be improved
+# afterwards. They are now a shared .xcd configuration layer, validated by
+# tests/libreoffice-xcd-check.py and proved by read-back through LibreOffice's
+# own UNO API in tests/libreoffice-parity-gate.sh.
 
 # P-6  coaching tip catalogue shape
 awk '!/^#/ && NF { if ($0 !~ /^[a-z0-9]+-[0-9]+/) exit 1; n++ } END { exit !(n==20) }' "$C"/fin-tip-catalogue/*.tips \
@@ -773,6 +757,40 @@ grep -qF 'SPPLUS_NETWORK_PATCH FAILED' "$REPO/projects/sp-plus/installer/patch-a
 [ "$D02_OK" -eq 1 ] \
   && ok "D-02 base images are digest-pinned and the Anaconda patches still fail loudly" \
   || bad "D-02 pin gate failed" "an unpinned base means a mile marker does not name one set of bits"
+
+# P-15f  DN-48 LibreOffice / Office parity. The configuration is a shared .xcd
+# layer, not a seeded user profile, so it reaches existing advisors too and
+# survives a LibreOffice RPM update. Everything asserted here was proved by
+# read-back against a real headless LibreOffice on the test VM
+# (LIBREOFFICE_PARITY_OK, 58 checks) before it was written down; this gate is
+# what stops it silently rotting afterwards.
+P15F_OK=1
+LO_DIR="$REPO/projects/sp-plus/config/libreoffice"
+"$REPO/projects/sp-plus/tests/libreoffice-xcd-check.py" \
+  "$LO_DIR/spplus-office-parity.xcd" \
+  "$LO_DIR/spplus-office-keys.xcd" \
+  "$REPO/projects/sp-plus/config/kglobalshortcutsrc" >/dev/null \
+  || { P15F_OK=0; echo "       the LibreOffice .xcd layer failed static validation"; }
+# The old vehicle must stay retired. A user-layer file under /etc/skel reaches
+# only accounts created after the image lands, which is the per-application
+# patchwork shape rejected on 2026-09-01.
+[ ! -e "$REPO/projects/sp-plus/config/skel/.config/libreoffice/4/user/registrymodifications.xcu" ] \
+  || { P15F_OK=0; echo "       the retired /etc/skel LibreOffice profile is back"; }
+# The image must actually install and gate the layer.
+for f in spplus-office-parity.xcd spplus-office-keys.xcd; do
+  grep -qF "config/libreoffice/$f" "$REPO/projects/sp-plus/images/kde/Containerfile" \
+    || { P15F_OK=0; echo "       $f is not COPYed into the image"; }
+done
+grep -qF 'libreoffice-xcd-check.py \' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  || { P15F_OK=0; echo "       the build never runs the .xcd checker"; }
+grep -qF 'DN48_OFFICE_PARITY_OK' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  || { P15F_OK=0; echo "       the DN-48 build marker is missing"; }
+# The runtime gate must ship, so the parity can be re-proved on the Dell.
+grep -qF 'tests/libreoffice-parity-gate.sh' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  || { P15F_OK=0; echo "       the runtime parity gate is not shipped in the image"; }
+[ "$P15F_OK" -eq 1 ] \
+  && ok "DN-48 LibreOffice matches Office in look, behaviour and keys, as a shared layer the advisor can still override" \
+  || bad "DN-48 Office parity gate failed" "an advisor arriving from Word would meet a suite that behaves like neither"
 
 # P-24  DN-43 to DN-45 theme path. This gate is intentionally strict: missing
 # applied-session receipts are a build failure, not a reason to ship swatches.

@@ -685,6 +685,33 @@ COPY config/btop-themes/          /usr/share/btop/themes/
 COPY config/btop.desktop          /usr/share/applications/btop.desktop
 COPY config/fastfetch.desktop     /usr/share/applications/fastfetch.desktop
 COPY config/kglobalshortcutsrc    /etc/xdg/kglobalshortcutsrc
+
+# ---- DN-48: LibreOffice / Microsoft Office parity ----
+#
+# SP+ ships these as LibreOffice's SHARED configuration layer, not as a
+# seeded user profile. The previous vehicle was a registrymodifications.xcu
+# under /etc/skel, which reaches only accounts created after the image
+# lands and can never be improved afterwards, because once the account
+# exists the file belongs to the advisor. That is the same per-application
+# patchwork shape Christopher rejected for updates on 2026-09-01: fix the
+# layer, not each instance.
+#
+# A .xcd here sits BELOW the user layer, so an advisor who changes any of
+# these settings keeps their change, and ABOVE the LibreOffice defaults, so
+# every advisor gets them, new account or not. Being SP+-owned rather than
+# owned by libreoffice-core, it also survives a LibreOffice RPM update.
+COPY config/libreoffice/spplus-office-parity.xcd \
+     /usr/lib64/libreoffice/share/registry/spplus-office-parity.xcd
+COPY config/libreoffice/spplus-office-keys.xcd \
+     /usr/lib64/libreoffice/share/registry/spplus-office-keys.xcd
+
+# The static checker runs below at build time. The UNO gate and its probe
+# cannot run here, because there is no LibreOffice to start inside a build
+# layer; they ship so the parity can be re-proved on the Dell or a VM
+# against the installed system, which is where it actually matters.
+COPY tests/libreoffice-xcd-check.py    /usr/libexec/sp-plus/tests/libreoffice-xcd-check.py
+COPY tests/libreoffice-parity-gate.sh  /usr/libexec/sp-plus/tests/libreoffice-parity-gate.sh
+COPY tests/libreoffice-parity-probe.py /usr/libexec/sp-plus/tests/libreoffice-parity-probe.py
 # Also seeded into the advisor's own config. /etc/xdg is only the DEFAULTS
 # layer; kglobalacceld writes a per-user kglobalshortcutsrc at first login and
 # does not reliably inherit from it, which is why cycle34 shipped a correct
@@ -745,15 +772,17 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q '^color_theme = "/usr/share/btop/themes/sp-plus.theme"$' \
       /etc/skel/.config/btop/btop.conf \
  && test -f /usr/share/sp-plus/branding/logo-sp-plus.txt \
- && LOX=/etc/skel/.config/libreoffice/4/user/registrymodifications.xcu \
- && test -f "$LOX" \
- && python3 -c "import sys,xml.dom.minidom as m; m.parse(sys.argv[1])" "$LOX" \
- && grep -q "notebookbar.ui" "$LOX" \
- && grep -q "<value>colibre</value>" "$LOX" \
- && grep -q "Office Open XML Text" "$LOX" \
- && grep -q "Calc Office Open XML" "$LOX" \
- && grep -q "Impress Office Open XML" "$LOX" \
- && python3 -c "import sys,re; d=open(sys.argv[1]).read(); d=re.sub(r'<!--.*?-->','',d,flags=re.S); sys.exit(1 if 'writer_OOXML' in d else 0)" "$LOX" \
+ && LOREG=/usr/lib64/libreoffice/share/registry \
+ && test -f "$LOREG/spplus-office-parity.xcd" \
+ && test -f "$LOREG/spplus-office-keys.xcd" \
+ && test ! -e /etc/skel/.config/libreoffice/4/user/registrymodifications.xcu \
+ && chmod 0755 /usr/libexec/sp-plus/tests/libreoffice-parity-gate.sh \
+ && bash -n /usr/libexec/sp-plus/tests/libreoffice-parity-gate.sh \
+ && python3 /usr/libexec/sp-plus/tests/libreoffice-xcd-check.py \
+      "$LOREG/spplus-office-parity.xcd" \
+      "$LOREG/spplus-office-keys.xcd" \
+      /etc/xdg/kglobalshortcutsrc \
+ && LOK="$LOREG/spplus-office-keys.xcd" \
  && fc-match Carlito | grep -qi carlito \
  && fc-match Caladea | grep -qi caladea \
  && fc-match Tinos   | grep -qi tinos \
@@ -783,6 +812,7 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q 'No errors detected' /tmp/fscheck \
  && ! grep -q 'Unrecognized setting' /tmp/fscheck \
  && rm -rf /tmp/ffh /tmp/fsh /tmp/fscheck \
+ && echo "DN48_OFFICE_PARITY_OK shared .xcd layer, $(grep -c 'oor:op=\"replace\"' "$LOK") key bindings, Office function keys freed from Plasma"
  && echo "TOOLS_OK btop $(btop --version | grep -oE '[0-9.]+$'), fastfetch, flameshot configured out of the box"
 
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
