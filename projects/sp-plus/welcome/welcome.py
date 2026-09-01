@@ -63,6 +63,8 @@ FLATPAK = os.environ.get('SPPLUS_FLATPAK', '/usr/bin/flatpak')
 SUDO = os.environ.get('SPPLUS_SUDO', '/usr/bin/sudo')
 DISCOVER = os.environ.get('SPPLUS_DISCOVER', '/usr/bin/plasma-discover')
 TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
+UPDATE_CONTROL = os.environ.get('SPPLUS_UPDATE_CONTROL',
+                               '/usr/libexec/spplus-update-control')
 SELFTEST_SHARE_UP = os.environ.get('SPPLUS_SELFTEST_SHARE_UP', '127.0.0.1')
 SELFTEST_SHARE_DOWN = os.environ.get('SPPLUS_SELFTEST_SHARE_DOWN', '203.0.113.1')
 MACHINE_DOC = os.environ.get('SPPLUS_MACHINE_DOC', '/var/lib/sp-plus/THIS-MACHINE.md')
@@ -120,6 +122,57 @@ class PinHelpWorker(QThread):
                 payload = {'ok': False,
                            'reason': message or
                                      f'The desktop refused the change (exit code {done.returncode}).'}
+        self.result_ready.emit(self, payload)
+
+
+class UpdateWorker(QThread):
+    """Ask the update helper one question, off Qt's UI thread.
+
+    Every answer the advisor sees about system updates comes through here, and
+    the helper is the only thing that decides what counts as an update. Welcome
+    deliberately does no comparing of its own: the rule that an older image is
+    never offered lives in one place, is tested by tests/update-guard-gate.sh,
+    and is not re-implemented in the UI where it could drift.
+
+    The helper always prints one JSON object, including when it fails, so an
+    unparseable answer is itself a fault worth showing rather than swallowing.
+    """
+
+    result_ready = Signal(object, object)
+
+    #: `stage` downloads an image, which on a slow connection is genuinely slow.
+    #: `check` and `status` are quick, and `apply` returns before rebooting.
+    TIMEOUTS = {'status': 30, 'check': 120, 'stage': 1800, 'apply': 30}
+
+    def __init__(self, action):
+        super().__init__()
+        self.action = action
+
+    def run(self):
+        try:
+            done = subprocess.run([SUDO, '-n', UPDATE_CONTROL, self.action],
+                                  capture_output=True, text=True,
+                                  timeout=self.TIMEOUTS.get(self.action, 120))
+        except subprocess.TimeoutExpired:
+            payload = {'ok': False, 'state': 'error',
+                       'reason': 'The update service did not answer in time.'}
+        except OSError:
+            payload = {'ok': False, 'state': 'error',
+                       'reason': 'The update service is not installed on this computer.'}
+        except subprocess.SubprocessError:
+            payload = {'ok': False, 'state': 'error',
+                       'reason': 'The update service did not answer.'}
+        else:
+            try:
+                payload = json.loads(done.stdout or '')
+            except ValueError:
+                # Report what actually came back rather than inventing a
+                # verdict. A helper that stops printing JSON is a real fault.
+                detail = (done.stderr or '').strip().splitlines()
+                payload = {'ok': False, 'state': 'error',
+                           'reason': detail[-1] if detail else
+                                     'The update service gave an answer Welcome could not read.'}
+        payload['action'] = self.action
         self.result_ready.emit(self, payload)
 
 
@@ -1200,6 +1253,14 @@ class WelcomeBridge(QObject):
             self.print_test()
         elif parsed.path == 'pin-help':
             self.pin_help()
+        elif parsed.path == 'update-status':
+            self.update_action('status')
+        elif parsed.path == 'update-check':
+            self.update_action('check')
+        elif parsed.path == 'update-stage':
+            self.update_action('stage')
+        elif parsed.path == 'update-apply':
+            self.update_action('apply')
         elif parsed.path == 'finish':
             self.finish()
 
@@ -1276,6 +1337,10 @@ class WelcomeBridge(QObject):
 
     def pin_help(self):
         self._dispatch(PinHelpWorker(), 'pinHelpResult')
+
+    def update_action(self, action):
+        """Run one update verb. The page decides what to show, never what is true."""
+        self._dispatch(UpdateWorker(action), 'updateResult')
 
     def connect_email(self, provider):
         self._dispatch(EmailLaunchWorker(provider), 'emailResult')

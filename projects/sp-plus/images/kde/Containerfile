@@ -403,6 +403,7 @@ RUN set -eux; \
 # The digest and not the version, because every build in the SP+ 1 line reports
 # version '1' -- observed while testing this -- so keying on the version would
 # announce one update and then silently swallow every one after it.
+COPY config/spplus-update-control        /usr/libexec/spplus-update-control
 COPY config/spplus-stage-update          /usr/libexec/spplus-stage-update
 COPY config/spplus-update-notify         /usr/libexec/spplus-update-notify
 COPY config/spplus-stage-update.service  /usr/lib/systemd/system/spplus-stage-update.service
@@ -411,7 +412,9 @@ COPY config/spplus-update-notify.service /usr/lib/systemd/user/spplus-update-not
 COPY config/spplus-update-notify.timer   /usr/lib/systemd/user/spplus-update-notify.timer
 
 RUN set -eux; \
-    chmod 0755 /usr/libexec/spplus-stage-update /usr/libexec/spplus-update-notify; \
+    chmod 0755 /usr/libexec/spplus-stage-update /usr/libexec/spplus-update-notify \
+              /usr/libexec/spplus-update-control; \
+    bash -n /usr/libexec/spplus-update-control; \
     bash -n /usr/libexec/spplus-stage-update; \
     bash -n /usr/libexec/spplus-update-notify; \
     systemd-analyze verify /usr/lib/systemd/system/spplus-stage-update.service; \
@@ -502,6 +505,58 @@ RUN set -eux; \
     # It must sort before the stock 50-default.rules, or it never gets a say.
     case "$(basename "$R")" in [0-4]*) : ;; *) echo "DN47 GATE FAIL: rules file sorts after 50-default" >&2; exit 1;; esac; \
     echo "DN47_POLKIT_GATE_OK the advisor can finish an update in all three lanes"
+
+# ---- ONE UPDATE LANE, AND IT REFUSES DOWNGRADES ----------------------------
+# Christopher, 2026-09-01: "I need the system/application/Pi updates to be user
+# controlled to work like a fresh install of any distro ... seemless, no issues,
+# no errors, needs to just work. Discovery store needs to be flawless."
+#
+# WHAT WAS ACTUALLY WRONG. Not permissions -- DN-47 was already correct. The
+# registry tag every installed machine updates from was being republished daily
+# by an abandoned BlueBuild workflow, with an image that was NOT SP+: a stock
+# fedora-kinoite carrying an SP+ description, with zero spplus files in
+# /usr/libexec. Two separate failures followed, and both are fixed here.
+#
+#   1. Discover's rpm-ostree backend treated "the digest differs" as "an update
+#      exists", offered that stale image, and rpm-ostree refused it:
+#        "Upgrade target revision ... is chronologically older than current
+#         revision ...; use --allow-downgrade to permit"
+#      All the advisor saw was "Update Issue -- There was an issue during the
+#      update or installation process."
+#
+#   2. Worse, `bootc upgrade` has NO such guard. On 2026-09-01 at 18:40:45 the
+#      automatic timer staged that older, non-SP+ image over a working machine
+#      and reported success. One shutdown later that computer would have become
+#      a stock desktop with no Welcome, no Fin and no help application.
+#
+# THE FIX IS ONE LANE. spplus-update-control is the only thing that decides what
+# counts as an update, and it decides on TIMESTAMPS, not on digest inequality.
+# The automatic timer and the advisor's manual button both go through it.
+# Discover's OS backend is deleted so no second, uncoordinated updater can
+# disagree with it; Discover keeps applications and firmware, which it does
+# well. Verified on the test VM 2026-09-01: with the backend gone Discover
+# starts clean and its Updates page reads "Up to date" instead of showing an
+# error dialog, and the application catalogue is untouched.
+#
+# The gate runs the real guard against synthetic states, including the exact
+# registry-is-behind case. That case cannot be produced on demand against a live
+# registry, so without the simulate seam it would never be tested at all.
+COPY tests/update-guard-gate.sh /tmp/update-guard-gate.sh
+RUN set -eux; \
+    bash /tmp/update-guard-gate.sh; \
+    rm -f /tmp/update-guard-gate.sh; \
+    D=/usr/lib64/qt6/plugins/discover; \
+    rm -f "$D/rpm-ostree-backend.so"; \
+    test ! -e "$D/rpm-ostree-backend.so"; \
+    test -e "$D/flatpak-backend.so"; \
+    test -e "$D/fwupd-backend.so"; \
+    grep -q 'spplus-update-control' /usr/libexec/spplus-stage-update; \
+    if grep -qE '^[^#]*bootc upgrade' /usr/libexec/spplus-stage-update; then \
+        echo "UPDATE GATE FAIL: spplus-stage-update calls bootc upgrade directly; no downgrade guard" >&2; \
+        exit 1; \
+    fi; \
+    grep -q 'action=restart=' /usr/libexec/spplus-update-notify; \
+    echo "UPDATE_LANE_GATE_OK one guarded lane; Discover keeps apps and firmware"
 
 # ---- DN-47b. Every lane's metadata is refreshed by the system, on a schedule --
 # An update the machine cannot SEE is an update that does not exist. Each lane
@@ -1451,6 +1506,16 @@ COPY welcome/app/        /usr/libexec/sp-plus/welcome/app/
 COPY welcome/PREVIEW-CAPTURE-CONTRACT.md /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md
 COPY welcome/welcome.py  /usr/libexec/sp-plus/welcome/welcome.py
 COPY tests/welcome-close-gate.sh /usr/libexec/sp-plus/welcome/welcome-close-gate.sh
+
+# Welcome's manual update control must drive the one guarded helper rather than
+# re-implementing "is this an update?" in the page, where it would drift from
+# the rule the rest of the system enforces.
+RUN set -eux; \
+    grep -q 'spplus-update-control' /usr/libexec/sp-plus/welcome/welcome.py; \
+    grep -q "update-check" /usr/libexec/sp-plus/welcome/app/app.js; \
+    grep -q "update-apply" /usr/libexec/sp-plus/welcome/app/app.js; \
+    grep -q 'id="update-check"' /usr/libexec/sp-plus/welcome/app/index.html; \
+    echo "WELCOME_UPDATE_WIRING_OK the manual lane uses the guarded helper"
 # ---- DN-49: the pinned Help application ----
 #
 # The help screen inside Welcome is a step in a sequence, and Welcome is a

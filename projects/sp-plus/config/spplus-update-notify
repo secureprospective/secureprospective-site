@@ -1,37 +1,98 @@
 #!/usr/bin/bash
-# SP+ — tell the advisor, once, that a new version is waiting (DN-46).
+# SP+ — tell the advisor a new version is waiting, and let them finish it now.
 #
-# Read-only and unprivileged. spplus-stage-update.service has already done the
-# privileged work and left the staged version in /run/sp-plus/update-staged.
+# Runs unprivileged in the advisor's session. spplus-stage-update.service has
+# already done the privileged download and left the staged digest in
+# /run/sp-plus/update-staged.
 #
-# WHY ONCE PER VERSION. A notification that reappears every login is a nag, and
-# a nag about something the advisor cannot act on -- the update installs itself
-# at shutdown whatever they do -- is worse than silence. So the version already
-# announced is remembered, and the same one is never announced twice.
-set -euo pipefail
+# WHY THERE IS NOW A BUTTON. This notification used to end with "Nothing to do
+# now", because the update applied itself at the next shutdown and the advisor
+# genuinely had nothing to do. Christopher's instruction on 2026-09-01 was that
+# a manual update must be fully available and must actually work: "just make
+# sure if they hit update in the notifications, it actually updates." So the
+# notification now offers the one action that truly finishes an update on an
+# image-based system -- restarting into the deployment that is already staged.
+#
+# The passive path is unchanged and is still the default. Ignoring this
+# notification costs the advisor nothing: shutting down at the end of the day
+# applies the update exactly as before. The button is a shortcut for someone who
+# wants it done now, not a demand.
+#
+# WHY IT IS NOT DISCOVER'S NOTIFICATION. Discover's rpm-ostree backend is
+# deleted from the image. It compared digests rather than timestamps, offered
+# the advisor an image older than the one they were running, and produced a
+# failure dialog when they accepted. This notification is the only one that
+# speaks for the operating system, and it is driven by spplus-update-control,
+# which refuses to call an older image an update at all.
+set -uo pipefail
 
 STATE=/run/sp-plus/update-staged
-[ -r "$STATE" ] || exit 0
 
-staged=$(cat "$STATE")
+[ -r "$STATE" ] || exit 0
+staged=$(cat "$STATE") || exit 0
 [ -n "$staged" ] || exit 0
 
 seen_dir=${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus
 seen=$seen_dir/announced-update
 mkdir -p "$seen_dir"
 
+# ONCE PER VERSION. A notification that returns every login is a nag. The staged
+# digest identifies the version -- not VERSION_ID, which is "1" for every build
+# in the SP+ 1 line and would announce the first update and swallow the rest.
 if [ -r "$seen" ] && [ "$(cat "$seen")" = "$staged" ]; then
     exit 0
 fi
 
-# Plain words, and honest about what happens next. The advisor is not asked to
-# do anything, because nothing is required of them: shutting down at the end of
-# the day is what applies it, and that is what they already do.
-notify-send \
+# Recorded BEFORE the notification is raised, not after. --action implies
+# --wait, so notify-send blocks until the advisor answers or the notification
+# expires; writing the marker afterwards would re-announce the same version on
+# every login until someone happened to click it.
+printf '%s\n' "$staged" > "$seen"
+
+# The wait is bounded. An unanswered notification must not leave a process
+# sitting in the session for the rest of the day.
+answer=$(timeout 3600 notify-send \
     --app-name="SP+" \
     --icon=sp-plus-logo-icon \
     --urgency=low \
+    --action=restart="Restart now" \
+    --action=later="Later" \
     "SP+ is ready to update" \
-    "A new version has been downloaded. It will be in place the next time you restart or shut down. Nothing to do now."
+    "A new version has been downloaded. Restart to put it in place, or leave it -- it will be applied the next time you shut down." 2>/dev/null) || answer=""
 
-printf '%s\n' "$staged" > "$seen"
+if [ "$answer" != "restart" ]; then
+    exit 0
+fi
+
+# RESTARTING IS THE SESSION'S OWN JOB, NOT AN ESCALATION.
+#
+# This notifier must never need privilege. It runs as a systemd --user service
+# in the advisor's session, and a helper that reaches for elevated rights there
+# is a helper that quietly never works -- which is why both config-preflight and
+# the Containerfile carry a gate rejecting any escalation attempt in this file,
+# and why they should keep rejecting it. Those gates match on the literal tool
+# names, comments included, so this explanation deliberately does not name them.
+#
+# Nothing privileged is needed anyway. The update is ALREADY staged on disk;
+# ostree-finalize-staged.service puts it in place during shutdown. All that is
+# left is an ordinary restart, which is exactly what the advisor would do from
+# the application launcher.
+#
+# So ask the desktop, the same way the launcher's own Restart entry does. That
+# path is polite: it offers open applications the chance to save first. If the
+# desktop is not answering, fall back to logind directly -- an active local
+# session is allowed to restart itself without authenticating.
+if busctl --user call org.kde.Shutdown /Shutdown org.kde.Shutdown \
+        logoutAndReboot >/dev/null 2>&1; then
+    exit 0
+fi
+
+if systemctl reboot >/dev/null 2>&1; then
+    exit 0
+fi
+
+# Say so rather than leaving a button that did nothing. The update is not lost:
+# it is still staged and still applies at the next shutdown.
+notify-send --app-name="SP+" --icon=sp-plus-logo-icon --urgency=normal \
+    "SP+ could not restart just now" \
+    "The new version is still ready and will be in place the next time you shut down."

@@ -359,9 +359,24 @@ fi
 # reports version '1', so keying on the version announces one update and then
 # silently swallows every one after it.
 if [ -f "$DN46X" ]; then
-  grep -q 'imageDigest' "$DN46X" \
-    || { DN46_OK=0; echo "       staging script does not key the marker on imageDigest"; }
+  # The marker is still keyed on the image DIGEST, but the digest now arrives
+  # from spplus-update-control rather than being parsed here. That indirection
+  # is the point: `bootc upgrade` has no downgrade guard, and on 2026-09-01 the
+  # unguarded staging path staged an image ten hours OLDER than the running one
+  # -- a stock desktop carrying none of SP+ -- and reported success. One
+  # shutdown later the advisor's computer would have been replaced.
+  grep -q 'digest' "$DN46X" \
+    || { DN46_OK=0; echo "       staging script does not key the marker on the image digest"; }
+  grep -q 'spplus-update-control' "$DN46X" \
+    || { DN46_OK=0; echo "       staging script does not go through the guarded helper"; }
+  grep -v '^[[:space:]]*#' "$DN46X" | grep -qE '(^|[^-[:alnum:]])bootc[[:space:]]+upgrade' \
+    && { DN46_OK=0; echo "       staging script calls bootc upgrade directly; that has no downgrade guard"; }
 fi
+# The guarded helper and its gate must both exist, or nothing above is enforced.
+[ -f "$REPO/projects/sp-plus/config/spplus-update-control" ] \
+  || { DN46_OK=0; echo "       missing config/spplus-update-control, the only update decision point"; }
+[ -f "$REPO/projects/sp-plus/tests/update-guard-gate.sh" ] \
+  || { DN46_OK=0; echo "       missing tests/update-guard-gate.sh, the downgrade regression gate"; }
 # A .path unit on the marker drove the notifier into its start limit and killed
 # the watcher, so a later update would never be announced. It must stay a timer.
 [ -e "$REPO/projects/sp-plus/config/spplus-update-notify.path" ] \

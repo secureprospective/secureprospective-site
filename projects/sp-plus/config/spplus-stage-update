@@ -2,54 +2,85 @@
 # SP+ — stage the next system version, and publish the result where a desktop
 # session can read it (DN-46).
 #
-# `bootc upgrade` without --apply downloads the new image and writes a staged
-# deployment. bootc's own description: "The deployment will be applied on the
-# next shutdown or reboot." ostree-finalize-staged.service performs that
-# finalisation at shutdown. So the advisor gets the new version by turning the
-# machine off at the end of the day. Nothing reboots them mid-appointment, which
-# is the whole point of not using bootc-fetch-apply-updates.service.
+# The advisor gets the new version by turning the machine off at the end of the
+# day: a staged deployment is finalised at shutdown by
+# ostree-finalize-staged.service. Nothing reboots them mid-appointment, which is
+# the whole point of not using bootc-fetch-apply-updates.service.
 #
-# WHY THE STATE FILE. `bootc status` requires root. The advisor's session must
-# not shell out to sudo just to find out whether an update is waiting, so the
-# unit that already ran as root records the answer in /run, world-readable, and
-# the user-session notifier reads that. One privileged reader, one plain file.
-set -euo pipefail
+# WHY THIS NO LONGER CALLS `bootc upgrade` DIRECTLY. It used to, and on
+# 2026-09-01 that came within one shutdown of destroying a working machine.
+# `bootc upgrade` has NO downgrade protection -- unlike rpm-ostree, which
+# refuses and says so. The registry tag held an unrelated image ten hours OLDER
+# than the running one, and this service staged it without complaint:
+#
+#   spplus-stage-update: staged sha256:2da2777b...; it will be applied on the
+#   next shutdown
+#   Removed layers: 218  Size: 11.3 GB
+#   Added layers:    73  Size: 3.5 GB
+#
+# That staged image contained none of SP+ -- no Welcome, no Fin, no help app, no
+# polkit rules. The next shutdown would have silently replaced the advisor's
+# computer with a stock desktop, and the only visible symptom beforehand was a
+# cheerful "ready to update" notification.
+#
+# So the decision about what counts as an update now lives in exactly one place,
+# spplus-update-control, which compares TIMESTAMPS and refuses to stage anything
+# not genuinely newer. This service asks it and reports. Both the automatic lane
+# and the advisor's manual button go through that same guard; there is no path
+# left that can stage a downgrade.
+set -uo pipefail
 
 STATE_DIR=/run/sp-plus
 STATE=$STATE_DIR/update-staged
+CONTROL=${SPPLUS_UPDATE_CONTROL:-/usr/libexec/spplus-update-control}
 mkdir -p "$STATE_DIR"
 
-# A staging failure is not fatal to this script: an advisor on a hotel network
-# or a metered tether will fail here routinely and that is not a fault. A
-# genuinely broken update PATH -- a deployment bootc refuses to upgrade at all
-# -- is a different condition, and spplus-update-health.timer is the check that
-# exists to report it.
-if ! bootc upgrade; then
-    echo "spplus-stage-update: staging did not complete; leaving previous state alone" >&2
+# A staging failure is not fatal: an advisor on a hotel network or a metered
+# tether will fail here routinely and that is not a fault. A genuinely broken
+# update PATH is a different condition, and spplus-update-health.timer exists to
+# report that.
+answer=$("$CONTROL" stage 2>/dev/null) || answer=''
+
+if [ -z "$answer" ]; then
+    echo "spplus-stage-update: the update helper gave no answer; leaving previous state alone" >&2
     exit 0
 fi
 
-# Read back what actually got staged rather than assuming the upgrade produced
-# something. `bootc upgrade` exits 0 when the machine is already current, and in
-# that case there is nothing to tell the advisor about.
-#
-# RECORD THE DIGEST, NOT THE VERSION. The notifier announces a staged update at
-# most once, and it tells them apart by this value. os-release carries
-# VERSION_ID=1 for the whole SP+ 1 line, so bootc reports version '1' for every
-# build in it -- observed here, staging a genuinely new image recorded "1", the
-# same string the previous one would have. Keying on that would announce the
-# first update and then silently swallow every one after it. The image digest is
-# distinct for every build, which is exactly the property this needs.
-staged_digest=$(bootc status --format=json \
-    | python3 -c 'import json,sys
-s = json.load(sys.stdin).get("status", {}).get("staged")
-print((s.get("image") or {}).get("imageDigest") or "" if s else "")
-' )
+# RECORD THE DIGEST, NOT THE VERSION. The notifier tells versions apart by this
+# value, and os-release carries VERSION_ID=1 for every build in the SP+ 1 line,
+# so keying on the version would announce the first update and silently swallow
+# every one after it. The image digest is distinct for every build.
+eval "$(printf '%s' "$answer" | python3 -c '
+import json, sys
 
-if [ -n "$staged_digest" ]; then
-    printf '%s\n' "$staged_digest" > "$STATE"
-    echo "spplus-stage-update: staged $staged_digest; it will be applied on the next shutdown"
-else
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("state=unreadable; digest=; note=")
+    raise SystemExit(0)
+
+staged = (d.get("staged") or {}).get("digest") or ""
+print("state=%s" % json.dumps(d.get("state", "")))
+print("digest=%s" % json.dumps(staged))
+print("note=%s" % json.dumps(d.get("note") or d.get("reason") or ""))
+')"
+
+case "$state" in
+staged)
+    printf '%s\n' "$digest" > "$STATE"
+    echo "spplus-stage-update: staged $digest; it will be applied on the next shutdown"
+    ;;
+current)
+    # Includes the case that matters most: the update source is BEHIND this
+    # machine. That is not an error and not an update, and the note says which.
     rm -f "$STATE"
-    echo "spplus-stage-update: already up to date, nothing staged"
-fi
+    echo "spplus-stage-update: already up to date, nothing staged${note:+ ($note)}"
+    ;;
+error)
+    echo "spplus-stage-update: staging did not complete; leaving previous state alone${note:+ ($note)}" >&2
+    ;;
+*)
+    echo "spplus-stage-update: unexpected update state '$state'; nothing staged" >&2
+    ;;
+esac
+exit 0

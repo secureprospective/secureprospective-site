@@ -1,0 +1,187 @@
+#!/usr/bin/bash
+# SP+ — the one privileged entry point for user-controlled system updates.
+#
+# WHY THIS EXISTS. Until 2026-09-01 the advisor's only visible way to update the
+# operating system was Discover's rpm-ostree backend, and it was actively
+# harmful. Discover compared the booted image against whatever sat on the
+# registry tag, offered any difference as "an update", and let rpm-ostree
+# discover the problem:
+#
+#   error: While checking against deployment timestamp: Upgrade target revision
+#   ... with timestamp 'Tue 01 Sep 2026 11:22:43 AM UTC' is chronologically
+#   older than current revision ... with timestamp 'Tue 01 Sep 2026 09:31:12 PM
+#   UTC'; use --allow-downgrade to permit
+#
+# The advisor saw a failure dialog. That is the shape this helper exists to make
+# impossible: DIFFERENT IS NOT NEWER. Every answer below compares timestamps and
+# refuses to call an older image an update, so the machine can never offer the
+# advisor something it will then refuse to install.
+#
+# It is also the only lane. Discover's rpm-ostree backend is deleted from the
+# image (see images/kde/Containerfile) precisely so there is no second,
+# uncoordinated updater disagreeing with this one. Discover keeps applications
+# and firmware, which it does well.
+#
+# CONTRACT. One subcommand per invocation. Exactly one JSON object on stdout,
+# always, including on failure -- callers parse stdout and never guess from an
+# exit code. Diagnostics go to stderr.
+#
+#   status   what is booted, what is staged, what is known to be available.
+#            Reads local state only. No network.
+#   check    ask the registry, then answer. Network. Refuses downgrades.
+#   stage    download and stage a genuinely newer image. Network.
+#   apply    restart into an already-staged update. Nothing else reboots.
+set -uo pipefail
+
+emit() { python3 -c '
+import json,sys
+print(json.dumps(json.loads(sys.argv[1])))' "$1" 2>/dev/null || printf '%s\n' "$1"; }
+
+fail() {
+    python3 -c '
+import json,sys
+print(json.dumps({"ok": False, "state": "error", "reason": sys.argv[1]}))' "$1"
+    exit 0
+}
+
+# Everything below reads bootc status through one parser. It reports the booted
+# and staged digests and, critically, the two timestamps the downgrade guard
+# needs. A machine with no cachedUpdate yet is a normal state, not an error.
+read_state() {
+    bootc status --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+try:
+    st = json.load(sys.stdin).get("status", {}) or {}
+except Exception:
+    print("{}")
+    raise SystemExit(0)
+
+
+def image_of(node):
+    if not node:
+        return {}
+    img = node.get("image") or {}
+    return {
+        "digest": img.get("imageDigest") or "",
+        "version": img.get("version") or "",
+        "timestamp": img.get("timestamp") or "",
+    }
+
+booted = image_of(st.get("booted"))
+staged = image_of(st.get("staged"))
+# cachedUpdate lives under booted; it is what a --check last learned.
+cached = image_of((st.get("booted") or {}).get("cachedUpdate"))
+print(json.dumps({"booted": booted, "staged": staged, "cached": cached}))
+'
+}
+
+# The downgrade guard, and the reason this file exists. Answers one question:
+# given what is booted and what the registry offers, is there a real update?
+#
+# "newer" is decided on the image timestamp, not on "the digest differs".
+# A differing digest is the normal state of affairs the moment a machine is
+# installed from an ISO whose image is ahead of the registry -- which is exactly
+# how the failure above was produced.
+decide() {
+    python3 -c '
+import json, sys
+from datetime import datetime
+
+state = json.loads(sys.argv[1] or "{}")
+booted = state.get("booted") or {}
+staged = state.get("staged") or {}
+cached = state.get("cached") or {}
+
+
+def when(node):
+    raw = (node or {}).get("timestamp") or ""
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+out = {"ok": True, "booted": booted, "staged": staged, "available": cached}
+
+if staged.get("digest"):
+    out["state"] = "staged"
+    out["reason"] = ("A new version is downloaded and ready. "
+                     "Restart to finish putting it in place.")
+    print(json.dumps(out))
+    raise SystemExit(0)
+
+bt, ct = when(booted), when(cached)
+
+if not cached.get("digest") or cached["digest"] == booted.get("digest"):
+    out["state"] = "current"
+    out["reason"] = "This computer is up to date."
+elif bt and ct and ct <= bt:
+    # The registry is BEHIND this machine. Never present this as an update:
+    # rpm-ostree and bootc both refuse it, and the advisor sees only the
+    # refusal. Say the true thing instead.
+    out["state"] = "current"
+    out["reason"] = "This computer is up to date."
+    out["note"] = ("The update source is older than this computer "
+                   "(registry %s, this computer %s); nothing to install."
+                   % (cached.get("timestamp") or "unknown",
+                      booted.get("timestamp") or "unknown"))
+else:
+    out["state"] = "available"
+    out["reason"] = "A new version is available."
+
+print(json.dumps(out))
+' "$1"
+}
+
+case "${1:-status}" in
+status)
+    decide "$(read_state)"
+    ;;
+
+check)
+    # --check refreshes what bootc knows about the registry without staging.
+    # A network failure is an ordinary condition on a tethered or hotel
+    # connection, and it is reported as itself rather than as "up to date".
+    if ! err=$(bootc upgrade --check 2>&1); then
+        fail "Could not reach the update service. $(printf '%s' "$err" | tail -1)"
+    fi
+    decide "$(read_state)"
+    ;;
+
+stage)
+    state=$(read_state)
+    verdict=$(decide "$state")
+    want=$(printf '%s' "$verdict" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("state",""))')
+    # Refuse to stage anything the guard did not call an update. This is what
+    # stops a downgrade being attempted at all.
+    if [ "$want" != "available" ]; then
+        printf '%s\n' "$verdict"
+        exit 0
+    fi
+    if ! err=$(bootc upgrade 2>&1); then
+        fail "The update did not finish downloading. $(printf '%s' "$err" | tail -1)"
+    fi
+    decide "$(read_state)"
+    ;;
+
+apply)
+    # Only ever restarts into something already staged. If nothing is staged
+    # this is a no-op that says so -- it must not be a way to reboot the
+    # machine out from under an advisor mid-appointment.
+    state=$(read_state)
+    staged=$(printf '%s' "$state" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("staged") or {}).get("digest",""))')
+    if [ -z "$staged" ]; then
+        fail "There is no downloaded update waiting, so there is nothing to restart into."
+    fi
+    emit '{"ok": true, "state": "restarting", "reason": "Restarting to finish the update."}'
+    # Detach so the caller gets its answer before the machine goes down.
+    setsid bash -c 'sleep 2; systemctl reboot' >/dev/null 2>&1 &
+    ;;
+
+*)
+    fail "Unknown request '${1:-}'."
+    ;;
+esac

@@ -501,13 +501,21 @@ fi
 # wrapper forced an allowlist that omitted fwupd, so firmware updates silently
 # never appeared; the image controls which backends exist, and this reads back
 # that outcome rather than a wrapper's argument string.
+#
+# The rpm-ostree backend is now deliberately ABSENT (2026-09-01). It decided
+# "there is an update" from a digest difference alone, so when the registry tag
+# held an image older than the running one it offered a downgrade, rpm-ostree
+# refused it, and the advisor was shown "Update Issue -- There was an issue
+# during the update or installation process." The OS lane belongs to
+# spplus-update-control, which compares timestamps; Discover keeps applications
+# and firmware. Its presence here is a regression, not a feature.
 if test ! -e /usr/bin/spplus-discover \
    && grep -q '^Exec=plasma-discover %F$' /usr/share/applications/org.kde.discover.desktop 2>/dev/null \
    && test -e /usr/lib64/qt6/plugins/discover/flatpak-backend.so \
-   && test -e /usr/lib64/qt6/plugins/discover/rpm-ostree-backend.so \
+   && test ! -e /usr/lib64/qt6/plugins/discover/rpm-ostree-backend.so \
    && test -e /usr/lib64/qt6/plugins/discover/fwupd-backend.so \
    && test ! -e /usr/lib64/qt6/plugins/discover/packagekit-backend.so; then
-  r discover_backends flatpak,rpm-ostree,fwupd OK
+  r discover_backends flatpak,fwupd OK
 else
   r discover_backends mismatch PROBLEM
   PRODUCT_FAIL=1

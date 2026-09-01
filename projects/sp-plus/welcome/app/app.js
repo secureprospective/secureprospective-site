@@ -837,6 +837,122 @@
     }
   }
 
+  // ---- System updates ----------------------------------------------------
+  // The advisor's manual lane. SP+ still updates on its own and applies it at
+  // shutdown; this is for someone who wants to look now, or to finish one
+  // without waiting for the end of the day.
+  //
+  // This page never decides what counts as an update. It asks the helper and
+  // renders the answer. The rule that matters -- an image older than the one
+  // running is NOT an update -- lives in spplus-update-control, because that is
+  // the rule Discover got wrong: it offered a stale image, rpm-ostree refused
+  // it as a downgrade, and the advisor was shown a failure they could do
+  // nothing about.
+  const updateCheck=document.getElementById('update-check');
+  const updateAct=document.getElementById('update-act');
+  const updateResult=document.getElementById('update-result');
+  let updateState='unknown';
+  let updateBusy=false;
+  let restartArmed=false;
+  let restartTimer=null;
+
+  function disarmRestart(){
+    restartArmed=false;
+    if(restartTimer){ clearTimeout(restartTimer); restartTimer=null; }
+  }
+
+  function paintUpdate(result){
+    if(!updateAct||!updateResult) return;
+    const state=(result&&result.state)||'unknown';
+    updateState=state;
+    disarmRestart();
+    updateCheck.disabled=false;
+    updateCheck.textContent='CHECK FOR UPDATES';
+    updateAct.disabled=false;
+    // The note is the honest extra sentence -- for instance when the update
+    // source is behind this computer, which is a real state and not an error.
+    const note=(result&&result.note)?' '+result.note:'';
+    if(state==='available'){
+      updateAct.hidden=false;
+      updateAct.textContent='DOWNLOAD IT NOW';
+      updateResult.textContent=((result&&result.reason)||'A new version is available.')+note;
+    }else if(state==='staged'){
+      updateAct.hidden=false;
+      updateAct.textContent='RESTART TO FINISH';
+      updateResult.textContent=((result&&result.reason)||'A new version is ready.')+note;
+    }else if(state==='restarting'){
+      updateAct.hidden=true;
+      updateCheck.disabled=true;
+      updateResult.textContent=(result&&result.reason)||'Restarting to finish the update.';
+    }else if(state==='error'){
+      updateAct.hidden=true;
+      updateResult.textContent='This computer could not check for updates just now: '+
+        ((result&&result.reason)||'no detail was reported')+
+        ' It will keep trying on its own.';
+    }else{
+      updateAct.hidden=true;
+      updateResult.textContent=((result&&result.reason)||'This computer is up to date.')+note;
+    }
+  }
+
+  function finishUpdate(result){
+    updateBusy=false;
+    paintUpdate(result);
+  }
+
+  if(updateCheck){
+    updateCheck.addEventListener('click',()=>{
+      if(updateBusy) return;
+      updateBusy=true;
+      disarmRestart();
+      updateCheck.disabled=true;
+      updateCheck.textContent='CHECKING...';
+      if(updateAct) updateAct.hidden=true;
+      if(updateResult) updateResult.textContent='Looking for a new version.';
+      send('spplus:update-check');
+    });
+  }
+
+  if(updateAct){
+    updateAct.addEventListener('click',()=>{
+      if(updateBusy) return;
+      if(updateState==='available'){
+        updateBusy=true;
+        updateAct.disabled=true;
+        updateAct.textContent='DOWNLOADING...';
+        if(updateResult) updateResult.textContent='Downloading the new version. You can keep working.';
+        send('spplus:update-stage');
+        return;
+      }
+      if(updateState==='staged'){
+        // Restarting is disruptive and irreversible mid-appointment, so it
+        // takes a second, deliberate click. Nothing else on this page does,
+        // and nothing else on this page closes their documents.
+        if(!restartArmed){
+          restartArmed=true;
+          updateAct.textContent='YES - RESTART NOW';
+          if(updateResult) updateResult.textContent='This will restart the computer. Save anything open first, then press the button again.';
+          restartTimer=setTimeout(()=>{
+            disarmRestart();
+            updateAct.textContent='RESTART TO FINISH';
+            if(updateResult) updateResult.textContent='A new version is downloaded and ready. Restart to finish putting it in place.';
+          },15000);
+          return;
+        }
+        disarmRestart();
+        updateBusy=true;
+        updateAct.disabled=true;
+        updateAct.textContent='RESTARTING...';
+        send('spplus:update-apply');
+      }
+    });
+  }
+
+  // Ask once at start-up so the section is already truthful when the advisor
+  // reaches it. `status` is local only -- it reads what the machine already
+  // knows and touches no network.
+  send('spplus:update-status');
+
   askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   helpHome.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
 
@@ -924,6 +1040,7 @@
     serviceResult: finishServiceCapability,
     serviceOpenResult: finishServiceOpen,
     pinHelpResult: finishPinHelp,
+    updateResult: finishUpdate,
     // Named on purpose. The help screen has moved once already, and a test
     // that hardcodes its index silently tests the wrong screen afterwards.
     goHelp: function(){ go(HELP_SCREEN); },

@@ -529,3 +529,13 @@ body.service-panel-open{overflow:hidden}
 .browse-chips{display:flex;flex-wrap:wrap;gap:6px}
 .browse-chip{padding:5px 9px;border:var(--line);background:var(--silver);font-size:11px;font-weight:700;line-height:1.1;text-align:left}
 .browse-chip:hover{background:var(--yellow)}
+
+/* System updates on the "ready to work" screen. Reuses the lane vocabulary the
+   office screen already established -- hard border, hard shadow, white ground
+   -- so the advisor reads it as the same kind of thing rather than a new one.
+   No media-query overrides exist for these, so appending here is the whole
+   definition. */
+.update-lane{padding:16px;border:var(--line);background:var(--white);box-shadow:var(--hard);margin-top:25px}
+.update-lane #update-note{margin:8px 0 0}
+.update-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.update-lane .lane-result:empty{display:none}
