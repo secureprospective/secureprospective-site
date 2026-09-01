@@ -26,7 +26,7 @@ The result tells you whether the print system accepted the job. Pick up or look 
 
 Check the physical printer first: it needs power, paper, and no error message or jam showing on its own screen. Then check that the correct printer was selected in the print window.
 
-If those checks do not solve it, ask Fin. Fin can inspect the print queue and service, explain what it found, and use the approved repair process. It should tell you which printer it is working on and ask before making a repair.
+If those checks fail, ask Fin and name the printer by location. Before any repair, ask which printer it sees. Its current scripted repair uses **Advisor Test Printer**, a test fixture, not office hardware. If that is all it names, it has not proved the office printer works.
 
 Try a prompt such as:
 
