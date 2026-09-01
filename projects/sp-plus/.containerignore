@@ -11,3 +11,11 @@ scripts/
 # scratch build that this negation re-includes exactly this file and nothing
 # else from tests/.
 !tests/welcome-close-gate.sh
+
+# The DN-48 LibreOffice parity gates, same reasoning. The .xcd checker runs at
+# build time, and the UNO gate and its probe cannot: there is no LibreOffice to
+# start inside a build layer, so they ship to be run against the installed
+# system on the Dell or a VM, which is the only place the parity is real.
+!tests/libreoffice-xcd-check.py
+!tests/libreoffice-parity-gate.sh
+!tests/libreoffice-parity-probe.py
