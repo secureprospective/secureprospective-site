@@ -44,22 +44,32 @@ same podman storage and the ISO build is rootful.
 
 ## 3. WHAT IS RUNNING RIGHT NOW — THE ISO BUILD
 
-Started 2026-09-01 16:00:08 CDT, from `eb84d15`.
+Started 2026-09-01 16:04:11 CDT, from `0a7cdf2`. **Third attempt.**
 
 ```
 SPPLUS_REPO=/home/chris/work/sp-plus-build  bash ~/fleet/bin/sp-plus-iso-build.sh
-log: /home/chris/logs/sp-plus/iso-build-20260901-160008.log
+log: /home/chris/logs/sp-plus/iso-build-20260901-160411.log
 ```
 
-**This is the second attempt.** The 15:56:29 run failed in about three minutes
-on a latent Containerfile ordering bug, fixed in `eb84d15` — see section 4.
-Its log is `/home/chris/logs/sp-plus/iso-build-20260901-155629.log` and is
-worth keeping as the evidence for that fix.
+**Two earlier attempts failed, both on latent Containerfile bugs that had been
+hidden behind cached layers.** Keep both logs; they are the evidence.
+
+| Attempt | Log | Died at | Cause | Fix |
+|---|---|---|---|---|
+| 15:56:29 | `iso-build-20260901-155629.log` | STEP 39 | `node --check` in the DN-47 polkit gate, at a layer where node is not installed yet | `eb84d15` |
+| 16:00:08 | `iso-build-20260901-160008.log` | STEP 80 | a missing `\` orphaned `&& echo "TOOLS_OK ..."` into a top-level instruction | `0a7cdf2` |
+
+**Both are the same class of bug and there may be more.** A Containerfile
+assertion is only as true as the last time its layer actually ran. Today's
+`COPY` changes invalidated the cache for the first time in a while and two
+assertions that had never executed fell over immediately. If this build dies
+again on something that looks like it should always have been broken, that is
+why — read the failing instruction rather than assuming a regression.
 
 **Check it is alive:**
 ```bash
 pgrep -af "sp-plus-iso-build|image-builder-cli"
-tail -20 /home/chris/logs/sp-plus/iso-build-20260901-160008.log
+tail -20 /home/chris/logs/sp-plus/iso-build-20260901-160411.log
 ```
 
 **Where the ISO lands** (roughly 5.2 GB, based on the 07:07 build):
@@ -374,14 +384,23 @@ commits, never booted, never installed. PIN YOUR HELP and the whole Help app
 have never executed anywhere. The segfault has never been tested on hardware.
 The previews still carry the wrong task bar and he has not ruled on it.
 
-**One loose end I could not chase.** Immediately after the `eb84d15` edit,
-`tests/config-preflight.sh` reported `30 passed, 1 failed / DO NOT BUILD`.
-Two further runs of the same script on the same tree reported `31 passed, 0
-failed` and I could not reproduce it, so I do not know which check failed —
-the summary line does not name it and I did not capture the full output. The
-build was started on the strength of two clean runs. **If it recurs, capture
-the whole output before re-running**, because a preflight that fails
-intermittently is worse than one that fails honestly, and this one gates every
-build.
+**One loose end I could not chase: `config-preflight.sh` is intermittently
+reporting a failure it does not name.** It printed `30 passed, 1 failed / DO
+NOT BUILD` twice today, and on both occasions the very next run of the same
+script against the same tree printed `31 passed, 0 failed`. I then ran it six
+more times without a single failure, so I never captured which check it was —
+the summary line does not name the failing check and I had only kept the tail.
+
+The one correlation I have, offered as a hypothesis and not a conclusion: both
+failures were the FIRST run immediately after a script rewrote
+`images/kde/Containerfile`, and every clean run came later. That could point at
+a check that is sensitive to file timestamps or to something it caches, or it
+could be coincidence across two samples.
+
+**This matters more than it looks.** This script is the gate on every build,
+and a gate that fails without saying why teaches nothing and trains whoever
+sees it to re-run until green — which is exactly what I did. Whoever picks
+this up should make the summary name its failing checks before trusting it
+again, and capture full output on the next occurrence.
 
 Do not let this handoff's confident tone about section 4 leak into section 7.
