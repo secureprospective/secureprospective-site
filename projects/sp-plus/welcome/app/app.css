@@ -77,7 +77,7 @@ h1,h2,p{margin:0}h1{font-family:'Noto Sans Condensed Black','Noto Sans Condensed
 .theme-preview{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:#222b}
 .theme-preview-card{display:grid;grid-template-rows:52px minmax(0,1fr);width:75vw;height:75vh;max-width:1180px;max-height:720px;min-width:820px;min-height:560px;border:2px solid var(--ink);background:var(--silver);box-shadow:10px 10px 0 #0008;overflow:hidden}
 .theme-preview-header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:8px 16px;border-bottom:2px solid var(--ink);background:var(--blue);color:var(--white)}
-.preview-kicker,.preview-label{display:block;color:var(--yellow);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.preview-kicker,.preview-label{display:block;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.preview-kicker{color:var(--yellow)}.preview-label{color:var(--blue)}
 .theme-preview-header h2{margin-top:3px;font-family:'Noto Sans Condensed Black','Noto Sans Condensed',sans-serif;font-size:25px;line-height:.9;text-transform:uppercase}
 .theme-preview-header .text-button{color:var(--white);font-size:10px;white-space:nowrap}
 .theme-preview-header .text-button:hover{color:var(--yellow)}
@@ -410,4 +410,22 @@ body.service-panel-open{overflow:hidden}
 @media (min-width:901px){
   .service-panel-lede>h3{margin:14px 0 0}
   .service-panel-note h3{margin:8px 0 0}
+}
+
+/* Contrast guardrails: labels on the light receipt keep their emphasis with
+   blue, while the two state surfaces explicitly keep ink as their text color.
+   The kicker remains yellow because it is part of the blue modal header. */
+.preview-result[data-kind="error"]{color:var(--ink)}
+.ask-feedback[data-kind="pending"],.ask-feedback[data-kind="error"]{color:var(--ink)}
+
+/* The services are the handoff. The folder boundary teaches one compact rule
+   beneath them, rather than absorbing the flexible row as a second hero. */
+@media (min-width:901px){
+  .services-content{grid-template-rows:minmax(210px,1fr) auto}
+  .services-folders{grid-template-rows:auto 84px auto;align-self:start}
+  .folder-diagram{grid-row:2;align-self:stretch;height:84px;min-height:84px}
+  .folder-caption{grid-row:2;align-self:center}
+  .service-password-note{grid-row:3;align-self:start}
+  .service-card-description{min-height:2.6em}
+  .social-expectations{align-self:center}
 }
