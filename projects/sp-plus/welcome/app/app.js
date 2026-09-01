@@ -665,7 +665,15 @@
   const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   function markdown(text){let list=false, out=''; for(const raw of text.split('\n')){const s=raw.trim(); if(!s){if(list){out+='</ul>';list=false;} continue;} if(s.startsWith('#')){if(list){out+='</ul>';list=false;} const level=Math.min(3,s.match(/^#+/)[0].length);out+=`<h${level}>${inline(s.slice(level).trim())}</h${level}>`;continue;} if(s.startsWith('- ')){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.slice(2))}</li>`;continue;} if(/^\d+\.\s/.test(s)){if(!list){out+='<ul>';list=true;}out+=`<li>${inline(s.replace(/^\d+\.\s/,''))}</li>`;continue;} if(s.startsWith('>')){out+=`<p><strong>${inline(s.slice(1).trim())}</strong></p>`;continue;} out+=`<p>${inline(s)}</p>`;} return out+(list?'</ul>':'');}
   function crumb(label, action){const b=document.createElement('button');b.className='crumb-button';b.textContent=label;b.addEventListener('click',action);crumbs.append(b);}
-  function renderHelp(){ crumbs.innerHTML=''; if(helpView.kind==='root'){helpHeading.textContent='PICK A STARTING POINT.';helpLede.textContent='Choose a topic, follow it at your own pace, then come back when you are ready.'; helpContent.innerHTML=`<div class="trail-grid">${Object.entries(categories).map(([name,desc])=>`<button class="trail-card" data-category="${name}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>`; helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:b.dataset.category};renderHelp();}));return;}
+  const helpHome = document.getElementById('help-home');
+  function renderHelp(){ crumbs.innerHTML='';
+    // BACK TO HELP TOPICS is only an exit from somewhere. At the topic root it
+    // had no visibility rule at all, so it sat on the screen offering to return
+    // the advisor to the view they were already looking at, and clicking it just
+    // re-rendered the same list. A control that does nothing teaches a nervous
+    // user that the app is not to be trusted, so it is hidden where it has no job.
+    if(helpHome) helpHome.hidden = helpView.kind === 'root';
+    if(helpView.kind==='root'){helpHeading.textContent='PICK A STARTING POINT.';helpLede.textContent='Choose a topic, follow it at your own pace, then come back when you are ready.'; helpContent.innerHTML=`<div class="trail-grid">${Object.entries(categories).map(([name,desc])=>`<button class="trail-card" data-category="${name}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>`; helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:b.dataset.category};renderHelp();}));return;}
     crumb('HELP TOPICS',()=>{helpView={kind:'root'};renderHelp()});
     if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat]; const entries=articles.filter(a=>a.category===cat);helpContent.innerHTML=`<div class="article-grid">${entries.map((a,i)=>`<button class="article-link" data-article="${i}"><b>${a.title}</b><small>READ THIS GUIDE HERE</small></button>`).join('')}</div>`;helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:entries[i]};renderHelp();}));return;}
     const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='This guide stays inside Welcome. No browser window opens.';
@@ -674,7 +682,7 @@
     helpContent.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>{helpView={kind:'article',category:helpView.category,article:a,page:button.dataset.page==='next'?page+1:page-1};renderHelp();}));
   }
   askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
-  document.getElementById('help-home').addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
+  helpHome.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
   function helpDepth(depth) {
     if (depth === 1) { helpView = {kind:'category', category:'Everyday work'}; renderHelp(); return; }
