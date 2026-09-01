@@ -6,13 +6,19 @@ set -euo pipefail
 command -v spplus-welcome >/dev/null 2>&1 || { echo 'WELCOME_CLOSE_FAIL: spplus-welcome missing' >&2; exit 1; }
 command -v timeout >/dev/null 2>&1 || { echo 'WELCOME_CLOSE_FAIL: timeout missing' >&2; exit 1; }
 
-before=$(pgrep -f '[w]elcome.py' || true)
+# pgrep separates PIDs with newlines, but the membership test below compares
+# against a space-padded string. An unnormalized "before" therefore matched
+# only its first PID, and every other pre-existing Welcome was reported as
+# leaked -- the gate failed against processes it never launched whenever more
+# than one Welcome was already running. Normalize to single spaces here so the
+# pattern below can only be wrong about membership, never about separators.
+before=$(pgrep -f '[w]elcome.py' | tr '\n' ' ' || true)
 if ! timeout --signal=TERM 15s spplus-welcome --force --self-test-close; then
   echo 'WELCOME_CLOSE_FAIL: launcher did not exit after its window close' >&2
   exit 1
 fi
 sleep 1
-after=$(pgrep -f '[w]elcome.py' || true)
+after=$(pgrep -f '[w]elcome.py' | tr '\n' ' ' || true)
 # Judge only the instance this gate started. "before" was already captured and
 # then ignored, so on a real desktop the gate failed against the Welcome window
 # the advisor is autostarted into -- a process it never launched and must not
