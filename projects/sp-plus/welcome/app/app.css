@@ -453,3 +453,15 @@ body.service-panel-open{overflow:hidden}
    explain or get rid of. The other panels on this screen already carry their
    own guard; this one was simply missed. */
 .ask-feedback[hidden]{display:none}
+
+/* Below 1080px the map stage stops being two columns and stacks, which left the
+   desktop diagram a 68px band holding 266px of content: a blue sliver with half a
+   dock in it. A diagram that renders as a broken fragment is worse than no
+   diagram -- it is the visual evidence of an unfinished product, on the screen an
+   advisor opens when they are already lost. The stage is handed to the help
+   station instead, which is the working half of this screen, and the map's own
+   heading above it still names what the desktop holds. */
+@media(max-width:1080px){
+  .map-stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  .map-stage>.desktop-map{display:none}
+}
