@@ -33,7 +33,6 @@ RUN useradd --create-home --groups wheel --shell /bin/bash advisor \
     && install -d -o advisor -g advisor /var/lib/sp-plus
 
 COPY runtime/ /usr/libexec/sp-plus/
-COPY pwa/ /usr/libexec/sp-plus/pwa/
 COPY knowledge/ /usr/libexec/sp-plus/knowledge/
 COPY playbooks/ /usr/libexec/sp-plus/playbooks/
 COPY config/sp-plus.service /usr/lib/systemd/system/sp-plus.service

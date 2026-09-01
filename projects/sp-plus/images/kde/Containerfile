@@ -282,11 +282,15 @@ RUN awk -F: 'NR==FNR{seen[$1]=1; next} !($1 in seen)' /etc/group /usr/lib/group 
 
 # ---- 4. the SP+ runtime ----
 COPY runtime/   /usr/libexec/sp-plus/
-COPY pwa/       /usr/libexec/sp-plus/pwa/
 COPY knowledge/ /usr/libexec/sp-plus/knowledge/
 COPY playbooks/ /usr/libexec/sp-plus/playbooks/
 COPY config/sp-plus.service      /usr/lib/systemd/system/sp-plus.service
-COPY config/brave-policies.json  /etc/brave/policies/managed/sp-plus.json
+# Brave policy is NOT copied from config/brave-policies.json. It is written
+# in full further down, and that RUN lands on this same path, so a COPY here
+# is overwritten within the same build and silently does nothing. The file
+# stays in the tree because the older proof-of-concept Containerfile at the
+# repository root is its only real consumer. Change the policy in the RUN
+# block, not here.
 # Fin is the SP+ assistant. It opens as a terminal program, deliberately: the
 # advisor should see the machine talking back, not a browser window.
 COPY config/fin                  /usr/libexec/sp-plus/fin
@@ -1466,6 +1470,14 @@ assert m['icons'], 'an installable app needs an icon'" \
  && grep -q "8766" /usr/share/applications/org.secureprospective.spplus.help.desktop \
  && systemctl --user --global enable spplus-help.service \
  && test -L /etc/systemd/user/default.target.wants/spplus-help.service \
+# The proof-of-concept "Advisor Help" PWA is retired (2026-09-01). It was a
+# printer-only page served by the system RPC service and it taught the advisor
+# a smaller story about what help is than the real manual does. Two help
+# surfaces is one too many, and the wrong one would have been the one that
+# opened first.
+ && test ! -e /usr/libexec/sp-plus/pwa \
+ && ! grep -q '^PWA_ROOT = ' /usr/libexec/sp-plus/spplus_rpc.py \
+ && ! grep -q '== "/api/knowledge/printer"' /usr/libexec/sp-plus/spplus_rpc.py \
  && echo "DN49_HELP_APP_OK pinned help ships, serves loopback only, and caches the manual offline"
 
 COPY welcome/org.secureprospective.spplus.welcome.desktop \

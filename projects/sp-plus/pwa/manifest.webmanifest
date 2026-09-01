@@ -1,9 +1,0 @@
-{
-  "name": "Advisor Help",
-  "short_name": "Advisor Help",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f5f5f2",
-  "theme_color": "#0033a0",
-  "description": "Plain-English device help for the SP+ proof of concept."
-}

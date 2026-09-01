@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Narrow SP+ POC RPC boundary and local PWA server.
+"""Narrow SP+ POC RPC boundary.
 
 This service intentionally exposes a small allowlisted operation set. It is not a
 shell bridge and it does not accept arbitrary commands, paths, or file contents.
@@ -21,8 +21,6 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(os.environ.get("SPPLUS_ROOT", Path(__file__).resolve().parents[1]))
-PWA_ROOT = ROOT / "pwa"
-KNOWLEDGE_ROOT = ROOT / "knowledge"
 PLAYBOOK_PATH = ROOT / "playbooks" / "printer-reconnect.json"
 PLAYBOOK_DIGEST_PATH = ROOT / "playbooks" / "printer-reconnect.json.sha256"
 STATE_DIR = Path(os.environ.get("SPPLUS_STATE_DIR", "/var/lib/sp-plus"))
@@ -243,31 +241,22 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def do_GET(self) -> None:  # noqa: N802
+        # This service serves no pages any more. It used to host the
+        # proof-of-concept "Advisor Help" PWA, a printer-only page that was
+        # superseded by the real Help application (DN-49), which is a user
+        # service on 8766 reading the full 37-guide manual. Two help surfaces
+        # is one too many, and the older one taught the advisor a smaller
+        # story about what help is. Retired 2026-09-01 on Christopher's call.
+        #
+        # The /api/knowledge/printer endpoint went with it: nothing ever
+        # called it, not even the PWA it was written for.
         if self.path == "/api/health":
             self.send_json(rpc("health", {}))
-            return
-        if self.path == "/api/knowledge/printer":
-            content = (KNOWLEDGE_ROOT / "advisor-help" / "printer.md").read_text(encoding="utf-8")
-            self.send_json({"title": "Printer help", "markdown": content})
             return
         if self.path == "/api/report":
             self.send_json(report())
             return
-        relative = self.path.split("?", 1)[0].lstrip("/") or "index.html"
-        if relative not in {"index.html", "app.js", "styles.css", "manifest.webmanifest"}:
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
-        path = PWA_ROOT / relative
-        if not path.exists():
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
-        content_types = {".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".webmanifest": "application/manifest+json"}
-        data = path.read_bytes()
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", content_types.get(path.suffix, "application/octet-stream"))
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+        self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/api/rpc":

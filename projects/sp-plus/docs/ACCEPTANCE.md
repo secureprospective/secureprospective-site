@@ -16,12 +16,16 @@
 1. Boot the artifact with UEFI and a virtual TPM.
 2. Complete the installation if using the ISO. Use the test account documented by the runner only for this disposable VM.
 3. Confirm KDE reaches a usable desktop.
-4. Open Brave. Confirm the managed start page is the SP+ PWA at `http://127.0.0.1:8765/`.
+4. Open Help from the task bar, or from Applications. Confirm it opens in its
+   own window, that the search field finds a guide, and that a guide showing
+   suggested Fin prompts offers a COPY button on each. The proof-of-concept
+   help page that used to be served at `http://127.0.0.1:8765/` was retired on
+   2026-09-01; the system service on 8765 now serves no pages at all.
 5. Open **Printer help**. Confirm the page describes a failed fixture printer without exposing paths, usernames, or credentials.
 6. Select **Diagnose**. Confirm the displayed request contains only an allowlisted technical snapshot.
 7. Confirm remediation is unavailable until approval is explicitly selected.
 8. Select **Approve reconnect** and then **Reconnect printer**.
-9. Confirm the PWA reports a successful fixture reconnect and test-page verification.
+9. Confirm the printer workflow reports a successful fixture reconnect and test-page verification.
 10. Generate the evidence record. Confirm it contains event type, timestamp, sanitized request, approval, playbook digest, verification result, and no secrets.
 11. Reboot once and confirm the immutable system and local service return.
 

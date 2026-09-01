@@ -1,5 +1,5 @@
 [Unit]
-Description=Secureprospective Advisor POC RPC and PWA
+Description=Secureprospective Advisor POC RPC
 After=network-online.target cups.service
 Wants=network-online.target
 

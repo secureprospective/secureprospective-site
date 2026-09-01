@@ -881,6 +881,20 @@ grep -q 'DN49_HELP_APP_OK' "$REPO/projects/sp-plus/images/kde/Containerfile" \
 grep -qF 'helpapp/server.py' "$REPO/projects/sp-plus/images/kde/Containerfile" \
   || { P16_OK=0; echo "       the Help app is not installed into the image"; }
 
+# The retired proof-of-concept PWA must stay retired. It was a printer-only
+# page on the system service; the real Help app replaced it. Two help surfaces
+# is one too many, and the advisor would have met the smaller one first.
+[ ! -e "$REPO/projects/sp-plus/pwa" ] \
+  || { P16_OK=0; echo "       the retired proof-of-concept PWA is back"; }
+grep -q '^PWA_ROOT = ' "$REPO/projects/sp-plus/runtime/spplus_rpc.py" \
+  && { P16_OK=0; echo "       the RPC service serves pages again"; }
+grep -qF 'COPY pwa/' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  && { P16_OK=0; echo "       the image installs the retired PWA again"; }
+# Its homepage policy pointed Brave at the retired page. That COPY was dead in
+# the live image anyway, overwritten by the RUN that writes the policy in full.
+grep -qF 'COPY config/brave-policies.json' "$REPO/projects/sp-plus/images/kde/Containerfile" \
+  && { P16_OK=0; echo "       a Brave policy COPY is back, and it is overwritten later in the same build"; }
+
 # Every guide must be reachable from the search bar. A corpus can be complete
 # and still be unreachable: an advisor only ever meets an article through the
 # search field, so one no query surfaces is, from where they sit, missing.
