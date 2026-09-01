@@ -16,7 +16,7 @@ Evidence column.
 | S1 | What this computer is | knowledge/advisor-help/welcome.md | VERIFIED | verified: live VM bootc status, lsblk crypto_LUKS, rpm -q brave-browser cups libreoffice-writer, /usr/bin/fin, updater timer disabled; image localhost/sp-plus-kde:spike same packages, Fin prompt/desktop, PasswordManagerEnabled=false, updater timer disabled. Drift: Bitwarden absent; VM has no LUKS recovery token; Autolock=false. |
 | S2 | Coming from Windows | knowledge/advisor-help/coming-from-windows.md | VERIFIED | verified: live VM plasmashell plus Kickoff config, rpm -q plasma-workspace dolphin plasma-systemsettings brave-browser, /usr/bin/fin, wine absent; image same packages, Dolphin and System Settings desktop entries, Fin repair/no-command prompt, wine absent. |
 | S3 | Finding your way around | knowledge/advisor-help/getting-around.md | VERIFIED | verified: live VM plasmashell and panel config for Kickoff, Icon Tasks, system tray, clock, network, volume; Dolphin and System Settings installed. Image localhost/sp-plus-kde:spike rpm -q plasma-workspace dolphin plasma-systemsettings kscreen, app desktop entries, Fin repair prompt. |
-| S4 | Your first day: what Welcome set up | knowledge/advisor-help/your-first-day.md | TODO | |
+| S4 | Your first day: what Welcome set up | knowledge/advisor-help/your-first-day.md | VERIFIED | verified: live VM and image SP+ Welcome desktop entry; temporary office-folder check with KDE Wallet option; one-page CUPS test; provider web email with no password storage; own-window Fin; optional Bitwarden and Signal; skip/reopen flows. Image also verifies unavailable theme previews cannot apply. |
 
 ## Batch 2 — Your files
 
