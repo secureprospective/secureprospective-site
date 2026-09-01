@@ -675,6 +675,20 @@
     if(helpHome) helpHome.hidden = helpView.kind === 'root';
     if(helpView.kind==='root'){helpHeading.textContent='PICK A STARTING POINT.';helpLede.textContent='Choose a topic, follow it at your own pace, then come back when you are ready.'; helpContent.innerHTML=`<div class="trail-grid">${Object.entries(categories).map(([name,desc])=>`<button class="trail-card" data-category="${name}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>`; helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{helpView={kind:'category',category:b.dataset.category};renderHelp();}));return;}
     crumb('HELP TOPICS',()=>{helpView={kind:'root'};renderHelp()});
+    if(helpView.kind==='search'){
+      const found = helpView.results;
+      crumb('SEARCH', ()=>{});
+      helpHeading.textContent = found.length ? 'WHAT WE FOUND.' : 'NOTHING MATCHED THAT YET.';
+      helpLede.textContent = found.length
+        ? 'These look closest to what you typed. Open one, or keep typing to narrow it down.'
+        : 'We could not find a guide for those words. Fin can answer in your own words, so press ASK FIN and it will take it from here.';
+      helpContent.innerHTML = found.length
+        ? `<div class="article-grid">${found.map((a,i)=>`<button class="article-link" data-found="${i}"><b>${esc(a.title)}</b><small>${esc(a.category.toUpperCase())}</small></button>`).join('')}</div>`
+        : '<div class="search-empty"><p>Nothing here matches those words yet. That is our gap, not your mistake.</p><p>Fin reads plain English and can answer from the whole manual, so pressing ASK FIN above is the fastest way on.</p></div>';
+      helpContent.querySelectorAll('[data-found]').forEach((b,i)=>b.addEventListener('click',()=>{
+        helpView={kind:'article',category:found[i].category,article:found[i]};renderHelp();}));
+      return;
+    }
     if(helpView.kind==='category'){const cat=helpView.category;helpHeading.textContent=cat.toUpperCase()+'.';helpLede.textContent=categories[cat]; const entries=articles.filter(a=>a.category===cat);helpContent.innerHTML=`<div class="article-grid">${entries.map((a,i)=>`<button class="article-link" data-article="${i}"><b>${a.title}</b><small>READ THIS GUIDE HERE</small></button>`).join('')}</div>`;helpContent.querySelectorAll('[data-article]').forEach((b,i)=>b.addEventListener('click',()=>{helpView={kind:'article',category:cat,article:entries[i]};renderHelp();}));return;}
     const a=helpView.article; crumb(helpView.category,()=>{helpView={kind:'category',category:helpView.category};renderHelp()});crumb(a.title,()=>{});helpHeading.textContent=a.title.toUpperCase();helpLede.textContent='This guide stays inside Welcome. No browser window opens.';
     const sections=a.markdown.split(/\n(?=## )/); const pages=[sections.slice(0,2).join('\n'),...sections.slice(2)]; const page=Math.min(helpView.page||0,pages.length-1);
@@ -683,7 +697,139 @@
   }
   askDismiss.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
   helpHome.addEventListener('click',()=>{resetAskFeedback();helpView={kind:'root'};renderHelp();});
-  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
+
+  // ---- Help search -------------------------------------------------------
+  // A category tree quietly demands two things a frightened advisor does not
+  // have: knowing which category their problem belongs to, and knowing our word
+  // for it. Someone whose printer has stopped does not know whether that is
+  // "Everyday work" or "Fix a problem", and may well type "printr wont wrk".
+  // So the Ask Fin field doubles as a search: it suggests articles while the
+  // advisor types, in their words rather than ours, and when it genuinely has
+  // nothing it hands them to Fin instead of showing an empty shelf.
+  //
+  // Everything here is local. The corpus is already in memory, so this works
+  // with the network down, which is exactly when someone is looking for help.
+
+  // The advisor's vocabulary, mapped onto ours. Left side is what they type.
+  const helpSynonyms = {
+    'internet':'wifi network online connect','wifi':'internet network online connect',
+    'online':'internet wifi network','network':'wifi internet online',
+    'print':'printer printing paper','printer':'print printing paper','printing':'printer print',
+    'scan':'scanner scanning document','scanner':'scan scanning',
+    'password':'passwords login sign in bitwarden','passwords':'password login bitwarden',
+    'login':'password sign in log in','email':'mail message inbox','mail':'email inbox',
+    'word':'libreoffice writer document','excel':'libreoffice calc spreadsheet',
+    'office':'libreoffice word excel document','doc':'document libreoffice writer',
+    'screen':'monitor display','monitor':'screen display','display':'screen monitor',
+    'sound':'audio volume speakers','audio':'sound volume speakers','volume':'sound audio',
+    'save':'saving files documents','file':'files documents folder','folder':'files documents',
+    'usb':'flash drive thumb drive external stick','stick':'usb flash drive',
+    'backup':'backups copy protected','copy':'backup backups',
+    'update':'updates restart upgrade','restart':'reboot update restarts',
+    'reboot':'restart updates','slow':'performance speed',
+    'lost':'stolen missing lost','stolen':'lost missing theft',
+    'lock':'screen lock privacy locked','locked':'lock screen locked out',
+    'encrypt':'encryption recovery key','key':'recovery key encryption',
+    'assistant':'fin help ask','fin':'assistant help ask','help':'assistant fin support',
+    'camera':'video calls microphone webcam','video':'camera calls microphone',
+    'bluetooth':'wireless devices pairing','share':'shared sharing folder portal',
+    'portal':'file portal cloud shared','cloud':'portal file online',
+    'windows':'coming from windows migration','pdf':'pdfs reading signing'
+  };
+
+  const normalise = s => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const tokenise = s => normalise(s).split(/\s+/).filter(w => w.length > 1);
+
+  // Small edit distance, capped: enough for a slip or a doubled letter, not
+  // enough to match an unrelated word. Bounded so a long query stays cheap.
+  function within(a, b, limit) {
+    if (a === b) return 0;
+    if (Math.abs(a.length - b.length) > limit) return limit + 1;
+    let prev = Array.from({length: b.length + 1}, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      let best = i;
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+        if (row[j] < best) best = row[j];
+      }
+      if (best > limit) return limit + 1;
+      prev = row;
+    }
+    return prev[b.length];
+  }
+
+  let searchIndex = [];
+  function buildSearchIndex() {
+    searchIndex = articles.map(article => {
+      const headings = (article.markdown.match(/^#{1,3}\s+.*$/gm) || [])
+        .map(line => line.replace(/^#+\s*/, '')).join(' ');
+      const body = article.markdown.replace(/^#{1,3}\s+.*$/gm, ' ');
+      const expand = words => words.flatMap(w => [w, ...(helpSynonyms[w] || '').split(' ')])
+        .filter(Boolean);
+      return {
+        article,
+        title: normalise(article.title),
+        titleWords: expand(tokenise(article.title)),
+        headWords: expand(tokenise(headings)),
+        bodyWords: new Set(tokenise(body)),
+        category: normalise(article.category)
+      };
+    });
+  }
+
+  // Weighted so a title match always outranks a passing mention in the body.
+  function scoreEntry(entry, words, raw) {
+    let score = 0;
+    if (raw.length > 2 && entry.title.includes(raw)) score += 40;
+    for (const word of words) {
+      if (entry.title.includes(word)) score += 12;
+      else if (entry.titleWords.some(t => t.startsWith(word))) score += 10;
+      else if (word.length > 3 && entry.titleWords.some(t => within(t, word, 1) <= 1)) score += 7;
+      if (entry.category.includes(word)) score += 4;
+      if (entry.headWords.some(h => h.startsWith(word))) score += 5;
+      else if (word.length > 3 && entry.headWords.some(h => within(h, word, 1) <= 1)) score += 3;
+      if (entry.bodyWords.has(word)) score += 2;
+    }
+    return score;
+  }
+
+  function searchHelp(query) {
+    const raw = normalise(query).trim();
+    const typed = tokenise(query);
+    if (!typed.length) return [];
+    const words = typed.flatMap(w => [w, ...(helpSynonyms[w] || '').split(' ')]).filter(Boolean);
+    const scored = searchIndex
+      .map(entry => ({entry, score: scoreEntry(entry, words, raw)}))
+      .filter(hit => hit.score >= 7)
+      .sort((a, b) => b.score - a.score || a.entry.article.title.localeCompare(b.entry.article.title));
+    if (!scored.length) return [];
+    // A fixed threshold alone let weak body mentions ride along behind a strong
+    // title match, so "no internet" answered with Printing and No sound. Six
+    // results where two are right reads as a search that does not understand the
+    // question. Anything far below the best match is dropped instead.
+    const best = scored[0].score;
+    return scored
+      .filter(hit => hit.score >= Math.max(9, best * 0.5))
+      .slice(0, 5)
+      .map(hit => hit.entry.article);
+  }
+
+  // The same field asks Fin and searches the manual. One box is simpler than two,
+  // and it means the advisor never has to decide which one their problem belongs
+  // in before they can type anything.
+  askInput.addEventListener('input', () => {
+    const query = askInput.value.trim();
+    if (query.length < 2) {
+      if (helpView.kind === 'search') { helpView = {kind:'root'}; renderHelp(); }
+      return;
+    }
+    helpView = {kind:'search', query, results: searchHelp(query)};
+    renderHelp();
+  });
+
+  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;buildSearchIndex();renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
   function helpDepth(depth) {
     if (depth === 1) { helpView = {kind:'category', category:'Everyday work'}; renderHelp(); return; }
     const article = articles.find(item => item.category === 'Everyday work' && item.title === 'LibreOffice: your Word and Excel');
