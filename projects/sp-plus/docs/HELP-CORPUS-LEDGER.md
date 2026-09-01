@@ -32,7 +32,7 @@ Evidence column.
 
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
-| E1 | LibreOffice: your Word and Excel | knowledge/advisor-help/libreoffice.md | TODO | existing, needs re-verification |
+| E1 | LibreOffice: your Word and Excel | knowledge/advisor-help/libreoffice.md | VERIFIED | verified: live VM Writer/Calc packages, desktop entries, OOXML default-filter config, Documents/Fin; image same plus headless creation of valid .docx and .xlsx. Drift: ledger said existing but target source file was absent; compiled help held stale copy. |
 | E2 | Browser and passwords | knowledge/advisor-help/brave-and-bitwarden.md | TODO | existing, needs re-verification |
 | E3 | Printing | knowledge/advisor-help/printer.md | TODO | existing, needs re-verification |
 | E4 | Scanning documents | knowledge/advisor-help/scanning.md | TODO | |
