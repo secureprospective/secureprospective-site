@@ -1,153 +1,179 @@
-# SP+ RESUME — written 2026-09-01 ~06:40, mid-session
+# SP+ RESUME — written 2026-09-01 ~10:45 CDT, mid-session, before compaction
 
 ## 1. WHAT WE ARE DOING
 
-Finish the SP+ Welcome app to a standard that can be stood behind, then ship an
-ISO. The app work is DONE and an ISO is delivered. The remaining thread is the
-in-app manual: GPT is writing it and the corpus can be regenerated and a second
-ISO built once it stops.
+**The ask, in Christopher's own words:** *"the only ask is that all applications have a
+way to be updated in SP+ ... so far we have been unable to get that done."*
 
-Repo: `/home/chris/work/secureprospective-advisor-os` (a worktree; do NOT cd to the
-original checkout). Branch `session/sp-plus-plan`. Project dir
-`projects/sp-plus`.
+**That objective is NOT met.** Read §5 before anything else — the work committed so far
+solves adjacent problems, not the stated one.
 
-Test VM: `ssh -p 2222 test@127.0.0.1` — **CONFIRMED ALIVE at 06:40**. Christopher
-said he might kill it to install the new ISO; if it is gone, gates that need a
-running desktop cannot run and the Dell is the fallback.
+- Repo: `/home/chris/work/secureprospective-advisor-os` (a **worktree**; do not cd to the
+  original checkout). Branch `session/sp-plus-plan`. Project dir `projects/sp-plus`.
+- Changes this session go into the **next ISO**. Christopher: *"when we are ready we will
+  build the next ISO for testing."* **Do not build an ISO unasked.**
+- Test rig: QEMU VM `fedora-test` (libvirt session, `virsh`). See §10 for how to reach it.
 
 ## 2. AGENTS + HARNESSES
 
-**GPT (Christopher's, not mine)** is writing the manual, one verified article per
-commit, updating `docs/HELP-CORPUS-LEDGER.md` in the same commit. It is racing a
-**five-hour usage cooldown** that was at 18% remaining around 06:35. Christopher's
-instruction: *let it finish, do not interfere.* Do not touch `knowledge/`, the
-ledger, or hold the git index for long.
+None dispatched this session. All work was done directly in this session on the Beelink
+and the VM. Bee/GPT were not used.
 
-**Bee is finished.** Its run ended `EXIT=124` (timeout), commit `24d9b5c`, no
-report written. Its work has already been reviewed and merged — see §6. Do not
-re-dispatch it for this work.
+> Standing preference this session deviated from: `claude-drives-luna-does` says delegate
+> execution. Christopher assigned the VM to me directly here, so hands-on was correct.
 
-Bee's runner is `~/fleet/bin/run-bee-spplus-impl.sh`; briefs in `~/.pi/agent/`;
-sentinels `~/.pi/agent/spplus-<id>.sentinel`.
+## 3. GATES / STATUS
 
-## 3. IN-FLIGHT RIGHT NOW
+| Gate | Where | State |
+|---|---|---|
+| `tests/config-preflight.sh` | Beelink | **30/30 PASS — "Safe to build."** |
+| `tests/cycle36-source-gate.sh` | Beelink | PASS |
+| `tests/fin-extension-gate.mjs` | Beelink | **49/49 PASS** against Pi 0.84.4 |
+| `tests/field-inspect.sh` | VM | updated for the new store + releasever checks; **not re-run since edit** |
+| `tests/bee-lane/spb-fin` | VM | pin string bumped to 0.84.4; **not run** |
 
-- **Background task `b6emzaxxj`** — polls the ledger every 2 min, fires when
-  TODO+DRAFTED <= 3, else gives up after ~64 min. Output:
-  `/tmp/claude-1000/-home-chris/33018ca6-b1dc-4bd0-8aa4-38a969ed6dae/tasks/b6emzaxxj.output`.
-  It only reads a file; killing it costs nothing.
-- **QEMU `fedora-test`** (pid 1319034) — the test VM. Christopher's to kill.
-- Nothing else. Podman is idle; the ISO build finished at 06:16.
+Every gate added this session was mutation-tested (broken deliberately, seen to fail on
+the right line, restored). Details in the commit messages.
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
 
-- **`~/Downloads/sp-plus-2026-09-01-0616.iso`, 5,498,066,944 bytes.** Verified
-  `cmp`-identical to the build output and reported bootable by `file`. Built from a
-  clean detached worktree at `a2e50ee`. Its build printed
-  `WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact`.
-  **This is the ISO to test with.**
-- Build worktree `/home/chris/work/sp-plus-build`, detached at `a2e50ee`, still
-  holds the 5.2G ISO (root-owned; `sudo -n` only permits podman, so it cannot be
-  deleted from here — harmless, the next build overwrites it).
-- **DO NOT TEST** `~/Downloads/sp-plus-2026-08-31-1152.iso` — it still carries the
-  broken `:edge` update origin that made the Software Library crash. The two
-  `SP-PLUS-cycle*.iso` files are older still.
+**Commits on `session/sp-plus-plan` (all committed, tree clean):**
 
-## 5. GATES
+| SHA | What |
+|---|---|
+| `eb5dd9a` | `$releasever` fix + stock Discover store (wrapper removed) |
+| `be4ebcc` | DN-46 update policy: stage daily, apply at shutdown, never reboot |
+| `2db728a` | Pi 0.84.3 → 0.84.4, single `ARG PI_VERSION`, pin gate |
 
-| Gate | Where it runs | State |
+**Local registry `spplus-reg` on :5000** (podman, must stay up — the VM pulls from it):
+tags `test44 test45 test46 test47 test48 latest`. `test48` and `latest` are **mine**, built
+this session; `latest` = image `localhost/sp-plus-kde:test48v4`.
+
+**Podman images (11.1 GB each, mine):** `localhost/sp-plus-kde:test48`, `:test48v2`,
+`:test48v3`, `:test48v4`. Delete when the VM no longer needs them.
+
+**VM `fedora-test`** is booted on `10.0.2.2:5000/sp-plus-kde:test48`, which **contains all
+three commits' changes**. It is a live, working test bed. It is NOT pointed at ghcr.
+
+## 5. THE ACTUAL PROBLEM — STILL UNSOLVED
+
+SP+ has three populations of software. Only two have an update route:
+
+| Population | Update route | State |
 |---|---|---|
-| `welcome-layout-gate.sh` | VM | PASS on 17-corpus; **NOT re-run on the 34-corpus** |
-| `welcome-help-search-gate.sh` | VM | PASS on 17-corpus; **NOT re-run on the 34-corpus** |
-| `welcome-help-corpus-gate.sh` | VM | PASS on the 34-article corpus, all 34 open and read |
-| `service-link-gate.sh` | VM | PASS |
-| `welcome-close-gate.sh`, `welcome-lifecycle-gate.sh` | VM only | PASS |
-| `config-preflight.sh` | Beelink | 27/28; only failure is "git tree is dirty" from GPT's in-flight edits |
-| stubs / tools / cycle36 / theme-phase2 | Beelink | PASS |
+| Flatpaks (Zoom, Bitwarden, advisor installs) | `spplus-flatpak-update.timer` daily + Discover | **works** |
+| Firmware | fwupd, now visible in Discover | **works** (new this session) |
+| **Everything baked into the bootc image** — Brave, **Pi/Fin**, kitty, micro, btop, starship, node, KDE stack | **none** | **NO UPDATE PATH** |
 
-Every gate above was mutation-tested: broken deliberately, seen to fail on the
-right line, restored. Gates run on the VM against `~/sp-plus-welcome-src/welcome`
-(rsync the repo's `welcome/` there first).
+The image-resident applications change only when we rebuild and publish a new image.
+**Bumping the Pi pin by hand this session was the demonstration of the gap, not a fix.**
+A frozen browser and a frozen AI agent on an advisor's machine are both security-relevant.
+
+**This is the next work.** Options not yet evaluated or costed:
+- Move Brave (and possibly others) to Flatpak, so they self-update like Zoom.
+- Establish a rebuild-and-publish cadence triggered by upstream releases of the pinned set.
+- Something else. **Ask Christopher before picking** — this is a product decision and a
+  guessed answer burns a 15-minute build (`no-workarounds-fix-it-or-ask`).
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-- **"The crash dialogs were caused by something Christopher clicked."** No. Bee was
-  launching Welcome over SSH with no display; Qt `qFatal()` aborts, drkonqi shows a
-  crash dialog. 16 aborts, all `could not connect to display`. Fixed twice: a guard
-  in `welcome.py` (verified — unguarded run produced a fresh core dump, guarded run
-  produced none) and `~/.bashrc.d/sp-plus-test-display.sh` on the VM so SSH inherits
-  the session display. That bashrc file is **test-rig only and must never ship**.
-- **"`sudo` is blocked on the Beelink."** No. `/etc/sudoers.d/sp-plus-podman` grants
-  passwordless **podman only**. `sudo -n true` fails, `sudo -n cp` fails, every
-  command the build actually runs works.
-- **"`systemctl is-active` exit 3 means dead."** No — `activating` is normal for a
-  oneshot for its whole run. Compare the state STRING.
-- **"No output means an agent is stalled."** No. Bee wrote only to the VM and ran
-  `pi --no-session`, so there is no transcript and the repo stays quiet. Judge it by
-  fresh screenshot mtimes on the VM.
-- **"The layout gate passing means the screen is fine."** It only proved the resting
-  state until it was extended; search and article-reading states clipped while it
-  said PASS. It now covers 8 screens x 2 sizes + 2 search states + 2 help depths.
-- **`.welcome-screen` is NOT the screen selector** — only screen 0 has it. The real
-  one is `.screen`. Measuring with the wrong selector produced a page with no active
-  screen and meaningless "no overflow" numbers.
-- **The theme helper is `/usr/libexec/spplus-apply-theme THEME_ID (--layout|--no-layout)`.**
-  Passing `1` exits 64 with a usage line and silently changes nothing. Windows id is
-  `org.secureprospective.spplus.windows11.dark`.
-- **`pkill -f '<pattern>'` kills this session's own shell** when the pattern appears
-  in the command being run. It happened twice (exit 144). Kill by PID.
+- **"Manual updating is blocked by polkit / sudo / a KDE kiosk lock."** No. There are no
+  masked units, no custom polkit rules, no `[KDE Action Restrictions]`. `%wheel NOPASSWD:
+  ALL` is in effect. Flatpak system installs need `active+local`, which the real session
+  has.
+- **"`rpmostreed OS operation Upgrade not allowed for user` is a product defect."** No —
+  **my own test artifact.** I launched Discover over SSH, so it sat outside the active
+  local session. Re-run from inside the desktop session, rpm-ostreed logs `Allowing active
+  client`. Always launch GUI apps from inside the session (Welcome's OPEN DISCOVER button).
+- **"`Error parsing image name docker://10.0.2.2:5000/sp-plus-kde ... manifest unknown`
+  is a product defect."** No — also my rig. Discover mis-parsed the `:5000` **port** as a
+  tag and queried `:latest`, which my local registry lacked. Pushing a `latest` tag made it
+  vanish. ghcr has no port, so production is unaffected.
+- **"The Discover wrapper was needed to keep PackageKit out."** No. PackageKit is not
+  installed at all; the image-level assertion is the real guard. The wrapper's only live
+  effect was hiding the **fwupd** backend (firmware updates).
 
-## 7. DECISIONS
+## 7. DECISIONS (Christopher's, this session — do not relitigate)
 
-- Christopher supplied the test-rig passphrase/login so a restart is not a blocker.
-  It is deliberately NOT written down here.
-- Let GPT finish; do not interfere with its budget or the git index.
-- The manual is 40 ledger rows but only **37 articles** — G1/G2/G3 are
-  infrastructure tasks, and they were implemented in this session, so GPT does not
-  need to do them.
-- The corpus generator MERGES a partial manual rather than refusing it, because GPT
-  routinely stops short against the cooldown.
+- **Q4 auto-update reboot policy — DECIDED: stage silently, install on shutdown.**
+  `bootc-fetch-apply-updates.timer` stays disabled (it runs `--apply` and reboots).
+  Recorded in `docs/06-OPEN-QUESTIONS-AND-DECISIONS.md`, now marked CLOSED.
+- **How far to open up manual updating — DECIDED: Flatpak + image + firmware, seamless.**
+  **No rpm-ostree layering** — it permanently breaks `bootc upgrade` (verified 2026-08-29).
+- **Changes accumulate for the next ISO**; build only when Christopher says so.
 
 ## 8. LEDGER STATE
 
-HEAD `b7574de`. Everything of mine is committed. Deliberately uncommitted:
-`docs/HELP-CORPUS-LEDGER.md` and `knowledge/security/your-encryption-and-recovery-key.md`
-are **GPT's in-flight files — do not touch**; `welcome/app/help-data.json` is a
-regenerated 34-article corpus that will simply be regenerated again.
+Committed: all three commits above, plus doc updates to
+`docs/06-OPEN-QUESTIONS-AND-DECISIONS.md` (Q4 closed) and
+`docs/ledger/ISO-44-QUEUE.md` (items 1 and 4 marked done).
+
+**Not committed / not written:** nothing. `git status` is clean. This resume doc is the
+only pending write.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. **Wait for `b6emzaxxj`** or for Christopher to say GPT has stopped. Do not poll
-   GPT and do not run anything that competes for its budget.
-2. **Regenerate the corpus:** `python3 scripts/build-help-data.py` from
-   `projects/sp-plus`. It merges, so a partial manual is fine. Read its summary.
-3. **Re-run the three VM gates against the new corpus** — corpus, layout, search —
-   after `rsync -a welcome/ test@127.0.0.1:~/sp-plus-welcome-src/welcome/` (port
-   2222). The corpus gate has passed on 34 articles; layout and search have NOT.
-4. **Commit the corpus** once those pass.
-5. **Rebuild the ISO** from a clean worktree:
-   `git -C /home/chris/work/sp-plus-build checkout --detach <HEAD>` then
-   `SPPLUS_REPO=/home/chris/work/sp-plus-build bash ~/fleet/bin/sp-plus-iso-build.sh`.
-   Copy to `~/Downloads/sp-plus-2026-09-01-<HHMM>.iso` with plain `cp` (the file is
-   world-readable; sudo is not available for cp) and verify with `cmp`.
-6. **Tell Christopher which ISO to use** and that the older ones must not be tested.
+1. **Ask Christopher which route he wants for image-resident app updates** (§5) — Flatpak
+   migration for Brave et al., a rebuild-on-upstream-release cadence, or another shape.
+2. **Enumerate every image-resident application** from the Containerfile and state, per
+   app, whether it can move to Flatpak. Brave and Pi/Fin are the two that matter most.
+3. Implement the chosen route with a mutation-tested gate, in the DN-nn style.
+4. Re-run `tests/field-inspect.sh` on the VM (edited but not re-run).
+5. **Still outstanding and NOT ours to fix:** `ghcr.io/secureprospective/sp-plus-kde:latest`
+   is OLDER than what the ISO installs, so a production machine shows a permanently failing
+   update with a generic *"Update Issue"* dialog. Verbatim cause:
+   `Upgrade target revision ... is chronologically older than current revision ... use
+   --allow-downgrade to permit`. This is ISO-44-QUEUE item 2 and needs the tag published
+   from the next ISO's image, or the error returns.
+6. Cosmetic list Christopher has not yet given me, plus two I noticed: Discover renders
+   **dark** against the light desktop after a reboot; the journal carries a Welcome JS
+   error `Uncaught TypeError: Cannot read properties of null (reading 'style')`.
 
-## 10. ENVIRONMENT
+## 10. RELAY / ENVIRONMENT NOTES
 
-- VM: `ssh -p 2222 test@127.0.0.1`, user `test`, repo at
-  `/var/home/test/work/secureprospective-advisor-os/projects/sp-plus`, my gate copy
-  at `~/sp-plus-welcome-src/welcome`.
-- Gates need `QT_QPA_PLATFORM=offscreen`; PySide6 is on the VM, **not** on the
-  Beelink, so gates cannot run here.
-- Never launch a GUI on the Beelink.
-- Build script honours `SPPLUS_REPO` (added this session).
+**Reaching the VM.** libvirt session mode, user networking, no libvirt networks defined.
+There is **no persistent hostfwd** — I added one at runtime through the QEMU monitor:
+
+```bash
+virsh qemu-monitor-command fedora-test --hmp \
+  'hostfwd_add hostnet0 tcp:127.0.0.1:2222-10.0.2.15:22'
+ssh -o StrictHostKeyChecking=no -p 2222 test@127.0.0.1
+```
+**This forward dies if the VM is restarted by libvirt** (it survives a guest reboot).
+Re-add it with the same command. Key-based auth already works.
+
+**Do not use `virsh qemu-agent-command` for admin** — the guest agent runs confined as
+`virt_qemu_ga_t` and gets Permission denied on `bootc`, `rpm-ostree`, `systemctl`, even
+`getenforce`.
+
+**Driving the GUI.** Scripts in the scratchpad:
+`vmclick.sh <x> <y>` (QEMU absolute input events, screen 2048x1152), `vmshot.sh <name>`
+(virsh screenshot → png), `vmtype.sh "text"` (virsh send-key). Konsole's D-Bus
+`runCommand` is **guarded** and returns Access denied — do not rely on it.
+
+**Container builds need `--network host`** — the sanctioned build uses it
+(`~/fleet/bin/sp-plus-iso-build.sh`). Without it, dnf inside the build cannot resolve
+`mirrors.fedoraproject.org`. I lost ~10 minutes to this.
+
+**Housekeeping:** `~/.npm` is new since the filing baseline — a regenerable npm cache
+created by my local Pi version check. Safe to delete; re-baseline per the gate's own hint.
 
 ## 11. HONEST STATUS
 
-The app is finished and the ISO is delivered and verified. What is genuinely
-unproven: the app has never been run on the **Dell**, which is the slow rig where
-races and load times actually show — everything here is VM and offscreen evidence.
-The **34-article corpus has passed only the corpus gate**; layout and search were
-not re-run against it, so it is not yet fit to ship. GPT had 9 articles left with
-roughly 50 minutes of cooldown remaining, which is borderline; if it stops short
-the merge keeps whatever it finished and loses nothing.
+**The session's stated objective is not met.** What is genuinely proven, by observation on
+the VM and not by reading code:
+
+- The `$releasever` fix: all five repos refresh; `rpm-ostree install --dry-run htop`
+  resolves `htop-3.4.1-3.fc44`.
+- The stock store: Discover Settings shows a **Firmware Updates** section with LVFS
+  enabled; Bitwarden installed from Welcome with no password prompt.
+- DN-46 end to end: new image pushed to the tracked tag → staged with no reboot → `booted`
+  unchanged → notification appeared on screen → did not repeat over two further runs →
+  staged deployment applied on the next restart. No failed units, system or user.
+- Pi 0.84.4 installs and reports `0.84.4`; Fin guardrails gate 49/49 against it.
+
+**Unproven:** none of this has been through a real ISO build. `config-preflight` says
+"Safe to build" but a build has not been run, so the new `RELEASEVER_GATE_OK`,
+`STORE_GATE_OK`, `DN46_UPDATE_GATE_OK` and `PI_PIN_GATE_OK` **have never executed inside an
+actual image build**. They are syntax-checked and source-gated only. The Pi pin was
+verified by a local npm install, not by the image's own build step.
