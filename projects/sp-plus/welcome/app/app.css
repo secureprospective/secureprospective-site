@@ -444,3 +444,12 @@ body.service-panel-open{overflow:hidden}
   .platform-info-empty,
   .social-expectations p{font-size:11px}
 }
+
+/* The bare [hidden] guard cannot help here: this file styles .ask-feedback with
+   display:grid, and an author rule setting display beats the user agent's
+   [hidden]{display:none} whatever the source order. Without an element-scoped
+   guard the Fin answer bar stayed painted over the middle of Know your way
+   around, empty, with nothing to dismiss -- a bar of chrome the advisor cannot
+   explain or get rid of. The other panels on this screen already carry their
+   own guard; this one was simply missed. */
+.ask-feedback[hidden]{display:none}
