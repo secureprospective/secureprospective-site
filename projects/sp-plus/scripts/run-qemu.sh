@@ -10,7 +10,7 @@ if [[ ! -f "$ISO" && -f "$ROOT/artifacts/iso/sp-plus-installer.iso" ]]; then
   ISO=$ROOT/artifacts/iso/sp-plus-installer.iso
 fi
 if [[ "$MODE" == "iso" ]]; then
-  [[ -f "$ISO" ]] || { echo "Missing $ISO. Run ./scripts/build-iso.sh first." >&2; exit 2; }
+  [[ -f "$ISO" ]] || { echo "Missing $ISO. Build one with ~/fleet/bin/sp-plus-iso-build.sh (rootful, DN-06)." >&2; exit 2; }
   command -v qemu-img >/dev/null || { echo 'qemu-img is required for ISO mode.' >&2; exit 2; }
   DISK=${QEMU_INSTALL_DISK:-$ROOT/artifacts/qemu-install.qcow2}
   [[ -f "$DISK" ]] || qemu-img create -f qcow2 "$DISK" "${QEMU_INSTALL_SIZE:-80G}" >/dev/null

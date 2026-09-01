@@ -2,7 +2,11 @@
 
 ## Preconditions
 
-- `./scripts/build-iso.sh` produced `artifacts/iso/sp-plus-installer.iso`, or `./scripts/build-qcow2.sh` produced `artifacts/qcow2/disk.qcow2`.
+- `~/fleet/bin/sp-plus-iso-build.sh` produced an ISO under
+  `artifacts/spikeB-rootful/out/`, or `./scripts/build-qcow2.sh` produced
+  `artifacts/qcow2/disk.qcow2`. The ISO build is rootful by design (DN-06) and
+  is the only path that installs the SP+ desktop image; there is no in-repo ISO
+  script.
 - QEMU, OVMF, and swtpm are installed.
 - The host has `/dev/kvm`; if not, the runner reports that it is using TCG.
 - The qcow2 artifact is suitable for boot and service smoke tests only. It does not prove an encrypted installation. The encryption gate requires completing the ISO installer with LUKS2 enabled and recording the result.
