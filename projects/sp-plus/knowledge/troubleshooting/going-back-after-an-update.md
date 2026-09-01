@@ -1,39 +1,44 @@
 # Something broke after an update: going back
 
-Do not try to undo the update yourself. A problem after a restart is frustrating, but it does not automatically mean your files are damaged. The current SP+ build has no verified advisor-facing update or rollback path, so this is a support issue rather than a menu to experiment with.
+**Protect current work before trying to change the computer again.** SP+ can prepare an update in the background and finish it at a normal shutdown or restart. A problem afterward can be related to that update, but it does not prove the update caused it.
 
-## Protect the work in front of you
+## Save current work
 
-If an app still opens, save and close the work you can safely save. Do not keep editing a client document in an app that is crashing, freezing, or showing an error. Use a working computer or a non-sensitive task while the problem is checked.
+If the app still opens, save and close the work you can safely save. Do not keep editing a client document in an app that is crashing, freezing, or showing an error. Use another computer or a non-sensitive task while it is checked.
 
-If the desktop will not open, do not repeatedly power the computer off and on. Write down what appears, when it started, and whether it happened immediately after a restart. Do not send a screenshot that includes client information.
+If the desktop will not open, do not repeatedly power the computer off and on. Write down what appears, when it started, and whether it appeared just after a restart. Do not send a screenshot that includes client information.
 
-## Do not assume an update was the cause
+## Work out whether an update was involved
 
-The checked SP+ build has its automatic system-update timer disabled. A recent restart therefore does not prove that a system update ran. A browser change, a network problem, a new device, or an ordinary app issue can also first become visible after a restart.
+Record whether you saw a notice that a new SP+ version was ready and when you next restarted or shut down. Note the affected program or device, the exact non-sensitive message, and whether the same task worked before.
 
-Tell support what changed before the problem: the date and time, the program affected, the exact non-sensitive error, and whether the same task worked before the restart. That gives them something to verify instead of a guess about the cause.
+Do not treat a restart as proof by itself. A browser change, network problem, new device, or ordinary app issue can first become visible after restarting too. Those facts give an approved helper something to check instead of a guess.
 
-## There is no self-service rollback yet
+## What going back means here
 
-SP+ uses an image-based system underneath, and its underlying software includes a command that can select an older system version for a future start. That command is not a tested advisor feature. There is no verified rollback button in SP+ Welcome or System Settings, and you should not use a terminal, a boot menu, or an online "recovery" guide to attempt it.
+SP+ keeps complete system versions separately from your personal files. The current test virtual machine has the running version and one earlier system version. That earlier version may help when a technical diagnosis confirms that a system change caused the problem.
 
-A previous system version must exist before any rollback can be considered. The checked SP+ test machine has only one deployment and no rollback target. An SP+ update, rollback, restart into the older version, and return test have not been performed.
+That is not yet a tested self-service recovery feature. This manual did not verify a rollback screen in Welcome or settings, perform a rollback, start the older version, or return to the newer one. A different computer might not have an earlier version available when it needs one.
 
-## What support must check first
+## Do not make this a mid-work experiment
 
-Support should confirm that an earlier system version actually exists, identify the change that caused the problem, and explain what would change before any rollback is approved. If the problem is a browser setting, a peripheral, or a service outage, choosing an older system version may not help.
+Do not use a terminal, boot menu, or online recovery guide to select an older version. Do not ask Fin to make that change while client work is open or a deadline is active. Changing versions can hide useful facts without fixing a browser setting, peripheral, or service outage.
 
-Do not ask Fin to make a rollback while you are in the middle of client work. It is better to preserve the facts of the problem and use a temporary alternative than to change the system without a tested recovery path.
+Preserve the symptoms and use your practice's approved technology or support route. If none was given, ask the practice's technology or compliance owner. SP+ has no verified universal support or remote-assistance button.
+
+## What a helper should check
+
+Before anyone considers going back, they should confirm that an earlier system version exists, compare the timing with the update notice and restart, identify the affected part, and explain the expected result. They should also say what happens if the older version does not solve the issue.
+
+If the issue concerns client records or blocks work, arrange a safe temporary way to work rather than making several untested changes. One controlled change is easier to diagnose than several guesses.
 
 ## Going back is not a file backup
 
-Even when a supported rollback is available, it changes the system version that starts. It does not bring back a deleted, overwritten, or unsaved document. It can also return some system settings to their earlier version. Keep normal backups and approved copies of important work; do not treat a rollback as document recovery.
-
-The current rollback path remains unproven on SP+ hardware and must not be relied on as a safety net. If the issue blocks work or involves client records, contact support rather than trying more fixes.
+Choosing an earlier system version does not restore a deleted, overwritten, or unsaved document. Your files are separate from the system version. Keep approved copies and backups of important work, and do not treat a rollback as document recovery.
 
 ## Related pages
 
 - [Updates and restarts](../advisor-help/updates-and-restarts.md)
 - [Backups: what is protected and what is not](../files/backups.md)
 - [Getting more help](../advisor-help/getting-more-help.md)
+- [Fin the assistant](../advisor-help/asking-the-assistant.md)
