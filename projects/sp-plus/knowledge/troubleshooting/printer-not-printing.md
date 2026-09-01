@@ -1,56 +1,43 @@
-# Printer Not Printing
+# Printer not printing
 
-Work through these in order. Stop when it prints.
+Do not keep sending the same document when nothing comes out. Repeated copies can create a long queue or send a confidential file later, when you are no longer standing at the printer. Work through the checks below, then test with one plain page.
 
-## First: the two-minute checks
+## Start at the physical printer
 
-1. **Is the printer on and awake?** Many printers sleep deeply and ignore everything for a minute after waking. Press a button on the printer itself, wait about ten seconds, then try printing again.
-2. **Is the online? light or display showing an error?** Paper jams, open lids, and empty ink all make a printer refuse work silently from the computer's point of view. Clear the printer's own complaint first.
-3. **Restart the printer.** Power it off, count to ten, power it on. Wait until it says ready. Try again.
+Check that the printer is on, awake, has paper, and is not showing a jam, open cover, toner, or other error on its own display. If it is a shared office printer, make sure you are at the one whose location matches the name you chose in the print window.
 
-Still nothing? Continue below.
+If the printer is clearly asleep, wake it and wait for its own display to say it is ready. Do not restart a printer at a client office or shared location unless you know it is yours to restart. Another person may have a job waiting.
 
-## Check what the computer thinks
+## Check the document before you send it again
 
-1. Open your system settings and go to **Printers**.
-   - KDE edition: System Settings, then Printers.
-   - Mac-style edition: Activities search, type "printers".
-2. Your printer should be listed with a state next to it. Look for these:
+Open the print window in the app and look at the printer name, page range, and number of copies. Select the intended printer, not a similarly named device, fax entry, or old printer. Do not use a proposal or client record as a test.
 
-**"Paused"**: click or right-click the printer and choose resume/start. Printers pause themselves after repeated failures and then refuse everything, including successful retries.
+If a print job is visibly waiting, give it a short moment to move. If it remains clearly stuck and you recognize it as your own job, use **Print Settings** to remove that job before sending a single test page. Do not cancel a job that belongs to someone else.
 
-**"Stuck job" in the queue**: open the print queue, cancel every waiting job (old jobs block new ones), then print one small test page. Do not re-print a 40-page proposal to test; print one page.
+## Use one test page
 
-**"Not listed at all"**: skip to adding it, below.
+After the printer is set up, SP+ Welcome can send **one test page** from **Connect this computer to your office**. It checks for a usable printer first and reports whether the print system accepted the job.
 
-## Add the printer
+Look at the physical printer and collect the page before you treat the result as a success. A computer can accept a job while the paper is still blocked, the wrong printer was selected, or the device itself cannot produce a page.
 
-Modern printers connect without driver discs. If your printer was made in roughly the last decade and supports AirPrint or Mopria (most network printers do), this works:
+If the printer is not listed at all in the print window or in **Print Settings**, it has not been set up for this computer. See [Printing](../advisor-help/printer.md) rather than guessing at a driver or address.
 
-1. In the Printers settings, choose **Add a printer**.
-2. Wait a few seconds for discovery. Select your printer from the list. Careful: some printers appear more than once under slightly different names, and fax entries show up too. Pick the plain printer name, not "fax".
-3. Confirm, then print a test page from that same window.
+## Ask Fin without mistaking the test fixture for hardware
 
-If discovery finds nothing: make sure the printer is connected to the same network as the computer (check the printer's own network settings screen for its Wi-Fi name), restart the printer once more, and try discovery again.
+Describe the printer by location and say what you already checked: **"Fin, the printer by reception did not print. I checked paper, power, and the selected printer. Tell me what you can see before making a change."**
 
-## Add it by address (when discovery keeps failing)
+If Fin refers to **Advisor Test Printer**, that is a built-in test fixture, not the printer in your office. It cannot prove that your actual printer is working. Ask Fin to explain the next safe step, or ask the person who manages the real printer or office network.
 
-Every network printer has an IP address, shown on the printer's own display or its network report (usually a menu option like "network settings" or "print network configuration").
+Do not give Fin document contents, a printer password, client names, or account information. The printer location and the symptom are enough.
 
-1. Choose **Add a printer**, then the option to enter an address instead of discovering.
-2. Type the printer's IP address exactly.
-3. Accept the suggested connection type and finish.
-4. Print a test page.
+## When to stop and get the right help
 
-## When to hand it to the Assistant
+Stop if the printer asks for an unfamiliar password, a driver download, or an address you do not recognize. Do not install a Windows `.exe` or a random browser extension to force it to work.
 
-If you get here without success, ask the Assistant and mention what you tried ("paused queue cleared, added by IP, still nothing"). It can inspect the print service directly, and its diagnosis will be sharper because you skipped the basics already.
-
-## Honest limits
-
-Very old printers (pre-2010, especially USB-only models without network features) and some cheap multifunction devices may never cooperate fully. That is a hardware reality, not something this guide can fix. Support can tell you quickly whether a device is worth fighting for.
+If a physical error stays on the printer after you clear paper or close a cover, it may need the person who manages that hardware. The computer cannot repair a paper path, toner, or a network the office does not control.
 
 ## Related pages
 
-- [Getting more help](../advisor-help/getting-more-help.md)
-- [Wi-Fi won't connect](wifi-wont-connect.md): printing fails if the printer and computer are on different networks
+- [Printing](../advisor-help/printer.md)
+- [Wi-Fi won't connect](wifi-wont-connect.md)
+- [Fin the assistant](../advisor-help/asking-the-assistant.md)
