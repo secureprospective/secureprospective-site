@@ -1,35 +1,44 @@
-# The Security Evidence Report
+# Security evidence report
 
-The Security Evidence Report is a summary of your computer's protection status that you can show to another person: a cyber insurance application, a carrier or broker-dealer inquiry, a compliance reviewer, or your own records.
+**This release has no verified downloadable Security Evidence Report.** Do not promise a PDF, raw-data export, compliance certificate, or complete protection history. Its local machine record is a snapshot, not a finished insurance or compliance answer.
 
-## What is in it
+## What the local check actually creates
 
-- **Encryption**: confirmation that the disk is encrypted
-- **Firewall**: whether it is on
-- **Secure boot**: whether the computer verifies its own startup software
-- **Updates**: history of system updates and their outcomes
-- **Device health**: significant events recorded on this computer, including assistant diagnoses and approved fixes
-- **Timestamps** for everything above
+In Welcome, **Let Fin check this computer** runs a local survey and refreshes a machine record without changing your settings. Welcome can show a short summary afterward.
 
-You can save it as a readable PDF-style record or export the raw data form. Both carry the date and time they were generated.
+This is separate from a Fin question, which can go to an AI provider. The survey itself was not interactively run for this manual.
 
-## What it is honest about
+## What the checked machine record contains
 
-The report documents what this computer observed about itself. It does not claim you are compliant with any law or regulation. Compliance depends on your whole program (policies, training, vendor oversight, incident response) and on your specific regulatory situation. Use the report as evidence in your own program; do not treat it as a certification, and be cautious of anyone who tells you otherwise.
+The checked virtual machine's record includes a generation time, hostname, machine identifier, model, firmware, operating-system and kernel version, image/update health, hardware, displays, and settings SP+ says it changed.
 
-## When you might use it
+Those facts are a point-in-time observation. They can change afterward, and a stored setting is not always proof that a feature works. The record can give a technical contact a starting point.
 
-- **Cyber insurance applications.** Applications routinely ask whether your devices use disk encryption, firewalls, and multi-factor protections. The report gives you concrete answers instead of guesses.
-- **Carrier and broker-dealer questionnaires.** Same idea: documented facts beat "I think so."
-- **After any incident.** If a client's information were ever exposed in an incident involving your computer, the report helps establish what protections were active.
-- **Your own peace of mind.** Generate one today. Seeing the list of protections confirmed in writing takes five seconds and ends the low-grade worry.
+## What it does not prove
 
-## How to generate one
+The checked record does not provide verified encryption, firewall, Secure Boot, complete update history, assistant or approved-fix history, account multi-factor, outgoing-traffic, or remote-support evidence. It does not prove compliance with a law, contract, insurer, carrier, broker-dealer, or client requirement.
 
-Open the Advisor Assistant in your browser and choose **Generate evidence record**. Save the file where you keep important documents, outside this computer if possible: your cloud storage or a backup drive.
+No verified SP+ button creates a PDF-style file or exports raw data. Do not answer "yes" because a record exists. Check the exact question, date requirement, and approved evidence source.
+
+## When someone asks for evidence
+
+Ask what fact is needed, for which computer, and as of what date. Use the local record only for facts it shows. For anything else, ask your practice's technology, security, or compliance owner for the approved source.
+
+An operating-system version does not prove accounts, backups, policies, hardware settings, or provider arrangements meet a requirement. Keep the request and answer in the approved record.
+
+## Review before sharing
+
+The record includes technical identifiers and computer details. Read it before sharing and use an approved destination. Do not paste it into Fin, public chat, or an unapproved website.
+
+If a request also needs client information, follow the practice's disclosure process. The record is not permission to send client data.
+
+## What was not tested
+
+This manual did not run the Welcome check, generate an export or PDF, test a raw-data format, submit a questionnaire, or have a technical contact interpret a record. It also did not test encryption, firewall, Secure Boot, update, provider, or remote-support evidence through this feature.
 
 ## Related pages
 
+- [What leaves this computer](../security/what-leaves-this-computer.md)
 - [Your encryption and recovery key](../security/your-encryption-and-recovery-key.md)
-- [Screen lock and privacy](../security/screen-lock-and-privacy.md)
+- [Updates and restarts](updates-and-restarts.md)
 - [Getting more help](getting-more-help.md)
