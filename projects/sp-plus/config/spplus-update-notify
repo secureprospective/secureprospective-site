@@ -1,0 +1,37 @@
+#!/usr/bin/bash
+# SP+ — tell the advisor, once, that a new version is waiting (DN-46).
+#
+# Read-only and unprivileged. spplus-stage-update.service has already done the
+# privileged work and left the staged version in /run/sp-plus/update-staged.
+#
+# WHY ONCE PER VERSION. A notification that reappears every login is a nag, and
+# a nag about something the advisor cannot act on -- the update installs itself
+# at shutdown whatever they do -- is worse than silence. So the version already
+# announced is remembered, and the same one is never announced twice.
+set -euo pipefail
+
+STATE=/run/sp-plus/update-staged
+[ -r "$STATE" ] || exit 0
+
+staged=$(cat "$STATE")
+[ -n "$staged" ] || exit 0
+
+seen_dir=${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus
+seen=$seen_dir/announced-update
+mkdir -p "$seen_dir"
+
+if [ -r "$seen" ] && [ "$(cat "$seen")" = "$staged" ]; then
+    exit 0
+fi
+
+# Plain words, and honest about what happens next. The advisor is not asked to
+# do anything, because nothing is required of them: shutting down at the end of
+# the day is what applies it, and that is what they already do.
+notify-send \
+    --app-name="SP+" \
+    --icon=sp-plus-logo-icon \
+    --urgency=low \
+    "SP+ is ready to update" \
+    "A new version has been downloaded. It will be in place the next time you restart or shut down. Nothing to do now."
+
+printf '%s\n' "$staged" > "$seen"

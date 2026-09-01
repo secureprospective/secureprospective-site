@@ -1,0 +1,55 @@
+#!/usr/bin/bash
+# SP+ — stage the next system version, and publish the result where a desktop
+# session can read it (DN-46).
+#
+# `bootc upgrade` without --apply downloads the new image and writes a staged
+# deployment. bootc's own description: "The deployment will be applied on the
+# next shutdown or reboot." ostree-finalize-staged.service performs that
+# finalisation at shutdown. So the advisor gets the new version by turning the
+# machine off at the end of the day. Nothing reboots them mid-appointment, which
+# is the whole point of not using bootc-fetch-apply-updates.service.
+#
+# WHY THE STATE FILE. `bootc status` requires root. The advisor's session must
+# not shell out to sudo just to find out whether an update is waiting, so the
+# unit that already ran as root records the answer in /run, world-readable, and
+# the user-session notifier reads that. One privileged reader, one plain file.
+set -euo pipefail
+
+STATE_DIR=/run/sp-plus
+STATE=$STATE_DIR/update-staged
+mkdir -p "$STATE_DIR"
+
+# A staging failure is not fatal to this script: an advisor on a hotel network
+# or a metered tether will fail here routinely and that is not a fault. A
+# genuinely broken update PATH -- a deployment bootc refuses to upgrade at all
+# -- is a different condition, and spplus-update-health.timer is the check that
+# exists to report it.
+if ! bootc upgrade; then
+    echo "spplus-stage-update: staging did not complete; leaving previous state alone" >&2
+    exit 0
+fi
+
+# Read back what actually got staged rather than assuming the upgrade produced
+# something. `bootc upgrade` exits 0 when the machine is already current, and in
+# that case there is nothing to tell the advisor about.
+#
+# RECORD THE DIGEST, NOT THE VERSION. The notifier announces a staged update at
+# most once, and it tells them apart by this value. os-release carries
+# VERSION_ID=1 for the whole SP+ 1 line, so bootc reports version '1' for every
+# build in it -- observed here, staging a genuinely new image recorded "1", the
+# same string the previous one would have. Keying on that would announce the
+# first update and then silently swallow every one after it. The image digest is
+# distinct for every build, which is exactly the property this needs.
+staged_digest=$(bootc status --format=json \
+    | python3 -c 'import json,sys
+s = json.load(sys.stdin).get("status", {}).get("staged")
+print((s.get("image") or {}).get("imageDigest") or "" if s else "")
+' )
+
+if [ -n "$staged_digest" ]; then
+    printf '%s\n' "$staged_digest" > "$STATE"
+    echo "spplus-stage-update: staged $staged_digest; it will be applied on the next shutdown"
+else
+    rm -f "$STATE"
+    echo "spplus-stage-update: already up to date, nothing staged"
+fi

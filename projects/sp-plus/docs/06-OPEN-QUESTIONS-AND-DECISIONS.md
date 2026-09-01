@@ -95,14 +95,32 @@ has a jurisdictional dimension. Universal Blue includes them; Fedora does not.
 
 ### Q4 — Auto-update reboot policy
 
-**Open.** `bootc-fetch-apply-updates.timer` will, by default, stage and reboot into a new
-image within hours. An unattended reboot during a client appointment is unacceptable.
-Options: download-only staging plus an "install on next shutdown" prompt; a maintenance
-window the advisor chooses in the first-boot wizard; or a nag that escalates after N
-days. Some form of deferral is mandatory, and unbounded deferral is also unacceptable
-because the machine holds client PII.
+**DECIDED 2026-09-01 by Christopher: stage silently, install on shutdown.** Implemented
+as DN-46.
 
-*Owner:* engineering. *Deadline:* Phase 3.
+`bootc-fetch-apply-updates.timer` stays disabled, and the image asserts that it is,
+because it runs `bootc upgrade --apply` and reboots on its own schedule. SP+ ships
+`spplus-stage-update.timer` instead: daily, persistent, randomised, running `bootc
+upgrade` **without** `--apply`. That writes a staged deployment, which
+`ostree-finalize-staged.service` applies at shutdown. The advisor gets the new version by
+turning the machine off at the end of the day, which they already do, and no reboot is
+ever imposed on them.
+
+The advisor is told once per staged image by a user-session notifier
+(`spplus-update-notify.timer`), in plain words: "A new version has been downloaded. It
+will be in place the next time you restart or shut down. Nothing to do now." Nothing is
+asked of them, because nothing is required.
+
+The deferral concern in the original question is answered by construction rather than by
+a nag: the update is already downloaded and applies on the next shutdown, so deferral
+lasts exactly as long as the advisor leaves the machine running. `spplus-update-health.timer`
+remains the check that reports a machine that has fallen off the update path entirely.
+
+Verified end to end on the fedora-test VM, 2026-09-01: a new image pushed to the tracked
+tag was staged without reboot, the marker and notification appeared, the notification did
+not repeat, and the staged deployment applied on the next restart.
+
+*Owner:* engineering. *Status:* CLOSED.
 
 ### Q5 — How mature is the bootc generic-ISO path, really?
 

@@ -518,7 +518,8 @@ fi
 # takes out rpm-ostree and every Discover operation that resolves a package.
 RELEASEVER_FILE=/etc/dnf/vars/releasever
 RELEASEVER_VALUE=$(cat "$RELEASEVER_FILE" 2>/dev/null || echo missing)
-FEDORA_REL=$(rpm -q --queryformat '%{VERSION}' fedora-release 2>/dev/null || echo unknown)
+FEDORA_REL=$(rpm -q --queryformat '%{VERSION}\n' --whatprovides system-release 2>/dev/null | head -1)
+[ -n "$FEDORA_REL" ] || FEDORA_REL=unknown
 if [ "$RELEASEVER_VALUE" = "$FEDORA_REL" ] && [ "$FEDORA_REL" != unknown ]; then
   r releasever "$RELEASEVER_VALUE" OK
 else

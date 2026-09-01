@@ -342,6 +342,60 @@ grep -qF 'systemctl enable spplus-flatpak-update.timer' "$DN34CF" \
   && ok "DN-34 flatpak updates are daily, persistent, staggered, shipped and enabled" \
   || bad "DN-34 flatpak update gate failed" "a shipped Flatpak that never updates defeats DN-26"
 
+# P-15b  DN-46 system updates. The stock bootc timer runs `bootc upgrade --apply`
+# and reboots the machine on its own schedule, which cannot be allowed to happen
+# during a client appointment. SP+ stages instead and lets the shutdown the
+# advisor performs anyway apply it, so the checks here are about what must NOT be
+# there as much as what must.
+DN46S="$REPO/projects/sp-plus/config/spplus-stage-update.service"
+DN46T="$REPO/projects/sp-plus/config/spplus-stage-update.timer"
+DN46X="$REPO/projects/sp-plus/config/spplus-stage-update"
+DN46N="$REPO/projects/sp-plus/config/spplus-update-notify"
+DN46NT="$REPO/projects/sp-plus/config/spplus-update-notify.timer"
+DN46CF="$REPO/projects/sp-plus/images/kde/Containerfile"
+DN46_OK=1
+for f in "$DN46S" "$DN46T" "$DN46X" "$DN46N" "$DN46NT"; do
+  [ -f "$f" ] || { DN46_OK=0; echo "       missing $f"; }
+done
+# The one thing that must never come back: an --apply anywhere on the staging
+# path turns this straight back into an unannounced reboot.
+for f in "$DN46S" "$DN46X"; do
+  [ -f "$f" ] || continue
+  # Comments in both files quote the stock unit's `bootc upgrade --apply` to
+  # explain why SP+ does not use it, so only live lines count here.
+  grep -v '^[[:space:]]*#' "$f" | grep -q -- '--apply' \
+    && { DN46_OK=0; echo "       $(basename "$f") carries --apply; that reboots the advisor without asking"; }
+done
+if [ -f "$DN46T" ]; then
+  grep -q '^OnCalendar=daily$' "$DN46T" || { DN46_OK=0; echo "       staging timer is not daily"; }
+  grep -q '^Persistent=true$' "$DN46T" \
+    || { DN46_OK=0; echo "       staging timer is not Persistent; a closed laptop would skip it"; }
+fi
+# The marker must be keyed on the image digest. Every build in the SP+ 1 line
+# reports version '1', so keying on the version announces one update and then
+# silently swallows every one after it.
+if [ -f "$DN46X" ]; then
+  grep -q 'imageDigest' "$DN46X" \
+    || { DN46_OK=0; echo "       staging script does not key the marker on imageDigest"; }
+fi
+# A .path unit on the marker drove the notifier into its start limit and killed
+# the watcher, so a later update would never be announced. It must stay a timer.
+[ -e "$REPO/projects/sp-plus/config/spplus-update-notify.path" ] \
+  && { DN46_OK=0; echo "       the .path notifier is back; it hits its start limit and stops watching"; }
+if [ -f "$DN46N" ]; then
+  grep -qE '(^|[^-[:alnum:]])sudo([^-[:alnum:]]|$)|pkexec' "$DN46N" \
+    && { DN46_OK=0; echo "       session notifier tries to escalate; it will never run in a session"; }
+fi
+grep -qF 'DN46_UPDATE_GATE_OK' "$DN46CF" \
+  || { DN46_OK=0; echo "       Containerfile has no DN-46 build gate"; }
+grep -qF 'systemctl enable spplus-stage-update.timer' "$DN46CF" \
+  || { DN46_OK=0; echo "       staging timer is shipped but never enabled"; }
+grep -qF 'systemctl --global enable spplus-update-notify.timer' "$DN46CF" \
+  || { DN46_OK=0; echo "       notifier timer is shipped but never enabled for user sessions"; }
+[ "$DN46_OK" -eq 1 ] \
+  && ok "DN-46 updates stage daily, apply at shutdown, never reboot, announce once" \
+  || bad "DN-46 update policy gate failed" "either updates stop arriving or the machine reboots on the advisor"
+
 # P-16  DN-36 wifi powersave. The value reads BACKWARDS: NetworkManager's
 # wifi.powersave is 0=default 1=ignore 2=disable 3=enable, so 2 disables power
 # saving and 3 would enable it. A well-meaning "fix" to 3 would silently

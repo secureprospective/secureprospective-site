@@ -1,0 +1,23 @@
+[Unit]
+Description=Check whether a new SP+ version is waiting (DN-46)
+
+[Timer]
+# WHY A TIMER AND NOT A .path UNIT ON THE MARKER FILE. That was the first
+# design and it failed on the VM, verbatim:
+#   spplus-update-notify.service: Start request repeated too quickly.
+#   spplus-update-notify.path: Failed with result 'unit-start-limit-hit'.
+# PathExists re-activates the service every time it exits while the file is
+# still there, so a marker that legitimately persists until shutdown drives the
+# service into its start limit and then kills the watcher -- meaning the NEXT
+# staged update would never be announced at all.
+#
+# Staging is not urgent to report: the update installs itself at shutdown
+# whether or not the advisor ever reads the notice. So a cheap periodic read of
+# one small file is the right shape, and it covers both cases that matter --
+# staging that happened overnight before anyone logged in, and staging that
+# happens while the advisor is working.
+OnStartupSec=2min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

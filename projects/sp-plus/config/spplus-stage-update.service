@@ -1,0 +1,29 @@
+[Unit]
+Description=SP+ stage the next system version (DN-46)
+# WHY THIS IS NOT bootc-fetch-apply-updates.service. The stock unit runs
+#   ExecStart=/usr/bin/bootc upgrade --apply --quiet
+# and --apply reboots the machine as soon as an update lands. On an advisor's
+# desk that is a reboot in the middle of a client appointment, which Christopher
+# ruled unacceptable. So SP+ ships its own unit that stages and stops.
+#
+# `bootc upgrade` WITHOUT --apply downloads the new image and writes a staged
+# deployment; bootc's own words are "the deployment will be applied on the next
+# shutdown or reboot". ostree-finalize-staged.service does that finalisation at
+# shutdown, so the advisor gets the new version by turning the machine off at
+# the end of the day, which they do anyway. Nothing interrupts them.
+Documentation=man:bootc-upgrade(8)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/run/ostree-booted
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-stage-update
+# The staged-update marker lives in /run and must outlive this oneshot, because
+# the desktop notifier reads it long after the unit has finished.
+RuntimeDirectory=sp-plus
+RuntimeDirectoryPreserve=yes
+# A machine that is asleep, offline, or on a hotel network must not mark itself
+# failed for it. A genuinely broken update path is caught by
+# spplus-update-health.timer, which is the check that exists to say so.
+SuccessExitStatus=0

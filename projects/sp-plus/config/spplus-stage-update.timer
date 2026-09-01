@@ -1,0 +1,15 @@
+[Unit]
+Description=Stage the next SP+ system version daily (DN-46)
+
+[Timer]
+OnCalendar=daily
+# Advisors close the laptop at night, so a fixed 00:00 fire would be missed on
+# most machines most days. Persistent catches up after the miss.
+Persistent=true
+# Spread the fleet's pulls out rather than hitting the registry together, and
+# keep the download off the moment the advisor sits down.
+RandomizedDelaySec=2h
+OnBootSec=25min
+
+[Install]
+WantedBy=timers.target

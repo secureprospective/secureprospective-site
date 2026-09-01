@@ -379,6 +379,71 @@ RUN set -eux; \
     grep -q '^ExecStart=/usr/libexec/spplus-tune$' /usr/lib/systemd/system/spplus-update-health.service; \
     echo "DN30_HEALTH_GATE_OK daily, persistent, reuses the tuner detector"
 
+# ---- DN-46. Updates arrive on their own; restarts stay the advisor's ---------
+# The stock timer, bootc-fetch-apply-updates.timer, runs `bootc upgrade --apply`
+# and reboots the machine as soon as an update lands. Christopher ruled that
+# unacceptable: an advisor's laptop must never restart itself in the middle of a
+# client appointment. It therefore stays DISABLED, and this asserts that, because
+# a Fedora preset change turning it back on would be silent and would reintroduce
+# exactly the behaviour we refuse.
+#
+# What ships instead stages and stops. `bootc upgrade` without --apply writes a
+# staged deployment -- bootc's own words, "the deployment will be applied on the
+# next shutdown or reboot" -- and ostree-finalize-staged.service finalises it at
+# shutdown. So the machine updates when the advisor turns it off at the end of
+# the day, which they already do, and no reboot is ever imposed on them.
+#
+# The advisor is told once, in plain words, by a user-session notifier. The
+# privileged half writes the staged image DIGEST to /run; the session half only
+# reads it, so nothing in the desktop needs sudo to answer "is there an update".
+# The digest and not the version, because every build in the SP+ 1 line reports
+# version '1' -- observed while testing this -- so keying on the version would
+# announce one update and then silently swallow every one after it.
+COPY config/spplus-stage-update          /usr/libexec/spplus-stage-update
+COPY config/spplus-update-notify         /usr/libexec/spplus-update-notify
+COPY config/spplus-stage-update.service  /usr/lib/systemd/system/spplus-stage-update.service
+COPY config/spplus-stage-update.timer    /usr/lib/systemd/system/spplus-stage-update.timer
+COPY config/spplus-update-notify.service /usr/lib/systemd/user/spplus-update-notify.service
+COPY config/spplus-update-notify.timer   /usr/lib/systemd/user/spplus-update-notify.timer
+
+RUN set -eux; \
+    chmod 0755 /usr/libexec/spplus-stage-update /usr/libexec/spplus-update-notify; \
+    bash -n /usr/libexec/spplus-stage-update; \
+    bash -n /usr/libexec/spplus-update-notify; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-stage-update.service; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-stage-update.timer; \
+    systemctl enable spplus-stage-update.timer; \
+    test -L /etc/systemd/system/timers.target.wants/spplus-stage-update.timer; \
+    systemd-analyze verify /usr/lib/systemd/user/spplus-update-notify.service; \
+    systemctl --global enable spplus-update-notify.timer; \
+    test -L /etc/systemd/user/timers.target.wants/spplus-update-notify.timer; \
+# A .path unit watching the marker drove the notifier into its start limit and
+# then died, which would have silently swallowed every later update. Keep it a
+# timer -- see the header of spplus-update-notify.timer for the verbatim failure.
+    test ! -e /usr/lib/systemd/user/spplus-update-notify.path; \
+    grep -q '^Persistent=true$' /usr/lib/systemd/system/spplus-stage-update.timer; \
+    grep -q '^OnCalendar=daily$' /usr/lib/systemd/system/spplus-stage-update.timer; \
+# The staging unit must never reboot the advisor. Assert the absence of --apply
+# on the unit AND in the script it calls, because either one could reintroduce it.
+# Both files quote the stock unit's `bootc upgrade --apply` in comments to
+# explain why SP+ does not use it, so only live lines count here.
+    for f in /usr/lib/systemd/system/spplus-stage-update.service /usr/libexec/spplus-stage-update; do \
+        if grep -v '^[[:space:]]*#' "$f" | grep -q -- '--apply'; then \
+            echo "DN46 GATE FAIL: $f can reboot the advisor (--apply present)" >&2; exit 1; \
+        fi; \
+    done; \
+    grep -q '^ExecStart=/usr/libexec/spplus-stage-update$' /usr/lib/systemd/system/spplus-stage-update.service; \
+# The stock auto-reboot timer must stay off.
+    if systemctl is-enabled bootc-fetch-apply-updates.timer >/dev/null 2>&1; then \
+        echo "DN46 GATE FAIL: bootc-fetch-apply-updates.timer is enabled; it reboots without asking" >&2; exit 1; \
+    fi; \
+# The notifier must not need privilege, or it will simply never run in a session.
+    if grep -qE '(^|[^-[:alnum:]])sudo([^-[:alnum:]]|$)|pkexec' /usr/libexec/spplus-update-notify; then \
+        echo "DN46 GATE FAIL: the session notifier tries to escalate" >&2; exit 1; \
+    fi; \
+    test -x /usr/bin/notify-send; \
+    echo "DN46_UPDATE_GATE_OK stages daily, applies at shutdown, never reboots, notifies once"
+
 COPY config/spplus-relabel                   /usr/libexec/spplus-relabel
 COPY config/spplus-relabel.service           /usr/lib/systemd/system/spplus-relabel.service
 
@@ -688,11 +753,12 @@ RUN printf '%s\n' \
 # it is simply broken.
 #
 # The fix is the documented override, /etc/dnf/vars/releasever. It is DERIVED
-# from fedora-release rather than hardcoded, so a base bump carries it along; it
+# from whatever package provides system-release rather than hardcoded, so a base
+# bump carries it along; it
 # ships in /etc because that is where libdnf reads vars from, which also leaves
 # it overridable on a running machine.
 RUN set -eux; \
-    rel=$(rpm -q --queryformat '%{VERSION}' fedora-release); \
+    rel=$(rpm -q --queryformat '%{VERSION}\n' --whatprovides system-release | head -1); \
     case "$rel" in ''|*[!0-9]*) echo "RELEASEVER GATE FAIL: fedora-release version '$rel' is not an integer" >&2; exit 1;; esac; \
     [ "$rel" -ge 40 ] || { echo "RELEASEVER GATE FAIL: implausible Fedora release '$rel'" >&2; exit 1; }; \
     mkdir -p /etc/dnf/vars; \

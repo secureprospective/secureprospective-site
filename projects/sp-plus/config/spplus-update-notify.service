@@ -1,0 +1,7 @@
+[Unit]
+Description=Tell the advisor a new SP+ version is waiting (DN-46)
+Documentation=man:bootc-upgrade(8)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-update-notify
