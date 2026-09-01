@@ -1,45 +1,39 @@
-# The Computer Asks for a Recovery Key at Startup
+# The computer asks for a recovery key at startup
 
-**Read this calmly: your files are almost certainly fine.** This screen looks alarming and is nearly always routine. Here is what happened and exactly what to do.
+**Stop and read the exact wording. Your files are not automatically gone.** A startup screen asking for an unlock secret means the encrypted storage has not unlocked yet, so it remains protected.
 
-## What just happened
+## Do not guess or share a secret
 
-Your disk is encrypted so that stolen hardware yields nothing readable. At startup, the computer normally unlocks itself using a secret held by its security chip, confirmed by the PIN you type. As part of unlocking, the security chip verifies that nothing about the startup process changed.
+Do not keep trying an unknown key, and do not send a disk passphrase or recovery key to Fin, support, email, chat, or a caller. A legitimate support person can guide you without receiving it. Do not use a key sent unexpectedly by email or message.
 
-If something in that startup chain changed (a firmware update, a significant system update, a hardware change, or a security setting adjustment), the chip refuses to hand over the secret automatically. That refusal is the encryption working exactly as designed. The computer cannot know the change was friendly, so it asks for the master key instead: your recovery key.
+Your normal sign-in password, a disk passphrase, and a recovery key are different kinds of secret. Do not assume they are interchangeable because a screen uses the word "password."
 
-Think of it like a bank flagging a transaction as unusual. Annoying, but you want a bank that checks.
+## Read the prompt before entering anything
 
-## What to do
+Look for the exact term the computer uses, such as **passphrase**, **unlock**, **recovery key**, or **recovery code**. Write down the wording and any non-secret error message. Do not take or send a photo if it would capture a secret.
 
-1. **Find your recovery key.** You printed it or stored it away from this computer during setup. It is a long block of characters, unique to this machine.
-   - Stored in a safe or lockbox? Retrieve it.
-   - Stored with a trusted person? Call them.
-   - If support set up the machine, they may hold a copy under your authorization.
-2. **Type it carefully** at the prompt. These keys are long on purpose. Type slowly, watch each character, and use the visibility toggle if there is one.
-3. **The computer continues starting normally.** Your files, programs, and settings are all untouched.
+If the screen clearly asks for the disk passphrase you created during encrypted installation, enter that passphrase on the computer itself. It is not your ordinary desktop sign-in password. If it is accepted and the computer starts, make a note of what happened and ask support to investigate before changing firmware or startup settings.
 
-If the key is rejected three times, stop typing. Re-read character by character: common mistakes are confusing similar characters (0/O, 1/l/I) and missing a block. If it still fails, contact support; do not guess repeatedly. See [Getting more help](../advisor-help/getting-more-help.md).
+## If it specifically asks for a recovery key
 
-## After you are in: make future boots normal again
+Do not assume every SP+ computer has a recovery key. The currently verified SP+ setup does not establish a separate recovery-key issuance or automatic-unlock workflow. The checked test system has LUKS2-encrypted storage with one unlock keyslot and no recovery token. It did not test a TPM, UEFI, real hardware, or a recovery-key screen.
 
-Once started, ask the Assistant: "My computer asked for my recovery key." It will verify what triggered the request, and support can re-enroll the normal unlock so future startups work with your usual PIN again. Until that is done, the computer may keep asking for the recovery key at each start.
+Use a recovery key only if you were deliberately given one, recorded it away from the computer, and the setup record identifies this computer. If you cannot confirm those facts, stop and contact support rather than searching for a key that may never have been issued.
 
-## Then: fix the storage problem
+## What to tell support
 
-This event is the reason the recovery key exists, and it will happen again someday (after some future major update, most likely). Before you move on:
+Say: **"My computer stopped at a startup unlock prompt. It says [exact non-secret wording]. I [do / do not] have the disk passphrase I created, and I [do / do not] have a recovery key issued for this computer."** Also say what changed just before this, such as a firmware update, a new dock, or a BIOS setting change.
 
-- If you had the key handy: good. Confirm it is stored somewhere safe away from this computer, and that someone you trust could find it in an emergency.
-- If finding it was painful: fix that today. Read [Your encryption and recovery key](../security/your-encryption-and-recovery-key.md).
+Do not include the secret itself, client information, or a screenshot containing either. Do not download a recovery tool, reset firmware security settings, or repeatedly restart the computer while guessing. Those actions can make a simple support check harder.
 
-## What this screen is NOT
+## What this prompt does and does not mean
 
-- Not evidence of a virus or hacking attempt (though if you also see other strange behavior, mention it to support).
-- Not data loss. Nothing happened to your files.
-- Not a password reset trap: the recovery key is independent of your login password and PIN. It was generated once, shown once, and never changes unless deliberately replaced.
+The prompt by itself does not erase your files or prove that someone accessed them. It means the encrypted storage is still locked until a valid secret is entered. That is safer than starting with the storage exposed.
+
+It also does not prove what caused the request. A startup, hardware, or encryption configuration problem needs a direct check. The recovery-key and TPM path remains untested for this manual, so support should confirm the actual setup before proposing a repair.
 
 ## Related pages
 
 - [Your encryption and recovery key](../security/your-encryption-and-recovery-key.md)
-- [Updates and restarts](../advisor-help/updates-and-restarts.md): why updates occasionally trigger this
 - [Getting more help](../advisor-help/getting-more-help.md)
+- [Updates and restarts](../advisor-help/updates-and-restarts.md)
