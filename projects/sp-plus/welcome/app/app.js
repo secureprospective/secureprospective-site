@@ -667,14 +667,30 @@
     askTimer = setTimeout(() => finishAsk({ok:false, reason:'Fin did not respond.'}), 125000);
   });
 
-  const categories = {
+  // Descriptions we have written for the categories we know about. The list of
+  // categories itself is NOT taken from here -- it is derived from the corpus, so
+  // a category the manual adds appears in the tree instead of becoming articles
+  // that only search can reach. A category with no description still shows, with
+  // an honest line rather than a blank.
+  const categoryNotes = {
     'Start here':'The first few minutes and your map.',
+    'Your files':'Where your work lives, and what is backed up.',
     'Everyday work':'The apps and devices you use every day.',
     'Fix a problem':'Step-by-step help for something that went wrong.',
     'Safety and privacy':'What is protected and what stays private.',
     'Updates and recovery':'Restarts, updates and finding your way back.',
     'Get more help':'When you want the Assistant or a person.'
   };
+  let categories = {};
+  function buildCategories(){
+    categories = {};
+    articles.forEach(article => {
+      if (!article || !article.category) return;
+      if (categories[article.category]) return;
+      categories[article.category] = categoryNotes[article.category]
+        || 'Guides we have written for this part of the computer.';
+    });
+  }
   let articles=[];
   let helpView={kind:'root'};
   const helpContent=document.getElementById('help-content'), helpHeading=document.getElementById('help-heading'), helpLede=document.getElementById('help-lede'), crumbs=document.getElementById('breadcrumbs');
@@ -857,7 +873,7 @@
     renderHelp();
   });
 
-  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;buildSearchIndex();renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
+  fetch('help-data.json').then(r=>r.json()).then(data=>{articles=data;buildCategories();buildSearchIndex();renderHelp();}).catch(()=>{helpContent.textContent='Help could not load right now. Try this topic again.';});
   function helpDepth(depth) {
     if (depth === 1) { helpView = {kind:'category', category:'Everyday work'}; renderHelp(); return; }
     const article = articles.find(item => item.category === 'Everyday work' && item.title === 'LibreOffice: your Word and Excel');

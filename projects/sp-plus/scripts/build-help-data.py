@@ -81,32 +81,34 @@ def main() -> int:
         print('no verified articles: refusing to ship an empty help corpus', file=sys.stderr)
         return 1
 
-    # The manual is written and verified incrementally, so for a while the
-    # verified set is smaller than the corpus the app already ships. Writing it
-    # out anyway would silently delete help the advisor has today -- whole
-    # categories would vanish from Know your way around. Coverage may grow or
-    # hold, never shrink.
+    # The manual is written incrementally by an agent working against a usage
+    # cooldown, so it routinely stops a few articles short. Refusing to write
+    # anything until every row is VERIFIED turns that ordinary stop into a blocked
+    # release, and writing only the verified set would silently delete help the
+    # advisor has today. So the two are merged: a freshly verified article replaces
+    # its older version, and any article the app already ships that has not been
+    # reached yet is carried forward untouched. Coverage can grow or hold, never
+    # shrink, and a partial run is still worth shipping.
+    kept = []
     if OUT.exists():
         try:
             current = json.loads(OUT.read_text())
         except (ValueError, OSError):
             current = []
-        have = {e.get('title') for e in current if isinstance(e, dict)}
-        lost = sorted(have - {e['title'] for e in entries})
-        if lost:
-            print('refusing to write: this would drop help the app already ships.',
-                  file=sys.stderr)
-            for title in lost:
-                print(f'  would lose: {title}', file=sys.stderr)
-            print('verify the remaining articles in the ledger first.', file=sys.stderr)
-            return 2
+        fresh = {e['title'] for e in entries}
+        kept = [e for e in current
+                if isinstance(e, dict) and e.get('title') and e['title'] not in fresh]
+
+    order = []
+    for entry in entries + kept:
+        if entry['category'] not in order:
+            order.append(entry['category'])
+    entries = sorted(entries + kept, key=lambda e: (order.index(e['category']), e['title']))
 
     OUT.write_text(json.dumps(entries, indent=1, ensure_ascii=False) + '\n')
-    order = []
-    for e in entries:
-        if e['category'] not in order:
-            order.append(e['category'])
     print(f'wrote {OUT.relative_to(ROOT)}: {len(entries)} articles in {len(order)} categories')
+    if kept:
+        print(f'carried forward {len(kept)} not yet re-verified, so nothing was lost')
     for name in order:
         count = sum(1 for e in entries if e['category'] == name)
         print(f'  {count:>2}  {name}')
