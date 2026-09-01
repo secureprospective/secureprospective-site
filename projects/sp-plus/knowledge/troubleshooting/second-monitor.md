@@ -1,39 +1,39 @@
-# Second Monitor Problems
+# Second monitor problems
 
-Plugging in an external monitor or projector should just work. When it does not, here are the fixes in order.
+Start with the connection. The external screen, cable, dock, or adapter can fail independently. Change one setting at a time.
 
-## Nothing appears at all
+## Check the screen and cable first
 
-1. **Check the cable seating at both ends.** Half-seated HDMI and USB-C cables cause exactly this. Unplug, replug firmly.
-2. **Wake the input.** Many monitors sit on the wrong input or sleep aggressively. Press the monitor's own menu button and confirm the input (HDMI 1 vs 2) matches the cable. Power-cycle the monitor if unsure.
-3. **Adapters fail quietly.** If you are using any adapter or dock, that is the prime suspect. Try the cable directly, or a different adapter, before blaming anything else.
+Make sure the external screen has power and is awake. Use its own buttons to choose the input that matches the cable, such as the HDMI or USB-C connection in use. If the screen says **No signal**, turn it on, disconnect the cable at both ends, reconnect it firmly, and wait a moment.
 
-## Detected but wrong: mirrored, sideways, blurry
+If a dock or adapter is involved, try one simple change: connect the screen directly if that is possible, or try a known-good cable. Do not replace several parts at once. That makes it hard to tell whether the cable, adapter, dock, monitor, or computer was the cause.
 
-Open display settings:
+## See whether SP+ detects the screen
 
-- KDE edition: System Settings, search "display".
-- Mac-style edition: Activities search, type "display".
+Open **System Settings** from Applications and search for **Display Configuration**. SP+ includes this display-settings tool. It can show the displays that the current desktop session detects, including the built-in screen when there is one.
 
-You will see both screens drawn side by side. From there:
+If the external display is absent there after the physical checks, stop changing resolution or scaling. Note whether the monitor says it has no signal, the type of cable or adapter you used, and whether the computer's built-in screen still works. Then ask Fin for help with those facts.
 
-- **Drag the rectangles** to match how your physical monitors sit on the desk. The little rectangles represent real screens; where you drag a window onto them determines which monitor shows what.
-- **Choose the mode**: extend (two independent screens, normal desk setup), mirror/duplicate (projector showing your laptop screen), or single display only.
-- **Fix blurriness with scaling.** If text looks tiny or fuzzy, raise the scaling percentage for the screen that needs it. Each screen scales independently.
-- **Fix rotation** if something is sideways: there is a rotate/orientation control per screen.
+## Arrange two detected screens
 
-Apply, wait two seconds, confirm. If a setting ever leaves a screen black, do not panic: press Escape or wait about twenty seconds and the change reverts itself automatically.
+When both screens appear in Display Configuration, set up the simplest useful arrangement first. For two work screens, place the display representations so they match the physical left-and-right layout. Then move a window slowly toward the edge where the other screen should be. If it crosses over, the arrangement is right.
 
-## Laptop lid: closed-clamshell mode
+For a projector or a room display, you may want the same picture on both screens instead. Make that change only while you can see both displays. A separate extended workspace and a duplicated presentation are different choices, so do not assume the current setup is the one you need.
 
-You can run with the laptop closed on a stand, using only the external monitor. Plug in the external display plus power, set displays to "single external", then close the lid. If closing the lid puts everything to sleep instead, ask the Assistant: "I want to use my laptop closed with an external monitor." It can adjust that behavior safely.
+## Fix text that is too large, tiny, or blurry
 
-## Presenting at someone else's office
+Select the affected display in Display Configuration and make one adjustment. Resolution, scale, and rotation are display properties available to the desktop. Use the screen's normal recommended-looking resolution where possible before trying scale. If text is hard to read, change scale once, apply the change, and read a few lines before deciding whether another adjustment is needed.
 
-Carry your own cable if you can; conference-room cables die constantly and nobody has ever been sad about having a spare HDMI. Mirror mode (duplicate) is usually right for presentations so you can look at your own screen while the room watches.
+If a change makes a screen blank, wait briefly rather than restarting immediately. Reconnect the screen that was working before the change if you need a visible desktop again. Do not keep applying unfamiliar display modes just to make the picture appear.
+
+## When to ask Fin
+
+Use a specific prompt: **"Fin, my external monitor is [not detected / showing no signal / showing the wrong picture]. I am using [cable, adapter, or dock]. My main screen [does / does not] still work."** This gives a starting point without sharing a client name, meeting content, or a screenshot of private work.
+
+Do not install a driver, download a utility, or use a Windows `.exe` file because a monitor or adapter website suggests it. If the external screen is needed for a client meeting and the basic checks do not restore it, use the working screen or reschedule the display setup rather than experimenting during the meeting.
 
 ## Related pages
 
-- [Getting around](../advisor-help/getting-around.md)
-- [No sound](no-sound.md): HDMI carries audio too, which surprises people
+- [No sound](no-sound.md)
+- [Bluetooth devices](bluetooth-devices.md)
 - [Getting more help](../advisor-help/getting-more-help.md)
