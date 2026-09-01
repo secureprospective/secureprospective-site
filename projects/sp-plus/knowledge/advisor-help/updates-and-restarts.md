@@ -1,40 +1,44 @@
 # Updates and restarts
 
-SP+ has two paths. This build does **not** automatically update its system image. It has a daily service for installed Flatpak apps. Do not assume a restart means the system updated.
+**SP+ can prepare a new system version in the background without restarting while you are working.** When a version is ready, a desktop notice says it will be used the next time you restart or shut down.
 
-## The system update path is not automatic now
+## What happens in the background
 
-SP+ uses an image-based system underneath. Its built-in system-update timer is disabled in the checked image and virtual machine. No verified SP+ screen tells an advisor that a new system version is ready, downloads one, or asks for a restart to install it.
+SP+ checks for a newer system version each day. If a new version is available and the computer can reach the update service, it downloads and prepares that version for the next start. It does not use a fixed time you need to wait for, and a missed check can run later.
 
-That means you should not wait for a system-update notice, promise that a restart installed security fixes, or download an operating-system installer from a website. If your practice needs a system update, the current supported advisor action is to ask for the approved process rather than use a terminal or an online recovery guide.
+The computer does not restart in the middle of an appointment to apply that update. The normal automatic-restart updater is disabled. Preparing an update and choosing when to restart are deliberately separate.
 
-The checked virtual machine has a running system version but no staged update and no rollback target. A system-image download, staging, restart into a new version, and return test were not performed.
+## When you see an update notice
 
-## Apps can update separately
+The notice means the new system version has already been downloaded. It does not ask you to install an operating system, find a download, or stop work immediately.
 
-The image enables a daily, non-interactive Flatpak update service for apps installed from the system Flatpak source. On the checked virtual machine, that service ran and reported that there was nothing to update. This confirms the service can run, not that a particular app update has been downloaded and tested.
+When you reach a suitable break:
 
-An app update is different from an operating-system update. It does not prove that the system image changed, and the manual did not test what notice, restart, or app behavior you will see when a real app update is available. If an app behaves differently, note its name and what changed before making more changes.
+1. Save and close client work as you normally would.
+2. Choose a normal **Restart** or **Shut Down**.
+3. Sign in afterward and open the one app or task you need next.
 
-## Restart for a clear reason
+A normal restart or shutdown finishes the prepared system update. If you are in the middle of important work, finish it first. The update can wait for your normal break.
 
-A normal restart can clear a temporary app or device problem, but it does not prove that an update was installed. Save your work first, close client files you can safely close, and restart only when you have a suitable break.
+## Apps update on a separate path
 
-If a restart makes a problem appear, do not assume an update caused it. Record the time, the program or device involved, the exact non-sensitive error, and whether it worked before the restart. Do not repeatedly restart while guessing, and do not send a screenshot that includes client information.
+Some installed applications use a separate daily update path. In the checked build, SP+ refreshes its application catalogue and updates system Flatpak apps without asking you to run a command. That is separate from the operating-system image.
 
-## Do not promise a rollback
+An app update does not prove the whole system changed, and a system-update notice does not identify every app that may have changed. If an app behaves differently, record its name, what you were doing, and the exact non-sensitive message before changing other things.
 
-The underlying image system includes a command that can select an older system version for a future start. That command is not a verified advisor feature. There is no verified rollback button in SP+ Welcome or System Settings, and the checked virtual machine has no rollback target.
+## If a restart reveals a problem
 
-Do not use a terminal, boot menu, or web "recovery" guide to try to reverse an update. If work breaks after a restart, preserve the facts and use the related going-back page.
+A problem after a restart can be related to an update, but it can also be a browser setting, network problem, device, or ordinary app issue. Do not repeatedly restart, download a repair tool, or use a terminal or boot menu to guess at a fix.
 
-## What remains unproven
+Save what you safely can, note the time and symptoms, and read [Something broke after an update: going back](../troubleshooting/going-back-after-an-update.md). Going back to an earlier system version is not a way to restore a deleted or unsaved document.
 
-This manual did not test a system-image update, real app update, update notification, restart into a staged version, rollback, return to the newer version, or behavior on advisor hardware. The automatic system-update and advisor-facing recovery workflow need a tested product path before they can be promised.
+## What this page has and has not tested
+
+The current test virtual machine staged newer system images and finalized them during shutdown or restart without a forced mid-session restart. It also has a separate prior system deployment. This page did not test the notice on advisor hardware, a particular app update, a rollback, a return to the newer version, or any physical-device behavior.
 
 ## Related pages
 
 - [Something broke after an update: going back](../troubleshooting/going-back-after-an-update.md)
 - [Installing software safely](installing-software.md)
 - [Backups: what is protected and what is not](../files/backups.md)
-- [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md)
+- [Getting more help](getting-more-help.md)
