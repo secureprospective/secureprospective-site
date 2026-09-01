@@ -25,7 +25,7 @@ Evidence column.
 | F1 | Where your files live | knowledge/files/where-your-files-live.md | VERIFIED | verified: live VM XDG Documents and Downloads, home resolves under encrypted /var, Documents/Fin exists, Dolphin installed; no sync/backup clients or units. Image skel Documents/Fin plus Fin workspace extension confines saves there; same sync/backup-client absence. |
 | F2 | The file portal | knowledge/files/the-file-portal.md | VERIFIED | verified: image localhost/sp-plus-kde:spike has File Portal capability check and browser launch, Private/Shared copy, and separate portal-password guidance; public portal returns HTTP 200 and ready capability JSON. Drift: current running VM has older Welcome code with no File Portal service. |
 | F3 | Private and Shared: the rule that stops misfiling | knowledge/files/private-and-shared.md | VERIFIED | verified: image localhost/sp-plus-kde:spike Welcome explicitly says Private is advisor alone and Shared - YOUR NAME is advisor plus SecureProspective; File Portal capability endpoint returns ready. Drift: current running VM has older Welcome code with no Private/Shared UI. |
-| F4 | USB drives and external storage | knowledge/files/usb-and-external-drives.md | TODO | |
+| F4 | USB drives and external storage | knowledge/files/usb-and-external-drives.md | VERIFIED | verified: live VM udisks2 active, Dolphin, kio-extras, exFAT/NTFS/FAT tools, Device Notifier, KIO eject/unmount strings; image same packages and UDisks unit. No physical-drive hotplug test performed. |
 | F5 | Backups: what is protected and what is not | knowledge/files/backups.md | TODO | |
 
 ## Batch 3 — Everyday work
