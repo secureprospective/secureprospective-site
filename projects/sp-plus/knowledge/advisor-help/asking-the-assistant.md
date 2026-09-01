@@ -1,44 +1,49 @@
-# The Assistant
+# Fin the assistant
 
-The Assistant is built into this computer to help when something goes wrong: a printer stops, Wi-Fi misbehaves, an update seems stuck. You describe the problem in your own words. It investigates, explains, and fixes only what you approve.
+Fin can answer, inspect, or change this computer. It is a powerful cloud-connected helper, not a sealed local support form. Treat questions as potentially sent to a provider and repairs as changes needing a clear purpose.
 
-## How a fix works, start to finish
+## Open Fin and connect it deliberately
 
-1. **You ask.** Open the Assistant (your browser's home page) and say what is wrong. Plain words are fine: "my printer quit" is a complete sentence.
-2. **It checks.** The Assistant looks at the relevant parts of the system: print services for printing, network settings for Wi-Fi, and so on.
-3. **It explains.** You get a short explanation in plain English of what it found. No jargon without translation.
-4. **You approve.** Nothing changes until you approve the proposed fix. The approval step cannot be skipped, by you or by anyone else.
-5. **It verifies.** After the fix runs, the Assistant checks that the problem is actually gone (a test page prints, the network reconnects).
-6. **It remembers.** The whole event is recorded in the device history: what was found, what was approved, what changed, whether it worked.
+Open **Fin** from Applications. If it is not connected, type **/login** in Fin and choose a provider. Do not connect a personal or unapproved provider for client work. Your practice must approve the provider before client information is used with it.
 
-## What the Assistant can see
+Welcome can also send a short question through Ask Fin. That path has a two-minute answer limit. It is useful for a simple, non-sensitive question, not an offline help search.
 
-Only technical facts about the computer itself: software versions, hardware model, component status, error codes with identifying details removed.
+## Ask a safe, specific question
 
-What it cannot see, ever, unless you explicitly approve a specific item:
+Describe the computer symptom without client material. Good examples are:
 
-- Your documents, spreadsheets, and PDFs
-- Email, calendar, contacts, CRM records
-- Browser history and open tabs
-- Passwords and Bitwarden vault contents
-- Clipboard contents
-- Client names or policy information
-- Screenshots (each one requires your separate approval)
+- **"Fin, my printer is offline. Check what the computer can see and explain it. Do not change anything."**
+- **"Fin, text is too small. Show me one setting to check before changing it."**
 
-This boundary is enforced by the system itself, not by a promise in a settings file. See [What leaves this computer](../security/what-leaves-this-computer.md) for exactly which facts go online during a diagnosis.
+Those words tell Fin your intent, not a technical lock. Do not paste a client name, account number, balance, document, full screenshot, password, recovery key, or copied email into a question.
 
-## What the Assistant will not do
+## What Fin can do
 
-- It will not change anything without your approval.
-- It will not install random software from the internet.
-- It will not act as a general chatbot for browsing questions, drafting emails, or anything involving client work. That is by design: this Assistant has one job, done safely.
+Fin is built on an AI agent with tools to read, run commands, and work with files. It has the same administrative power as the signed-in advisor. Its instructions allow it to inspect logs, services, settings, and installed software, and make a repair when appropriate.
 
-## When the Assistant is not enough
+Its dedicated document-writing tools are limited to **Documents/Fin**, where you can find output in Dolphin. That covers those tools, not every command Fin can run. Do not treat Fin as unable to read sensitive material or change the computer.
 
-Some problems need a human. Support sessions are time-limited, require your approval, and are recorded like everything else. See [Getting more help](getting-more-help.md).
+**Let Fin check this computer** in Welcome runs a local survey and makes a local machine record. It is different from a cloud-connected question. The survey was not interactively run for this manual.
+
+## Do not assume every change waits for approval
+
+Selected destructive commands are blocked or ask for confirmation in Fin's window. Welcome Ask Fin is non-interactive: matching high-risk commands are blocked, while other commands can run. This is a safeguard, not a complete sandbox or a promise that every change is shown first.
+
+Before a repair, state one outcome and ask Fin to explain what it found. Read a proposed change before continuing. Do not stack fixes, approve what you do not understand, or ask it to work around a security warning.
+
+## What leaves the computer
+
+When a provider is connected, a Fin question goes to that provider. Its instructions say not to expose client data, but no verified content-redaction filter prevents what you type or what it reads from being sent. Provider retention and training terms are unverified.
+
+Use Fin for a non-sensitive problem description. Do not use it for client communications, client-data decisions, passwords, or recovery secrets.
+
+## What was not tested
+
+This manual did not send a Fin question, complete provider login, observe a provider request, test a repair or guardrail decision, or test office hardware or client data. It also did not verify a general Fin history, universal change record, or remote-support session.
 
 ## Related pages
 
+- [What leaves this computer](../security/what-leaves-this-computer.md)
+- [Getting more help](getting-more-help.md)
+- [Screen lock and privacy](../security/screen-lock-and-privacy.md)
 - [Updates and restarts](updates-and-restarts.md)
-- [Security Evidence Report](security-evidence-report.md)
-- [Troubleshooting index](../troubleshooting/printer-not-printing.md)
