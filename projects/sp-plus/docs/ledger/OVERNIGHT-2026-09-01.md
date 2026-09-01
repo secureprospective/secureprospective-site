@@ -135,3 +135,28 @@ article missing its title or body. It printed
 `WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact`
 during this build, so the shipped image is verified to carry the work rather than
 assumed to.
+
+## The ISO
+
+`~/Downloads/sp-plus-2026-09-01-0616.iso`, 5,498,066,944 bytes, verified
+byte-identical to the image the build produced and reported by `file` as a
+bootable ISO 9660 filesystem.
+
+It was built from a clean detached worktree at commit `a2e50ee` rather than from
+the working checkout, because GPT is committing manual articles continuously and
+the tree is almost never quiet. The build's own pre-flight gate passed 10 of 10
+on that worktree, and the image gate printed `WELCOME_HELP_OK` during the build,
+so search is verified present in the shipped image rather than assumed.
+
+**The older ISOs in `~/Downloads` should not be tested with.**
+`sp-plus-2026-08-31-1152.iso` still carries the broken `:edge` update origin that
+made the Software Library crash, and the two `cycle` images are older still.
+
+## Still to come tonight
+
+GPT is writing the manual at roughly one verified article every five minutes and
+was at 25 of 40 when this ISO was built. `scripts/build-help-data.py` will
+regenerate the in-app help from the manual once the ledger is fully VERIFIED, and
+it refuses to write a corpus that drops any article the app ships today. When that
+lands, the corpus gate walks every article and a second ISO carries the complete
+manual.
