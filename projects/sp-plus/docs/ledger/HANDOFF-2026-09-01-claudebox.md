@@ -44,17 +44,22 @@ same podman storage and the ISO build is rootful.
 
 ## 3. WHAT IS RUNNING RIGHT NOW — THE ISO BUILD
 
-Started 2026-09-01 15:56:29 CDT.
+Started 2026-09-01 16:00:08 CDT, from `eb84d15`.
 
 ```
 SPPLUS_REPO=/home/chris/work/sp-plus-build  bash ~/fleet/bin/sp-plus-iso-build.sh
-log: /home/chris/logs/sp-plus/iso-build-20260901-155629.log
+log: /home/chris/logs/sp-plus/iso-build-20260901-160008.log
 ```
+
+**This is the second attempt.** The 15:56:29 run failed in about three minutes
+on a latent Containerfile ordering bug, fixed in `eb84d15` — see section 4.
+Its log is `/home/chris/logs/sp-plus/iso-build-20260901-155629.log` and is
+worth keeping as the evidence for that fix.
 
 **Check it is alive:**
 ```bash
 pgrep -af "sp-plus-iso-build|image-builder-cli"
-tail -20 /home/chris/logs/sp-plus/iso-build-20260901-155629.log
+tail -20 /home/chris/logs/sp-plus/iso-build-20260901-160008.log
 ```
 
 **Where the ISO lands** (roughly 5.2 GB, based on the 07:07 build):
@@ -149,6 +154,26 @@ Task bars resolve into exactly three shapes, correctly assigned:
 | `4b9e494063aa` | Windows Light, Windows Dark | spacer, kickoff, icontasks, spacer, systemtray, digitalclock, minimizeall |
 | `5482225e2d27` | Breeze Light, Breeze Dark, Nordic, Catppuccin Mocha, Catppuccin Latte | kickoff, pager, icontasks, marginsseparator, systemtray, digitalclock, showdesktop |
 | `578df9570bb9` | Orchis Light | kickoff, appmenu, spacer, colorpicker, systemtray, digitalclock |
+
+### `eb84d15` — the ISO build fix
+The DN-47 polkit gate checked `49-sp-plus-updates.rules` with `node --check` at
+a layer where node is not installed yet; node arrives later with the Fin/pi
+install. The comment there claimed "node is already in this image", which was
+never true at that point in the file. The layer had been cached ever since it
+was written, so the bug only surfaced when today's `COPY` changes invalidated
+the cache and it actually ran:
+
+```
+/bin/sh: line 1: node: command not found
+Error: building at STEP "RUN set -eux; R=/usr/share/polkit-1/rules.d/...
+```
+
+The grep assertions need no interpreter and stayed put. The one check that does
+need one moved next to `test -x /usr/bin/node`, and both sites point at each
+other through the marker `DN47_POLKIT_SYNTAX_OK`.
+
+**Worth knowing:** any long-cached Containerfile assertion may be hiding the
+same class of bug. They are only as true as the last time they actually ran.
 
 ---
 
@@ -348,5 +373,15 @@ so the gates can actually fail.
 commits, never booted, never installed. PIN YOUR HELP and the whole Help app
 have never executed anywhere. The segfault has never been tested on hardware.
 The previews still carry the wrong task bar and he has not ruled on it.
+
+**One loose end I could not chase.** Immediately after the `eb84d15` edit,
+`tests/config-preflight.sh` reported `30 passed, 1 failed / DO NOT BUILD`.
+Two further runs of the same script on the same tree reported `31 passed, 0
+failed` and I could not reproduce it, so I do not know which check failed —
+the summary line does not name it and I did not capture the full output. The
+build was started on the strength of two clean runs. **If it recurs, capture
+the whole output before re-running**, because a preflight that fails
+intermittently is worse than one that fails honestly, and this one gates every
+build.
 
 Do not let this handoff's confident tone about section 4 leak into section 7.
