@@ -1401,7 +1401,22 @@ RUN printf '%s\n' \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
  && grep -q 'function searchHelp' /usr/libexec/sp-plus/welcome/app/app.js \
  && grep -q 'ask-feedback\[hidden\]' /usr/libexec/sp-plus/welcome/app/app.css \
- && python3 -c "import json,sys; d=json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json')); sys.exit(0 if len(d)>=17 and all(x.get('title') and x.get('markdown') for x in d) else 1)" \
+ && python3 -c "import json,sys; \
+d=json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json')); \
+assert len(d) >= 37, 'help corpus shrank to %d articles; it may grow but never shrink' % len(d); \
+assert all(x.get('title') and x.get('markdown') and x.get('id') and x.get('source') for x in d), 'a help record is missing a field the reader needs'; \
+assert all(x['source'].startswith('knowledge/') for x in d), 'a record still points at the retired help-corpus/ tree; that is a stale duplicate'; \
+t=[x['title'] for x in d]; assert len(set(t))==len(t), 'duplicate help titles: an advisor would get the same answer twice'; \
+i=[x['id'] for x in d]; assert len(set(i))==len(i), 'duplicate help ids'; \
+assert all(len(x['markdown']) >= 500 for x in d), 'a help article is too short to be an answer'; \
+c=set(x['category'] for x in d); \
+known={'Start here','Your files','Everyday work','Fix a problem','Safety and privacy','Updates and recovery','Get more help'}; \
+assert c <= known, 'help category the Welcome screen has no blurb for: %s' % (c-known)" \
+ && for cat in 'Start here' 'Your files' 'Everyday work' 'Fix a problem' \
+                'Safety and privacy' 'Updates and recovery' 'Get more help'; do \
+      grep -qF "'$cat':'" /usr/libexec/sp-plus/welcome/app/app.js \
+        || { echo "WELCOME HELP GATE FAIL: no blurb for category $cat" >&2; exit 1; }; \
+    done \
  && echo "WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact" \
  && test -s /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md \
  && for preview in windows-light.png windows-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \

@@ -85,6 +85,6 @@ Evidence column.
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| G1 | Write `welcome/build-help-data.py` generator | TODO | corpus becomes single source of truth |
-| G2 | Decide and implement the category list | TODO | 7 categories vs the current hardcoded 6 |
-| G3 | Regenerate `welcome/app/help-data.json` from corpus | TODO | never hand-edit again |
+| G1 | Write the help-data generator | DONE | `scripts/build-help-data.py`; ships only VERIFIED rows, ledger batch heading becomes the category |
+| G2 | Decide and implement the category list | DONE | 7 categories; the generator's set and Welcome's blurb map now match exactly, and preflight fails if they drift |
+| G3 | Regenerate `welcome/app/help-data.json` from corpus | DONE | 37 articles, 7 categories, 122,756 chars; "never hand-edit again" is now enforced by P-15e, which regenerates and requires a byte-for-byte match |

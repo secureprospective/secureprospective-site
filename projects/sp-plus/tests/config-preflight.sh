@@ -479,6 +479,67 @@ grep -qF 'flatpak update --appstream --system' \
   && ok "DN-47 the advisor can finish an update in all three lanes, and each lane's catalogue is refreshed" \
   || bad "DN-47 update permissions gate failed" "a store that dead-ends at a password box teaches the advisor that updating does not work"
 
+# P-15e  The help corpus is GENERATED, never hand-edited. The manual is the single
+# source of truth and `welcome/app/help-data.json` is its build product; the ledger
+# says so in as many words ("never hand-edit again"). The only way to hold that is
+# to regenerate into a scratch copy and require the committed file to match byte
+# for byte. Hand-editing the JSON, or a generator change nobody re-ran, both fail
+# here rather than shipping an app whose help has quietly diverged from the manual.
+HELPJSON="$REPO/projects/sp-plus/welcome/app/help-data.json"
+HELPGEN="$REPO/projects/sp-plus/scripts/build-help-data.py"
+HELP_OK=1
+for f in "$HELPJSON" "$HELPGEN" "$REPO/projects/sp-plus/docs/HELP-CORPUS-LEDGER.md"; do
+  [ -f "$f" ] || { HELP_OK=0; echo "       missing $f"; }
+done
+if [ "$HELP_OK" -eq 1 ]; then
+  HELP_TMP=$(mktemp); cp "$HELPJSON" "$HELP_TMP"
+  if python3 "$HELPGEN" >/dev/null 2>&1; then
+    cmp -s "$HELPJSON" "$HELP_TMP" \
+      || { HELP_OK=0; echo "       help-data.json is not what the generator produces; it was hand-edited or the generator was not re-run"; }
+  else
+    HELP_OK=0; echo "       the help corpus generator failed to run"
+  fi
+  cp "$HELP_TMP" "$HELPJSON"; rm -f "$HELP_TMP"
+  # Every shipped record must trace to a real source file. A retired
+  # help-corpus/... path is a stale duplicate the advisor would find twice.
+  python3 - "$HELPJSON" "$REPO/projects/sp-plus" <<'PYHELP' || HELP_OK=0
+import json, sys, pathlib
+data = json.load(open(sys.argv[1]))
+root = pathlib.Path(sys.argv[2])
+bad = 0
+if len(data) < 37:
+    print('       help corpus is %d articles; it may grow but never shrink' % len(data)); bad = 1
+for e in data:
+    src = e.get('source', '')
+    if not src.startswith('knowledge/'):
+        print('       stale source path: %s' % src); bad = 1; continue
+    f = root / src
+    if not f.exists():
+        print('       record points at a missing file: %s' % src); bad = 1
+    elif f.read_text().strip() != e['markdown']:
+        print('       shipped text has drifted from the manual: %s' % src); bad = 1
+titles = [e.get('title') for e in data]
+dupes = {t for t in titles if titles.count(t) > 1}
+if dupes:
+    print('       duplicate help titles, the advisor gets the same answer twice: %s' % sorted(dupes)); bad = 1
+sys.exit(bad)
+PYHELP
+  # Every category the corpus uses needs a blurb on the Welcome help screen, or
+  # the advisor meets a heading with nothing under it.
+  python3 - "$HELPJSON" "$REPO/projects/sp-plus/welcome/app/app.js" <<'PYCAT' || HELP_OK=0
+import json, re, sys
+cats = {e['category'] for e in json.load(open(sys.argv[1]))}
+js = open(sys.argv[2]).read()
+missing = sorted(c for c in cats if ("'%s':'" % c) not in js)
+if missing:
+    print('       Welcome has no blurb for help category: %s' % missing)
+sys.exit(1 if missing else 0)
+PYCAT
+fi
+[ "$HELP_OK" -eq 1 ] \
+  && ok "help corpus is generated from the manual, traces to source, and every category has a blurb" \
+  || bad "help corpus gate failed" "in-app help that has drifted from the written manual is worse than no help"
+
 # P-16  DN-36 wifi powersave. The value reads BACKWARDS: NetworkManager's
 # wifi.powersave is 0=default 1=ignore 2=disable 3=enable, so 2 disables power
 # saving and 3 would enable it. A well-meaning "fix" to 3 would silently

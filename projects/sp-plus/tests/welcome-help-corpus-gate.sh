@@ -93,11 +93,31 @@ def walk_articles(cats, i, d, j):
             if(c.length>1){c[1].click();return 1;} return 0;})()""",
             lambda _: QTimer.singleShot(350, lambda: walk_articles(cats, i, d, j+1)))
     v.page().runJavaScript(js, got)
-def start(_):
-    v.page().runJavaScript("window.spWelcome.go(2);1",
-      lambda _: QTimer.singleShot(1100, lambda: v.page().runJavaScript(WALK,
-        lambda c: walk_cat(json.loads(c) if c else [], 0))))
-v.loadFinished.connect(lambda ok: QTimer.singleShot(2200, lambda: start(None)) if ok else finish())
+# Wait for each condition instead of guessing a delay. Fixed sleeps passed on a
+# fast machine and failed on the Dell-class test VM, where software rendering
+# makes the first paint arrive late -- and a gate that fails on the slow machine
+# we deliberately test on is worse than no gate. Two things are awaited in turn:
+# the app object being wired up, and the help categories actually being rendered.
+def start(tries=0):
+    def got(ready):
+        if ready == 'ok':
+            await_cats(0); return
+        if tries >= 60:
+            finish(); return
+        QTimer.singleShot(500, lambda: start(tries + 1))
+    v.page().runJavaScript(
+        "(function(){try{if(!window.spWelcome||!window.spWelcome.go)return 'wait';"
+        "window.spWelcome.go(2);return 'ok';}catch(e){return 'wait';}})()", got)
+def await_cats(tries):
+    def got(c):
+        cats = json.loads(c) if c else []
+        if cats:
+            walk_cat(cats, 0); return
+        if tries >= 60:
+            finish(); return
+        QTimer.singleShot(500, lambda: await_cats(tries + 1))
+    v.page().runJavaScript(WALK, got)
+v.loadFinished.connect(lambda ok: start(0) if ok else finish())
 QTimer.singleShot(220000, finish); sys.exit(app.exec())
 PYWALK
 QT_QPA_PLATFORM=offscreen timeout 280 python3 "$WALKER" "$APP" > /tmp/help-walk.json 2>/dev/null

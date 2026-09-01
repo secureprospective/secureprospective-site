@@ -49,3 +49,40 @@ The individual ledger evidence cells list the narrower untested facts for each a
 ## Deferred work
 
 G1 through G3 are intentionally not started. They require files owned by the other agent: the help-data generator, Welcome category wiring, and generated `welcome/app/help-data.json`. The next owner should regenerate from the 37 current source articles, reconcile the five obsolete source paths and eight missing records, then test the Welcome help screen at the required display sizes.
+
+## Resolution of the deferred work, 2026-09-01
+
+G1 through G3 are now done, in the driving session rather than the manual lane.
+
+- The generator is `scripts/build-help-data.py`. It joins the ledger to the
+  articles so the in-app help is the manual rather than a second, drifting copy.
+- Its merge previously carried old records forward by TITLE, which is why three
+  articles survived as duplicates when the manual moved out of `help-corpus/`
+  and into `knowledge/` and their headings were reworded at the same time: the
+  app shipped both copies of the recovery-key, evidence-report and assistant
+  articles, so an advisor searching "recovery key" got two hits, one stale. The
+  merge now compares the source path, which follows a moved file whatever its
+  heading says.
+- `welcome/app/help-data.json` is regenerated: **37 articles, 7 categories,
+  122,756 Markdown characters.** The 37-character difference from the source
+  figure is one trailing newline per file, stripped on ingest.
+- No record points at `help-corpus/` any more, every record's text matches its
+  source file byte for byte, and there are no duplicate titles or ids.
+- The 7 generator categories and Welcome's hard-coded blurb map are identical.
+  The "6 hardcoded categories" in the earlier note was already stale.
+
+Tested rather than assumed, on the SP+ test VM and not on a developer machine:
+
+- `tests/welcome-help-corpus-gate.sh` walked every category and opened every
+  article: **37 articles opened, PASS.** No empty category, no blank reader.
+- `tests/welcome-help-search-gate.sh` **PASS**, including the misspellings an
+  anxious advisor actually types: `printr wont wrk`, `recovry key`, `passwrd`,
+  and a nonsense query that correctly finds nothing and offers Fin instead.
+
+Two gates were added so this cannot rot. `config-preflight.sh` P-15e regenerates
+into a scratch copy and requires the committed JSON to match byte for byte, so a
+hand-edit or an un-re-run generator fails before a build; it also checks every
+record against its source file and every category against Welcome's blurb map.
+The image-side `WELCOME_HELP_OK` gate now asserts 37 articles rather than a floor
+of 17, no retired source paths, no duplicate titles or ids, and a blurb present
+for every category. Both were mutation-tested and each failed on its own line.

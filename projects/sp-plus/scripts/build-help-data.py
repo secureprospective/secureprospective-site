@@ -89,15 +89,29 @@ def main() -> int:
     # its older version, and any article the app already ships that has not been
     # reached yet is carried forward untouched. Coverage can grow or hold, never
     # shrink, and a partial run is still worth shipping.
+    # Identity is the SOURCE PATH, not the title. Keying the merge on the title
+    # let three articles survive as duplicates when the manual was reorganised
+    # out of `help-corpus/` and into `knowledge/` and their H1s were reworded at
+    # the same time: the app shipped both the old and the new copy of the
+    # recovery-key, evidence-report and assistant articles. An advisor searching
+    # "recovery key" would get two hits, one of them stale. Comparing the path
+    # tail catches a moved file whatever its heading now says.
+    def ident_of(entry):
+        source = (entry.get('source') or '').strip()
+        return re.sub(r'^(help-corpus|knowledge)/', '', source) or None
+
     kept = []
     if OUT.exists():
         try:
             current = json.loads(OUT.read_text())
         except (ValueError, OSError):
             current = []
-        fresh = {e['title'] for e in entries}
+        fresh_titles = {e['title'] for e in entries}
+        fresh_sources = {ident_of(e) for e in entries} - {None}
         kept = [e for e in current
-                if isinstance(e, dict) and e.get('title') and e['title'] not in fresh]
+                if isinstance(e, dict) and e.get('title')
+                and e['title'] not in fresh_titles
+                and ident_of(e) not in fresh_sources]
 
     order = []
     for entry in entries + kept:
