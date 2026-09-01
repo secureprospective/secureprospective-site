@@ -1,33 +1,44 @@
-# Welcome to SP+
+# What this computer is
 
-This computer was set up to protect client information and stay out of your way. You do not need to learn anything technical to use it well.
+SP+ is the operating system on this work computer. It may look unfamiliar after Windows, but daily work is familiar: browser, documents, files, printing, and calls. You do not need Linux knowledge or commands to use it well.
 
-## What makes this computer different
+## What SP+ is designed to protect
 
-Three things are working for you quietly, all the time:
+When this computer is turned off, the storage holding your work is encrypted. Someone who takes the laptop cannot simply remove the drive and read the files on it. Encryption does not protect a document you send to the wrong person, copy to an unprotected drive, or leave visible on an unlocked screen.
 
-1. **Everything on the disk is encrypted.** If the computer is lost or stolen, your files are unreadable without your PIN.
-2. **It keeps itself updated.** Updates download in the background and finish when you restart. You never have to hunt for them.
-3. **It is hard to break.** The core of the system is protected from accidental changes. Installing a bad program or clicking the wrong thing cannot damage the computer itself, and there is a built-in way back if anything ever misbehaves.
+## Why a normal mistake is less likely to become a disaster
 
-## What stays the same
+SP+ keeps its core operating system separate from your work. It uses a complete system image instead of letting ordinary programs rewrite the core a little at a time. That makes routine changes safer and gives a repair a clear starting point.
 
-Your work happens in the browser, just like before: email, calendar, your CRM, carrier portals, e-signature, video calls. Files save to your home folder or your cloud drives. Printing works from any app's print dialog.
+Hardware can fail, a website can be down, a file can be deleted, and a printer can still be stubborn. It does mean you should not have to gamble on random downloads or technical instructions to recover.
 
-## What is a little different
+## Use Fin for the difficult part
 
-- **Passwords live in Bitwarden**, the password manager already set up in your browser. When you visit a site, it fills your login for you. See [Browser and passwords](brave-and-bitwarden.md).
-- **The built-in password saver is turned off on purpose.** One password vault is safer than two half-full ones.
-- **The Assistant helps when something goes wrong.** Describe the problem in your own words. It explains what it found and asks before changing anything. See [The Assistant](asking-the-assistant.md).
-- **Updates finish at a restart.** A small notice tells you when. Restart whenever it suits you. See [Updates](updates-and-restarts.md).
+**Fin is the assistant built into SP+.** Fin can check the computer, explain what it finds in plain language, and handle many repairs. Before changing the computer, Fin should tell you what it is about to do. Stop and check if a request would change a document, use client information, or send something outside the computer.
 
-## Two small habits worth keeping
+Describe the outcome or problem in your own words. Start with one of these:
 
-1. **Lock or close the lid when you step away.** The screen also locks itself after a few idle minutes. Your login password brings it back.
-2. **Keep your recovery key somewhere safe away from this computer.** It was shown once during setup. It is the one key that can unlock an encrypted disk if the computer ever needs it. If you have not stored it yet, read [Your encryption and recovery key](../security/your-encryption-and-recovery-key.md) today, not someday.
+- **"Fin, I am new to SP+. Show me where I should go to [task]."**
+- **"Fin, [plain description of the problem]. Check this computer, explain what you find, and tell me what you will change before you change it."**
+- **"Fin, I need to [print, connect a device, or set up an app]. Do the difficult part and tell me what you need from me."**
 
-## Where to go next
+Do not paste a password, recovery key, client name, account number, or client document into a request. Fin is there to do the technical work, not to make you decode it.
 
-- New to the layout? Read [Finding your way around](getting-around.md).
-- Something broken right now? Go to [Troubleshooting](../troubleshooting/printer-not-printing.md).
-- Curious what the Assistant sends over the internet? Read [What leaves this computer](../security/what-leaves-this-computer.md).
+## What stays familiar
+
+SP+ includes a web browser, LibreOffice for documents and spreadsheets, and printer tools. The names and layout may differ from Windows, but the tasks do not. [Finding your way around](getting-around.md) points out the parts you will use most often.
+
+The browser's own password saver is deliberately turned off. Do not assume that a password manager is already installed or signed in. Ask Fin for the supported approach before saving credentials in a second place.
+
+## Do not assume updates are automatic
+
+Automatic update checks are not turned on in the currently verified SP+ image. To check, ask: **"Fin, check whether my computer needs an update. Explain what will happen before applying it."** Restart only after you know what the update is doing.
+
+If something behaves differently after an update, do not keep retrying at random or download a repair tool. Ask Fin to inspect it, then read [Something broke after an update: going back](../troubleshooting/going-back-after-an-update.md).
+
+## Related pages
+
+- [Coming from Windows](coming-from-windows.md)
+- [Finding your way around](getting-around.md)
+- [Fin the assistant](asking-the-assistant.md)
+- [Browser and passwords](brave-and-bitwarden.md)

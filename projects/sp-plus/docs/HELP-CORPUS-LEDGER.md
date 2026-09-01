@@ -13,7 +13,7 @@ Evidence column.
 
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
-| S1 | What this computer is | knowledge/advisor-help/welcome.md | TODO | existing, needs re-verification |
+| S1 | What this computer is | knowledge/advisor-help/welcome.md | VERIFIED | verified: live VM bootc status, lsblk crypto_LUKS, rpm -q brave-browser cups libreoffice-writer, /usr/bin/fin, updater timer disabled; image localhost/sp-plus-kde:spike same packages, Fin prompt/desktop, PasswordManagerEnabled=false, updater timer disabled. Drift: Bitwarden absent; VM has no LUKS recovery token; Autolock=false. |
 | S2 | Coming from Windows | knowledge/advisor-help/coming-from-windows.md | TODO | |
 | S3 | Finding your way around | knowledge/advisor-help/getting-around.md | TODO | existing, needs re-verification |
 | S4 | Your first day: what Welcome set up | knowledge/advisor-help/your-first-day.md | TODO | |
