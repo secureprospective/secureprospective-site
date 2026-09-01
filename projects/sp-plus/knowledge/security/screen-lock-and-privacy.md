@@ -1,44 +1,47 @@
-# Screen Lock and Privacy
+# Screen lock and privacy
 
-Client information on an unlocked screen is visible to anyone who walks past it. Locking costs two seconds; use it generously.
+**Lock the screen whenever you step away.** The checked SP+ image has automatic locking turned off, so do not wait for it to protect an open client record.
 
-## How locking works on this computer
+## Lock the screen now
 
-- **Automatic**: after a few minutes without input, the screen locks itself. Move the mouse or touch a key, and your login password brings everything back exactly as you left it.
-- **On lid close**: closing a laptop lid locks the machine immediately.
-- **Manual, anytime**: use the power/system area near the clock and choose lock. Make it a reflex whenever a client steps into the office or you head to the kitchen.
+Press **Meta+L**. The **Meta** key has the Windows logo. On the checked SP+ session, it is assigned to **Lock Session**.
 
-While locked, programs keep running: downloads finish, backups complete, calls to your desk phone ring. Locking protects the view, not the work.
+Use it before leaving your desk, answering a door, taking a call away from the screen, or handing the computer to someone. It keeps an open email, account page, document, or File Portal folder from the next person nearby.
 
-## Adjusting the timing
+When a normal lock screen asks you to return, use your usual desktop password. A disk passphrase or recovery key belongs only to a startup unlock prompt. Do not enter any secret because a caller, message, or unexpected webpage tells you to.
 
-The idle delay was chosen to balance convenience and safety. You may adjust it within sensible limits in your system settings:
+## Do not rely on waiting or closing the lid
 
-- KDE edition: System Settings, search "screen locking".
-- Mac-style edition: Activities search, type "screen lock".
+SP+ ships with automatic screen locking off. The checked virtual machine also had no automatic-suspension idle timeout. Lid behavior and automatic locking on a real laptop, external display, or projector were not tested.
 
-Guidance: shorter is safer. Five minutes is a reasonable ceiling for a computer that handles client records. Never disable automatic locking entirely; that setting existing does not mean using it is wise.
+SP+ includes a **Screen Locking** settings page, but this manual did not test changing it. Until it has been checked on your computer, use Meta+L. Treat a closed lid as useful for carrying, not assumed privacy.
 
-One related habit: notifications can preview email senders and message text on the lock screen. If that bothers you (it should, slightly), the same settings area lets you hide lock-screen notification content.
+## Use the lock before the awkward moment
 
-## Camera and microphone awareness
+Lock before a client or visitor sits down, before moving rooms, or before a screen can be seen from a doorway or window. Do it before stepping away, not after someone is beside the computer.
 
-You always have a way to know when camera or microphone are in use:
+Before a meeting or screen share, close files, browser tabs, email, and File Portal windows that do not belong. A lock protects an unattended desktop, not what you deliberately show.
 
-- The Mac-style edition shows indicators in the top bar when an app uses camera or mic.
-- The Windows-style edition shows a microphone indicator in the system tray.
+## Keep secrets separate from a screen lock
 
-See one appear when nothing is recording? That is worth asking the Assistant about. Hardware indicator lights (the little LED next to laptop cameras) remain independent and stay trustworthy.
+A screen lock is a privacy barrier for a running computer. It is not disk encryption, a backup, or proof that data cannot be copied while you are signed in. An unlocked computer can still send or display information.
 
-## Physical privacy habits worth stealing
+Never use a screen lock as a reason to give someone your password, recovery secret, or a screenshot containing client information. If a startup screen asks for an encryption secret, read [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md) instead of treating it as a normal lock screen.
 
-1. **Position screens away from windows and doorways** where clients wait.
-2. **Use a private window** for anything you would not want in history. See [Browser and passwords](../advisor-help/brave-and-bitwarden.md).
-3. **Phone screens count too.** Client texts on a phone left face-up on the desk undermine everything else.
-4. **Lock when leaving, even briefly.** "I was only getting coffee" is exactly how screens end up readable by the wrong person.
+## A practical desk routine
+
+1. Press **Meta+L** every time you stand up.
+2. Position the screen so a visitor or doorway cannot easily see it.
+3. Keep only the current client's material open during a call or meeting.
+4. Put client papers and your phone away too. A screen lock does not hide either.
+5. If you are unsure whether the screen is locked, press Meta+L again before walking away.
+
+## What was not tested
+
+This manual did not interactively test the lock and unlock screen, lock-screen notification previews, camera or microphone indicators, lid closing, or an automatic timer. Those details may vary with the computer and its connected hardware. The verified facts are the installed Plasma screen-lock components, the Meta+L session shortcut, and the shipped automatic-lock setting of off.
 
 ## Related pages
 
 - [Your encryption and recovery key](your-encryption-and-recovery-key.md)
+- [Computer asks for a recovery key](../troubleshooting/computer-asks-for-recovery-key.md)
 - [What leaves this computer](what-leaves-this-computer.md)
-- [Security Evidence Report](../advisor-help/security-evidence-report.md)
