@@ -1,36 +1,45 @@
-# Bluetooth Devices
+# Bluetooth devices
 
-Headphones, earbuds, speakers, keyboards, and mice all connect the same way. Pairing once is usually all it takes.
+Use Bluetooth for your own headset, speaker, keyboard, mouse, or similar accessory. Pair only a device you recognize. Do not use Bluetooth to send client documents, recordings, passwords, or other work information.
 
-## Pairing a device, the standard dance
+## Get the accessory ready
 
-1. Put the device in **pairing mode**. This step trips everyone: a Bluetooth device already connected to your phone is not in pairing mode. Usually you hold the power button for several extra seconds until a light blinks (the manual's phrase is often "hold until the light flashes"). Earbuds in their case sometimes have a pairing button on the back.
-2. On this computer, open system settings and go to **Bluetooth**, and make sure it is on.
-3. Wait a few seconds. The device appears in the list. Click it to connect.
-4. If asked to confirm a code on both screens, confirm that both show the same numbers.
+Charge the accessory or fit a fresh battery, then turn it on. Put it into pairing or discoverable mode using its instructions. Buttons and lights vary by model.
 
-## The device paired before but won't connect now
+If it has recently been used with a phone or another computer, turn the accessory off and on before you begin. Some accessories try to reconnect to a previous device instead of appearing ready to pair.
 
-In order of likelihood:
+## Open Bluetooth settings
 
-1. **It is still holding hands with your phone.** Turn the phone's Bluetooth off (or the device off and on), then connect from this computer. A device generally talks to one thing at a time.
-2. **Battery.** Charge it or swap batteries. Low batteries cause flaky behavior long before devices die outright.
-3. **Forget and re-pair.** In Bluetooth settings, choose the device and select forget/remove, then pair from scratch as above. This clears corrupted connection memories.
+Open **System Settings** from Applications and search for **Bluetooth**. SP+ includes the Bluetooth settings module and Bluetooth controls. Turn Bluetooth on there if it is off, then use the option to add a device when it appears.
 
-## Audio plays through the wrong device
+Wait for the scan to show the accessory. Choose the name you recognize, not a nearby unknown device with a similar name. If both the computer and accessory show a pairing number, confirm it only when the numbers match. Cancel an unexpected pairing request or a number that does not match.
 
-If sound comes out of the laptop speakers while your headphones are on:
+## If the device does not appear
 
-1. Click the volume/sound control near the clock.
-2. Check the output device selector: pick your headphones explicitly.
-3. Video call apps keep their own output setting too; check the audio settings inside Zoom/Meet/Teams if calls alone are misrouted.
+Keep the accessory close to the computer while pairing. Confirm it is still in pairing mode, then retry the scan once. Do not change several settings or repeatedly remove devices while it is still searching.
 
-## Honest limits
+If it is a keyboard or mouse you need to operate the computer, keep a wired or built-in input method available until pairing is complete. Do not lock yourself out of the controls by relying on an untested wireless device.
 
-Bluetooth range is short: about one room. Walls and bodies eat the signal. Cheap dongles and very old headsets can be stubborn regardless of computer; five minutes of trying is enough before concluding the hardware is the problem.
+## If a known device will not reconnect
+
+First turn the accessory off and back on. If you also use it with a phone or another computer, disconnect it there only if you own that device and it is safe to do so. Return to Bluetooth settings and try connecting the known device again.
+
+If that does not help, use the settings page to forget the device, then pair it again from the start. Forgetting removes this computer's saved pairing for that accessory. It does not repair a flat battery, failed headset, or a device that is too far away.
+
+## Headsets connected but no sound
+
+A headset can be connected while sound is still set to the computer's speakers, or a call service can have a separate device choice. Open the volume control near the clock and select the headset if it is listed. Then check the call or media app's own audio settings.
+
+Use a non-sensitive test sound or meeting preview. Do not play a client voicemail, recording, or private message just to test headphones. See [No sound](no-sound.md) for the full audio checks.
+
+## When Bluetooth is unavailable
+
+If Bluetooth settings show no adapter or no usable control, do not download a driver, extension, or Windows `.exe` file. Ask Fin: **"Fin, Bluetooth does not show an adapter on this computer. Check what hardware and service it can see before changing anything."** Include the accessory type and whether it ever worked on this computer, but not client information.
+
+No Bluetooth adapter, pairing session, headset, speaker, keyboard, mouse, or file transfer was tested for this manual. A physical accessory or hardware-specific failure may need a direct check rather than more pairing attempts.
 
 ## Related pages
 
 - [No sound](no-sound.md)
-- [Wi-Fi won't connect](wifi-wont-connect.md)
 - [Getting more help](../advisor-help/getting-more-help.md)
+- [Wi-Fi won't connect](wifi-wont-connect.md)
