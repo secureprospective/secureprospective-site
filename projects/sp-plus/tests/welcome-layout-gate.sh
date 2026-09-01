@@ -13,7 +13,7 @@ set -uo pipefail
 APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}/app/index.html"
 PROBE=/tmp/welcome-layout-probe.py
 cat > "$PROBE" <<'PY'
-import sys
+import sys, json
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -36,10 +36,28 @@ JS = """
  });
  return JSON.stringify({screen:act.getAttribute('data-screen'),clipped:bad});
 })()"""
-def step(i):
-    if i >= 8:
+# Screens are checked in their resting state AND in the states a person puts
+# them into. Search was the proof this matters: results plus the topic rail
+# overflowed the help panel, and a gate that only ever looked at the untouched
+# screen reported PASS while the bottom row was visibly cut off.
+STATES = [(2, 'printr wont wrk'), (2, 'zzzqqq nonsense')]
+
+def check_states(i):
+    if i >= len(STATES):
         for r in out: print(r)
         app.quit(); return
+    screen, query = STATES[i]
+    js = """(function(){window.spWelcome.go(%d);
+      var f=document.getElementById('ask-fin');f.value=%s;
+      f.dispatchEvent(new Event('input',{bubbles:true}));return 1;})()""" % (screen, json.dumps(query))
+    v.page().runJavaScript(js,
+      lambda _: QTimer.singleShot(1200, lambda: v.page().runJavaScript(JS,
+        lambda m: (out.append(m.replace('"screen":"', '"screen":"%d/search:%s ' % (screen, query))),
+                   check_states(i+1)))))
+
+def step(i):
+    if i >= 8:
+        check_states(0); return
     v.page().runJavaScript("try{window.spWelcome.go(%d);1}catch(e){0}" % i,
       lambda _: QTimer.singleShot(1200, lambda: v.page().runJavaScript(JS,
         lambda m: (out.append(m), step(i+1)))))
@@ -53,8 +71,8 @@ for size in "1280 800" "1024 768"; do
   echo "--- ${1}x${2} ---"
   res=$(QT_QPA_PLATFORM=offscreen timeout 200 python3 "$PROBE" "$APP" "$1" "$2" 2>/dev/null)
   [ -z "$res" ] && { echo "  probe produced nothing"; fail=1; continue; }
-  n=$(printf '%s\n' "$res" | grep -c '^{') 
-  [ "$n" -eq 8 ] || { echo "  expected 8 screens, got $n"; fail=1; }
+  n=$(printf '%s\n' "$res" | grep -c '^{')
+  [ "$n" -eq 10 ] || { echo "  expected 8 screens plus 2 search states, got $n"; fail=1; }
   while IFS= read -r line; do
     printf '%s' "$line" | python3 -c '
 import sys,json

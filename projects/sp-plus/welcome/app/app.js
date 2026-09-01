@@ -682,9 +682,20 @@
       helpLede.textContent = found.length
         ? 'These look closest to what you typed. Open one, or keep typing to narrow it down.'
         : 'We could not find a guide for those words. Fin can answer in your own words, so press ASK FIN and it will take it from here.';
-      helpContent.innerHTML = found.length
+      // The topic tree is kept below the results rather than replaced by them.
+      // A short result list otherwise left most of the panel blank, and more
+      // importantly it took away the browsable route at the exact moment the
+      // advisor has discovered our words do not match theirs. Search narrows;
+      // it should never be the thing that removes their other way through.
+      // Names only. The descriptions belong on the topic screen where they have
+      // room; repeated here they pushed the last row past the panel edge on a
+      // 1024-wide screen, cutting it off with no scrollbar to reveal it.
+      const browse = `<div class="search-browse"><span>OR BROWSE EVERY TOPIC</span><div class="trail-grid trail-grid--compact">${Object.keys(categories).map(name=>`<button class="trail-card" data-category="${esc(name)}"><b>${esc(name)}</b></button>`).join('')}</div></div>`;
+      helpContent.innerHTML = (found.length
         ? `<div class="article-grid">${found.map((a,i)=>`<button class="article-link" data-found="${i}"><b>${esc(a.title)}</b><small>${esc(a.category.toUpperCase())}</small></button>`).join('')}</div>`
-        : '<div class="search-empty"><p>Nothing here matches those words yet. That is our gap, not your mistake.</p><p>Fin reads plain English and can answer from the whole manual, so pressing ASK FIN above is the fastest way on.</p></div>';
+        : '<div class="search-empty"><p>Nothing here matches those words yet. That is our gap, not your mistake.</p><p>Fin reads plain English and can answer from the whole manual, so pressing ASK FIN above is the fastest way on.</p></div>') + browse;
+      helpContent.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{
+        askInput.value=''; helpView={kind:'category',category:b.dataset.category};renderHelp();}));
       helpContent.querySelectorAll('[data-found]').forEach((b,i)=>b.addEventListener('click',()=>{
         helpView={kind:'article',category:found[i].category,article:found[i]};renderHelp();}));
       return;

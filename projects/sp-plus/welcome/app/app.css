@@ -471,3 +471,12 @@ body.service-panel-open{overflow:hidden}
    grid where it reads like a rendering failure. */
 .search-empty{display:grid;gap:10px;align-content:start;padding:16px;border:var(--line);border-left:5px solid var(--blue);background:var(--white);font-size:13px;line-height:1.5}
 .search-empty p{margin:0}
+
+/* Search results sit above the tree, not instead of it. The rail is deliberately
+   quieter than the results: it is the fallback route, not the answer. */
+.search-browse{display:grid;gap:7px;margin-top:14px;padding-top:12px;border-top:var(--line)}
+.search-browse>span{color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.trail-grid--compact{height:auto;grid-template-columns:repeat(3,1fr);gap:6px}
+.trail-grid--compact .trail-card{min-height:0;padding:8px 9px}
+.trail-grid--compact .trail-card b{font-size:11px}
+.trail-grid--compact .trail-card small{margin-top:4px;font-size:9px}
