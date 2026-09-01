@@ -820,7 +820,7 @@ RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && grep -q 'No errors detected' /tmp/fscheck \
  && ! grep -q 'Unrecognized setting' /tmp/fscheck \
  && rm -rf /tmp/ffh /tmp/fsh /tmp/fscheck \
- && echo "DN48_OFFICE_PARITY_OK shared .xcd layer, $(grep -c 'oor:op=\"replace\"' "$LOK") key bindings, Office function keys freed from Plasma"
+ && echo "DN48_OFFICE_PARITY_OK shared .xcd layer, $(grep -c 'oor:op=\"replace\"' "$LOK") key bindings, Office function keys freed from Plasma" \
  && echo "TOOLS_OK btop $(btop --version | grep -oE '[0-9.]+$'), fastfetch, flameshot configured out of the box"
 
 # The display manager is Kinoite 44's own plasmalogin (plasma-login-manager), which
