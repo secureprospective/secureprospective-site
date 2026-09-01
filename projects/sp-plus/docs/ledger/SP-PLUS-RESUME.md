@@ -1,203 +1,151 @@
-# SP+ RESUME — 2026-08-31 evening (Welcome app services work)
-
-Written mid-session for compaction. **The session continues.** Resume at NEXT ACTIONS item 1.
+# SP+ RESUME — 2026-08-31 ~21:40 CDT
 
 ## 1. WHAT WE ARE DOING
 
-Building the SecureProspective service integration into the SP+ Welcome app: getting a newly
-contracted advisor onto the file portal and the social scheduler. **The goal is an app
-Christopher can sit down and test by hand.** No ISO gets built until then — that is his
-explicit instruction, and the trigger for a build is hands-on readiness, not accumulated fixes.
+Finishing the SP+ Welcome app to a state Christopher can install and test by hand,
+then cutting an ISO. In parallel, doubling the in-app advisor manual from 17 to ~34
+articles. He said tonight: "This time make sure we get a finished product on the
+Welcome app... Triple check before calling it finished, theres no room for average."
 
-- Repo: `/home/chris/work/secureprospective-advisor-os` (**a git worktree** — never `cd` to the
-  original checkout).
-- Branch: `session/sp-plus-plan`. HEAD at write time: `5e5978e`.
-- Welcome source: `projects/sp-plus/welcome/` — `welcome.py`, `app/index.html`, `app/app.css`,
-  `app/app.js`.
-- SP+ VM: `ssh -p 2222 test@127.0.0.1` → libvirt domain `fedora-test` (`qemu:///session`),
-  inside it hostname `sp-plus`, `10.0.2.15`, `systemd-detect-virt=kvm`.
-- **ClaudeBox (CT105) the agent is DOWN until Thursday night. I am headbrain.** The machine
-  `192.168.1.105` is still reachable over SSH — only the agent is offline.
+Repo: `~/work/secureprospective-advisor-os` (a git WORKTREE — never cd to the
+original checkout). Branch `session/sp-plus-plan`. Project: `projects/sp-plus`.
+SP+ VM: `ssh -p 2222 test@127.0.0.1` (libvirt guest `fedora-test`).
 
 ## 2. AGENTS + HARNESSES
 
-- Bee = `pi` on `gpt-5.6-luna`, thinking max, via
-  `~/fleet/bin/run-bee-spplus-impl.sh <fid>` under `systemd-run --user --unit=bee-<name>`.
-- The runner reads `~/.pi/agent/spplus-brief-<fid>.md`. **Briefs must be copied there**;
-  `~/fleet/briefs/` is the archive copy.
-- Reports land in `~/fleet/runs/REPORT-<name>.md` with a `.DONE` sentinel.
-- **Never poll a dispatch.** Use a Monitor watching the sentinel.
+- **Bee** = `~/fleet/bin/run-bee-spplus-impl.sh <fid>`, runs `pi` on
+  `gpt-5.6-luna`, thinking max. Brief must be at `~/.pi/agent/spplus-brief-<fid>.md`.
+  Dispatch detached: `systemd-run --user --unit=bee-<name> --property=Type=oneshot`.
+  Runner writes `~/.pi/agent/spplus-<fid>.sentinel` on exit REGARDLESS of what the
+  agent does — **chain on that, not on an agent-authored file.**
+- **GPT (sol, max thinking)** — Christopher is running it himself on the manual.
+  Prompt: `~/fleet/briefs/PROMPT-gpt-sp-plus-manual.md` (also committed at
+  `projects/sp-plus/docs/PROMPT-manual-writing.md`).
+  Steering: `~/fleet/briefs/STEERING-gpt-stay-clear-of-bee.md`.
+- Briefs live in `~/fleet/briefs/`, run output in `~/fleet/runs/`.
 
-### The pgrep trap — hit twice, do not hit a third time
+## 3. IN-FLIGHT WORK (most perishable)
 
-`pgrep -f 'python3.*welcome\.py'` matches **the watching shell's own command line** and raises
-false alarms. Use the `comm` field instead:
+**A. `bee-welcome-finish` — RUNNING.** Started ~21:14, elapsed ~22 min at write
+time, timeout 7800s.
+- Brief: `~/fleet/briefs/spplus-welcome-finish.md` (6,489 b).
+- Alive check: `systemctl --user show bee-welcome-finish.service -p ActiveState --value`
+  (**"activating" IS alive** for Type=oneshot; `is-active` exits 3 — compare the
+  STRING, never the exit code).
+- Verified genuinely driving the VM: repo synced to `/home/test/work/...`, and a
+  Welcome instance running there (`welcome/welcome.py --force --screen 1`).
+- Output: `~/.pi/agent/spplus-welcome-finish.{out,err,sentinel}`;
+  report at `~/fleet/runs/REPORT-welcome-finish.md` + `.DONE`.
+- On completion: **read the diff first**, then look at all eight screens' after-shots
+  MYSELF. Do not accept the gate summary.
 
-```bash
-ps -eo comm,pid,args --no-headers | awk '$1 ~ /^python/ && $0 ~ /welcome\.py/ {print $2}'
-```
+**B. GPT on the manual — RUNNING**, driven by Christopher, not by me. Works only in
+`knowledge/` and `docs/HELP-CORPUS-LEDGER.md`. G1/G2/G3 are DEFERRED by the steering
+prompt because they touch `app.js`.
 
-## 3. IN-FLIGHT RIGHT NOW — most perishable
+**C. The SP+ VM is up and its sleep targets are masked.** It suspended earlier
+mid-run and cost a whole pass; `sleep.target suspend.target hibernate.target
+hybrid-sleep.target` are now masked and KDE idle timers zeroed.
 
-**A. `bee-welcome-design.service` — RUNNING**, started 18:36, ~38 min elapsed at write time,
-timeout 7200s. The design pass: fix empty cards, doubled readiness/Retry, and panel weighting.
-- Alive? `systemctl --user is-active bee-welcome-design`
-- Output: `~/.pi/agent/spplus-welcome-services-design.{out,err}` (empty until it finishes —
-  normal for this runner). VM working files are `/home/test/welcome-design-*`.
-- Sentinel: `~/fleet/runs/REPORT-welcome-design.DONE`
-- Brief: `~/fleet/briefs/spplus-welcome-services-design.md`
+**D. Queued, NOT dispatched** (both edit `app.js`; must run one at a time, after A):
+- `~/fleet/briefs/spplus-welcome-help-links.md` → fid `welcome-help-links`
+- `~/fleet/briefs/spplus-welcome-help-search.md` → fid `welcome-help-search`
+- `~/fleet/briefs/spplus-welcome-consolidate-code.md` → fid `welcome-consolidate-code`
+  (the slimming/snappier pass; baseline 3,045 lines across the four files)
 
-**B. A chain script — RUNNING** (`scratchpad/chain-contrast.sh`, Monitor task). It waits for
-the design sentinel and then dispatches `bee-welcome-contrast`. **It deliberately does NOT
-dispatch if the design pass dies without its sentinel.** If compaction kills it, dispatch by
-hand:
+## 4. ARTIFACTS THAT EXIST
 
-```bash
-rm -f ~/fleet/runs/REPORT-welcome-contrast-close.DONE
-systemd-run --user --unit=bee-welcome-contrast --collect \
-  --setenv=THINK=max --setenv=TMO=7200 \
-  ~/fleet/bin/run-bee-spplus-impl.sh welcome-contrast-close
-```
+- **ISO, built 20:56 tonight, HELD not delivered:**
+  `projects/sp-plus/artifacts/spikeB-rootful/out/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
+  5,498,103,808 bytes. Payload image `localhost/sp-plus-kde:spike` id `c69d0eef8c26`.
+  **Verified inside the image**: `helpHome` present in app.js; 0 `href="http` in
+  index.html; warmed copy string present; close-gate fix present; installer bakes
+  `--target-imgref ghcr.io/secureprospective/sp-plus-kde:latest`.
+  It does NOT contain the finishing pass, help links, or search.
+- **Stale ISO in ~/Downloads: `sp-plus-2026-08-31-1152.iso` — DO NOT TEST WITH IT.**
+  Built 11:52, predates all of tonight's work, still points at the broken `:edge`.
+- Build: `~/fleet/bin/sp-plus-iso-build.sh` (rootful, DN-06). Logs
+  `~/logs/iso-build-2035.log` (failed at 115) and `~/logs/iso-build-2110.log` (good).
 
-**C. `pi` PID 1004997 — NOT MINE. DO NOT KILL.** It is in a kitty terminal scope on pts/1 with
-an interactive bash parent — Christopher's own session.
+## 5. THE CURRENT STATE — no open bug
 
-## 4. STATUS
+Nothing is broken and unexplained right now. The open question is whether Bee's
+finishing pass actually finishes the app. **Caveat: the last two passes each fixed
+their brief and left the screen still not good** — the design pass moved emptiness
+into the folder diagram, the contrast pass moved it into the service cards. Expect
+to have to look at the screenshots and judge, not to accept a PASS.
 
-| Gate | State |
-|---|---|
-| No-scroll, 8 screens + 2 panels, 1280x800 and 1024x768 | PASS, `overflowRegions=[]` |
-| Hit tests, all controls | PASS |
-| `pending_review` inert under real CDP clicks | PASS — `aria-disabled`, `tabIndex=-1`, `onclick=null` |
-| Failure fixtures (6) | PASS, `passwordInputs=0`, `forms=0` |
-| Clean shutdown / no coredump | PASS |
-| Theme round trip, t1≡t3 | PASS |
-| Only public hostnames launched | PASS |
-| Dead-code removal (12 ids) | PASS, zero matches in HTML/CSS/JS |
-| Banned strings | PASS — no Nextcloud/Postiz/"coming soon"/"cannot read your files" |
-| **Composition and polish** | **NOT ACCEPTED — see §6** |
-| `welcome-lifecycle-gate.sh` can-fail proof | **OPEN** |
-| Dell hardware gate (owed by D-02 pin bump) | **OPEN** |
-| VM passt port forward, first boot | **UNEXERCISED** |
+## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-## 5. ARTIFACTS
+1. **"sudo is blocked, the ISO can't be built."** FALSE. `/etc/sudoers.d/sp-plus-podman`
+   grants passwordless rootful podman. `sudo -n true` fails because `true` is not in
+   the rule; every command the build actually runs works. Cost real time — do not
+   re-derive.
+2. **"`scripts/build-iso.sh` builds the SP+ ISO."** FALSE — it built `sp-plus:poc`
+   from the root Containerfile with no Welcome in it. DELETED (`ff249cf`). The only
+   path is `~/fleet/bin/sp-plus-iso-build.sh`.
+3. **"The design pass died."** FALSE — it succeeded (`ff2246f`); it wrote its
+   sentinel on the VM while my chain watched the Beelink.
+4. **"`systemctl is-active` non-zero means the job died."** FALSE — exit 3 =
+   "activating", the normal state of a Type=oneshot unit for its entire run.
+5. **"The capability endpoint is missing."** FALSE — `/.well-known/sppl` is live.
+6. **"5.4s service latency."** FALSE — a Beelink cfgate mitmproxy artifact. From the
+   VM it is 0.12–0.38s. **Measure on the target, never here.**
+7. **"`welcome-lifecycle-gate.sh` can't fail."** Already fixed; it handles the
+   `/usr/bin/python3` form. The broken one was `welcome-close-gate.sh` (`774ad2a`).
 
-- `~/fleet/runs/REPORT-welcome-services.md` — the r2 build evidence.
-- `~/fleet/runs/REPORT-welcome-consolidate.md` (8112 b) — consolidation evidence.
-- `~/fleet/runs/welcome-consolidate/evidence-services-{base,files,social}-{1024x768,1280x800}.png`
-  — the six screenshots Christopher reviewed. **These are the "before" for the design pass.**
-- `~/fleet/runs/welcome-services/` — 18 artifacts from r2 (geometry, hit-test, fixtures, live
-  capability, coredump evidence).
-- VM working copy: `/home/test/welcome-consolidate-20260831/`.
+## 7. DECISIONS MADE TONIGHT
 
-## 6. THE CURRENT PROBLEM — composition, not correctness
+- Update origin changed `:edge` → `:latest` because `:edge` was never published
+  (GHCR 404). Reversible in one line if he wants a real edge channel.
+- Help search will be **ONE input**, not two: search first, Fin as fallback, because
+  the screen already has an Ask Fin box with the same placeholder phrasing.
+- Manual = 7 categories proposed, but the trail grid is 3 cols at height:100%, so 7
+  may break no-scroll. Fallback: fold "Your files" into "Everyday work".
+- Manual work is split by category, resumable via `docs/HELP-CORPUS-LEDGER.md`,
+  one article per commit.
+- ISO waits for the finished app (his explicit order), even though one is built.
 
-Every gate passes and the screen is **still not good enough**. From the screenshots:
+## 8. LEDGER STATE — all committed, tree clean apart from agents' live edits
 
-1. **Base page mostly empty** — both cards ~380px tall holding a headline, one line, then a
-   void. Reads as unfinished rather than spare.
-2. **Doubled readiness** — a status strip above each card *and* a `READY` marker inside it,
-   plus a **RETRY button offered when nothing has failed**.
-3. **Panels dominated by the caveat** — the yellow "REVIEW AFTER AN OUTAGE" box takes the whole
-   right half at full height, out-weighing "Bluesky is ready to use", the only actionable item.
-   The File Portal panel's right box is ~470px with content centred in a void.
+`1361956` origin fix · `d3abe10` contrast+composition · `774ad2a` close gate ·
+`ff249cf` decoy deleted · `53644e3` WIP copy (UNVERIFIED) · `98200ee` href fix ·
+`2e2aceb` errant button · `d927598` manual plan · `bacd13d` ledger + GPT prompt.
 
-Christopher then found two more himself:
+## 9. NEXT ACTIONS, IN ORDER
 
-4. **Yellow text on white must go.** `#ffd700` on white ≈ **1.5:1**. Fifteen rules set yellow or
-   gold as a text colour; roughly half sit on blue and are fine. Offenders on light surfaces
-   include `.preview-kicker`, `.preview-label`, `.preview-result`, `.theme-preview-header
-   .text-button:hover`, `.folder-divider`, and **`.service-password-note`** — which is the
-   "portal password is separate" line, the highest-value sentence on the screen.
-   Check `.ask-feedback[data-kind=pending]` — may be yellow on yellow.
-5. **The 75% panel has no obvious close.** `#service-panel-close` is 10px white `text-button`
-   text reading "CLOSE PANEL". Escape and backdrop work but are undiscoverable.
+1. **Wait for `bee-welcome-finish`.** On sentinel, read the diff, then LOOK at the
+   eight after-screenshots myself and judge whether the screen reads as trustworthy.
+2. **Read its control audit table.** It was told not to summarise as "all controls
+   work". If it did, reject the pass.
+3. **Verify the two things the WIP copy commit flags:** no-scroll with the longer
+   strings, and whether "Nothing changes until you press Apply" matches the real
+   control label.
+4. **Dispatch `welcome-help-links`**, then `welcome-help-search`. One at a time.
+5. **Then tell GPT that G1/G2/G3 are unblocked**, since app.js is free by then.
+6. **Then rebuild the ISO** and copy it to `~/Downloads` with a dated name.
+7. **Then `welcome-consolidate-code`** (the slimming pass) while he tests.
 
-**Caveat on the leading hypothesis:** the design pass had made **no repo edits** 28 minutes in
-while running VM gates. The likely reading is that it was capturing the "before" half of the
-required same-scale before/after. **If it finishes with the repo unchanged, it measured the old
-screen and the pass must be rejected.** Verify from the diff, not the report.
+## 10. ENVIRONMENT NOTES
 
-## 7. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
+- Beelink is his LIVE DESKTOP. **Never launch a GUI here.** All SP+ execution and
+  verification runs on the VM or the Dell.
+- Before any image build, run the Welcome gate against the working tree first — the
+  18-check loop that caught the `href` defect. Finding it at Containerfile STEP 115
+  costs ten minutes.
+- Two agents share this checkout. Never `git add -A`, never `git stash` (stack is
+  shared machine-wide).
+- CT105/Claudebox is DOWN until Thursday night; I am headbrain. The MACHINE is still
+  reachable over SSH for the resume copy.
 
-1. **The capability endpoint is NOT missing.** It is live on both hosts, 200 JSON, CORS `*`,
-   `Cache-Control: 60`, **zero redirects**. Earlier 404/307 readings are stale.
-2. **Round-trip latency is NOT ~5.4s.** That was measured on the Beelink and was cfgate's
-   mitmproxy in the TLS path (5.05s of it was *connect*). From the VM it is **0.106–0.203s**.
-   **Measure on the VM or the Dell, never the Beelink.**
-3. **The SIGABRT was never a software-GPU/WebEngine problem.** Refuted earlier; `libEGL: failed
-   to create dri2 screen` is expected VM noise.
-4. **`exec()` returning 0 does not prove a clean exit.** The abort happens during interpreter
-   teardown. `coredumpctl` is the authority.
-5. **A Welcome process "on the Beelink" was a false alarm** — the `pgrep -f` self-match in §2.
-6. **Postiz's OAuth callback is `/integrations/social/<platform>`**, not
-   `/api/auth/oauth/<platform>`. X is `x`. LinkedIn is two providers. Bluesky has no callback.
+## 11. HONEST STATUS
 
-## 8. DECISIONS
+The Welcome app is **not finished and not verified**. Composition has been through
+two passes and still is not good. The copy is warmer but unproven. The help screen
+has 69 broken cross-references and no search. The manual is 17 of ~34 articles.
 
-- **D-13 — Primal is not shipped.** `Noto Sans Condensed Black` is the permanent display face,
-  treated as the design, not a fallback. `welcome/app/fonts/` stays empty. Do not reintroduce.
-- **Two screens collapsed into one** "Your SecureProspective services": two cards, each opening
-  a ~75% panel with features and a link out. 9 screens → 8.
-- **Welcome sets up and hands off. It is not an administration console.** 2FA enrolment,
-  missed-post review and account administration belong to the services. Test: would the advisor
-  otherwise do this in the service's own interface? Then point them there.
-- **The app must never carry, cache or pre-fill Christopher's account details.** It onboards a
-  new advisor. He tests with his own logins.
-- **Bluesky/SMTP are UNPROVEN, not BLOCKED.** The test-member ask was withdrawn.
-- **Yellow is a background/accent colour, never text on light.**
-- **No ISO until the app is ready for hands-on testing.**
-- **Do not settle for average.** "It improved" and "nothing regressed" are not acceptance.
-  Composition and confidence are acceptance criteria, because a nervous advisor reads an
-  unfinished-looking screen as unsafe for client work.
+What IS solid: the Software Library crash is genuinely fixed and verified inside a
+built image; the errant button is fixed; the close gate can now fail; and an
+installable ISO exists if he wants it tonight.
 
-## 9. LEDGER STATE
-
-Committed today: `28b268a`, `774706b`, `270abc1`, `a0fd923`, `f0b1e4f`, `8f94c55`, `5e5978e`.
-Headbrain log at `projects/sp-plus/docs/ledger/HEADBRAIN-LOG-2026-08-31.md` (`f0b1e4f`).
-
-**Uncommitted and not mine:** `.gitignore`, `CLAUDE.md`, `HANDOFF.md`, `HEADBRAIN.md`,
-`SP-PLUS-STATE.md`, `grafix/render/ROUND4-PLUS-SHADING.md`,
-`projects/sp-plus/docs/08-BUILD-SESSION-HANDOFF.md` — dirty since session start. `a0fd923`
-accidentally swept in ~20 `bee-lane` files; harmless and reversible, but the commit is untidy.
-
-## 10. NEXT ACTIONS, IN ORDER
-
-1. **Wait for `bee-welcome-design`.** When the sentinel drops, **read the diff first** — confirm
-   `app.css` and `index.html` actually changed. If unchanged, reject the pass (§6 caveat).
-2. **Look at the after-screenshots yourself.** Do not accept a gate summary. Judge whether the
-   screen reads as trustworthy to a nervous advisor, per §8's last bullet.
-3. **Confirm the chain fired** `bee-welcome-contrast`. If not, dispatch by hand (§3B).
-4. **Review the contrast pass** — every fixed instance ≥4.5:1 with the measured number, and a
-   close control findable in under a second.
-5. **Prove `welcome-lifecycle-gate.sh` can fail** — run with Welcome up and down, show different
-   results. The fix in `a0fd923` is unverified.
-6. **Only then** consider an ISO, and re-run the Dell hardware gate owed by the D-02 pin bump.
-
-## 11. ENVIRONMENT NOTES
-
-- Beelink is Christopher's live desktop. **Never launch a GUI here.** All execution — app
-  launches, screenshots, gates, hit tests, latency — runs on the VM or the Dell.
-- **Do not reboot the VM.** Its permanent `<portForward>`/`<backend type='passt'/>` is in the
-  persistent XML but the running domain is still on the memory-only `hostfwd_add`. passt is a
-  different network stack; first boot on it is a real test and would cost SSH access.
-- Never bare `git stash` — the stack is shared across worktrees. There is already an entry from
-  another session (`stash@{0}`, opencode-deepseek-design-doc). Use a WIP commit.
-- Filing gate FAILS on `~/JoplinBackup` only. It is **live** (Joplin plugin
-  `io.github.jackgruber.backup` targets it) and deliberately not moved. The fix is a plugin
-  setting, not a `mv`. Do not "tidy" it.
-
-## 12. HONEST STATUS
-
-The service integration is **functionally complete and verified**, and **not yet good enough to
-put in front of Christopher**. Two passes are in flight to close that gap; neither has been
-reviewed. Nothing about the visual result should be claimed until the after-screenshots are
-looked at directly.
-
-**No ISO contains any of today's work.** The installed image on the VM is stale and still
-coredumps on the QThread bug fixed in source this morning — expected, and the clearest argument
-for the eventual build.
-
-Genuinely unproven: **no post has ever published through Bluesky** (it reports `live` because
-it structurally cannot require keys, not because anything was tested), and **SMTP has no
-verified sender**, so activation and password-reset email cannot send.
+Nothing here should be reported as done. Bee's pass is unread.
