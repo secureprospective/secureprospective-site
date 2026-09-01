@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Night-Ridge",
+        "Name": "SP+ Night Ridge",
+        "Description": "A minimalist night landscape in dark indigo, layered ridges above a treeline. Chosen to sit with the Catppuccin Mocha palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [
+            {
+                "Name": "Secure Prospective",
+                "Email": "design@secureprospective.com"
+            }
+        ]
+    }
+}

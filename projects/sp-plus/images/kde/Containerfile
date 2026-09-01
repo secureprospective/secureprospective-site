@@ -1097,6 +1097,20 @@ COPY theme/Kvantum/        /usr/share/Kvantum/
 # platform fallbacks, but the selected theme name is not an unrelated Papirus
 # package.
 COPY theme/wallpaper/Windows-modern/ /usr/share/wallpapers/Windows-modern/
+# Per-theme wallpapers. Each global theme names its own background in its
+# contents/defaults, so these are not decoration on top of a theme: they are
+# part of what the advisor chooses on the Welcome look screen. Licence status
+# for both is recorded in the ATTRIBUTION.md inside each package.
+COPY theme/wallpaper/SPPlus-Night-Ridge/  /usr/share/wallpapers/SPPlus-Night-Ridge/
+COPY theme/wallpaper/SPPlus-Blue-Horizon/ /usr/share/wallpapers/SPPlus-Blue-Horizon/
+COPY theme/wallpaper/SPPlus-Paint-Tide/    /usr/share/wallpapers/SPPlus-Paint-Tide/
+COPY theme/wallpaper/SPPlus-Moonrise-Range/ /usr/share/wallpapers/SPPlus-Moonrise-Range/
+COPY theme/wallpaper/SPPlus-Still-Water/   /usr/share/wallpapers/SPPlus-Still-Water/
+COPY theme/wallpaper/SPPlus-Winter-River/  /usr/share/wallpapers/SPPlus-Winter-River/
+# The two stock Breeze themes cannot name a wallpaper in their own defaults:
+# those packages belong to plasma-workspace and an RPM update would revert the
+# edit silently. This SP+-owned table is what spplus-apply-theme reads instead.
+COPY config/theme/wallpaper-overrides.conf /usr/share/sp-plus/theme/wallpaper-overrides.conf
 COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
 
 # ---- 5c. Flathub, shipped rather than added at runtime (DN-26) ---------------
@@ -1349,6 +1363,21 @@ RUN printf '%s\n' \
  && test -d /usr/share/wallpapers/Windows-modern/contents/images \
  && test -s /usr/share/wallpapers/Windows-modern/contents/images/2560x1440.png \
  && test -s /usr/share/wallpapers/Windows-modern/contents/images_dark/2560x1440.png \
+ && test -s /usr/share/wallpapers/SPPlus-Night-Ridge/contents/images/3840x2160.jpg \
+ && test -s /usr/share/wallpapers/SPPlus-Blue-Horizon/contents/images/3840x2160.jpg \
+ && grep -q '^Image=SPPlus-Night-Ridge$' /usr/share/plasma/look-and-feel/Catppuccin-Mocha/contents/defaults \
+ && grep -q '^Image=SPPlus-Blue-Horizon$' /usr/share/plasma/look-and-feel/Catppuccin-Latte/contents/defaults \
+ && test -s /usr/share/wallpapers/SPPlus-Paint-Tide/contents/images/2560x1440.jpg \
+ && grep -q '^Image=SPPlus-Paint-Tide$' /usr/share/plasma/look-and-feel/com.github.vinceliuice.Orchis/contents/defaults \
+ && test -s /usr/share/wallpapers/SPPlus-Moonrise-Range/contents/images/3840x2160.jpg \
+ && grep -q '^Image=SPPlus-Moonrise-Range$' /usr/share/plasma/look-and-feel/Nordic/contents/defaults \
+ && test -s /usr/share/wallpapers/SPPlus-Still-Water/contents/images/3840x2160.jpg \
+ && test -s /usr/share/wallpapers/SPPlus-Winter-River/contents/images/3000x1688.jpg \
+ && grep -q '^Image=SPPlus-Still-Water$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && grep -q '^Image=SPPlus-Winter-River$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && grep -q '^\[org.kde.breezedark.desktop\]$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && grep -q '^\[org.kde.breeze.desktop\]$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && ! grep -q 'Image=Next' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
  && test -x /usr/libexec/spplus-apply-theme \
  && ! grep -qF 'check=False' /usr/libexec/spplus-apply-theme \
  && ! grep -qE '\bsleep\b' /usr/libexec/spplus-apply-theme \

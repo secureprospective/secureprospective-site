@@ -23,7 +23,7 @@ cursorTheme=Nordic-cursors
 name=breeze-dark
 
 [Wallpaper]
-Image=SPPlus-Calm
+Image=SPPlus-Moonrise-Range
 
 [kwinrc][org.kde.kdecoration2]
 library=org.kde.kwin.aurorae.v2

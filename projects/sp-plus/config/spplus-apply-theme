@@ -715,6 +715,132 @@ def validate_assets(log: EventLog, root: Path, settings: list[Setting]) -> tuple
     return wallpaper, wallpaper_path
 
 
+WALLPAPER_OVERRIDES = "sp-plus/theme/wallpaper-overrides.conf"
+
+
+def find_wallpaper_overrides(root: Path) -> Optional[Path]:
+    for data_root in data_roots(root):
+        candidate = data_root / WALLPAPER_OVERRIDES
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def parse_wallpaper_overrides(path: Path) -> dict[str, str]:
+    """Read the SP+ theme-id to wallpaper-package table.
+
+    SP+ owns the wallpaper for every theme it offers, including the stock
+    Plasma ones. Those stock packages belong to plasma-workspace, so editing
+    their contents/defaults in the image would be undone by the next RPM
+    update without anything failing loudly. This table is the SP+-owned layer
+    instead: one rule that covers any theme we do not ship ourselves.
+
+    The format is deliberately the same shape as a look-and-feel defaults
+    file, so there is one syntax to learn rather than two:
+
+        [org.kde.breezedark.desktop]
+        Image=SPPlus-Still-Water
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValidationFailure(f"cannot read wallpaper overrides {path}: {exc}") from exc
+    overrides: dict[str, str] = {}
+    theme_id: Optional[str] = None
+    for line_number, original in enumerate(text.splitlines(), start=1):
+        line = original.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            theme_id = line[1:-1].strip()
+            validate_theme_id(theme_id)
+            if theme_id in overrides:
+                raise ValidationFailure(
+                    f"wallpaper overrides name {theme_id!r} more than once: {path}:{line_number}"
+                )
+            continue
+        if theme_id is None:
+            raise ValidationFailure(
+                f"wallpaper override outside a theme section: {path}:{line_number}: {original!r}"
+            )
+        key, separator, value = line.partition("=")
+        if not separator:
+            raise ValidationFailure(
+                f"malformed wallpaper override line {path}:{line_number}: {original!r}"
+            )
+        key = key.strip()
+        value = value.strip()
+        if key != "Image":
+            raise ValidationFailure(
+                f"wallpaper overrides accept only Image, not {key!r}: {path}:{line_number}"
+            )
+        if not value or Path(value).name != value:
+            raise ValidationFailure(
+                f"unsafe wallpaper package name {value!r}: {path}:{line_number}"
+            )
+        overrides[theme_id] = value
+    return overrides
+
+
+def override_wallpaper(
+    log: EventLog, settings: list[Setting], theme_id: str, root: Path
+) -> list[Setting]:
+    """Replace a theme's declared wallpaper with the SP+ choice, if there is one.
+
+    Returns the settings unchanged when no table exists or the table says
+    nothing about this theme, so a theme SP+ ships keeps owning its own
+    background. Every override is recorded in the event log, because a
+    background that silently differs from the package that declared it is
+    exactly the kind of surprise the audit trail exists to prevent.
+    """
+    path = find_wallpaper_overrides(root)
+    safe_emit(
+        log,
+        "wallpaper_override_table",
+        "validate",
+        path=str(path) if path else None,
+        found=path is not None,
+    )
+    if path is None:
+        return settings
+    overrides = parse_wallpaper_overrides(path)
+    replacement = overrides.get(theme_id)
+    if replacement is None:
+        return settings
+    declared = next(
+        (
+            item.value
+            for item in settings
+            if item.file == "kdeglobals" and item.group == "Wallpaper" and item.key == "Image"
+        ),
+        None,
+    )
+    safe_emit(
+        log,
+        "wallpaper_override",
+        "validate",
+        theme=theme_id,
+        declared=declared,
+        applied=replacement,
+        source=str(path),
+    )
+    result = [
+        item
+        for item in settings
+        if not (item.file == "kdeglobals" and item.group == "Wallpaper" and item.key == "Image")
+    ]
+    result.append(
+        Setting(
+            file="kdeglobals",
+            group="Wallpaper",
+            key="Image",
+            value=replacement,
+            source=f"{path}:[{theme_id}]",
+        )
+    )
+    return result
+
+
 def build_package(log: EventLog, theme_id: str, want_layout: bool, root: Path) -> Package:
     package_path = find_package(theme_id, root)
     metadata_path = package_path / "metadata.json"
@@ -731,6 +857,7 @@ def build_package(log: EventLog, theme_id: str, want_layout: bool, root: Path) -
     if not defaults_path.is_file():
         raise ValidationFailure(f"look-and-feel package has no contents/defaults: {package_path}")
     settings = parse_defaults(defaults_path)
+    settings = override_wallpaper(log, settings, theme_id, root)
     wallpaper, wallpaper_path = validate_assets(log, root, settings)
 
     layout_settings: list[Setting] = []

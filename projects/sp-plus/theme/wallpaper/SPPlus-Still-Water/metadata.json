@@ -1,0 +1,11 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Still-Water",
+        "Name": "SP+ Still Water",
+        "Description": "A single boat on still water beneath a rising moon. Chosen to sit with the Breeze Dark palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [{"Name": "Secure Prospective", "Email": "design@secureprospective.com"}]
+    }
+}

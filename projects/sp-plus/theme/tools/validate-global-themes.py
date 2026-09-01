@@ -125,7 +125,51 @@ def check_aurorae(root: Path, errors: list[str], theme_id: str, declaration: str
         errors.append(f"{theme_id}: Aurorae {name!r} has no {name}rc configuration")
 
 
-def check_theme(root: Path, errors: list[str], theme_id: str, stock: bool) -> bool:
+def load_wallpaper_overrides(root: Path, errors: list[str]) -> dict[str, str]:
+    """Read the SP+ theme-id to wallpaper-package table, if the image ships one.
+
+    SP+ chooses the background for every theme on the Welcome look screen. For
+    the stock Plasma themes it cannot say so in their own defaults, because
+    those packages belong to plasma-workspace and an RPM update would revert
+    the edit. It uses this table instead, and spplus-apply-theme applies it. So
+    the table has to be validated here too: otherwise the one wallpaper choice
+    the build could not see would be the only one that ships unchecked.
+    """
+    path = root / "usr/share/sp-plus/theme/wallpaper-overrides.conf"
+    if not path.is_file():
+        return {}
+    overrides: dict[str, str] = {}
+    theme_id = None
+    for number, original in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = original.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            theme_id = line[1:-1].strip()
+            continue
+        key, separator, value = line.partition("=")
+        if not separator or theme_id is None:
+            errors.append(f"wallpaper-overrides.conf:{number}: malformed line {original!r}")
+            continue
+        if key.strip() != "Image":
+            errors.append(f"wallpaper-overrides.conf:{number}: only Image is accepted")
+            continue
+        overrides[theme_id] = value.strip()
+    for theme_id in sorted(overrides):
+        if theme_id not in SHIPPED:
+            errors.append(f"wallpaper-overrides.conf: {theme_id!r} is not a shipped theme")
+        elif theme_id not in STOCK:
+            errors.append(
+                f"wallpaper-overrides.conf: {theme_id!r} is an SP+ theme and should name "
+                "its wallpaper in its own contents/defaults instead"
+            )
+    return overrides
+
+
+def check_theme(
+    root: Path, errors: list[str], theme_id: str, stock: bool,
+    wallpaper_overrides: dict[str, str] | None = None,
+) -> bool:
     package = root / "usr/share/plasma/look-and-feel" / theme_id
     defaults = package / "contents/defaults"
     if not defaults.is_file():
@@ -176,7 +220,9 @@ def check_theme(root: Path, errors: list[str], theme_id: str, stock: bool) -> bo
     plasma = declarations.get(("plasmarc", "Theme", "name"))
     if plasma and plasma != "default":
         check_asset(errors, theme_id, f"Plasma theme {plasma!r}", resolve_named_asset(root, "plasma", plasma))
-    wallpaper = declarations.get(("kdeglobals", "Wallpaper", "Image"))
+    wallpaper = (wallpaper_overrides or {}).get(theme_id) or declarations.get(
+        ("kdeglobals", "Wallpaper", "Image")
+    )
     if wallpaper:
         wallpaper_path = resolve_named_asset(root, "wallpaper", wallpaper)
         check_asset(errors, theme_id, f"wallpaper {wallpaper!r}", wallpaper_path)
@@ -221,8 +267,9 @@ def main() -> int:
     root = Path(args.root).resolve()
     errors: list[str] = []
     checked = 0
+    wallpaper_overrides = load_wallpaper_overrides(root, errors)
     for theme_id in SHIPPED:
-        if check_theme(root, errors, theme_id, theme_id in STOCK):
+        if check_theme(root, errors, theme_id, theme_id in STOCK, wallpaper_overrides):
             checked += 1
 
     # Keep the Aurorae completeness rule broader than the current Welcome list.

@@ -23,7 +23,7 @@ cursorTheme=breeze_cursors
 name=Orchis
 
 [Wallpaper]
-Image=SPPlus-Calm
+Image=SPPlus-Paint-Tide
 
 [kwinrc][org.kde.kdecoration2]
 library=org.kde.kwin.aurorae.v2

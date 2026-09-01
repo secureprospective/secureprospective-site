@@ -1,0 +1,11 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Winter-River",
+        "Name": "SP+ Winter River",
+        "Description": "A river cutting through snow below lit peaks and a crescent moon. Chosen to sit with the Breeze Light palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [{"Name": "Secure Prospective", "Email": "design@secureprospective.com"}]
+    }
+}

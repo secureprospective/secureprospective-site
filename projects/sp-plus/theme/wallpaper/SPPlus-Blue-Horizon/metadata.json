@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Blue-Horizon",
+        "Name": "SP+ Blue Horizon",
+        "Description": "A bright minimalist horizon: snow ridges and still water under a pale rising sphere. Chosen to sit with the Catppuccin Latte palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [
+            {
+                "Name": "Secure Prospective",
+                "Email": "design@secureprospective.com"
+            }
+        ]
+    }
+}

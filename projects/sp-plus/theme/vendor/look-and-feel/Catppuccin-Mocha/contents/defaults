@@ -23,7 +23,7 @@ cursorTheme=breeze_cursors
 name=breeze-dark
 
 [Wallpaper]
-Image=SPPlus-Calm
+Image=SPPlus-Night-Ridge
 
 [kwinrc][org.kde.kdecoration2]
 library=org.kde.kwin.aurorae.v2

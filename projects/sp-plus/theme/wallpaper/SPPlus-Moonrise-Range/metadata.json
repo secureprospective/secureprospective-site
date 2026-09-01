@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Moonrise-Range",
+        "Name": "SP+ Moonrise Range",
+        "Description": "Layered blue ridges falling away under a full moon. Chosen to sit with the Nordic Dark palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [
+            {
+                "Name": "Secure Prospective",
+                "Email": "design@secureprospective.com"
+            }
+        ]
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Id": "SPPlus-Paint-Tide",
+        "Name": "SP+ Paint Tide",
+        "Description": "An oil-paint tide of blues and teals breaking across a white ground. Chosen to sit with the Orchis Light palette.",
+        "License": "See ATTRIBUTION.md",
+        "Version": "1.0.0",
+        "Authors": [
+            {
+                "Name": "Secure Prospective",
+                "Email": "design@secureprospective.com"
+            }
+        ]
+    }
+}
