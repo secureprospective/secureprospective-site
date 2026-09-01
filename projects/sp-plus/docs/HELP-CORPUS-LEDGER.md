@@ -47,7 +47,7 @@ Evidence column.
 
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
-| P1 | Wi-Fi won't connect | knowledge/troubleshooting/wifi-wont-connect.md | TODO | existing, needs re-verification |
+| P1 | Wi-Fi won't connect | knowledge/troubleshooting/wifi-wont-connect.md | VERIFIED | verified: image NetworkManager Wi-Fi/plasma-nm enabled with Wi-Fi power saving disabled; live VM NetworkManager active but Ethernet-only with no Wi-Fi interface; Fin prompt explicitly notes it cannot answer while offline. No Wi-Fi hardware, join/forget, captive-portal, or hotspot test performed. Drift: prior power-saving workaround was wrong because SP+ already disables it. |
 | P2 | Printer not printing | knowledge/troubleshooting/printer-not-printing.md | TODO | existing; RECATEGORISE to Fix a problem |
 | P3 | No sound | knowledge/troubleshooting/no-sound.md | TODO | existing; RECATEGORISE |
 | P4 | Second monitor problems | knowledge/troubleshooting/second-monitor.md | TODO | existing; RECATEGORISE |

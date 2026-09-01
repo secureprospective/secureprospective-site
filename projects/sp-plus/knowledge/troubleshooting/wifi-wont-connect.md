@@ -1,51 +1,42 @@
-# Wi-Fi Won't Connect
+# Wi-Fi won't connect
 
-Work through these in order. Stop when you are online.
+Start with the small checks. A Wi-Fi problem can be the computer, the network, or the place you are trying to connect from. The goal is to find which one without changing random settings or repeatedly entering a password.
 
-## 1. Is airplane mode on?
+## Check what the computer can see
 
-Click the network icon near the clock. If airplane mode is enabled, turn it off. Airplane mode switches off all wireless radio, including Wi-Fi and Bluetooth, and it is easy to toggle by accident.
+Click the network icon near the clock. If Wi-Fi is available on this computer, you should see nearby network names and the current connection state there. Choose the network you recognize and wait for the connection result before trying again.
 
-## 2. Check the physical switch
+If your laptop has a physical wireless switch or an airplane-mode key, check that it has not been turned off. Only use a control you recognize on your own computer. Do not keep pressing function keys at random.
 
-Many laptops have a key or small switch that disables wireless at the hardware level (often F2, F8, or Fn plus one of those, sometimes with an airplane symbol). Press it once and watch the network icon. A hardware switch overrides everything software can do; if the keyboard shortcut was bumped, no amount of clicking in settings will help.
+## The network is listed, but will not join
 
-## 3. Does the network appear in the list?
+Make sure you selected the right network. Similar names are common in offices, hotels, and apartment buildings. Enter the network password only for a network you trust. Watch for capitals, spaces, and characters that can look alike.
 
-**Network visible but connection fails with a password error:** the saved password is probably stale. Someone changed the router password, or you typed it once with a stray character. Click the network, choose to forget it, then reconnect and retype the password carefully. Watch for caps lock and for phones auto-capitalizing when using hotspot passwords.
+If the network says the password is wrong and you know it was recently changed, stop retrying. Ask Fin to check the saved connection and help you reconnect cleanly. Do not give Fin the Wi-Fi password.
 
-**Network not visible at all:**
+A hotel, client office, or coffee-shop network may connect but still need a web sign-in page. Open **Brave** and go to a known website. If the network shows its own sign-in page, read the network name and terms before completing it. Do not enter your practice password on a public Wi-Fi sign-in page.
 
-- Other devices (phone) also cannot see it? The problem is the router, not the computer. Restart the router: power off, count to ten, power on, wait two minutes.
-- Phone sees it but the computer does not? Move closer to the router and refresh the network list. Then continue below.
+## The network does not appear at all
 
-## 4. Connects, then drops repeatedly
+Look at another device you trust, such as your phone, from the same location. If neither device can see the office or home network, the router or internet service is the likely problem. If your phone can see it but this computer cannot, move closer, wait a minute, and check the network list again.
 
-Two usual suspects:
+Do not restart a router you do not own or manage, especially at a client office, hotel, or shared building. Ask the person responsible for that network whether it is available and whether you should use it.
 
-- **Weak signal.** Distance and walls matter. If the bars are low, move closer before blaming anything else.
-- **Power saving.** Some laptops aggressively nap their Wi-Fi chip to save battery, which causes random drops. If drops happen even at full bars, ask the Assistant to check Wi-Fi power saving settings; disabling power saving for your home/office network often ends the drops. This depends on your specific hardware, so let the Assistant confirm rather than guessing.
+## It connects, then drops
 
-## 5. Hotel, coffee shop, or client office networks
+SP+ has Wi-Fi power saving turned off in its standard setup, so do not try random power-saving changes as a first fix. Check the simple physical causes first: distance, walls, a weak signal, or a laptop that has been moved away from the usual spot.
 
-Public networks usually redirect you to a sign-in page. If the network connects but nothing loads, open the browser and try loading any website: the sign-in page appears there. Complete it, then browse normally.
+If the drops happen only on one network, note the network name, when it happens, and whether another device stays connected. Those three facts help Fin tell a computer problem from a network problem.
 
-## 6. Sharing your phone's connection
+## Ask Fin when a connection remains
 
-In a pinch, your phone can share its cellular data:
+If you still have enough connection to open Fin, use plain words: **"Fin, this computer cannot join [network name],"** or **"Fin, Wi-Fi keeps dropping on [network name]. Check the computer side first and tell me what you found."**
 
-- Turn on the hotspot feature on your phone (usually in settings, labeled "hotspot" or "tethering").
-- On this computer, treat the phone's network like any other Wi-Fi network in the list.
-- Mind your data plan; video calls eat it fast.
-
-USB tethering (phone plugged in by cable) also works and charges the phone while connected.
-
-## When to hand it to the Assistant
-
-If none of that worked, ask the Assistant. It can see whether the wireless hardware itself is switched off at a level the settings screens do not show, and it explains what it finds in plain terms.
+Fin can check the computer's connection state. If the computer is completely offline, Fin may not be able to answer until you regain a connection. In that case, use the physical checks above or ask the person responsible for the network.
 
 ## Related pages
 
-- [Printer not printing](printer-not-printing.md)
 - [Bluetooth devices](bluetooth-devices.md)
-- [Getting more help](../advisor-help/getting-more-help.md)
+- [Printer not printing](printer-not-printing.md)
+- [Video calls, camera and microphone](../advisor-help/video-calls.md)
+- [Fin the assistant](../advisor-help/asking-the-assistant.md)
