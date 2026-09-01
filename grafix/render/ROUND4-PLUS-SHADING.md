@@ -50,5 +50,5 @@ Round-3 originals (tint 1.00) preserved unmodified at
 `grafix/render/` and `grafix/hdri/` are **untracked** in this repo (branch
 `session/sp-plus-plan`). They have never been committed, so a `git fetch` from CT105
 will NOT bring these renders across. Christopher's stated intent is to use these assets
-in the SP+ ISO project (`~/sp-plus-iso/`). Getting them there needs an explicit commit
+in the SP+ ISO project (`~/work/sp-plus/iso/`). Getting them there needs an explicit commit
 or an rsync — it will not happen by itself.

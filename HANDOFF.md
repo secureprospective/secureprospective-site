@@ -1,15 +1,5 @@
 # Handoff
 
-## 2026-08-31 — Welcome services consolidated
-
-- **Baton:** Bee — 2026-08-31
-- **Where it stands:** Collapsed the File Portal and Social onboarding screens into one readiness-aware services screen with two in-place handoff panels. Removed the old portal, account-confirmation, and calendar flows. Committed as `8f94c55` on `session/sp-plus-plan`; branch is pushed.
-- **Gates:** SP+ VM evidence covers eight-screen/no-scroll bounds at 1280x800 and 1024x768, real CDP card/panel/link/close/Escape/backdrop clicks, public-host-only browser launch, deleted-ID search, and the theme round trip.
-- **Build boundary:** No ISO or image build started. The installed VM was not reset.
-- **Next move:** Christopher reviews the six VM captures and chooses whether to merge this lane onward.
-- **Blocked on:** Real File Portal sign-in/upload and real Social account connection/post publication remain outside Welcome and were not exercised.
-- **Tried and rejected:** Keeping service administration inside Welcome. The new page only explains the services and hands off to their public sites.
-
 ## 2026-08-28 — Calm live contrast and pinstripe trial closed
 
 - **Baton:** Bee — 2026-08-28
@@ -24,7 +14,7 @@
 
 - **Baton:** Bee — 2026-08-28
 - **Where it stands:** Implemented FIX 1-7 in commit `be4ae98` on `session/sp-plus-plan`: full ICU plus Intl gate; Plasma 6.7 Aurorae v2 and first-login read-back/retry; literal wsdd hardening drop-in; `/etc/xdg/kscreenlockerrc`; Welcome close/exit behavior and live close gate; `lm_sensors`; Discover Flatpak/rpm-ostree launcher policy. FIX 8 was investigated from the real desktop session and did not reproduce, so no fix was added.
-- **Gates:** `tests/cycle36-source-gate.sh` PASS; `tests/config-preflight.sh` PASS 13/13; shell/Python syntax and `git diff --check` PASS. Old installed VM field inspection intentionally FAILed on the pre-fix defects, proving the new checks surface them. Full report and sentinel are in `/home/chris/sp-plus-bee/`.
+- **Gates:** `tests/cycle36-source-gate.sh` PASS; `tests/config-preflight.sh` PASS 13/13; shell/Python syntax and `git diff --check` PASS. Old installed VM field inspection intentionally FAILed on the pre-fix defects, proving the new checks surface them. Full report and sentinel are in `~/work/sp-plus/bee/`.
 - **Build boundary:** No ISO or image build started. `fedora-test35` was not rebooted, reset, or reconfigured.
 - **Next move:** Christopher decides when to build. After a rebuilt image exists, run the installed-system field gate as root, `tests/welcome-close-gate.sh` from the real desktop session, and inspect Discover/Calm visually.
 - **Blocked on:** Post-fix image build and fresh installed-system verification.

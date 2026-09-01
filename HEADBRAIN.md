@@ -5,7 +5,7 @@ Christopher is presenting SP+ to someone important. He is working through tonigh
 tomorrow. **CT105 Headbrain is about to lose its weekly compute window. You are Headbrain now.**
 
 Read this file completely before you touch anything. Then read
-`~/sp-plus-bee/RUNBOOK.md`. Those two files are the whole job.
+`~/work/sp-plus/bee/RUNBOOK.md`. Those two files are the whole job.
 
 ---
 
@@ -81,25 +81,25 @@ still have an unusable machine. **Do not let this one sit until the last hour.**
   4,135,002,112 bytes, 2026-08-26 16:04. Supersedes b04 `afc0f9c7…`.
 - **cycle7 install: SUCCEEDED, fully automated.** 8,339,324,928 bytes, plateaued at
   420 s, final screen stddev 9068 (a real UI, not a grey screen). Disk at
-  `~/sp-plus-iso/cycle7/disk.qcow2`.
+  `~/work/sp-plus/iso/cycle7/disk.qcow2`.
 - **cycle7 boot: FAILED TO INSTRUMENT.** `spb-boot` reported
   `LUKS_PROMPT_ON_SERIAL=no`, `bserial.log` only 258 bytes. **See §5 — this is a bug in
   my script, not in SP+.** The AVC count of 0 from that log is MEANINGLESS; the log
   captured nothing past GRUB.
-- `~/sp-plus-iso/cycle6/` — the disk and `bserial.log` that PROVE DN-15 and DN-16.
+- `~/work/sp-plus/iso/cycle6/` — the disk and `bserial.log` that PROVE DN-15 and DN-16.
   **Do not delete.** `reap.sh` holds disks younger than 12 h; that window will expire
   tonight, so if you still need cycle6, touch it or copy it aside.
 
 ---
 
-## 4. YOUR TOOLS — `~/sp-plus-bee/`
+## 4. YOUR TOOLS — `~/work/sp-plus/bee/`
 
 The whole test lane runs **as `chris`, with no root**. Root lives *inside* the guest and
 you reach it over the serial console. If you find yourself reaching for `sudo`, you are
 on the wrong path.
 
 ```bash
-cd ~/sp-plus-bee
+cd ~/work/sp-plus/bee
 export CYCLE=cycle8            # a NEW name each run; never reuse a cycle dir
 ./spb-sha                      # what ISO is on disk + known shas
 ./spb-build                    # rebuild, ~15 min, detached (the ONE privileged step)
@@ -110,7 +110,7 @@ export CYCLE=cycle8            # a NEW name each run; never reuse a cycle dir
 ```
 
 Mirrored into the repo at `projects/sp-plus/tests/bee-lane/`.
-Gates at `~/sp-plus-gates/`: `preflight-gate.sh` (runs inside the build, 10 checks),
+Gates at `~/work/sp-plus/gates/`: `preflight-gate.sh` (runs inside the build, 10 checks),
 `release-gate.sh` (**exit 0 is the only verdict that counts**), `reap.sh`.
 
 ---
@@ -128,10 +128,10 @@ after GRUB. That is why cycle7's boot produced 258 bytes.
 1. Start hammering `end` **immediately** after the QEMU launch, before the socat setup,
    and drop `KEYDELAY` to ~0.05.
 2. Better: raise the GRUB timeout in the image so the window is not a race at all.
-3. Or copy the proven approach from `~/sp-plus-iso/sboot.sh`, which drives a
+3. Or copy the proven approach from `~/work/sp-plus/iso/sboot.sh`, which drives a
    `system_reset` first so the countdown start is known.
 
-`sboot.sh` and `gboot.sh` in `~/sp-plus-iso/` are the versions that actually worked on
+`sboot.sh` and `gboot.sh` in `~/work/sp-plus/iso/` are the versions that actually worked on
 cycle6 — they are hardcoded to `cycle6` but they are correct. Steal from them.
 
 **GRUB editor facts, learned the hard way:** `end` alone selects *UEFI Firmware
@@ -358,9 +358,9 @@ the SELinux denial loop. But it is now the top blocker.
 ## E. CURRENT ARTIFACT STATE
 
 - ISO under test: `6a593d7082614e561dd5ce8ea8f13b22acf331497f348e6b6172a9200f2aa0db`
-- `~/sp-plus-iso/cycle7/disk.qcow2` — installed system, **currently booted and running**,
+- `~/work/sp-plus/iso/cycle7/disk.qcow2` — installed system, **currently booted and running**,
   sitting at a login prompt. `bserial.log` is 121,960 bytes of real evidence. **Keep it.**
-- `~/sp-plus-iso/cycle6/` — the original DN-15/DN-16 proof. `reap.sh`'s 12-hour hold
+- `~/work/sp-plus/iso/cycle6/` — the original DN-15/DN-16 proof. `reap.sh`'s 12-hour hold
   expires tonight; copy it aside if you still want it.
 - The `spb-*` lane is proven end to end: install **and** boot both now run unattended.
 
@@ -387,10 +387,10 @@ the SELinux denial loop. But it is now the top blocker.
 about this project dies with my context. The only thing that survives is what you
 write down.
 
-**`~/SP-PLUS-STATE.md` is the baton.** After **every** cycle:
+**`~/archive/2026-08-sp-plus-state/SP-PLUS-STATE.md` is the baton.** After **every** cycle:
 
 ```bash
-~/sp-plus-bee/spb-state          # regenerates the machine-truth half automatically
+~/work/sp-plus/bee/spb-state          # regenerates the machine-truth half automatically
 # then EDIT the narrative half by hand — it is the half that has the value
 cd ~/work/secureprospective-advisor-os && git add -A && git commit -m "state: <what changed>"
 ```
@@ -416,8 +416,8 @@ back to said process or file, it must be cleaned up. The token burn is worth the
 prevention of slop."*
 
 ```bash
-~/sp-plus-bee/spb-hygiene            # report
-~/sp-plus-bee/spb-hygiene --apply    # reclaim (12h evidence hold via reap.sh)
+~/work/sp-plus/bee/spb-hygiene            # report
+~/work/sp-plus/bee/spb-hygiene --apply    # reclaim (12h evidence hold via reap.sh)
 ```
 
 Run it at the **start of a work block**, after **every completed cycle**, and before
@@ -435,7 +435,7 @@ small and answer closed questions — they can go.
 
 ## 12.4 Cadence
 
-1. **Start of block:** `spb-hygiene`, read `~/SP-PLUS-STATE.md`, `git pull` is not
+1. **Start of block:** `spb-hygiene`, read `~/archive/2026-08-sp-plus-state/SP-PLUS-STATE.md`, `git pull` is not
    needed (local-only repo) but check `git status` is clean.
 2. **Each experiment:** one hypothesis, one instrument, one result. If you are about to
    run the same experiment a third time with a different variable, **stop and build an
@@ -506,11 +506,11 @@ I checked it: **it has the same gaps.** Do not assume it is the good one.
 ## 13.2 The package gate
 
 ```bash
-~/sp-plus-bee/spb-packages image [<ref>]   # fast, against the container. Run BEFORE building an ISO.
-~/sp-plus-bee/spb-packages live            # against the booted guest, after spb-boot + login
+~/work/sp-plus/bee/spb-packages image [<ref>]   # fast, against the container. Run BEFORE building an ISO.
+~/work/sp-plus/bee/spb-packages live            # against the booted guest, after spb-boot + login
 ```
 
-Manifest at `~/sp-plus-bee/spb-manifest`, one line per item as `TYPE|NAME|WHY`, types
+Manifest at `~/work/sp-plus/bee/spb-manifest`, one line per item as `TYPE|NAME|WHY`, types
 `rpm`, `path`, `unit`, `user`. **Add a line whenever the product gains a component** —
 the manifest is the definition of "SP+ is complete", and a component nobody tests is a
 component that will be missing on stage. Exit 0 only when every item passes.
@@ -521,7 +521,7 @@ before you spend fifteen minutes building an ISO you already know is empty.
 ## 13.3 THE LOOP IS NOW SIX STEPS, NOT FOUR
 
 ```bash
-cd ~/sp-plus-bee && export CYCLE=cycle8
+cd ~/work/sp-plus/bee && export CYCLE=cycle8
 ./spb-hygiene                    # 0. RAM/disk before you start
 ./spb-packages image             # 1. IS THE SOFTWARE EVEN IN THE IMAGE?  <-- NEW, do this first
 ./spb-build                      # 2. rebuild, ~15 min
@@ -630,7 +630,7 @@ half the desktop with it. Overwrite the files that are visible.
 
 ## 14.2 DN-20 — there is no application suite
 
-New gate: `spb-apps [image|live]` against `~/sp-plus-bee/spb-appmanifest`.
+New gate: `spb-apps [image|live]` against `~/work/sp-plus/bee/spb-appmanifest`.
 Today: **14 pass, 27 fail.** Missing entirely: Brave, LibreOffice, Thunderbird,
 KeePassXC, Kate, KCalc, Okular, Ark, system-config-printer.
 
@@ -656,7 +656,7 @@ Plus, on a live system: **coredumps** (`coredumpctl`) and **failed units**. That
 ## 14.3 THE LOOP IS NOW EIGHT GATES
 
 ```bash
-cd ~/sp-plus-bee && export CYCLE=cycle8
+cd ~/work/sp-plus/bee && export CYCLE=cycle8
 ./spb-hygiene                    # RAM/disk
 ./spb-packages image             # is the SP+ software in the image?
 ./spb-branding image             # any Fedora logo left?   (also: ... image localhost/sp-plus-installer)

@@ -226,6 +226,6 @@ In `projects/sp-plus/docs/`:
 
 Elsewhere: `~/MOVED.md` and `~/archive/MANIFEST.md` carry the move entries;
 `~/.pi/agent/memory/project_sp_plus.md` and `~/.pi/agent/backbone/context.md` carry Bee's
-copy of the same conclusions; `~/briefs/sp-plus-build-brief.md` is the renamed baseline;
+copy of the same conclusions; `~/fleet/briefs/sp-plus-build-brief.md` is the renamed baseline;
 `~/run-bee-spplus.sh` and `~/.pi/agent/spplus-brief-A.md` are the reusable parallel-research
 harness.

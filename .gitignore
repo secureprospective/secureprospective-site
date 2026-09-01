@@ -34,7 +34,7 @@ pnpm-debug.log*
 # shipped PNG deliverables. Everything below is large and regenerable, so it stays local.
 #   hdri/       - CC0 Poly Haven environment maps (~95MB), re-downloadable by name; the
 #                 HDRI actually used is recorded in grafix/render/ROUND4-PLUS-SHADING.md
-#                 and the round-2 brief (~/tom/silver-hdri-tom.md).
+#                 and the round-2 brief (~/fleet/tom/silver-hdri-tom.md).
 #   *-scratch/  - sweep/comparison frames from picking a parameter (~105MB). The chosen
 #                 value is committed in the build script; the frames that lost are not.
 grafix/hdri/
