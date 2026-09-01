@@ -1184,6 +1184,10 @@ RUN printf '%s\n' \
  && test -x /usr/bin/spplus-welcome \
  && test -f /usr/libexec/sp-plus/welcome/app/index.html \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
+ && grep -q 'function searchHelp' /usr/libexec/sp-plus/welcome/app/app.js \
+ && grep -q 'ask-feedback\[hidden\]' /usr/libexec/sp-plus/welcome/app/app.css \
+ && python3 -c "import json,sys; d=json.load(open('/usr/libexec/sp-plus/welcome/app/help-data.json')); sys.exit(0 if len(d)>=17 and all(x.get('title') and x.get('markdown') for x in d) else 1)" \
+ && echo "WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact" \
  && test -s /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md \
  && for preview in windows-light.png windows-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \
       test -s "/usr/libexec/sp-plus/welcome/app/assets/theme-previews/$preview"; \
