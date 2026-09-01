@@ -352,3 +352,62 @@ body.service-panel-open{overflow:hidden}
   .service-panel-footer{grid-template-columns:1fr;gap:7px}
   .service-panel-link{width:100%}
 }
+
+/* Welcome design pass: the card is the readiness signal. The status row is
+   reserved for a degraded response, where its recovery copy earns the space. */
+.service-status[data-kind="pending"],
+.service-status[data-kind="ready"],
+.service-status[data-kind="provisioning"]{display:none}
+.service-status[data-kind="unavailable"]{display:grid}
+.service-status[data-kind="pending"] .secondary-action,
+.service-status[data-kind="ready"] .secondary-action,
+.service-status[data-kind="provisioning"] .secondary-action{display:none}
+.service-card-trigger[data-state="unavailable"] .service-card-top b{display:none}
+
+@media (min-width:901px){
+  /* Give the folder boundary the reclaimed height. The services remain the
+     first read, while the distinction that prevents misfiling gets a real
+     teaching surface instead of a footer strip. */
+  .services-content{grid-template-rows:minmax(210px,.7fr) minmax(180px,1fr);gap:10px}
+  .service-card-trigger{padding:14px}
+  .service-card-title{margin-top:clamp(18px,2.5vh,28px)}
+  .service-card-description{margin-top:10px;font-size:11px;line-height:1.3}
+  .service-card-action{padding-top:8px;font-size:9px}
+  .services-folders{grid-template-columns:minmax(0,1.2fr) minmax(230px,.8fr);grid-template-rows:auto minmax(0,1fr) auto;column-gap:18px;row-gap:8px;padding:12px 14px}
+  .services-folders .lane-title{padding-bottom:8px}
+  .folder-diagram{grid-column:1;grid-row:2 / span 2;align-self:stretch;height:auto;min-height:0;margin:0;grid-template-columns:minmax(0,1fr) 25px minmax(0,1.25fr);gap:6px}
+  .folder-node{gap:8px;padding:12px}
+  .folder-node span{font-size:clamp(14px,1.45vw,22px);line-height:.9}
+  .folder-node strong{font-size:10px;line-height:1.2}
+  .folder-caption{grid-column:2;grid-row:2;align-self:center;font-size:11px;line-height:1.3}
+  .service-password-note{grid-column:2;grid-row:3;align-self:end;padding-top:8px;font-size:10px;line-height:1.25}
+
+  /* The panel's footer owns the action. Its notes are content-sized so the
+     caveat cannot impersonate the primary task. */
+  .service-panel-card{width:82vw;height:64vh;max-height:520px}
+  .service-panel-main{padding:16px 18px}
+  .service-panel-view{align-items:start;gap:16px}
+  .service-panel-view--files{grid-template-columns:minmax(0,1.35fr) minmax(220px,.65fr)}
+  .service-panel-view--social{grid-template-columns:minmax(0,1.45fr) minmax(210px,.55fr)}
+  .service-panel-note{align-self:start;justify-content:flex-start;padding:16px}
+  .service-panel-note h3{margin-top:8px;font-size:clamp(24px,2.4vw,34px)}
+  .service-panel-note p{margin-top:9px;font-size:11px;line-height:1.35}
+  .service-panel-lede>p{font-size:13px}
+  .service-feature-list{margin-top:16px}
+  .service-feature-list li{padding:9px 0}
+  .platform-info-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .platform-info--live{grid-column:1 / -1;min-height:39px}
+  .platform-info--live strong{font-size:11px}
+  .social-expectations{background:var(--white);box-shadow:var(--hard);border-top:2px solid var(--blue)}
+  .social-expectations>span{color:var(--blue);font-size:9px}
+  .social-expectations h3{color:var(--ink);font-size:clamp(22px,2.2vw,31px)}
+  .social-expectations p{color:var(--fine);font-size:11px;line-height:1.3}
+}
+
+/* Make the panel type rhythm explicit. Browser h3 margins were adding a
+   viewport-sized gap before the status list and making the live state compete
+   with the footer. */
+@media (min-width:901px){
+  .service-panel-lede>h3{margin:14px 0 0}
+  .service-panel-note h3{margin:8px 0 0}
+}

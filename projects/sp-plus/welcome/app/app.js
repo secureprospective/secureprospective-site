@@ -125,7 +125,7 @@
         : 'Open the card for the declared platform status and the service link.';
     } else if (stateName === 'provisioning') {
       if (title) title.textContent = 'SETTING UP THE SERVICE...';
-      if (detail) detail.textContent = 'Setup is still in flight. Choose Retry when you want to check again.';
+      if (detail) detail.textContent = 'Setup is still in flight. Check again later.';
     } else if (payload && payload.failure === 'network') {
       if (title) title.textContent = "WE'LL SET THIS UP ONCE YOU'RE ONLINE.";
       if (detail) detail.textContent = 'Connect to the internet, then choose Retry. No sign-in was requested.';
