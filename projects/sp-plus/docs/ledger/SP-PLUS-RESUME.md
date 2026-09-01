@@ -1,175 +1,153 @@
-# SP+ RESUME — 2026-08-31 ~21:40 CDT
+# SP+ RESUME — written 2026-09-01 ~06:40, mid-session
 
 ## 1. WHAT WE ARE DOING
 
-Finishing the SP+ Welcome app to a state Christopher can install and test by hand,
-then cutting an ISO. In parallel, doubling the in-app advisor manual from 17 to ~34
-articles. He said tonight: "This time make sure we get a finished product on the
-Welcome app... Triple check before calling it finished, theres no room for average."
+Finish the SP+ Welcome app to a standard that can be stood behind, then ship an
+ISO. The app work is DONE and an ISO is delivered. The remaining thread is the
+in-app manual: GPT is writing it and the corpus can be regenerated and a second
+ISO built once it stops.
 
-Repo: `~/work/secureprospective-advisor-os` (a git WORKTREE — never cd to the
-original checkout). Branch `session/sp-plus-plan`. Project: `projects/sp-plus`.
-SP+ VM: `ssh -p 2222 test@127.0.0.1` (libvirt guest `fedora-test`).
+Repo: `/home/chris/work/secureprospective-advisor-os` (a worktree; do NOT cd to the
+original checkout). Branch `session/sp-plus-plan`. Project dir
+`projects/sp-plus`.
+
+Test VM: `ssh -p 2222 test@127.0.0.1` — **CONFIRMED ALIVE at 06:40**. Christopher
+said he might kill it to install the new ISO; if it is gone, gates that need a
+running desktop cannot run and the Dell is the fallback.
 
 ## 2. AGENTS + HARNESSES
 
-- **Bee** = `~/fleet/bin/run-bee-spplus-impl.sh <fid>`, runs `pi` on
-  `gpt-5.6-luna`, thinking max. Brief must be at `~/.pi/agent/spplus-brief-<fid>.md`.
-  Dispatch detached: `systemd-run --user --unit=bee-<name> --property=Type=oneshot`.
-  Runner writes `~/.pi/agent/spplus-<fid>.sentinel` on exit REGARDLESS of what the
-  agent does — **chain on that, not on an agent-authored file.**
-- **GPT (sol, max thinking)** — Christopher is running it himself on the manual.
-  Prompt: `~/fleet/briefs/PROMPT-gpt-sp-plus-manual.md` (also committed at
-  `projects/sp-plus/docs/PROMPT-manual-writing.md`).
-  Steering: `~/fleet/briefs/STEERING-gpt-stay-clear-of-bee.md`.
-- Briefs live in `~/fleet/briefs/`, run output in `~/fleet/runs/`.
+**GPT (Christopher's, not mine)** is writing the manual, one verified article per
+commit, updating `docs/HELP-CORPUS-LEDGER.md` in the same commit. It is racing a
+**five-hour usage cooldown** that was at 18% remaining around 06:35. Christopher's
+instruction: *let it finish, do not interfere.* Do not touch `knowledge/`, the
+ledger, or hold the git index for long.
 
-## 3. IN-FLIGHT WORK (most perishable)
+**Bee is finished.** Its run ended `EXIT=124` (timeout), commit `24d9b5c`, no
+report written. Its work has already been reviewed and merged — see §6. Do not
+re-dispatch it for this work.
 
-**A. `bee-welcome-finish` — RUNNING.** Started ~21:14, elapsed ~22 min at write
-time, timeout 7800s.
-- Brief: `~/fleet/briefs/spplus-welcome-finish.md` (6,489 b).
-- Alive check: `systemctl --user show bee-welcome-finish.service -p ActiveState --value`
-  (**"activating" IS alive** for Type=oneshot; `is-active` exits 3 — compare the
-  STRING, never the exit code).
-- Verified genuinely driving the VM: repo synced to `/home/test/work/...`, and a
-  Welcome instance running there (`welcome/welcome.py --force --screen 1`).
-- Output: `~/.pi/agent/spplus-welcome-finish.{out,err,sentinel}`;
-  report at `~/fleet/runs/REPORT-welcome-finish.md` + `.DONE`.
-- On completion: **read the diff first**, then look at all eight screens' after-shots
-  MYSELF. Do not accept the gate summary.
+Bee's runner is `~/fleet/bin/run-bee-spplus-impl.sh`; briefs in `~/.pi/agent/`;
+sentinels `~/.pi/agent/spplus-<id>.sentinel`.
 
-**B. GPT on the manual — RUNNING**, driven by Christopher, not by me. Works only in
-`knowledge/` and `docs/HELP-CORPUS-LEDGER.md`. G1/G2/G3 are DEFERRED by the steering
-prompt because they touch `app.js`.
+## 3. IN-FLIGHT RIGHT NOW
 
-**C. The SP+ VM is up and its sleep targets are masked.** It suspended earlier
-mid-run and cost a whole pass; `sleep.target suspend.target hibernate.target
-hybrid-sleep.target` are now masked and KDE idle timers zeroed.
+- **Background task `b6emzaxxj`** — polls the ledger every 2 min, fires when
+  TODO+DRAFTED <= 3, else gives up after ~64 min. Output:
+  `/tmp/claude-1000/-home-chris/33018ca6-b1dc-4bd0-8aa4-38a969ed6dae/tasks/b6emzaxxj.output`.
+  It only reads a file; killing it costs nothing.
+- **QEMU `fedora-test`** (pid 1319034) — the test VM. Christopher's to kill.
+- Nothing else. Podman is idle; the ISO build finished at 06:16.
 
-**D. Queued, NOT dispatched** (both edit `app.js`; must run one at a time, after A):
-- `~/fleet/briefs/spplus-welcome-help-links.md` → fid `welcome-help-links`
-- `~/fleet/briefs/spplus-welcome-help-search.md` → fid `welcome-help-search`
-- `~/fleet/briefs/spplus-welcome-consolidate-code.md` → fid `welcome-consolidate-code`
-  (the slimming/snappier pass; baseline 3,045 lines across the four files)
+## 4. ARTIFACTS THAT EXIST AND WORK
 
-## 4. ARTIFACTS THAT EXIST
+- **`~/Downloads/sp-plus-2026-09-01-0616.iso`, 5,498,066,944 bytes.** Verified
+  `cmp`-identical to the build output and reported bootable by `file`. Built from a
+  clean detached worktree at `a2e50ee`. Its build printed
+  `WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact`.
+  **This is the ISO to test with.**
+- Build worktree `/home/chris/work/sp-plus-build`, detached at `a2e50ee`, still
+  holds the 5.2G ISO (root-owned; `sudo -n` only permits podman, so it cannot be
+  deleted from here — harmless, the next build overwrites it).
+- **DO NOT TEST** `~/Downloads/sp-plus-2026-08-31-1152.iso` — it still carries the
+  broken `:edge` update origin that made the Software Library crash. The two
+  `SP-PLUS-cycle*.iso` files are older still.
 
-- **ISO, built 20:56 tonight, HELD not delivered:**
-  `projects/sp-plus/artifacts/spikeB-rootful/out/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
-  5,498,103,808 bytes. Payload image `localhost/sp-plus-kde:spike` id `c69d0eef8c26`.
-  **Verified inside the image**: `helpHome` present in app.js; 0 `href="http` in
-  index.html; warmed copy string present; close-gate fix present; installer bakes
-  `--target-imgref ghcr.io/secureprospective/sp-plus-kde:latest`.
-  It does NOT contain the finishing pass, help links, or search.
-- **Stale ISO in ~/Downloads: `sp-plus-2026-08-31-1152.iso` — DO NOT TEST WITH IT.**
-  Built 11:52, predates all of tonight's work, still points at the broken `:edge`.
-- Build: `~/fleet/bin/sp-plus-iso-build.sh` (rootful, DN-06). Logs
-  `~/logs/iso-build-2035.log` (failed at 115) and `~/logs/iso-build-2110.log` (good).
+## 5. GATES
 
-## 5. THE CURRENT STATE — no open bug
+| Gate | Where it runs | State |
+|---|---|---|
+| `welcome-layout-gate.sh` | VM | PASS on 17-corpus; **NOT re-run on the 34-corpus** |
+| `welcome-help-search-gate.sh` | VM | PASS on 17-corpus; **NOT re-run on the 34-corpus** |
+| `welcome-help-corpus-gate.sh` | VM | PASS on the 34-article corpus, all 34 open and read |
+| `service-link-gate.sh` | VM | PASS |
+| `welcome-close-gate.sh`, `welcome-lifecycle-gate.sh` | VM only | PASS |
+| `config-preflight.sh` | Beelink | 27/28; only failure is "git tree is dirty" from GPT's in-flight edits |
+| stubs / tools / cycle36 / theme-phase2 | Beelink | PASS |
 
-Nothing is broken and unexplained right now. The open question is whether Bee's
-finishing pass actually finishes the app. **Caveat: the last two passes each fixed
-their brief and left the screen still not good** — the design pass moved emptiness
-into the folder diagram, the contrast pass moved it into the service cards. Expect
-to have to look at the screenshots and judge, not to accept a PASS.
+Every gate above was mutation-tested: broken deliberately, seen to fail on the
+right line, restored. Gates run on the VM against `~/sp-plus-welcome-src/welcome`
+(rsync the repo's `welcome/` there first).
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-1. **"sudo is blocked, the ISO can't be built."** FALSE. `/etc/sudoers.d/sp-plus-podman`
-   grants passwordless rootful podman. `sudo -n true` fails because `true` is not in
-   the rule; every command the build actually runs works. Cost real time — do not
-   re-derive.
-2. **"`scripts/build-iso.sh` builds the SP+ ISO."** FALSE — it built `sp-plus:poc`
-   from the root Containerfile with no Welcome in it. DELETED (`ff249cf`). The only
-   path is `~/fleet/bin/sp-plus-iso-build.sh`.
-3. **"The design pass died."** FALSE — it succeeded (`ff2246f`); it wrote its
-   sentinel on the VM while my chain watched the Beelink.
-4. **"`systemctl is-active` non-zero means the job died."** FALSE — exit 3 =
-   "activating", the normal state of a Type=oneshot unit for its entire run.
-5. **"The capability endpoint is missing."** FALSE — `/.well-known/sppl` is live.
-6. **"5.4s service latency."** FALSE — a Beelink cfgate mitmproxy artifact. From the
-   VM it is 0.12–0.38s. **Measure on the target, never here.**
-7. **"`welcome-lifecycle-gate.sh` can't fail."** Already fixed; it handles the
-   `/usr/bin/python3` form. The broken one was `welcome-close-gate.sh` (`774ad2a`).
+- **"The crash dialogs were caused by something Christopher clicked."** No. Bee was
+  launching Welcome over SSH with no display; Qt `qFatal()` aborts, drkonqi shows a
+  crash dialog. 16 aborts, all `could not connect to display`. Fixed twice: a guard
+  in `welcome.py` (verified — unguarded run produced a fresh core dump, guarded run
+  produced none) and `~/.bashrc.d/sp-plus-test-display.sh` on the VM so SSH inherits
+  the session display. That bashrc file is **test-rig only and must never ship**.
+- **"`sudo` is blocked on the Beelink."** No. `/etc/sudoers.d/sp-plus-podman` grants
+  passwordless **podman only**. `sudo -n true` fails, `sudo -n cp` fails, every
+  command the build actually runs works.
+- **"`systemctl is-active` exit 3 means dead."** No — `activating` is normal for a
+  oneshot for its whole run. Compare the state STRING.
+- **"No output means an agent is stalled."** No. Bee wrote only to the VM and ran
+  `pi --no-session`, so there is no transcript and the repo stays quiet. Judge it by
+  fresh screenshot mtimes on the VM.
+- **"The layout gate passing means the screen is fine."** It only proved the resting
+  state until it was extended; search and article-reading states clipped while it
+  said PASS. It now covers 8 screens x 2 sizes + 2 search states + 2 help depths.
+- **`.welcome-screen` is NOT the screen selector** — only screen 0 has it. The real
+  one is `.screen`. Measuring with the wrong selector produced a page with no active
+  screen and meaningless "no overflow" numbers.
+- **The theme helper is `/usr/libexec/spplus-apply-theme THEME_ID (--layout|--no-layout)`.**
+  Passing `1` exits 64 with a usage line and silently changes nothing. Windows id is
+  `org.secureprospective.spplus.windows11.dark`.
+- **`pkill -f '<pattern>'` kills this session's own shell** when the pattern appears
+  in the command being run. It happened twice (exit 144). Kill by PID.
 
-## 7. DECISIONS MADE TONIGHT
+## 7. DECISIONS
 
-- Update origin changed `:edge` → `:latest` because `:edge` was never published
-  (GHCR 404). Reversible in one line if he wants a real edge channel.
-- Help search will be **ONE input**, not two: search first, Fin as fallback, because
-  the screen already has an Ask Fin box with the same placeholder phrasing.
-- Manual = 7 categories proposed, but the trail grid is 3 cols at height:100%, so 7
-  may break no-scroll. Fallback: fold "Your files" into "Everyday work".
-- Manual work is split by category, resumable via `docs/HELP-CORPUS-LEDGER.md`,
-  one article per commit.
-- ISO waits for the finished app (his explicit order), even though one is built.
+- Christopher supplied the test-rig passphrase/login so a restart is not a blocker.
+  It is deliberately NOT written down here.
+- Let GPT finish; do not interfere with its budget or the git index.
+- The manual is 40 ledger rows but only **37 articles** — G1/G2/G3 are
+  infrastructure tasks, and they were implemented in this session, so GPT does not
+  need to do them.
+- The corpus generator MERGES a partial manual rather than refusing it, because GPT
+  routinely stops short against the cooldown.
 
-## 8. LEDGER STATE — all committed, tree clean apart from agents' live edits
+## 8. LEDGER STATE
 
-`1361956` origin fix · `d3abe10` contrast+composition · `774ad2a` close gate ·
-`ff249cf` decoy deleted · `53644e3` WIP copy (UNVERIFIED) · `98200ee` href fix ·
-`2e2aceb` errant button · `d927598` manual plan · `bacd13d` ledger + GPT prompt.
+HEAD `b7574de`. Everything of mine is committed. Deliberately uncommitted:
+`docs/HELP-CORPUS-LEDGER.md` and `knowledge/security/your-encryption-and-recovery-key.md`
+are **GPT's in-flight files — do not touch**; `welcome/app/help-data.json` is a
+regenerated 34-article corpus that will simply be regenerated again.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. **Wait for `bee-welcome-finish`.** On sentinel, read the diff, then LOOK at the
-   eight after-screenshots myself and judge whether the screen reads as trustworthy.
-2. **Read its control audit table.** It was told not to summarise as "all controls
-   work". If it did, reject the pass.
-3. **Verify the two things the WIP copy commit flags:** no-scroll with the longer
-   strings, and whether "Nothing changes until you press Apply" matches the real
-   control label.
-4. **Dispatch `welcome-help-links`**, then `welcome-help-search`. One at a time.
-5. **Then tell GPT that G1/G2/G3 are unblocked**, since app.js is free by then.
-6. **Then rebuild the ISO** and copy it to `~/Downloads` with a dated name.
-7. **Then `welcome-consolidate-code`** (the slimming pass) while he tests.
+1. **Wait for `b6emzaxxj`** or for Christopher to say GPT has stopped. Do not poll
+   GPT and do not run anything that competes for its budget.
+2. **Regenerate the corpus:** `python3 scripts/build-help-data.py` from
+   `projects/sp-plus`. It merges, so a partial manual is fine. Read its summary.
+3. **Re-run the three VM gates against the new corpus** — corpus, layout, search —
+   after `rsync -a welcome/ test@127.0.0.1:~/sp-plus-welcome-src/welcome/` (port
+   2222). The corpus gate has passed on 34 articles; layout and search have NOT.
+4. **Commit the corpus** once those pass.
+5. **Rebuild the ISO** from a clean worktree:
+   `git -C /home/chris/work/sp-plus-build checkout --detach <HEAD>` then
+   `SPPLUS_REPO=/home/chris/work/sp-plus-build bash ~/fleet/bin/sp-plus-iso-build.sh`.
+   Copy to `~/Downloads/sp-plus-2026-09-01-<HHMM>.iso` with plain `cp` (the file is
+   world-readable; sudo is not available for cp) and verify with `cmp`.
+6. **Tell Christopher which ISO to use** and that the older ones must not be tested.
 
-## 10. ENVIRONMENT NOTES
+## 10. ENVIRONMENT
 
-- Beelink is his LIVE DESKTOP. **Never launch a GUI here.** All SP+ execution and
-  verification runs on the VM or the Dell.
-- Before any image build, run the Welcome gate against the working tree first — the
-  18-check loop that caught the `href` defect. Finding it at Containerfile STEP 115
-  costs ten minutes.
-- Two agents share this checkout. Never `git add -A`, never `git stash` (stack is
-  shared machine-wide).
-- CT105/Claudebox is DOWN until Thursday night; I am headbrain. The MACHINE is still
-  reachable over SSH for the resume copy.
+- VM: `ssh -p 2222 test@127.0.0.1`, user `test`, repo at
+  `/var/home/test/work/secureprospective-advisor-os/projects/sp-plus`, my gate copy
+  at `~/sp-plus-welcome-src/welcome`.
+- Gates need `QT_QPA_PLATFORM=offscreen`; PySide6 is on the VM, **not** on the
+  Beelink, so gates cannot run here.
+- Never launch a GUI on the Beelink.
+- Build script honours `SPPLUS_REPO` (added this session).
 
 ## 11. HONEST STATUS
 
-The Welcome app is **not finished and not verified**. Composition has been through
-two passes and still is not good. The copy is warmer but unproven. The help screen
-has 69 broken cross-references and no search. The manual is 17 of ~34 articles.
-
-What IS solid: the Software Library crash is genuinely fixed and verified inside a
-built image; the errant button is fixed; the close gate can now fail; and an
-installable ISO exists if he wants it tonight.
-
-Nothing here should be reported as done. Bee's pass is unread.
-
-## ADDENDUM 2026-08-31 21:17 — how to tell Bee is alive
-
-Bee runs `pi` with `--no-session`, so **there is no session transcript** and the
-generic "poll the transcript mtime" check does not apply. Absence of a JSONL under
-`~/.pi/agent` is normal, not death.
-
-The brief also confines all work to the VM (`ssh -p 2222 test@127.0.0.1`), so **no
-files move in the repo on the Beelink while Bee works**. A quiet worktree is normal
-too. Judging either of these as a stall is the mistake that produced a false death
-call earlier in this session.
-
-The three checks that actually mean something:
-
-1. `systemctl --user show bee-welcome-finish --property=ActiveState` — `activating`
-   is alive for a `Type=oneshot` unit. Never use the exit code of `is-active`; it
-   returns 3 while the unit runs normally.
-2. `ps -o time= -p <pi pid>` plus `ss -tnp | grep pid=<pi pid>` — accumulating CPU
-   and an ESTABLISHED :443 connection mean it is still talking to the model.
-3. `ssh -p 2222 test@127.0.0.1 'ls -lt ~/*.png | head'` — **the real progress
-   signal.** Fresh screenshot mtimes on the VM are Bee's actual output.
-
-Observed at 21:17: unit `activating` (26 min), pi at 28s CPU / 275 MB RSS with a live
-TLS connection, and 44 screenshots on the VM with the newest written that minute.
+The app is finished and the ISO is delivered and verified. What is genuinely
+unproven: the app has never been run on the **Dell**, which is the slow rig where
+races and load times actually show — everything here is VM and offscreen evidence.
+The **34-article corpus has passed only the corpus gate**; layout and search were
+not re-run against it, so it is not yet fit to ship. GPT had 9 articles left with
+roughly 50 minutes of cooldown remaining, which is borderline; if it stops short
+the merge keeps whatever it finished and loses nothing.
