@@ -1663,6 +1663,20 @@ def main():
     parser.add_argument('--self-test-close', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--help-depth', type=int, choices=(1, 2), default=0, help='capture Everyday work or its LibreOffice article')
     args = parser.parse_args()
+    # Qt calls qFatal() when it cannot open a display, which aborts the process
+    # and leaves a core dump behind. On a KDE desktop that abort is caught by
+    # drkonqi, so a Welcome launched with no display puts a "closed unexpectedly"
+    # crash dialog in front of whoever is sitting at the machine -- an advisor
+    # who did nothing wrong, and who reads it as this product being broken.
+    # There is nothing exceptional about running with no display, so it is
+    # reported as the ordinary condition it is and exits without a crash.
+    if not os.environ.get('QT_QPA_PLATFORM'):
+        if not (os.environ.get('WAYLAND_DISPLAY') or os.environ.get('DISPLAY')):
+            print('SP+ Welcome needs a desktop session to open, and there is no '
+                  'display available here. Sign in at the desktop and start '
+                  'Welcome from there. Nothing is wrong with your computer.',
+                  file=sys.stderr)
+            return 1
     app = QApplication(sys.argv)
     app.setApplicationName('SP+ Welcome')
     # The self-test is a QC harness, not a second copy of the app for the
