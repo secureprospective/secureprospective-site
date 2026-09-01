@@ -23,7 +23,7 @@ Evidence column.
 | ID | Article | File | Status | Evidence |
 |---|---|---|---|---|
 | F1 | Where your files live | knowledge/files/where-your-files-live.md | VERIFIED | verified: live VM XDG Documents and Downloads, home resolves under encrypted /var, Documents/Fin exists, Dolphin installed; no sync/backup clients or units. Image skel Documents/Fin plus Fin workspace extension confines saves there; same sync/backup-client absence. |
-| F2 | The file portal | knowledge/files/the-file-portal.md | TODO | |
+| F2 | The file portal | knowledge/files/the-file-portal.md | VERIFIED | verified: image localhost/sp-plus-kde:spike has File Portal capability check and browser launch, Private/Shared copy, and separate portal-password guidance; public portal returns HTTP 200 and ready capability JSON. Drift: current running VM has older Welcome code with no File Portal service. |
 | F3 | Private and Shared: the rule that stops misfiling | knowledge/files/private-and-shared.md | TODO | |
 | F4 | USB drives and external storage | knowledge/files/usb-and-external-drives.md | TODO | |
 | F5 | Backups: what is protected and what is not | knowledge/files/backups.md | TODO | |
