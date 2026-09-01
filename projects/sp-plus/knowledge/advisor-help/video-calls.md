@@ -1,6 +1,6 @@
 # Video calls, camera and microphone
 
-SP+ includes the browser and audio-video services needed for browser-based calls, but it does not ship a separate Zoom, Teams, or similar call app. Use the meeting service your practice already uses in **Brave**. A successful call still depends on the camera, microphone, headset, and service account available to you.
+SP+ includes the browser and audio-video services needed for browser-based calls. **Zoom** is an SP+ base app that is set up when the computer can reach its app source, so check Applications to see whether it is ready. Other meeting services normally run in **Brave**. A successful call still depends on the camera, microphone, headset, and service account available to you.
 
 ## Before the call starts
 
@@ -30,7 +30,7 @@ Do not give Fin meeting links, client names, account information, or a recording
 
 ## If the call needs an app or screen sharing
 
-Some practices use a dedicated call app or need a particular screen-sharing setup. SP+ does not include a dedicated call app in the verified starting image. Do not download one from a search result or accept an unexpected browser prompt. Ask Fin: **"Fin, my practice needs [service] for video calls. Explain the approved next step before installing or allowing anything."**
+Some practices use a dedicated call app or need a particular screen-sharing setup. Check Applications for Zoom before looking elsewhere. For another service, do not download an app from a search result or accept an unexpected browser prompt. Ask Fin: **"Fin, my practice needs [service] for video calls. Explain the approved next step before installing or allowing anything."**
 
 ## Related pages
 
