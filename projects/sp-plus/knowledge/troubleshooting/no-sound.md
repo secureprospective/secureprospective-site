@@ -1,46 +1,40 @@
-# No Sound
+# No sound
 
-Work top to bottom. One of these fixes it.
+Start with the small checks before changing settings. Sound can be coming from the wrong place, muted in the app you are using, or blocked by a headset, monitor, or meeting service. You do not need to download a driver to try these steps.
 
-## 1. Check the obvious suspects first
+## Check the physical sound path
 
-- **Mute key or volume down**: press the volume-up key several times. Keyboards mute more often than people notice.
-- **Physical mute switch**: some headsets and many laptops have one.
-- **Browser tab muted**: right-click the browser tab and check whether it is muted. A tiny speaker-slash icon on the tab is the tell.
-- **Headphones plugged in?** Sound routing follows the last device plugged in. Unplug them if you want laptop speakers, plug them in firmly if you do not.
+Make sure speakers are powered if they have their own power switch. Check a headset cable is seated, the headset is charged if wireless, and any physical mute button is off. If you expected laptop speakers, unplug headphones or a dock once and see whether the sound returns.
 
-## 2. Point the sound at the right place
+Use the volume keys or the volume icon near the clock to make sure the computer is not muted and the volume is high enough to hear. Do this while a harmless sound is playing, such as a meeting service's test sound, so you can tell immediately whether the change helped.
 
-The computer can only send audio to one destination at a time, and it sometimes guesses wrong:
+## Choose where sound should come from
 
-1. Click the **volume/sound control** near the clock.
-2. Look for the **output device** selector.
-3. Pick where you actually want the sound: laptop speakers, headphones, monitor (if connected by HDMI), dock.
+Click the volume icon near the clock and look for the current sound device. Choose the speakers, headphones, monitor, or dock you actually intend to use. A monitor connected by HDMI, a docking station, or a headset can become the selected sound device even when you are no longer using it.
 
-Play something (any video) while you switch between devices. You will hear it the moment you pick correctly. This one selector fixes a surprising share of "my sound died" cases, especially after docking stations, HDMI monitors, and Bluetooth headphones have been used: the computer remembers old devices and waits for them.
+After choosing a device, play one short, non-sensitive sound again. If it works, leave the selection alone. If it does not, do not cycle through every unfamiliar device name. Note the name of the one you expected and ask Fin.
 
-## 3. Video calls have their own settings
+## Check the app that is silent
 
-Zoom, Meet, and Teams each keep separate microphone and speaker choices that override system defaults:
+A browser tab, video-call service, or media app can have its own mute and device settings. If sound works elsewhere but not in one app, open that app's audio or meeting settings and choose the same speaker or headset you selected for the computer.
 
-1. Open the call app's own settings/audio page.
-2. Confirm its speaker and microphone match reality.
-3. Use the app's built-in test button ("test speaker", "test mic") rather than trusting the dropdown names.
+For a call, check both sides: the computer's output selection and the meeting service's speaker setting. If only other people cannot hear you, also check the microphone selection and any physical microphone mute button.
 
-Bluetooth headsets add one wrinkle: they often have two modes, high-quality listening and lower-quality calling. If your voice sounds terrible to others on calls but fine elsewhere, re-pairing the headset usually resets it. See [Bluetooth devices](bluetooth-devices.md).
+## When no device is listed or sound stays silent
 
-## 4. Microphone specifically not working?
+Do not install a driver, browser extension, or Windows `.exe` file because a sound prompt suggested it. SP+ already includes its audio service and volume controls. If no expected speaker, headset, or microphone appears, reconnect that device once and ask Fin what the computer can see.
 
-- Check whether the mic itself has a physical mute (many headset cables do).
-- In the sound settings, confirm the correct input device is selected; webcams and headsets both contain microphones, and switching devices swaps inputs silently.
-- Video-call apps also have per-app input selection (see step 3).
+Use a prompt such as: **"Fin, I have no sound from [speakers/headset/monitor]. Check the audio devices and current selection first, then tell me what you found."** For a call: **"Fin, nobody can hear me on a video call. Check the microphone and permissions before changing anything."**
 
-## 5. When to hand it to the Assistant
+Fin is set up to check whether a microphone or camera exists, is muted or disabled, is selected correctly, and is permitted for the meeting app. It can offer a short test recording before the next call.
 
-If output selectors look right and silence persists across a restart, ask the Assistant: "no sound from any app". It can see which audio components are running and explain what is off.
+## Keep the test private
+
+Use a test sound, a meeting preview, or a non-sensitive video to check audio. Do not play a client voicemail, meeting recording, or private message just to prove that speakers work. Do not give Fin a recording, client name, or account information to diagnose a device problem.
 
 ## Related pages
 
+- [Video calls, camera and microphone](../advisor-help/video-calls.md)
 - [Bluetooth devices](bluetooth-devices.md)
-- [Second monitor](second-monitor.md)
-- [Getting more help](../advisor-help/getting-more-help.md)
+- [Second monitor problems](second-monitor.md)
+- [Fin the assistant](../advisor-help/asking-the-assistant.md)
