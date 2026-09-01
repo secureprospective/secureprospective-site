@@ -495,3 +495,11 @@ body.service-panel-open{overflow:hidden}
 .trail-grid--compact .trail-card{min-height:0;padding:8px 9px}
 .trail-grid--compact .trail-card b{font-size:11px}
 .trail-grid--compact .trail-card small{margin-top:4px;font-size:9px}
+
+/* The map showed two of the four places the copy names, and left a third of the
+   panel as empty blue -- which reads as a diagram someone abandoned. The
+   Applications window completes the sentence above it and gives the illustration
+   a settled composition instead of two boxes adrift. */
+.map-apps{width:62%;margin-left:8%}
+.desktop-map{display:grid;align-content:start;gap:16px}
+.map-fin{margin:6px 0 0 auto}
