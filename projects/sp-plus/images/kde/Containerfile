@@ -982,7 +982,11 @@ RUN set -eux; \
     . /usr/lib/os-release; \
     [ "$VERSION_ID" != "$rel" ] || { echo "RELEASEVER GATE FAIL: VERSION_ID already equals the base release; this override would be dead code" >&2; exit 1; }; \
     dnf -q --refresh repoquery --qf '%{name}' bash >/dev/null; \
-    echo "RELEASEVER_GATE_OK \$releasever pinned to Fedora $rel, not SP+ $VERSION_ID"
+    echo "RELEASEVER_GATE_OK \$releasever pinned to Fedora $rel, not SP+ $VERSION_ID"; \
+    dnf clean all   # the --refresh above leaves a 149 MB metadata cache. It was
+                    # cleaned four layers later, which is four layers too late:
+                    # the bytes are already committed to this layer and ship in
+                    # the payload. Measured 2026-09-02 at ~8.2s of install time.
 
 # The SP+ mark, under the name LOGO= points at, plus every visible Fedora logo
 # surface. The surfaces are ENUMERATED from the rpm database, not guessed:
