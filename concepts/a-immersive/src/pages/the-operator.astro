@@ -7,90 +7,207 @@ import '../styles/pages/the-operator.css';
 
 <Layout title="The Operator: Christopher Campbell" description="Technology, construction, and insurance formed the operating discipline behind SecureProspective.">
   <Nav />
-  <main transition:name="page-card">
-    <section class="record-hero">
-      <div class="record-hero-grid shell">
-        <div class="record-hero-index"><span>FILE // OPERATOR</span><span>C. CAMPBELL</span></div>
-        <div class="record-hero-copy">
-          <h1>Built inside the work.</h1>
-          <p>
-            Christopher Campbell did not leave operating responsibility behind to become a consultant.
-            SecureProspective is being built from inside the business he still has to run.
-          </p>
+  <main id="main" class="operator-page" transition:name="page-card">
+    <section class="operator-hero" aria-labelledby="operator-title">
+      <div class="operator-hero-grid shell">
+        <aside class="operator-hero-rail" aria-label="Operator file">
+          <div class="operator-rail-top">
+            <span>FILE // OPERATOR</span>
+            <span>STATE // ACTIVE</span>
+          </div>
+          <div class="operator-rail-mark" aria-hidden="true">
+            <span>03</span>
+            <i></i>
+          </div>
+          <div class="operator-rail-bottom">
+            <span>C. CAMPBELL</span>
+            <span>INSIDE THE WORK</span>
+          </div>
+        </aside>
+
+        <div class="operator-hero-main">
+          <div class="operator-hero-copy">
+            <h1 id="operator-title">Built inside<br /><span>the work.</span></h1>
+            <p>
+              Christopher Campbell did not leave operating responsibility behind to become a consultant.
+              SecureProspective is being built from inside the business he still has to run.
+            </p>
+            <a class="operator-hero-link" href="#operator-careers">Trace the operating spine <span aria-hidden="true">↓</span></a>
+          </div>
+
+          <aside class="operator-hero-condition">
+            <span>OPERATING RESPONSIBILITY</span>
+            <strong>Still in the room.</strong>
+            <p>Technology, construction, and insurance do not sit behind the method. They feed it.</p>
+          </aside>
+
+          <ol class="operator-route" aria-label="Three careers feeding the operating method">
+            <li class="is-current" data-route-key="technology">
+              <span class="operator-route-index">01</span>
+              <strong>Technology</strong>
+              <small>Passion / Transform</small>
+            </li>
+            <li data-route-key="construction">
+              <span class="operator-route-index">02</span>
+              <strong>Construction</strong>
+              <small>Objective truth / Diagnose</small>
+            </li>
+            <li data-route-key="insurance">
+              <span class="operator-route-index">03</span>
+              <strong>Insurance</strong>
+              <small>Responsibility / Position + Shape</small>
+            </li>
+          </ol>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--white">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>CAREER // 01</strong><span>Technology</span></aside>
-        <div class="record-body">
-          <h2>The passion.<br />Look forward.</h2>
-          <p>
-            Technology taught Christopher to see the future state before it arrives and build toward it.
-            He started at MCI WorldCom in 1999 at age nineteen, then worked field deployments for Bank of America,
-            the USDA wide-area network, and Cisco infrastructure. Twenty-six years in technology make the
-            prospective half of the name practical, not fashionable.
+    <section class="operator-thesis" aria-labelledby="operator-thesis-title">
+      <div class="operator-thesis-grid shell">
+        <div class="operator-thesis-index">
+          <span>THE SPINE</span>
+          <span>THREE CAREERS</span>
+        </div>
+        <div class="operator-thesis-copy">
+          <h2 id="operator-thesis-title">Three careers feed the method.</h2>
+          <p class="operator-thesis-statement">
+            Technology looks ahead. Construction refuses a false reading. Insurance protects the person who lives with the outcome.
           </p>
-          <table class="fact-table"><tbody>
-            <tr><th scope="row">Started</th><td>MCI WorldCom, 1999</td></tr>
-            <tr><th scope="row">Field environments</th><td>Bank of America, USDA WAN, Cisco infrastructure</td></tr>
-            <tr><th scope="row">Method contribution</th><td>Transform</td></tr>
-          </tbody></table>
+          <p class="operator-thesis-close">SecureProspective joins all three inside one operating business.</p>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--silver">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>CAREER // 02</strong><span>Construction</span></aside>
-        <div class="record-body">
-          <h2>The objective truth.<br />Read what is real.</h2>
-          <p>
-            Fifteen years of electrical work across commercial, residential, and military environments.
-            Voltage is present or it is not. Code is right or it is wrong. There is no persuasive language
-            that repairs a false reading. That discipline became Diagnose.
-          </p>
-          <table class="fact-table"><tbody>
-            <tr><th scope="row">Duration</th><td>Fifteen years</td></tr>
-            <tr><th scope="row">Work</th><td>Commercial, residential, military bases, low voltage, fire alarm</td></tr>
-            <tr><th scope="row">Method contribution</th><td>Diagnose</td></tr>
-          </tbody></table>
+    <section id="operator-careers" class="operator-career-record" aria-labelledby="operator-careers-title">
+      <div class="operator-record-head shell">
+        <div class="operator-record-index">
+          <span>FIELD RECORD</span>
+          <span>CONTRIBUTIONS // 03</span>
         </div>
+        <div class="operator-record-intro">
+          <h2 id="operator-careers-title">What each career contributes.</h2>
+          <p>The mapping is the point. Each career supplied a different test for work that has to hold up under consequence.</p>
+        </div>
+      </div>
+
+      <div class="operator-map shell" data-inspection-map>
+        <div class="operator-map-spine" aria-hidden="true"><span></span></div>
+
+        <article class="operator-station operator-station--technology" data-station="technology">
+          <div class="operator-station-index">01</div>
+          <div class="operator-station-core">
+            <div class="operator-station-heading">
+              <span>TECHNOLOGY</span>
+              <h3>The passion.</h3>
+            </div>
+            <p>
+              Technology taught Christopher to see the future state before it arrives and build toward it.
+              He started at MCI WorldCom in 1999 at age nineteen, then worked field deployments for Bank of America,
+              the USDA wide-area network, and Cisco infrastructure. Twenty-six years in technology make the prospective
+              half of the name practical, not fashionable.
+            </p>
+            <dl class="operator-facts">
+              <div><dt>Started</dt><dd>MCI WorldCom, 1999</dd></div>
+              <div><dt>Field environments</dt><dd>Bank of America, USDA WAN, Cisco infrastructure</dd></div>
+            </dl>
+          </div>
+          <div class="operator-station-transfer">
+            <span>METHOD CONTRIBUTION</span>
+            <strong>Transform</strong>
+            <p>See the future state before it arrives. Build toward it.</p>
+          </div>
+        </article>
+
+        <article class="operator-station operator-station--construction" data-station="construction">
+          <div class="operator-station-index">02</div>
+          <div class="operator-station-core">
+            <div class="operator-station-heading">
+              <span>CONSTRUCTION</span>
+              <h3>The objective truth.</h3>
+            </div>
+            <p>
+              Fifteen years of electrical work across commercial, residential, and military environments.
+              Voltage is present or it is not. Code is right or it is wrong. There is no persuasive language
+              that repairs a false reading. That discipline became Diagnose.
+            </p>
+            <dl class="operator-facts">
+              <div><dt>Duration</dt><dd>Fifteen years</dd></div>
+              <div><dt>Work</dt><dd>Commercial, residential, military bases, low voltage, fire alarm</dd></div>
+            </dl>
+          </div>
+          <div class="operator-station-transfer">
+            <span>METHOD CONTRIBUTION</span>
+            <strong>Diagnose</strong>
+            <p>Read what is present before a solution is allowed to speak.</p>
+          </div>
+        </article>
+
+        <article class="operator-station operator-station--insurance" data-station="insurance">
+          <div class="operator-station-index">03</div>
+          <div class="operator-station-core">
+            <div class="operator-station-heading">
+              <span>INSURANCE</span>
+              <h3>The responsibility.</h3>
+            </div>
+            <p>
+              Life insurance, annuity, producer development, and running an IMO put long-range outcomes in the
+              work. Approximately $110M in annuity production assisted over six years, approximately $18M in
+              current annual volume, and eight active producers. Insurance made Position and Shape obligations,
+              not design language.
+            </p>
+            <div class="operator-evidence" aria-label="Insurance operating evidence">
+              <div>
+                <strong data-count-to="8">8</strong>
+                <span>Active producers</span>
+              </div>
+              <div>
+                <strong data-count-to="18" data-count-prefix="~$" data-count-suffix="M">~$18M</strong>
+                <span>Current annual annuity volume assisted</span>
+              </div>
+              <div>
+                <strong data-count-to="110" data-count-prefix="~$" data-count-suffix="M">~$110M</strong>
+                <span>Total annuity production assisted over six years</span>
+              </div>
+            </div>
+            <dl class="operator-facts">
+              <div><dt>License</dt><dd>Texas Life, Health, and Annuity 3096607</dd></div>
+              <div><dt>Specialty</dt><dd>FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations</dd></div>
+            </dl>
+          </div>
+          <div class="operator-station-transfer">
+            <span>METHOD CONTRIBUTION</span>
+            <strong>Position + Shape</strong>
+            <p>Place responsibility where the person and the outcome can still be seen.</p>
+          </div>
+        </article>
       </div>
     </section>
 
-    <section class="record-section record-section--blue">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>CAREER // 03</strong><span>Insurance</span></aside>
-        <div class="record-body">
-          <h2>The responsibility.<br />Secure what matters.</h2>
-          <p>
-            Life insurance, annuity, producer development, and running an IMO put long-range outcomes in the
-            work. Approximately $110M in annuity production assisted over six years, approximately $18M in
-            current annual volume, and eight active producers. Insurance made Position and Shape obligations,
-            not design language.
-          </p>
-          <table class="fact-table"><tbody>
-            <tr><th scope="row">License</th><td>Texas Life, Health, and Annuity 3096607</td></tr>
-            <tr><th scope="row">Specialty</th><td>FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations</td></tr>
-            <tr><th scope="row">Method contribution</th><td>Position and Shape</td></tr>
-          </tbody></table>
+    <section class="operator-current" aria-labelledby="operator-current-title">
+      <div class="operator-current-grid shell">
+        <div class="operator-current-mark" aria-hidden="true">
+          <span>NOW</span>
+          <strong>01</strong>
         </div>
+        <div class="operator-current-copy">
+          <h2 id="operator-current-title">Still inside the business.</h2>
+          <p>
+            The method is not being developed from a distance. It is being tested against the business that already
+            has to perform, with real producers, real cases, and real responsibility attached to the outcome.
+          </p>
+        </div>
+        <blockquote class="operator-current-quote">Secure the foundation. Build the prospective state.</blockquote>
       </div>
     </section>
 
-    <section class="record-section record-section--ink">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>COMBINED</strong><span>Operating spine</span></aside>
-        <div class="record-body">
-          <h2>Forward motion under responsibility.</h2>
-          <p>
-            Technology looks ahead. Construction refuses a false reading. Insurance protects the person who
-            lives with the outcome. SecureProspective joins all three inside one operating business.
-          </p>
-          <div class="quote-field">Secure the foundation. Build the prospective state.</div>
-          <a class="action action--signal" href="/contact">Start a direct conversation <span>→</span></a>
+    <section class="operator-close" aria-labelledby="operator-close-title">
+      <div class="operator-close-grid shell">
+        <div class="operator-close-copy">
+          <h2 id="operator-close-title">Secure the foundation.<br />Build the prospective state.</h2>
+        </div>
+        <div class="operator-close-action">
+          <p>Start with the work in front of you.</p>
+          <a class="action action--signal" href="/contact">Start a direct conversation <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>

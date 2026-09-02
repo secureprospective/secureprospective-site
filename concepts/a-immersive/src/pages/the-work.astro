@@ -7,211 +7,347 @@ import '../styles/pages/the-work.css';
 
 <Layout title="SP+: Secure Prospective" description="SP+ is an immutable, encrypted, contained, AI-first workstation for insurance agents and financial advisors.">
   <Nav />
-  <main transition:name="page-card">
-    <section id="sp-plus" class="record-hero sp-plus-hero">
-      <div class="record-hero-grid shell">
-        <div class="record-hero-index"><span>DELIVERABLE // 001</span><span>STATE // IN BUILD</span></div>
-        <div class="record-hero-copy">
-          <h1>SP+.</h1>
-          <p class="sp-plus-manifest">Immutable. Encrypted. Contained. AI-First.</p>
-          <p>
+  <main id="main" class="work-page" transition:name="page-card">
+    <section class="work-hero" aria-labelledby="work-title" data-deal>
+      <div class="work-hero-inner shell">
+        <div class="work-hero-copy">
+          <h1 id="work-title">SP+.</h1>
+          <div class="work-status-bar" aria-label="SP+ build status">
+            <span>DELIVERABLE // 001</span>
+            <span>STATE // IN BUILD</span>
+          </div>
+          <p class="work-manifest">Immutable. Encrypted.<br />Contained. AI-First.</p>
+          <p class="work-hero-lede">
             A safer workstation for professionals trusted with other people’s financial lives.
           </p>
+          <div class="work-hero-actions">
+            <a class="action action--dark" href="#security">Read the foundation <span class="action-mark" aria-hidden="true"></span></a>
+            <span class="work-honesty">BUILD STATUS / active work</span>
+          </div>
+        </div>
+
+        <figure class="system-plate" data-system-map aria-labelledby="system-map-title">
+          <div class="plate-head">
+            <span id="system-map-title">SYSTEM MAP // REPRESENTATION</span>
+            <span>SP+ / 001</span>
+          </div>
+          <div class="plate-body">
+            <div class="plate-route" aria-label="Representation of the SP+ workflow">
+              <div class="plate-node plate-node--input">
+                <span>INPUT</span>
+                <strong>Advisor’s desk</strong>
+                <small>Screenshot or plain-text question</small>
+              </div>
+              <span class="plate-connector" aria-hidden="true"></span>
+              <div class="plate-node plate-node--core">
+                <span>SP+ // CORE</span>
+                <strong>Controlled workstation</strong>
+                <small>Fedora-based immutable image</small>
+              </div>
+              <span class="plate-connector" aria-hidden="true"></span>
+              <div class="plate-node plate-node--output">
+                <span>OUTPUT</span>
+                <strong>Plain-English steps</strong>
+                <small>Human-held guidance</small>
+              </div>
+            </div>
+
+            <div class="foundation-inspector">
+              <span class="inspector-label">INSPECT THE FOUNDATION</span>
+              <div class="foundation-tabs" role="tablist" aria-label="SP+ foundation controls">
+                <button id="tab-encrypted" type="button" role="tab" aria-selected="true" aria-controls="foundation-panel" data-map-tab="encrypted">Encrypted</button>
+                <button id="tab-immutable" type="button" role="tab" aria-selected="false" aria-controls="foundation-panel" data-map-tab="immutable">Immutable</button>
+                <button id="tab-contained" type="button" role="tab" aria-selected="false" aria-controls="foundation-panel" data-map-tab="contained">Contained</button>
+              </div>
+              <div id="foundation-panel" class="foundation-panel" role="tabpanel" tabindex="0" aria-labelledby="tab-encrypted" data-map-panel>
+                <span data-map-panel-label>FOUNDATION // ENCRYPTED</span>
+                <strong data-map-panel-title>Encrypted from installation</strong>
+                <p data-map-panel-copy>Full-disk encryption is built into the setup model.</p>
+              </div>
+            </div>
+          </div>
+          <figcaption>A representation of the operating model, not a screenshot. The product is in build.</figcaption>
+        </figure>
+      </div>
+      <div class="work-hero-foot shell" aria-label="SP+ status details">
+        <span>FEDORA-BASED // IMMUTABLE IMAGE</span>
+        <span>HUMAN-HELD // AI-ASSISTED</span>
+      </div>
+    </section>
+
+    <section id="premise" class="work-section work-premise" aria-labelledby="premise-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>01</span><span>THE STARTING POINT</span></div>
+        <div class="work-premise-grid">
+          <h2 id="premise-title">General convenience is not a security model.</h2>
+          <div class="work-copy">
+            <p>
+              Most independent advisors work on off-the-shelf computers running on residential Wi-Fi,
+              exposed to intrusive pop-ups, background update risk, and un-sandboxed applications. The same
+              workstation handles sensitive client PII, fixed annuities, and retirement assets on infrastructure
+              built for casual home browsing.
+            </p>
+            <p>
+              SP+ changes the starting point. It is a Fedora-based immutable desktop engineered for insurance
+              agents and financial advisors who need a controlled, hardened environment without hiring an IT
+              department or becoming system administrators themselves.
+            </p>
+
+            <div class="starting-line" aria-label="The change SP+ makes to the starting point">
+              <div class="starting-line-field">
+                <span>GENERAL STARTING POINT</span>
+                <strong>Casual home browsing</strong>
+              </div>
+              <span class="starting-line-rule" aria-hidden="true"></span>
+              <div class="starting-line-field starting-line-field--new">
+                <span>SP+ STARTING POINT</span>
+                <strong>Controlled, hardened environment</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--blue">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>WHY // 01</strong><span>The starting point</span></aside>
-        <div class="record-body">
-          <h2>General convenience is not a security model.</h2>
-          <p>
-            Most independent advisors work on off-the-shelf computers running on residential Wi-Fi,
-            exposed to intrusive pop-ups, background update risk, and un-sandboxed applications. The same
-            workstation handles sensitive client PII, fixed annuities, and retirement assets on infrastructure
-            built for casual home browsing.
-          </p>
-          <p>
-            SP+ changes the starting point. It is a Fedora-based immutable desktop engineered for insurance
-            agents and financial advisors who need a controlled, hardened environment without hiring an IT
-            department or becoming system administrators themselves.
-          </p>
+    <section id="security" class="work-section work-security" aria-labelledby="security-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>02</span><span>SECURITY // DEFENSIBLE PROTECTION</span></div>
+        <div class="work-section-heading">
+          <h2 id="security-title">Security by design.</h2>
+          <p>Three controls make the foundation legible before the advisor has to rely on it.</p>
         </div>
-      </div>
-    </section>
 
-    <section id="security" class="record-section record-section--white">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>SECURITY // 02</strong><span>Defensible protection</span></aside>
-        <div class="record-body">
-          <h2>Security by design.</h2>
-          <div class="offer-grid security-grid">
-            <article class="offer-item">
-              <span>FOUNDATION // ENCRYPTED</span>
-              <strong>Encrypted from installation</strong>
-              <p>Full-disk encryption is built into the setup model, protecting client files when a laptop is lost, misplaced, or stolen.</p>
+        <div class="security-manifest" aria-label="SP+ security foundations">
+          <div class="security-manifest-label">
+            <span>FOUNDATION</span>
+            <strong>The first layer is the point.</strong>
+          </div>
+          <div class="security-list">
+            <article class="security-row" data-foundation-row="encrypted">
+              <span class="security-row-index">01</span>
+              <div class="security-row-copy">
+                <span>FOUNDATION // ENCRYPTED</span>
+                <h3>Encrypted from installation</h3>
+                <p>Full-disk encryption is built into the setup model, protecting client files when a laptop is lost, misplaced, or stolen.</p>
+              </div>
+              <span class="security-row-state">BUILT INTO SETUP</span>
             </article>
-            <article class="offer-item">
-              <span>FOUNDATION // IMMUTABLE</span>
-              <strong>A controlled operating foundation</strong>
-              <p>The core system is immutable and updated as a managed image, reducing accidental damage, configuration drift, and unauthorized background modification.</p>
+            <article class="security-row" data-foundation-row="immutable">
+              <span class="security-row-index">02</span>
+              <div class="security-row-copy">
+                <span>FOUNDATION // IMMUTABLE</span>
+                <h3>A controlled operating foundation</h3>
+                <p>The core system is immutable and updated as a managed image, reducing accidental damage, configuration drift, and unauthorized background modification.</p>
+              </div>
+              <span class="security-row-state">MANAGED IMAGE</span>
             </article>
-            <article class="offer-item">
-              <span>FOUNDATION // CONTAINED</span>
-              <strong>Containment where it matters</strong>
-              <p>Applications are isolated wherever practical. If one app is compromised, containment limits the blast radius and makes lateral movement harder.</p>
+            <article class="security-row" data-foundation-row="contained">
+              <span class="security-row-index">03</span>
+              <div class="security-row-copy">
+                <span>FOUNDATION // CONTAINED</span>
+                <h3>Containment where it matters</h3>
+                <p>Applications are isolated wherever practical. If one app is compromised, containment limits the blast radius and makes lateral movement harder.</p>
+              </div>
+              <span class="security-row-state">LIMITED BLAST RADIUS</span>
             </article>
           </div>
-
-          <aside class="reality-card">
-            <span>THE REALITY CHECK</span>
-            <h3>Not a magic wand. A stronger foundation.</h3>
-            <p>
-              SP+ is not a replacement for multi-factor authentication, secure email, offsite backups, or a
-              formal compliance program. The goal is not bulletproof perfection. It is a smaller attack surface
-              and a rock-solid foundation beneath the practice.
-            </p>
-          </aside>
         </div>
+
+        <aside class="reality-note">
+          <div>
+            <h3>Not a magic wand. A stronger foundation.</h3>
+            <span>THE REALITY CHECK</span>
+          </div>
+          <p>
+            SP+ is not a replacement for multi-factor authentication, secure email, offsite backups, or a
+            formal compliance program. The goal is not bulletproof perfection. It is a smaller attack surface
+            and a rock-solid foundation beneath the practice.
+          </p>
+        </aside>
       </div>
     </section>
 
-    <section class="record-section record-section--silver">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>WORKFLOW // 03</strong><span>Human-held</span></aside>
-        <div class="record-body">
-          <h2>Human-held, AI-assisted workflows.</h2>
+    <section id="workflow" class="work-section work-workflow" aria-labelledby="workflow-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>03</span><span>WORKFLOW // HUMAN-HELD</span></div>
+        <div class="work-section-heading work-section-heading--split">
+          <h2 id="workflow-title">Human-held, AI-assisted workflows.</h2>
           <p>
             Technology should not get in the way of writing business. SP+ integrates the Pi AI harness into
             the daily desktop environment and connects it to the advisor’s existing Claude or ChatGPT subscription.
           </p>
+        </div>
 
-          <div class="workflow-map" aria-label="Advisor workflow through the Pi AI harness">
-            <div class="workflow-source">
-              <div class="workflow-node"><span>INPUT A</span><strong>Visual screenshot</strong></div>
-              <div class="workflow-node"><span>INPUT B</span><strong>Text or question</strong></div>
-            </div>
-            <div class="workflow-line" aria-hidden="true"></div>
-            <div class="workflow-node workflow-node--core"><span>CO-PILOT</span><strong>Pi AI harness</strong></div>
-            <div class="workflow-line" aria-hidden="true"></div>
-            <div class="workflow-node workflow-node--output"><span>OUTPUT</span><strong>Plain-English steps</strong></div>
+        <figure class="workflow-route" aria-labelledby="workflow-route-title">
+          <figcaption id="workflow-route-title" class="sr-only">Advisor workflow through the Pi AI harness</figcaption>
+          <div class="workflow-stage workflow-stage--input">
+            <span>INPUT A</span>
+            <strong>Visual screenshot</strong>
+            <small>Show the bottleneck.</small>
           </div>
+          <span class="workflow-route-line" aria-hidden="true"></span>
+          <div class="workflow-stage workflow-stage--core">
+            <span>CO-PILOT</span>
+            <strong>Pi AI harness</strong>
+            <small>Human-held, AI-assisted.</small>
+          </div>
+          <span class="workflow-route-line" aria-hidden="true"></span>
+          <div class="workflow-stage workflow-stage--output">
+            <span>OUTPUT</span>
+            <strong>Plain-English steps</strong>
+            <small>Know what to click next.</small>
+          </div>
+        </figure>
 
-          <div class="offer-grid workflow-benefits">
-            <article class="offer-item">
-              <span>GUIDANCE // VISUAL</span>
-              <strong>Show the bottleneck</strong>
-              <p>Snap a screenshot when migrating email, setting up DNS, or navigating a carrier portal.</p>
-            </article>
-            <article class="offer-item">
-              <span>GUIDANCE // DIRECT</span>
-              <strong>Know what to click next</strong>
-              <p>Receive step-by-step instructions in plain English and return focus to client cases.</p>
-            </article>
+        <div class="workflow-support">
+          <div>
+            <span>GUIDANCE // VISUAL</span>
+            <strong>Show the bottleneck</strong>
+            <p>Snap a screenshot when migrating email, setting up DNS, or navigating a carrier portal.</p>
+          </div>
+          <div>
+            <span>GUIDANCE // DIRECT</span>
+            <strong>Know what to click next</strong>
+            <p>Receive step-by-step instructions in plain English and return focus to client cases.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--blue">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>EVIDENCE // 04</strong><span>Built from experience</span></aside>
-        <div class="record-body">
-          <h2>Built from experience, not theory.</h2>
-          <table class="fact-table experience-table">
-            <tbody>
-              <tr><th scope="row">26 years in technology</th><td>Hands-on experience with operating-system architecture, system hardening, field deployment, and open-source reliability.</td></tr>
-              <tr><th scope="row">15 years in electrical and low voltage</th><td>A physical-infrastructure mindset: grounded systems built to remain reliable under consequence.</td></tr>
-              <tr><th scope="row">6 years in insurance and annuities</th><td>First-hand experience with compliance pressure, carrier portals, advisor workflows, and the reality of writing business.</td></tr>
-              <tr><th scope="row">$110M+ annuity production assisted</th><td>Designed by someone who understands the financial value of the business sitting on the advisor’s desk.</td></tr>
-            </tbody>
-          </table>
+    <section id="evidence" class="work-section work-evidence" aria-labelledby="evidence-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>04</span><span>EVIDENCE // BUILT FROM EXPERIENCE</span></div>
+        <div class="work-section-heading work-section-heading--compact">
+          <h2 id="evidence-title">Built from experience, not theory.</h2>
+          <p>SP+ is being built by someone who has worked across the technical, physical, and financial consequences around the desk.</p>
         </div>
+
+        <table class="experience-register" aria-label="Experience behind SP+">
+          <tbody>
+            <tr>
+              <th scope="row">26 years in technology</th>
+              <td>Hands-on experience with operating-system architecture, system hardening, field deployment, and open-source reliability.</td>
+            </tr>
+            <tr>
+              <th scope="row">15 years in electrical and low voltage</th>
+              <td>A physical-infrastructure mindset: grounded systems built to remain reliable under consequence.</td>
+            </tr>
+            <tr>
+              <th scope="row">6 years in insurance and annuities</th>
+              <td>First-hand experience with compliance pressure, carrier portals, advisor workflows, and the reality of writing business.</td>
+            </tr>
+            <tr>
+              <th scope="row">$110M+ annuity production assisted</th>
+              <td>Designed by someone who understands the financial value of the business sitting on the advisor’s desk.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <section class="record-section record-section--yellow">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>METHOD // 05</strong><span>Applied</span></aside>
-        <div class="record-body">
-          <h2>Diagnose. Position. Shape. Transform.</h2>
-          <ul class="assurance-list sp-method">
-            <li><span>01</span><strong>Diagnose</strong><p>Start with the real advisor workstation, its risks, interruptions, and obligations.</p></li>
-            <li><span>02</span><strong>Position</strong><p>Place security controls and AI assistance where they improve the work without taking ownership away.</p></li>
-            <li><span>03</span><strong>Shape</strong><p>Turn technical friction into plain-language guidance the advisor can understand and act on.</p></li>
-            <li><span>04</span><strong>Transform</strong><p>Replace the casual home-computer starting point with an operating foundation built for the practice.</p></li>
-          </ul>
+    <section id="method" class="work-section work-method" aria-labelledby="method-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>05</span><span>METHOD // APPLIED</span></div>
+        <div class="work-section-heading work-section-heading--compact">
+          <h2 id="method-title">Diagnose. Position. Shape. Transform.</h2>
+          <p>SP+ applies the same discipline to the workstation that it applies to every operating constraint.</p>
         </div>
+
+        <ol class="method-track">
+          <li>
+            <span class="method-track-index">01</span>
+            <strong>Diagnose</strong>
+            <p>Start with the real advisor workstation, its risks, interruptions, and obligations.</p>
+          </li>
+          <li>
+            <span class="method-track-index">02</span>
+            <strong>Position</strong>
+            <p>Place security controls and AI assistance where they improve the work without taking ownership away.</p>
+          </li>
+          <li>
+            <span class="method-track-index">03</span>
+            <strong>Shape</strong>
+            <p>Turn technical friction into plain-language guidance the advisor can understand and act on.</p>
+          </li>
+          <li>
+            <span class="method-track-index">04</span>
+            <strong>Transform</strong>
+            <p>Replace the casual home-computer starting point with an operating foundation built for the practice.</p>
+          </li>
+        </ol>
       </div>
     </section>
 
-    <section id="access" class="record-section record-section--ink">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>ACCESS // 06</strong><span>Partnership model</span></aside>
-        <div class="record-body">
-          <h2>SP+ costs nothing but the opportunity to work with us.</h2>
+    <section id="access" class="work-section work-access" aria-labelledby="access-title" data-deal>
+      <div class="shell">
+        <div class="work-section-rail"><span>06</span><span>ACCESS // PARTNERSHIP MODEL</span></div>
+        <div class="work-section-heading work-section-heading--compact">
+          <h2 id="access-title">SP+ costs nothing but the opportunity to work with us.</h2>
           <p>
             There is no software fee and no recurring SP+ subscription invoice. Access is earned through a
             five-production-contract partnership selected with Christopher Campbell. The partnership comes
             first. The workstation follows.
           </p>
+        </div>
 
-          <ol class="access-path">
-            <li>
-              <span>01</span>
-              <div><strong>Fit review</strong><p>Start with the practice, existing producer relationships, current workstation, and intended use. Christopher determines whether an operating fit exists.</p></div>
-            </li>
-            <li>
-              <span>02</span>
-              <div><strong>Five-contract qualification</strong><p>Establish five production contracts selected with Christopher. Those contracts are the business relationship exchanged for SP+ access.</p></div>
-            </li>
-            <li>
-              <span>03</span>
-              <div><strong>Compatibility confirmation</strong><p>Confirm the computer, installation path, migration scope, and support expectations. SP+ is not represented as compatible with every machine.</p></div>
-            </li>
-            <li>
-              <span>04</span>
-              <div><strong>SP+ deployment</strong><p>Receive the encrypted immutable OS image and Pi harness integration, connected to an existing Claude or ChatGPT subscription.</p></div>
-            </li>
-          </ol>
+        <div class="access-status" aria-label="SP+ access terms">
+          <div><span>SOFTWARE FEE</span><strong>None</strong></div>
+          <div><span>RECURRING SP+ INVOICE</span><strong>None</strong></div>
+          <div><span>QUALIFICATION</span><strong>5 production contracts</strong></div>
+        </div>
 
-          <div class="access-terms">
-            <section>
-              <h3>Access includes</h3>
-              <ul>
-                <li>Fedora-based immutable OS image</li>
-                <li>Full-disk encryption setup model</li>
-                <li>Practical application containment</li>
-                <li>Pi AI harness integration</li>
-              </ul>
-            </section>
-            <section>
-              <h3>Access does not replace</h3>
-              <ul>
-                <li>Multi-factor authentication</li>
-                <li>Secure email and offsite backups</li>
-                <li>A formal compliance program</li>
-                <li>A separate Claude or ChatGPT subscription</li>
-              </ul>
-            </section>
-            <section>
-              <h3>Confirmed before setup</h3>
-              <ul>
-                <li>Selected production contracts</li>
-                <li>Hardware compatibility</li>
-                <li>Installation and migration scope</li>
-                <li>Support expectations</li>
-              </ul>
-            </section>
-          </div>
+        <ol class="access-path">
+          <li>
+            <span>01</span>
+            <div><strong>Fit review</strong><p>Start with the practice, existing producer relationships, current workstation, and intended use. Christopher determines whether an operating fit exists.</p></div>
+          </li>
+          <li>
+            <span>02</span>
+            <div><strong>Five-contract qualification</strong><p>Establish five production contracts selected with Christopher. Those contracts are the business relationship exchanged for SP+ access.</p></div>
+          </li>
+          <li>
+            <span>03</span>
+            <div><strong>Compatibility confirmation</strong><p>Confirm the computer, installation path, migration scope, and support expectations. SP+ is not represented as compatible with every machine.</p></div>
+          </li>
+          <li>
+            <span>04</span>
+            <div><strong>SP+ deployment</strong><p>Receive the encrypted immutable OS image and Pi harness integration, connected to an existing Claude or ChatGPT subscription.</p></div>
+          </li>
+        </ol>
 
-          <div class="status-strip access-strip">
-            <div><span>Software fee</span><strong>None</strong></div>
-            <div><span>Recurring SP+ invoice</span><strong>None</strong></div>
-            <div><span>Qualification</span><strong>5 production contracts</strong></div>
-          </div>
-          <a class="action action--signal" href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review">Start an SP+ fit review <span>→</span></a>
+        <div class="access-terms">
+          <section>
+            <h3>Access includes</h3>
+            <ul>
+              <li>Fedora-based immutable OS image</li>
+              <li>Full-disk encryption setup model</li>
+              <li>Practical application containment</li>
+              <li>Pi AI harness integration</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Access does not replace</h3>
+            <ul>
+              <li>Multi-factor authentication</li>
+              <li>Secure email and offsite backups</li>
+              <li>A formal compliance program</li>
+              <li>A separate Claude or ChatGPT subscription</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Confirmed before setup</h3>
+            <ul>
+              <li>Selected production contracts</li>
+              <li>Hardware compatibility</li>
+              <li>Installation and migration scope</li>
+              <li>Support expectations</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="access-close">
+          <p>Start with the practice. Confirm the fit. Let the workstation follow the relationship.</p>
+          <a class="action action--signal" href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review">Start an SP+ fit review <span class="action-mark" aria-hidden="true"></span></a>
         </div>
       </div>
     </section>

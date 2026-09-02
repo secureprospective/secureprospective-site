@@ -1,9 +1,642 @@
 /* ==========================================================================
-   contact — this page's own visual voice.
+   Contact — the open routing desk.
 
-   The shared system (tokens.css, site.css, immersive.css) is the constant.
-   This file is where this page departs from every other one, because its
-   message is not the same as any other page's message.
-
-   Owned by this page alone. Nothing else imports it.
+   The rest of Concept A reads as a deck of records. This page is the desk
+   where a reader chooses which record to open next: one direct channel, three
+   plain-language lines, one measured route marker. The system stays fixed;
+   the composition belongs to the act of choosing.
    ========================================================================== */
+
+.contact-page {
+  background: var(--silver-base);
+}
+
+.contact-page .shell {
+  width: min(100% - 48px, var(--container-max));
+}
+
+/* --------------------------------------------------------------------------
+   Dispatch header
+   -------------------------------------------------------------------------- */
+
+.contact-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 2px solid var(--ink);
+  background: var(--blue-brand);
+  color: var(--white);
+}
+
+.contact-hero-grid {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) minmax(300px, 0.64fr);
+  gap: clamp(28px, 3.5vw, 56px);
+  min-height: 532px;
+  padding-block: clamp(72px, 9vw, 118px) 72px;
+}
+
+.contact-hero-index {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 280px;
+  padding: 2px 22px 0 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.52);
+  color: var(--yellow-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-hero-index span {
+  max-width: 9ch;
+}
+
+.contact-hero-index-mark {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--yellow-accent);
+}
+
+.contact-hero-index-mark::before,
+.contact-hero-index-mark::after {
+  position: absolute;
+  content: '';
+  background: var(--yellow-accent);
+}
+
+.contact-hero-index-mark::before {
+  top: 50%;
+  right: 5px;
+  left: 5px;
+  height: 1px;
+}
+
+.contact-hero-index-mark::after {
+  top: 5px;
+  bottom: 5px;
+  left: 50%;
+  width: 1px;
+}
+
+.contact-hero-copy {
+  align-self: center;
+  min-width: 0;
+}
+
+.contact-hero h1 {
+  max-width: none;
+  color: var(--white);
+  font-size: clamp(3rem, 4.4vw, 3.8rem);
+  letter-spacing: -0.01em;
+  line-height: 0.88;
+}
+
+.contact-hero h1 span {
+  display: block;
+  white-space: nowrap;
+}
+
+.contact-hero-copy > p {
+  max-width: 56ch;
+  margin-top: 34px;
+  color: var(--white);
+  font-size: clamp(1.05rem, 1.45vw, 1.25rem);
+  line-height: 1.58;
+}
+
+.contact-channel-wrap {
+  align-self: center;
+  min-width: 0;
+}
+
+.contact-channel-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 258px;
+  padding: 26px;
+  border: 1px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 8px 8px 0 var(--yellow-accent);
+}
+
+.contact-channel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--blue-brand);
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-channel-mark {
+  display: block;
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border: 1px solid var(--ink);
+  background: var(--yellow-accent);
+}
+
+.contact-channel-card > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: auto;
+  color: var(--ink);
+  font-size: clamp(1.18rem, 2vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.contact-channel-card > a:hover {
+  color: var(--blue-brand);
+}
+
+.contact-channel-card > a:focus-visible {
+  outline: 3px solid var(--blue-brand);
+  outline-offset: 4px;
+}
+
+.contact-channel-card > p {
+  margin-top: 13px;
+  color: var(--blue-brand);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.contact-hero-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.52);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-hero-footer-mark {
+  display: block;
+  width: 72px;
+  height: 3px;
+  flex: 0 0 72px;
+  background: var(--yellow-accent);
+}
+
+/* --------------------------------------------------------------------------
+   Routing ledger
+   -------------------------------------------------------------------------- */
+
+.contact-routing {
+  border-bottom: 2px solid var(--ink);
+  background: var(--silver-base);
+  color: var(--ink);
+}
+
+.contact-routing > .shell {
+  padding-block: clamp(76px, 10vw, 128px) clamp(88px, 11vw, 140px);
+}
+
+.contact-routing-heading {
+  min-width: 0;
+}
+
+.contact-routing h2 {
+  max-width: 13ch;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  line-height: 0.92;
+}
+
+.contact-route-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 52px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ink);
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-route-readout-value {
+  color: var(--ink);
+  text-align: right;
+}
+
+.contact-route-board {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 24px;
+  align-items: stretch;
+  margin-top: 26px;
+}
+
+.contact-route-gutter {
+  position: relative;
+  min-height: 100%;
+}
+
+.contact-route-gutter::before {
+  position: absolute;
+  top: 30px;
+  bottom: 30px;
+  left: 50%;
+  width: 1px;
+  background: var(--blue-brand);
+  content: '';
+  opacity: 0.42;
+}
+
+.contact-route-gutter-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  color: var(--blue-brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translateX(-50%) rotate(-90deg) translateX(-50%);
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.contact-route-marker {
+  position: absolute;
+  top: var(--contact-route-y, 30px);
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--ink);
+  background: var(--yellow-accent);
+  opacity: 0.45;
+  transform: translate(-50%, -50%);
+  transition: top var(--dur-fast) var(--ease-deck), opacity var(--dur-fast) linear;
+}
+
+.contact-routing[data-active-line] .contact-route-marker {
+  opacity: 1;
+}
+
+.contact-lines {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  list-style: none;
+}
+
+.contact-lines > li {
+  min-width: 0;
+}
+
+.contact-line {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(18px, 3vw, 36px);
+  min-height: 164px;
+  padding: 26px 30px;
+  border: 1px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: var(--lift-blue);
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-deck), background-color var(--dur-fast) ease-out, color var(--dur-fast) ease-out, box-shadow var(--dur-fast) var(--ease-deck);
+}
+
+.contact-line:hover,
+.contact-line.is-inspected,
+.contact-line:focus-visible {
+  background: var(--yellow-accent);
+  color: var(--ink);
+  box-shadow: 8px 8px 0 rgba(0, 51, 160, 0.3);
+  transform: translate(-3px, -3px);
+}
+
+.contact-line:focus-visible {
+  outline: 3px solid var(--blue-brand);
+  outline-offset: 5px;
+}
+
+.contact-line-marker {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ink);
+  background: var(--blue-brand);
+}
+
+.contact-line-marker::before,
+.contact-line-marker::after {
+  position: absolute;
+  content: '';
+  background: var(--yellow-accent);
+}
+
+.contact-line-marker::before {
+  top: 50%;
+  right: 7px;
+  left: 7px;
+  height: 1px;
+}
+
+.contact-line-marker::after {
+  top: 7px;
+  bottom: 7px;
+  left: 50%;
+  width: 1px;
+}
+
+.contact-line-marker--active {
+  background: var(--yellow-accent);
+}
+
+.contact-line-marker--active::before,
+.contact-line-marker--active::after {
+  background: var(--ink);
+}
+
+.contact-line-marker--prospective {
+  background: var(--ink);
+}
+
+.contact-line-marker--prospective::before,
+.contact-line-marker--prospective::after {
+  background: var(--white);
+}
+
+.contact-line-copy {
+  display: block;
+  min-width: 0;
+}
+
+.contact-line-status {
+  display: block;
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-line:hover .contact-line-status,
+.contact-line.is-inspected .contact-line-status,
+.contact-line:focus-visible .contact-line-status {
+  color: var(--ink);
+}
+
+.contact-line h3 {
+  margin-top: 20px;
+  font-size: clamp(1.55rem, 2.6vw, 2.45rem);
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+}
+
+.contact-line p {
+  max-width: 58ch;
+  margin-top: 12px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.contact-line-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 128px;
+  min-height: 48px;
+  color: var(--blue-brand);
+  text-align: right;
+}
+
+.contact-line-action strong {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.contact-line:hover .contact-line-action,
+.contact-line.is-inspected .contact-line-action,
+.contact-line:focus-visible .contact-line-action {
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive composition
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 980px) {
+  .contact-hero-grid {
+    grid-template-columns: 96px minmax(0, 1fr);
+    min-height: 610px;
+  }
+
+  .contact-hero-index {
+    grid-row: 1 / span 2;
+    min-height: 360px;
+  }
+
+  .contact-channel-wrap {
+    grid-column: 2;
+    max-width: 460px;
+  }
+
+  .contact-line {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 18px;
+    padding-inline: 22px;
+  }
+
+  .contact-line-action {
+    min-width: 112px;
+  }
+}
+
+@media (max-width: 760px) {
+  .contact-page .shell {
+    width: min(100% - 32px, var(--container-max));
+  }
+
+  .contact-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: 34px;
+    padding-block: 34px 46px;
+  }
+
+  .contact-hero-index {
+    grid-row: auto;
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+    padding: 0 0 18px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.52);
+  }
+
+  .contact-hero-index span {
+    max-width: none;
+  }
+
+  .contact-hero-index span:nth-child(2) {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .contact-hero-index-mark {
+    display: none;
+  }
+
+  .contact-hero-copy {
+    align-self: auto;
+  }
+
+  .contact-hero h1 {
+    max-width: none;
+    font-size: clamp(2.2rem, 9.5vw, 4.5rem);
+    letter-spacing: -0.045em;
+    line-height: 0.9;
+  }
+
+  .contact-hero-copy > p {
+    margin-top: 28px;
+    font-size: 1.05rem;
+  }
+
+  .contact-channel-wrap {
+    grid-column: auto;
+    max-width: none;
+  }
+
+  .contact-channel-card {
+    min-height: 218px;
+    padding: 22px;
+    box-shadow: 5px 5px 0 var(--yellow-accent);
+  }
+
+  .contact-channel-card > a {
+    font-size: clamp(1.1rem, 5.25vw, 1.5rem);
+  }
+
+  .contact-hero-footer {
+    min-height: 54px;
+    gap: 16px;
+    font-size: 10px;
+  }
+
+  .contact-hero-footer > span:first-child {
+    max-width: 24ch;
+  }
+
+  .contact-route-readout {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 38px;
+  }
+
+  .contact-route-readout-value {
+    text-align: left;
+  }
+
+  .contact-route-board {
+    display: block;
+    margin-top: 22px;
+  }
+
+  .contact-route-gutter {
+    display: none;
+  }
+
+  .contact-lines {
+    gap: 12px;
+  }
+
+  .contact-line {
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+    min-height: 0;
+    padding: 22px;
+  }
+
+  .contact-line h3 {
+    margin-top: 17px;
+    font-size: clamp(1.5rem, 7.5vw, 2.25rem);
+  }
+
+  .contact-line p {
+    margin-top: 11px;
+    font-size: 0.96rem;
+  }
+
+  .contact-line-action {
+    grid-column: 2;
+    justify-content: flex-start;
+    min-width: 0;
+    margin-top: 16px;
+    text-align: left;
+  }
+
+  .contact-line-action strong {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .contact-page .shell {
+    width: min(100% - 40px, var(--container-max));
+  }
+
+  .contact-hero-index {
+    gap: 10px;
+    font-size: 10px;
+  }
+
+  .contact-hero h1 {
+    font-size: 2.05rem;
+  }
+
+  .contact-line {
+    padding: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-line,
+  .contact-route-marker {
+    transition: none;
+  }
+}
