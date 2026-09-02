@@ -1,0 +1,62 @@
+[0m
+> build · deepseek-v4-flash-free
+[0m
+I'll research this thoroughly across all five constraint areas, then write the report. Let me start
+[0m◈ [0mExa Web Search "awwwards best websites 2026 fintech security agency portfolio"
+[0m◈ [0mExa Web Search "human warmth web design without pastel colors austere premium 2026"
+[0m◈ [0mExa Web Search "2026 website design trends premium restrained flat color sharp minimal"
+Good foundation. Let me dig into specific implementable techniques and human-w
+[0m◈ [0mExa Web Search "GSAP ScrollTrigger storytelling scroll-driven site examples 2026 case study"
+[0m◈ [0mExa Web Search "custom cursor hover interaction examples 2026 web design creative"
+[0m◈ [0mExa Web Search "number count-up data reveal animation design financial data dashboard web 2026"
+[0m◈ [0mExa Web Search "page transition animation micro-interaction typography reveal techniques 2026 GSAP creative"
+Robust material. Let me cover page transitions, micro-interactions/typography, "human warmth" for security brands specifically, and the overused/dated angle
+[0m◈ [0mExa Web Search "design warm human trust security fintech brand without pastel corporate 2026 editorial serif humanize"
+[0m◈ [0mExa Web Search "web design trends overused dated 2026 avoid gimmicky animation fatigue scrolljacking"
+Let me get a couple more targeted sources: sound/haptic design and confirming the security/consulting reference sites
+[0m◈ [0mExa Web Search "web audio sound design haptic feedback UI 2026 subtle tasteful interaction GSI haptics WebHaptics"
+[0m◈ [0mExa Web Search "linear stripe mercury website rebuild design details 2026 premium dev-tool landing human"
+I have comprehensive material. Let me verify the target directory, then write the report
+[0m
+[0m$ [0mls -la docs/ 2>/dev/null && echo "---" && ls docs/research 2>/dev/null || echo "no research dir"
+total 36
+drwxrwxr-x  5 chris chris 4096 Aug  5 20:00 .
+drwxrwxr-x 15 chris chris 4096 Aug  5 14:53 ..
+drwxrwxr-x  3 chris chris 4096 Aug  5 14:52 ai-ecosystem
+-rw-rw-r--  1 chris chris 7946 Aug  5 14:52 DESIGN_SYSTEM.md
+drwxrwxr-x  3 chris chris 4096 Aug  5 14:52 from-hermes
+-rw-rw-r--  1 chris chris 2831 Aug  5 14:52 OPERATOR_DRAFT.md
+-rw-rw-r--  1 chris chris 2683 Aug  5 14:52 PROMPT_TEMPLATES.md
+drwxrwxr-x  2 chris chris 4096 Aug  5 20:00 research
+---
+hero-design-research.log
+_prompt.md
+[0m
+[0m→ [0mRead docs/research/_prompt.md
+[0m
+[0m← [0mWrite docs/research/hero-design-research.md
+Wrote file successfully.
+[0m
+Writing the report now.
+[0m$ [0mtouch docs/research/hero-design-research.DONE && ls -la docs/research/
+total 48
+drwxrwxr-x 2 chris chris  4096 Aug  5 20:03 .
+drwxrwxr-x 5 chris chris  4096 Aug  5 20:00 ..
+-rw-rw-r-- 1 chris chris     0 Aug  5 20:03 hero-design-research.DONE
+-rw-rw-r-- 1 chris chris  2562 Aug  5 20:03 hero-design-research.log
+-rw-rw-r-- 1 chris chris 29467 Aug  5 20:03 hero-design-research.md
+-rw-r--r-- 1 chris chris  3544 Aug  5 20:00 _prompt.md
+[0m
+Done. Report written to `docs/research/hero-design-research.md` (29KB) and the `.DONE` marker created. No other files touched.
+
+## Headline findings for the reviewer
+
+**The macro-signal.** Every 2026 trend reality-check (Fireart, Bubble, StudioMeyer, topright) converges on the same story: the AI-template baseline has flattened, so premium sites are pivoting to *tactile restraint* — sharp geometry, 1px hairlines, zero-blur depth, disciplined color. **The Property Card System is already on the winning side of the 2026 curve.** The research says don't buy "human" by softening; buy it by adding precision that proves a person decided.
+
+**Where 2026 actually puts "human."** Real sites ditch the soft UI/pastel axis entirely and get warmth from **type contrast + micro-feedback + copy voice**: Mercury (serif display at hero scale on warm-bone, tabular mono numerals), GOAT Finance (humanist serif + mono + gold dot, "never shouts"), Adigiit ("warmth as material"). Monetization: tabular-nums mono data, tracked-mono index labels, one hero line-mask moment, formalized six-state micro-interactions at the existing 120-200ms budget.
+
+**The single sharpest lever (free):** Linear's documented *interaction completeness* — every element gets all six states (default/hover/focus/active/disabled/loading). Most sources call premium UI "not a specific look, but a consistent level of crafted microstates."
+
+**What to avoid, evidence-backed:** scroll-jacking and slow cinematic scrolls (NN/g disorientation + INP damage; explicitly fading in 2026), glassmorphism, neon dark-mode maximalism, page-wide kinetic type (StudioMeyer: "more polish than substance" outside one hero moment), fake live-data gimmicks, and heavy WebGL heroes (800kB-2MB JS before content).
+
+**Uncertainty flagged explicitly** (8 items in the report) — notably: no strong evidence a flat-block corporate site reads "human" purely visually (type+voice carry it), the custom cursor is the single most *optional* technique, and the honeycomb should be one member of a "signal family" (hex / grid-lines / ticker) rather than a repeated stamp. I also noted the one-brand-surface rule (blue/gold/yellow/pink already populate the palette — new motion must live at opacity, not new hues).
