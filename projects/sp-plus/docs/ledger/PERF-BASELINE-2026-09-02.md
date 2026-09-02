@@ -181,3 +181,35 @@ window (`systemd-analyze blame` on that span), not the initrd.
 **Not yet done:** `systemd-analyze` from inside the booted VM. The serial console
 does not print systemd's own summary, so the blame/critical-chain breakdown of
 that 20.6s window is still unmeasured. That is the next real boot question.
+
+---
+
+# VALIDATION — the predicted saving is REAL (2026-09-02)
+
+The point of this entry is that the loop in PERFORMANCE-STANDARD.md §2 was
+followed end to end and the prediction held. Predicting a saving and then
+confirming it in the built artifact is the difference between engineering and
+guessing.
+
+## Predicted, before building
+156 MB uncompressed / 111.66 MB compressed -> **~8.2s** of install time,
+from Tom's per-layer measurement of test54.
+
+## Measured, in the built image (rootless build of commit 363311c)
+
+| | test54 (before) | test56 (after) | delta |
+|---|---|---|---|
+| releasever gate layer | **157 MB** | **498 kB** | -156.5 MB |
+| total image | 11,394,019,768 B | 11,235,609,836 B | **-158,409,932 B** |
+
+The layer that created the dnf metadata cache now carries 498 kB instead of
+157 MB. Nothing else moved unexpectedly; the total delta (158.4 MB) is accounted
+for by that one layer.
+
+**Prediction 156 MB -> actual 158.4 MB. The estimator held.**
+
+## Still unconfirmed
+The install-time saving itself (~8.2s) has NOT been measured, because that needs
+an ISO and the rootful build requires an interactive sudo password. The bytes are
+proven; the seconds are still inferred from the ~73s/GB estimator. Do not report
+the 8.2s as measured until a bench run against the test56 ISO says so.
