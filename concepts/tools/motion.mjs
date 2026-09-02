@@ -51,7 +51,13 @@ const harvest = () =>
       const rect = el.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
     })
-    .map((el) => el.textContent.replace(/\s+/g, ' ').trim())
+    // Whitespace is stripped entirely, not merely collapsed. Split-text
+    // techniques wrap each word or letter in its own span, so textContent
+    // concatenates without separators and an exact-string comparison reports
+    // a false absence. This gate asks whether the content is present and
+    // visible, not how it is spaced, so "Secure Prospective" and
+    // "SecureProspective" must compare equal.
+    .map((el) => el.textContent.replace(/\s+/g, ''))
     .filter(Boolean);
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });

@@ -33,7 +33,7 @@ const nav = [
     <ul class="rail-index">
       {sections.map((section) => (
         <li>
-          <button type="button" data-rail-dot={section.id} aria-current="false">
+          <button type="button" data-rail-dot={section.id} aria-current={section.id === 'stage' ? 'true' : undefined}>
             <span class="sr-only">{section.label}</span>
           </button>
         </li>
@@ -44,9 +44,15 @@ const nav = [
 
   <header class="topbar">
     <a class="topbar-name" href="/">Secure Prospective <em>IMO</em></a>
-    <nav class="topbar-links" aria-label="Primary navigation">
-      {nav.map((link) => <a href={link.href}>{link.label}</a>)}
-    </nav>
+    <details class="topbar-menu">
+      <summary class="menu-toggle">
+        <span>Menu</span>
+        <span class="menu-toggle-icon" aria-hidden="true"><i></i><i></i></span>
+      </summary>
+      <nav class="topbar-links" aria-label="Primary navigation">
+        {nav.map((link) => <a href={link.href}>{link.label}</a>)}
+      </nav>
+    </details>
   </header>
 
   <div class="page">
@@ -138,6 +144,9 @@ const nav = [
           <div class="shell movement-head" data-reveal>
             <h2 id="method-title">The method: one operation, five movements.</h2>
           </div>
+          <div class="track-progress" role="progressbar" aria-label="Method progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span data-track-progress></span>
+          </div>
           <ol class="track" data-track>
             {movements.map((movement) => (
               <li class="movement-card">
@@ -147,7 +156,6 @@ const nav = [
               </li>
             ))}
           </ol>
-          <div class="track-progress"><span data-track-progress></span></div>
         </div>
       </section>
 

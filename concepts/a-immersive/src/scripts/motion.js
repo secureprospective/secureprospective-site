@@ -1,80 +1,104 @@
 /* ==========================================================================
-   CONCEPT A — motion system.
+   CONCEPT A: motion system.
 
    One controller for the whole page. Everything it does is additive: with
-   JavaScript disabled, or with prefers-reduced-motion set, the page is still
-   complete, legible and fully navigable. Nothing is hidden by default in a way
-   that only script can reveal — the deal-in styles live behind the
-   no-preference media query precisely so that reduced-motion users are never
-   left staring at an invisible page.
+   JavaScript disabled, or with reduced motion enabled, the page is complete,
+   legible and fully navigable. The default HTML remains visible until this
+   controller has finished its small amount of preparation.
    ========================================================================== */
 
-const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)');
+const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
+const prefersReducedMotion = () => window.matchMedia(REDUCED_QUERY).matches;
 
-/** Everything registered here is torn down on Astro's before-swap. */
+/** Every active page resource is registered here and removed on before-swap. */
 let teardowns = [];
+let activeLifecycle = null;
 
-const onCleanup = (fn) => teardowns.push(fn);
+function onCleanup(fn) {
+  teardowns.push(fn);
+  let registered = true;
+
+  return () => {
+    if (!registered) return;
+    registered = false;
+    const index = teardowns.indexOf(fn);
+    if (index !== -1) teardowns.splice(index, 1);
+  };
+}
 
 function cleanup() {
-  teardowns.forEach((fn) => {
+  if (activeLifecycle) activeLifecycle.cancelled = true;
+  activeLifecycle = null;
+
+  const pending = teardowns;
+  teardowns = [];
+  pending.reverse().forEach((fn) => {
     try {
       fn();
-    } catch {
-      /* a failing teardown must never block the rest */
+    } catch (error) {
+      // Keep releasing the remaining resources, but never hide a teardown bug.
+      console.error('[Concept A motion] teardown failed', error);
     }
   });
-  teardowns = [];
+
+  document.documentElement.removeAttribute('data-motion-ready');
+  document.documentElement.removeAttribute('data-motion-enabled');
 }
 
 /* --------------------------------------------------------------------------
-   A single rAF-throttled scroll bus. Many effects need scroll position; they
-   all share one listener and one frame so the page never runs competing loops.
+   A single rAF-throttled scroll bus. Effects subscribe to one listener and
+   one frame, so scroll never starts competing loops.
    -------------------------------------------------------------------------- */
 
 function createScrollBus() {
   const readers = new Set();
-  let queued = false;
+  let queuedFrame = null;
+  let active = true;
 
   const run = () => {
-    queued = false;
+    queuedFrame = null;
+    if (!active) return;
+
     const y = window.scrollY;
     const vh = window.innerHeight;
     readers.forEach((read) => read(y, vh));
   };
 
-  const onScroll = () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(run);
+  const queue = () => {
+    if (!active || queuedFrame !== null) return;
+    queuedFrame = requestAnimationFrame(run);
   };
 
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue, { passive: true });
+
   onCleanup(() => {
-    window.removeEventListener('scroll', onScroll);
-    window.removeEventListener('resize', onScroll);
+    active = false;
+    if (queuedFrame !== null) cancelAnimationFrame(queuedFrame);
+    queuedFrame = null;
+    window.removeEventListener('scroll', queue);
+    window.removeEventListener('resize', queue);
     readers.clear();
   });
 
   run();
   return (read) => {
+    if (!active) return;
     readers.add(read);
     read(window.scrollY, window.innerHeight);
   };
 }
 
 /* --------------------------------------------------------------------------
-   Deal-in. Sections are laid onto the table as they enter the viewport, in
-   source order, with a short stagger between siblings of the same group.
+   Deal-in. Sections arrive as cards laid onto the table. The markup supplies
+   short, intentional delays for siblings; each card is observed once.
    -------------------------------------------------------------------------- */
 
 function dealCards() {
   const cards = document.querySelectorAll('[data-deal]');
   if (!cards.length) return;
 
-  // Without IntersectionObserver support, show everything immediately rather
-  // than leaving content stuck in its pre-deal state.
+  // If the browser cannot observe visibility, reveal everything immediately.
   if (!('IntersectionObserver' in window)) {
     cards.forEach((card) => card.classList.add('is-dealt'));
     return;
@@ -85,8 +109,8 @@ function dealCards() {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         entry.target.classList.add('is-dealt');
-        // A card is dealt once. Releasing it keeps the observer cheap and
-        // stops the page re-animating on every upward scroll.
+        // A card is dealt once. Releasing it prevents repeat choreography on
+        // every upward scroll and keeps the observer's work bounded.
         observer.unobserve(entry.target);
       });
     },
@@ -98,45 +122,63 @@ function dealCards() {
 }
 
 /* --------------------------------------------------------------------------
-   Ledger counters. The operating figures count up to their real values once
-   their card lands. The DOM keeps the true text until the moment it animates,
-   so the honest number is what ships in the HTML and what a crawler reads.
+   Ledger counters. The figures count once their evidence card enters a
+   readable zone. The true values are present in the HTML before animation.
    -------------------------------------------------------------------------- */
 
-function countUp(el, done) {
+function countUp(el) {
   const target = Number(el.dataset.countTo);
   const prefix = el.dataset.countPrefix || '';
   const suffix = el.dataset.countSuffix || '';
   const decimals = Number(el.dataset.countDecimals || 0);
-  if (!Number.isFinite(target)) return;
+  if (!Number.isFinite(target) || el.dataset.counterStarted === 'true') return;
 
-  const DURATION = 1400;
+  const duration = 860;
   const start = performance.now();
   let frame = null;
+  let disposed = false;
+  let unregister = () => {};
+  el.dataset.counterStarted = 'true';
 
-  // Exponential ease-out — the same curve as the CSS, so numbers and cards
-  // decelerate together rather than fighting each other.
+  const finish = () => {
+    if (disposed) return;
+    el.textContent = prefix + target.toFixed(decimals) + suffix;
+    frame = null;
+    unregister();
+  };
+
+  // Exponential ease-out lets the number settle with the card instead of
+  // ticking at a constant, mechanical rate.
   const ease = (t) => 1 - Math.pow(2, -10 * t);
-
   const tick = (now) => {
-    const t = Math.min(1, (now - start) / DURATION);
+    if (disposed) return;
+    if (prefersReducedMotion()) {
+      finish();
+      return;
+    }
+
+    const t = Math.min(1, (now - start) / duration);
     const value = target * ease(t);
     el.textContent = prefix + value.toFixed(decimals) + suffix;
+
     if (t < 1) {
       frame = requestAnimationFrame(tick);
     } else {
-      el.textContent = prefix + target.toFixed(decimals) + suffix;
-      done && done();
+      finish();
     }
   };
 
+  unregister = onCleanup(() => {
+    disposed = true;
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null;
+  });
   frame = requestAnimationFrame(tick);
-  onCleanup(() => frame && cancelAnimationFrame(frame));
 }
 
 function ledgerCounters() {
   const figures = document.querySelectorAll('[data-count-to]');
-  if (!figures.length || REDUCED.matches || !('IntersectionObserver' in window)) return;
+  if (!figures.length || prefersReducedMotion() || !('IntersectionObserver' in window)) return;
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -146,7 +188,7 @@ function ledgerCounters() {
         countUp(entry.target);
       });
     },
-    { threshold: 0.6 }
+    { threshold: 0.55 }
   );
 
   figures.forEach((figure) => observer.observe(figure));
@@ -154,16 +196,16 @@ function ledgerCounters() {
 }
 
 /* --------------------------------------------------------------------------
-   Scroll progress + nav detachment.
+   Scroll progress and nav detachment.
    -------------------------------------------------------------------------- */
 
 function scrollChrome(subscribe) {
   const bar = document.querySelector('[data-scroll-progress]');
   const nav = document.querySelector('.site-nav');
 
-  subscribe((y) => {
+  subscribe((y, vh) => {
     if (bar) {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollable = document.documentElement.scrollHeight - vh;
       const ratio = scrollable > 0 ? Math.min(1, y / scrollable) : 0;
       bar.style.transform = `scaleX(${ratio})`;
     }
@@ -172,23 +214,23 @@ function scrollChrome(subscribe) {
 }
 
 /* --------------------------------------------------------------------------
-   Hero parallax. The hairline field behind the lockup drifts at a fraction of
-   scroll speed, so the hero reads as two planes rather than one flat surface.
+   Hero parallax. The hairline field drifts at a fraction of scroll speed, so
+   the identity card reads as two planes rather than one flat surface.
    -------------------------------------------------------------------------- */
 
 function heroParallax(subscribe) {
   const hero = document.querySelector('.identity-hero');
-  if (!hero || REDUCED.matches) return;
+  if (!hero || prefersReducedMotion()) return;
 
   subscribe((y) => {
-    const depth = Math.max(-120, Math.min(120, y * 0.18));
+    const depth = Math.max(-80, Math.min(80, y * 0.12));
     hero.style.setProperty('--hero-parallax', `${depth}px`);
   });
 }
 
 /* --------------------------------------------------------------------------
-   Method spine. The yellow rail fills in proportion to how far the list has
-   travelled through the viewport, and each step lights as the fill reaches it.
+   Method spine. The yellow rail fills in proportion to the list's travel
+   through the viewport, and each movement lights as the fill reaches it.
    -------------------------------------------------------------------------- */
 
 function methodSpine(subscribe) {
@@ -198,8 +240,8 @@ function methodSpine(subscribe) {
 
   subscribe((y, vh) => {
     const rect = list.getBoundingClientRect();
-    // 0 when the list's top reaches 80% down the viewport, 1 once its bottom
-    // has passed 40% — a window wide enough to feel scrubbed, not snapped.
+    // 0 when the list top reaches 80% down the viewport, 1 once its bottom
+    // has passed 40%. This gives the rail a scrubbed relationship to reading.
     const startAt = vh * 0.8;
     const endAt = vh * 0.4;
     const travelled = startAt - rect.top;
@@ -207,58 +249,126 @@ function methodSpine(subscribe) {
     const fill = Math.max(0, Math.min(1, travelled / total));
 
     list.style.setProperty('--spine-fill', String(fill));
-
     const litCount = Math.round(fill * steps.length);
-    steps.forEach((step, i) => step.classList.toggle('is-lit', i < litCount));
+    steps.forEach((step, index) => step.classList.toggle('is-lit', index < litCount));
   });
 }
 
 /* --------------------------------------------------------------------------
-   Card tilt. The two state cards answer the pointer like objects on a table.
-   Pointer-driven only, and only where hovering is a real input.
+   Card inspection. On a pointer device the two operating-state cards behave
+   like measured objects on a table. A damped rAF response gives the pointer
+   weight; the crosshair records where the inspection is happening.
    -------------------------------------------------------------------------- */
 
 function cardTilt() {
-  if (REDUCED.matches || !window.matchMedia('(hover: hover)').matches) return;
+  if (prefersReducedMotion() || !window.matchMedia('(hover: hover)').matches) return;
 
-  const MAX_DEGREES = 3.2;
+  const maxDegrees = 2.4;
+  const maxLift = 4;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   document.querySelectorAll('[data-tilt]').forEach((card) => {
-    let frame = null;
+    const state = {
+      active: false,
+      targetX: 0,
+      targetY: 0,
+      targetLift: 0,
+      currentX: 0,
+      currentY: 0,
+      currentLift: 0,
+      frame: null,
+      lastTime: 0,
+    };
+
+    const request = () => {
+      if (state.frame === null) state.frame = requestAnimationFrame(step);
+    };
+
+    const step = (now) => {
+      state.frame = null;
+      const elapsed = state.lastTime ? Math.min(64, now - state.lastTime) : 16;
+      state.lastTime = now;
+      // Frame-rate independent damping: responsive on entry, calm on return.
+      const blend = 1 - Math.exp(-elapsed / 86);
+
+      state.currentX += (state.targetX - state.currentX) * blend;
+      state.currentY += (state.targetY - state.currentY) * blend;
+      state.currentLift += (state.targetLift - state.currentLift) * blend;
+      card.style.setProperty('--tilt-x', state.currentX.toFixed(3));
+      card.style.setProperty('--tilt-y', state.currentY.toFixed(3));
+      card.style.setProperty('--tilt-lift', `${state.currentLift.toFixed(3)}px`);
+
+      const settled = Math.max(
+        Math.abs(state.targetX - state.currentX),
+        Math.abs(state.targetY - state.currentY),
+        Math.abs(state.targetLift - state.currentLift)
+      ) < 0.01;
+
+      if (!settled || state.active) request();
+      else {
+        card.style.removeProperty('will-change');
+        state.lastTime = 0;
+      }
+    };
+
+    const reset = () => {
+      state.active = false;
+      state.targetX = 0;
+      state.targetY = 0;
+      state.targetLift = 0;
+      card.removeAttribute('data-inspecting');
+      request();
+    };
+
+    const onEnter = () => {
+      state.active = true;
+      card.dataset.inspecting = 'true';
+      card.style.willChange = 'transform';
+      request();
+    };
 
     const onMove = (event) => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        const rect = card.getBoundingClientRect();
-        // -0.5..0.5 from the card's centre, in both axes.
-        const px = (event.clientX - rect.left) / rect.width - 0.5;
-        const py = (event.clientY - rect.top) / rect.height - 0.5;
-        // Tilting *toward* the pointer means rotateX follows -y.
-        card.style.setProperty('--tilt-x', (-py * MAX_DEGREES).toFixed(2));
-        card.style.setProperty('--tilt-y', (px * MAX_DEGREES).toFixed(2));
-      });
+      if (event.pointerType === 'touch') return;
+      const rect = card.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const px = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+      const py = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+      state.targetX = (0.5 - py) * maxDegrees;
+      state.targetY = (px - 0.5) * maxDegrees;
+      state.targetLift = -maxLift;
+      card.style.setProperty('--inspect-x', `${(px * 100).toFixed(2)}%`);
+      card.style.setProperty('--inspect-y', `${(py * 100).toFixed(2)}%`);
+      request();
     };
 
-    const onLeave = () => {
+    const onBlur = reset;
+    card.addEventListener('pointerenter', onEnter, { passive: true });
+    card.addEventListener('pointermove', onMove, { passive: true });
+    card.addEventListener('pointerleave', reset, { passive: true });
+    card.addEventListener('pointercancel', reset, { passive: true });
+    window.addEventListener('blur', onBlur);
+
+    onCleanup(() => {
+      if (state.frame !== null) cancelAnimationFrame(state.frame);
+      state.frame = null;
+      card.removeEventListener('pointerenter', onEnter);
+      card.removeEventListener('pointermove', onMove);
+      card.removeEventListener('pointerleave', reset);
+      card.removeEventListener('pointercancel', reset);
+      window.removeEventListener('blur', onBlur);
+      card.removeAttribute('data-inspecting');
+      card.style.removeProperty('will-change');
       card.style.setProperty('--tilt-x', '0');
       card.style.setProperty('--tilt-y', '0');
-    };
-
-    card.addEventListener('pointermove', onMove);
-    card.addEventListener('pointerleave', onLeave);
-    onCleanup(() => {
-      if (frame) cancelAnimationFrame(frame);
-      card.removeEventListener('pointermove', onMove);
-      card.removeEventListener('pointerleave', onLeave);
+      card.style.setProperty('--tilt-lift', '0px');
     });
   });
 }
 
 /* --------------------------------------------------------------------------
-   Title stamping. The h1 is split into per-letter spans so each glyph can be
-   pressed onto the card in sequence. The accessible name is preserved by
-   labelling the heading with its own plain text before it is split.
+   Title stamping. Words remain atomic so the mobile lockup never breaks in
+   the middle of a word. The heading's accessible name stays one clean string.
    -------------------------------------------------------------------------- */
 
 function stampTitle() {
@@ -266,40 +376,84 @@ function stampTitle() {
   if (!title || title.dataset.stamped === 'true') return;
 
   const text = title.textContent.trim();
-  title.dataset.stamped = 'true';
-  // Screen readers get one clean string instead of a pile of single letters.
   title.setAttribute('aria-label', text);
 
-  if (REDUCED.matches) return;
+  if (prefersReducedMotion()) {
+    title.dataset.stamped = 'true';
+    return;
+  }
 
   const fragment = document.createDocumentFragment();
-  Array.from(text).forEach((char, i) => {
-    const span = document.createElement('span');
-    span.className = 'stamp-letter';
-    span.setAttribute('aria-hidden', 'true');
-    span.style.setProperty('--stamp-index', String(i));
-    span.textContent = char;
-    fragment.appendChild(span);
+  let letterIndex = 0;
+  text.split(/(\s+)/).forEach((token) => {
+    if (/^\s+$/.test(token)) {
+      fragment.appendChild(document.createTextNode(token));
+      return;
+    }
+
+    const word = document.createElement('span');
+    word.className = 'stamp-word';
+    word.setAttribute('aria-hidden', 'true');
+
+    Array.from(token).forEach((char) => {
+      const letter = document.createElement('span');
+      letter.className = 'stamp-letter';
+      letter.setAttribute('aria-hidden', 'true');
+      letter.style.setProperty('--stamp-index', String(letterIndex));
+      letter.textContent = char;
+      word.appendChild(letter);
+      letterIndex += 1;
+    });
+
+    fragment.appendChild(word);
   });
 
   title.textContent = '';
   title.appendChild(fragment);
+  title.dataset.stamped = 'true';
 }
 
 /* --------------------------------------------------------------------------
-   Boot.
+   Boot. Astro's page-load and the initial DOM lifecycle can both be valid
+   entry points. The lifecycle guard makes the controller idempotent instead
+   of starting, tearing down and restarting the same page on first load.
    -------------------------------------------------------------------------- */
 
 function boot() {
-  cleanup();
+  if (activeLifecycle) return;
+
+  const lifecycle = { cancelled: false };
+  activeLifecycle = lifecycle;
+  // Deal-in styles are scoped to this marker, so disabling JavaScript leaves
+  // the server-rendered page in its complete, visible state.
+  document.documentElement.dataset.motionEnabled = 'true';
   const subscribe = createScrollBus();
-  stampTitle();
+
   dealCards();
   ledgerCounters();
   scrollChrome(subscribe);
   heroParallax(subscribe);
   methodSpine(subscribe);
   cardTilt();
+
+  // Do not let fallback font metrics decide the authored lockup entrance.
+  // The content is already visible while the font promise settles.
+  const fontsReady = document.fonts?.ready || Promise.resolve();
+  Promise.resolve(fontsReady).then(
+    () => {
+      if (lifecycle.cancelled || activeLifecycle !== lifecycle) return;
+      stampTitle();
+      document.documentElement.dataset.motionReady = 'true';
+    },
+    (error) => {
+      // A font load failure must not hold the page in a waiting state, and it
+      // remains visible in the console for diagnosis rather than disappearing.
+      console.warn('[Concept A motion] display font readiness failed; using fallback metrics.', error);
+      if (lifecycle.cancelled || activeLifecycle !== lifecycle) return;
+      stampTitle();
+      document.documentElement.dataset.motionReady = 'true';
+    }
+  );
 }
 
 document.addEventListener('astro:page-load', boot);
