@@ -51,10 +51,20 @@ printf '%s\n' "$staged" > "$seen"
 
 # The wait is bounded. An unanswered notification must not leave a process
 # sitting in the session for the rest of the day.
+# URGENCY IS NOT COSMETIC HERE. This was --urgency=low, and KDE auto-hides a
+# low-urgency popup after a few seconds. The script then sat waiting for an
+# answer the advisor no longer had any way to give: the notification was gone
+# from the screen while the process still blocked on it. Christopher hit exactly
+# that on the test VM, 2026-09-02 -- "it was gone before i clicked restart".
+# normal + no expiry keeps it on screen until it is answered. Verified live:
+# both this spelling and --urgency=critical survived long enough to be clicked
+# and returned "restart" on stdout; critical was rejected as too alarming for
+# "your computer is ready to update".
 answer=$(timeout 3600 notify-send \
     --app-name="SP+" \
     --icon=sp-plus-logo-icon \
-    --urgency=low \
+    --urgency=normal \
+    --expire-time=0 \
     --action=restart="Restart now" \
     --action=later="Later" \
     "SP+ is ready to update" \
