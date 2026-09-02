@@ -821,6 +821,41 @@ RUN curl -sSLo /tmp/starship.tgz \
  && rm -f /tmp/spr \
  && echo "STARSHIP_OK $(/usr/bin/starship --version | head -1)"
 
+# ---- Encrypted USB sticks (GNOME Disks) --------------------------------------
+# An advisor carries client PII on removable media. The failure this prevents is
+# a lost or stolen USB stick that anyone can read.
+#
+# WHY A SEPARATE APP AT ALL. The image already ships cryptsetup, udisks2 and KDE
+# Partition Manager, and none of them is the answer. cryptsetup is a command
+# line. Partition Manager is a PARTITIONING tool: it is the right tool for
+# repartitioning a disk and the wrong thing to put in front of an advisor who
+# wants to protect one USB stick, because every safe path through it sits beside
+# an unsafe one.
+#
+# WHY LUKS AND NOT A PORTABLE VAULT. Decided with Christopher 2026-09-02: these
+# sticks are read back by the advisor on SP+ machines, not handed to clients on
+# Windows. That makes LUKS the correct trade. It is in the kernel, KDE prompts
+# for the passphrase and mounts the stick on insert with nothing installed and
+# nothing launched, and there is no FUSE layer to break -- the Cryptomator
+# Flatpak, the cross-platform alternative, has broken repeatedly on FUSE across
+# releases and cannot see /run/media without a permissions override we would
+# then have to carry. If the cross-platform case ever becomes real, revisit this
+# choice rather than bolting a second encryption tool alongside it.
+#
+# gnome-disk-utility is a GNOME app on a KDE desktop on purpose: it is the only
+# maintained GUI that formats a stick as LUKS in a few plain-language clicks.
+RUN dnf install -y --setopt=install_weak_deps=False gnome-disk-utility \
+ && dnf clean all \
+ && test -x /usr/bin/gnome-disks \
+ && D=/usr/share/applications/org.gnome.DiskUtility.desktop \
+ && test -f "$D" \
+ && chmod 0644 "$D" \
+ && desktop-file-validate "$D" \
+ && test -x /usr/bin/udisksctl \
+ && test -x /usr/sbin/cryptsetup \
+ && cryptsetup --version \
+ && echo "USB_ENCRYPTION_GATE_OK gnome-disks formats LUKS sticks; udisks unlocks them on insert"
+
 RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && dnf clean all \
  && test -x /usr/bin/btop \
