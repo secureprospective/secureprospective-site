@@ -25,3 +25,10 @@ scripts/
 # layer, so it ships to be run against the installed system.
 !tests/help-app-gate.sh
 !tests/help-app-probe.py
+
+# The update-lane guard gate. Unlike the ones above it does NOT ship: it runs at
+# build time against spplus-update-control and is deleted in the same RUN layer.
+# It is only re-included here so the COPY has something to copy -- tests/ is
+# excluded wholesale above, and that exclusion silently failed the build on
+# 2026-09-01 at STEP 54 with "no items matching glob ... (1 filtered out)".
+!tests/update-guard-gate.sh
