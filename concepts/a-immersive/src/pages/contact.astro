@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/pages/contact.css';
+---
+
+<Layout title="Contact: Secure Prospective" description="Choose the SecureProspective conversation that matches the work in front of you.">
+  <Nav />
+  <main transition:name="page-card">
+    <section class="record-hero">
+      <div class="record-hero-grid shell">
+        <div class="record-hero-index"><span>FILE // CONTACT</span><span>DIRECT CHANNEL</span></div>
+        <div class="record-hero-copy">
+          <h1>Choose the conversation.</h1>
+          <p>
+            The operating business, the active build, and the prospective offer are not interchangeable.
+            Start with the state that matches the work in front of you.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="record-section record-section--white">
+      <div class="shell record-body contact-page-body">
+        <div class="contact-options">
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=Insurance%20producer%20infrastructure">
+            <span>OPERATING // AVAILABLE NOW</span>
+            <h2>Producer infrastructure.</h2>
+            <p>Case design, product positioning, federal benefits, suitability, or IMO operating support.</p>
+            <strong>Open email →</strong>
+          </a>
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review">
+            <span>ACTIVE // FIT REVIEW</span>
+            <h2>SP+.</h2>
+            <p>Review operating fit, five-contract qualification, hardware compatibility, installation scope, and support expectations.</p>
+            <strong>Start fit review →</strong>
+          </a>
+          <a class="contact-option" href="mailto:secureprospective@gmail.com?subject=Prospective%20AI-native%20transformation">
+            <span>PROSPECTIVE // EMERGING</span>
+            <h2>AI-native transformation.</h2>
+            <p>For operators following the method as it earns external application through delivered evidence.</p>
+            <strong>Open email →</strong>
+          </a>
+        </div>
+
+        <div class="contact-direct">
+          <p>Direct channel</p>
+          <a href="mailto:secureprospective@gmail.com">secureprospective@gmail.com</a>
+          <p>Montgomery, Texas</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<script>
+  import '../scripts/motion.js';
+  import '../scripts/pages/contact.js';
+</script>
