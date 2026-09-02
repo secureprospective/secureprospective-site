@@ -213,3 +213,47 @@ The install-time saving itself (~8.2s) has NOT been measured, because that needs
 an ISO and the rootful build requires an interactive sudo password. The bytes are
 proven; the seconds are still inferred from the ~73s/GB estimator. Do not report
 the 8.2s as measured until a bench run against the test56 ISO says so.
+
+---
+
+# CONFIRMED 2026-09-02: OCI payload compression is a FALSE LEVER for the ISO install
+
+## The evidence
+`projects/sp-plus/installer/interactive-defaults.ks` line 67:
+
+```
+bootc --source-imgref containers-storage:localhost/sp-plus-kde:spike \
+      --target-imgref ghcr.io/secureprospective/sp-plus-kde:latest
+```
+
+The payload source transport is **`containers-storage:`**, not `registry:`/`oci:`.
+
+## Why it settles the question
+Independent review (Terra Max, 2026-09-02) quoting bootc's own fetch code:
+*"Both containers-storage and docker-daemon store layers uncompressed in their
+local storage, even though the manifest may indicate they are compressed."*
+
+Terra's conditional was explicit: if the source is `containers-storage:`, OCI
+compression choice cannot materially reduce bootc's decompression CPU, because
+bootc is handed **uncompressed** layer data. The condition is met.
+
+## Consequence — do not spend a build cycle on this
+**Changing payload OCI compression (gzip level, zstd, zstd:chunked) will not
+speed up the SP+ ISO install.** Closed. Do not re-propose without first proving
+the transport has changed away from `containers-storage:`.
+
+Note these are two DIFFERENT experiments and must not be conflated:
+- payload **OCI** compression -> ruled out above for ISO install
+- the ISO's **squashfs** compression (image-builder currently hardcodes zstd)
+  -> still open, but Terra notes it is likely not a simple blueprint knob
+
+## What this does NOT rule out
+Byte recovery still matters. The payload sits inside `LiveOS/squashfs.img`, so
+fewer payload bytes means less squashfs to read and decompress at install time.
+The 101.1 MB removed from the test56 ISO is real. What we cannot do is convert
+those bytes into seconds — see the retracted 73s/GB estimator.
+
+## Still unmeasured (Terra's rank-1 action)
+Whether the 414.5s payload write is CPU-bound (squashfs decompression, hashing,
+SELinux) or I/O-bound (target device writes, dm-crypt). Until one instrumented
+install answers that, we do not know which of the remaining levers is real.
