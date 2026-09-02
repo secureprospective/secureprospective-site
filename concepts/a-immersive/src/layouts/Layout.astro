@@ -1,0 +1,45 @@
+---
+import '../styles/tokens.css';
+import '../styles/fonts.css';
+import '../styles/transitions.css';
+import '../styles/site.css';
+import '../styles/immersive.css';
+import { ViewTransitions } from 'astro:transitions';
+
+const {
+  title = 'Secure Prospective',
+  description = 'SecureProspective operates a real IMO and is rebuilding it AI-native through SP+, its first deliverable.',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#E5E4E2" />
+    <title>{title}</title>
+    <ViewTransitions />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  </head>
+  <body>
+    <!--
+    CONCEPT A — "The Deck, Dealt."
+    The Property Card System is unchanged: platinum stock, compliance blue, signal
+    yellow, ledger ink, square corners, stamped Primal titles, hard zero-blur
+    Card-Lift shadow. What changes is that the deck now behaves like a deck. Cards
+    are dealt onto the table as you scroll, they carry real depth, they answer the
+    pointer, and the ticker pulse that has always lived in the hero now runs the
+    length of the page as its spine. Structure, copy and voice are the production
+    site's. Nothing was flattened to make it move.
+    -->
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"><span data-scroll-progress></span></div>
+    <slot />
+  </body>
+</html>

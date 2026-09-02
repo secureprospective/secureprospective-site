@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Mark from '../components/Mark.astro';
+---
+
+<Layout title="Not in this concept — Secure Prospective" description="This preview builds the homepage only.">
+  <div class="page">
+    <main id="main" class="stage">
+      <div class="shell stage-inner">
+        <Mark class="stage-mark" />
+        <h1>Not in this concept.</h1>
+        <div class="stage-meta">
+          <p class="stage-phonetic">This preview builds the homepage only.</p>
+        </div>
+        <div class="stage-cta">
+          <a class="btn btn--solid" href="/" data-magnetic>
+            <span>Back to the homepage</span><span class="btn-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>
+
+<style>
+  /* No rail on this page, so the stage reclaims the space the rail would hold. */
+  .stage { padding-left: 0; }
+</style>

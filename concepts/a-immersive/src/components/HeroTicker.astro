@@ -1,0 +1,144 @@
+---
+/*
+ * The production homepage ticker motif, carried across verbatim: rows of
+ * dashes travelling in alternating directions with a yellow arc pulsing along
+ * them. It is the oldest piece of motion in the system and Concept A builds
+ * its whole motion language outward from this one idea, so it is preserved
+ * rather than reinterpreted.
+ */
+---
+
+<div class="identity-hero-fx" aria-hidden="true">
+  <canvas id="hero-fx-canvas" data-hero-fx></canvas>
+</div>
+
+<script>
+  // Production homepage motif: ticker rows moving in alternating directions
+  // with a traveling yellow pulse. Preserved here inside the new identity hero.
+  (function () {
+    var raf = null;
+    var running = false;
+    var t = 0;
+    var io = null;
+    var canvas = null;
+    var onResize = null;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function resize() {
+      if (!canvas || !canvas.parentElement) return;
+      var rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
+      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
+    }
+
+    var blue = '0, 51, 160';
+    var yellow = '255, 215, 0';
+
+    function draw(ctx) {
+      var w = ctx.canvas.width;
+      var h = ctx.canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      var rowH = 28 * devicePixelRatio;
+      var rows = Math.ceil(h / rowH) + 1;
+      var dashW = 10 * devicePixelRatio;
+      var gap = 8 * devicePixelRatio;
+      var unit = dashW + gap;
+
+      for (var row = 0; row <= rows; row++) {
+        var y = row * rowH + rowH / 2;
+        var dir = row % 2 === 0 ? 1 : -1;
+        var offset = ((t * 40 * devicePixelRatio * dir) % unit + unit) % unit;
+        var rowPhase = (row * 0.37) % (Math.PI * 2);
+        for (var x = -unit; x < w + unit; x += unit) {
+          var dx = x - offset;
+          var wave = Math.sin((dx / w) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
+          var isArc = wave > 0.88;
+          var brightness = 0.1 + wave * 0.3;
+          ctx.fillStyle = isArc
+            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
+            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.fillRect(dx, y - 1 * devicePixelRatio, dashW, 2 * devicePixelRatio);
+        }
+      }
+      t += 0.012;
+    }
+
+    function loop() {
+      if (!running) return;
+      var local = document.getElementById('hero-fx-canvas');
+      var ctx = local && local.getContext('2d');
+      if (!ctx) {
+        running = false;
+        return;
+      }
+      draw(ctx);
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    }
+
+    function teardown() {
+      stop();
+      if (io) {
+        io.disconnect();
+        io = null;
+      }
+      if (onResize) {
+        window.removeEventListener('resize', onResize);
+        onResize = null;
+      }
+      canvas = null;
+    }
+
+    function boot() {
+      var node = document.getElementById('hero-fx-canvas');
+      if (!node || node.dataset.fxBooted === 'true') return;
+
+      canvas = node;
+      node.dataset.fxBooted = 'true';
+      var ctx = canvas.getContext('2d');
+      if (!ctx) {
+        canvas = null;
+        return;
+      }
+
+      function start() {
+        if (running) return;
+        resize();
+        running = true;
+        if (reduceMotion) {
+          draw(ctx);
+          running = false;
+          return;
+        }
+        loop();
+      }
+
+      io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && canvas && canvas.offsetWidth > 0) start();
+          else stop();
+        });
+      }, { threshold: 0.05 });
+      io.observe(canvas);
+
+      onResize = function () {
+        if (canvas && canvas.offsetWidth > 0) resize();
+      };
+      window.addEventListener('resize', onResize);
+
+      if (canvas.offsetWidth > 0) start();
+    }
+
+    document.addEventListener('astro:page-load', boot);
+    document.addEventListener('astro:before-swap', teardown);
+    boot();
+  })();
+</script>

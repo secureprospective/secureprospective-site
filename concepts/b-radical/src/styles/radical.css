@@ -1,0 +1,655 @@
+/* ==========================================================================
+   CONCEPT B — "The Signal Room."
+   Structure of this sheet: reset, chrome (rail + nav), stage (hero), then each
+   movement in page order, then the reduced-motion and responsive contracts.
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  background: var(--void);
+  color: var(--text-high);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A fine grain over the whole room. Dark gradients band badly on cheap
+   panels; a little noise breaks the banding and gives the black some tooth. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+p { text-wrap: pretty; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--yellow-accent);
+  outline-offset: 4px;
+}
+
+::selection { background: var(--yellow-accent); color: var(--ink); }
+
+.shell {
+  width: min(100% - var(--gutter) * 2, var(--shell));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 500;
+  padding: 12px 20px;
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translateY(-200%);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* Small caps label, used everywhere a machine would print a field name. */
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--yellow-accent);
+}
+
+/* ==========================================================================
+   The live field. A canvas lattice behind everything, fixed to the viewport.
+   ========================================================================== */
+
+.field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.field canvas { display: block; width: 100%; height: 100%; }
+
+/* A vignette so the field never competes with text at the edges. */
+.field::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, transparent 30%, var(--void) 78%);
+}
+
+.page { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   Chrome: the instrument rail and the nav.
+   ========================================================================== */
+
+.rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 90;
+  width: var(--rail);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 22px;
+  border-right: 1px solid var(--hairline);
+  background: rgba(5, 7, 14, 0.6);
+  backdrop-filter: blur(12px);
+}
+@media (max-width: 900px) { .rail { display: none; } }
+
+.rail-mark { width: 26px; height: 26px; fill: var(--silver-base); opacity: 0.9; }
+
+.rail-index {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  list-style: none;
+}
+.rail-index button {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--hairline-bright);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.rail-index button:hover { border-color: var(--yellow-accent); }
+.rail-index button[aria-current='true'] {
+  background: var(--yellow-accent);
+  border-color: var(--yellow-accent);
+}
+
+.rail-meter {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-low);
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: var(--rail);
+  right: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px var(--gutter);
+  border-bottom: 1px solid transparent;
+  transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.topbar.is-stuck {
+  background: rgba(8, 12, 24, 0.72);
+  backdrop-filter: blur(14px);
+  border-bottom-color: var(--hairline);
+}
+
+.topbar-name {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.topbar-name em {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--yellow-accent);
+}
+
+.topbar-links { display: flex; gap: 4px; }
+.topbar-links a {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+.topbar-links a:hover { color: var(--text-high); background: rgba(242, 244, 248, 0.06); }
+@media (max-width: 760px) { .topbar-links { display: none; } }
+
+/* ==========================================================================
+   Movement 00 — the stage.
+   ========================================================================== */
+
+.stage {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  padding: 140px 0 90px var(--rail);
+}
+
+.stage-inner { position: relative; }
+
+.stage-mark {
+  width: clamp(64px, 8vw, 104px);
+  margin-bottom: clamp(24px, 4vw, 44px);
+  overflow: visible;
+}
+.stage-mark path {
+  fill: none;
+  stroke: var(--gold-identity);
+  stroke-width: 1.4;
+}
+
+/* Kinetic wordmark. Each word is its own line, tracked out, and the whole
+   lockup carries a slow scanning highlight — the room reading its own name. */
+.stage h1 {
+  /* "PROSPECTIVE" measures 8.04em in Primal, so the wordmark's size is set by
+     the widest word rather than by taste: at 13vw it overran the shell at every
+     viewport from 390px to 1920px and the final E was clipped. 11vw with a 10rem
+     ceiling keeps the longest word inside the container everywhere, measured. */
+  font-size: clamp(2.5rem, 10.4vw, 10rem);
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+}
+.stage h1 .word { display: block; max-width: 100%; overflow: hidden; }
+.stage h1 .word > span {
+  display: inline-block;
+  color: var(--text-high);
+}
+
+.stage-meta {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 26px;
+  margin-top: clamp(22px, 3vw, 34px);
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+/* The travelling rule that replaced the gradient scan. */
+.stage-meta::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+.stage-phonetic {
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  color: var(--text-mid);
+  letter-spacing: 0.04em;
+}
+
+/* The live status pill: the one element that says the business is running. */
+.pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px;
+  border: 1px solid var(--hairline-bright);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.pulse i {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  background: var(--yellow-accent);
+}
+.pulse i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--yellow-accent);
+  opacity: 0;
+}
+
+.stage-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: clamp(34px, 5vw, 54px);
+}
+
+/* ==========================================================================
+   Buttons. Magnetic, with the fill arriving as light rather than paint.
+   ========================================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 30px;
+  overflow: hidden;
+  border: 1px solid var(--hairline-bright);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-high);
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  will-change: transform;
+}
+.btn span { position: relative; z-index: 1; }
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--yellow-accent);
+  transform: translate3d(0, 101%, 0);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.btn:hover, .btn:focus-visible { color: var(--ink); border-color: var(--yellow-accent); }
+.btn:hover::before, .btn:focus-visible::before { transform: translate3d(0, 0, 0); }
+
+.btn--solid { background: var(--yellow-accent); color: var(--ink); border-color: var(--yellow-accent); }
+.btn--solid::before { background: var(--white); }
+.btn--solid:hover, .btn--solid:focus-visible { color: var(--ink); border-color: var(--white); }
+
+.btn-arrow { transition: transform var(--dur-fast) var(--ease-out); }
+.btn:hover .btn-arrow { transform: translateX(5px); }
+
+/* ==========================================================================
+   Movement 01 — the two states, as instrument panels.
+   ========================================================================== */
+
+.movement { position: relative; padding-block: clamp(90px, 13vh, 170px); padding-left: var(--rail); }
+.movement-head { max-width: 62ch; margin-bottom: clamp(40px, 6vw, 76px); }
+.movement-head h2 { font-size: clamp(2.4rem, 6vw, 5rem); margin-top: 20px; }
+.movement-head p { margin-top: 22px; color: var(--text-mid); font-size: clamp(1rem, 1.3vw, 1.15rem); max-width: 56ch; }
+
+.states { display: grid; gap: 20px; grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 900px) { .states { grid-template-columns: 1fr; } }
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(26px, 3.4vw, 44px);
+  border: 1px solid var(--hairline);
+  background: linear-gradient(160deg, #131C33, #0A1020);
+  overflow: hidden;
+  transition: border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.panel:hover { border-color: var(--hairline-bright); }
+
+/* A lens that follows the pointer across the panel: light falling on glass. */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(320px circle at var(--lens-x, 50%) var(--lens-y, 0%), rgba(43, 107, 255, 0.16), transparent 62%);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.panel:hover::before { opacity: 1; }
+.panel > * { position: relative; }
+
+.panel--live { border-top: 2px solid var(--blue-lit); }
+.panel--build { border-top: 2px solid var(--yellow-accent); }
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.panel h3 { margin-top: 26px; font-size: clamp(1.9rem, 3.3vw, 3.1rem); }
+.panel > p { margin-top: 20px; color: var(--text-mid); max-width: 46ch; }
+.panel .btn { margin-top: auto; align-self: flex-start; }
+.panel .btn:first-of-type { margin-top: 34px; }
+
+/* Instrument readouts. Big tabular figures on their own rules. */
+.readouts { margin: 32px 0 34px; border-top: 1px solid var(--hairline); }
+.readout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.readout dt { font-size: 13px; letter-spacing: 0.005em; color: var(--text-mid); text-transform: none; }
+.readout dd {
+  font-family: var(--font-body);
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-high);
+}
+
+.terms {
+  display: flex;
+  gap: 14px;
+  margin-top: 30px;
+  padding: 18px;
+  border-left: 2px solid var(--yellow-accent);
+  background: rgba(255, 215, 0, 0.05);
+}
+.terms p { font-size: 0.94rem; color: var(--text-mid); }
+.terms strong { color: var(--text-high); }
+
+/* ==========================================================================
+   Movement 02 — the method, as a scrubbed horizontal track.
+   ========================================================================== */
+
+.track-section { position: relative; padding-left: var(--rail); overflow: hidden; }
+.track-viewport { position: sticky; top: 0; height: 100svh; display: grid; align-content: center; overflow: hidden; }
+
+.track {
+  display: flex;
+  gap: 20px;
+  padding-inline: var(--gutter);
+  will-change: transform;
+}
+
+.movement-card {
+  flex: 0 0 clamp(240px, 27vw, 350px);
+  min-height: clamp(300px, 42vh, 420px);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(22px, 2.4vw, 32px);
+  border: 1px solid var(--hairline);
+  background: linear-gradient(170deg, #131C33, #0A1020);
+  transition: border-color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+}
+.movement-card.is-current { border-color: var(--yellow-accent); }
+.movement-card-no {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--hairline-bright);
+}
+.movement-card.is-current .movement-card-no {
+  color: var(--yellow-accent);
+  -webkit-text-stroke: 0;
+}
+.movement-card h3 { margin-top: auto; font-size: clamp(1.3rem, 2vw, 1.75rem); }
+.movement-card p { margin-top: 12px; color: var(--text-mid); font-size: 0.95rem; }
+
+.track-progress { margin: 30px auto 0; width: min(100% - var(--gutter) * 2, var(--shell)); height: 2px; background: var(--hairline); }
+.track-progress span { display: block; height: 100%; width: 100%; background: var(--yellow-accent); transform: scaleX(0); transform-origin: 0 50%; }
+
+/* ==========================================================================
+   Movement 03 — the register, as a bento of live records.
+   ========================================================================== */
+
+.register { display: grid; gap: 16px; grid-template-columns: repeat(6, 1fr); }
+.record {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(22px, 2.6vw, 34px);
+  border: 1px solid var(--hairline);
+  background: #0C1223;
+  transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+}
+a.record:hover { transform: translateY(-4px); border-color: var(--hairline-bright); background: #131C33; }
+.record--wide { grid-column: span 4; }
+.record--half { grid-column: span 3; }
+.record--third { grid-column: span 2; }
+@media (max-width: 900px) { .register { grid-template-columns: 1fr; } .record { grid-column: 1 / -1 !important; } }
+
+.record h3 { font-size: clamp(1.2rem, 1.8vw, 1.6rem); }
+.record p { color: var(--text-mid); font-size: 0.95rem; }
+.record-no { position: absolute; top: clamp(22px, 2.6vw, 34px); right: clamp(22px, 2.6vw, 34px); font-size: 12px; letter-spacing: 0.12em; color: var(--text-low); font-variant-numeric: tabular-nums; }
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  padding: 6px 11px;
+  border: 1px solid currentColor;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.status i { width: 6px; height: 6px; background: currentColor; }
+.status--proven { color: var(--blue-lit); }
+.status--active { color: var(--yellow-accent); }
+.status--future { color: var(--text-low); }
+.record--future { opacity: 0.62; }
+
+/* ==========================================================================
+   Movement 04 — the close. The one place the room turns the lights on.
+   ========================================================================== */
+
+.close-section { position: relative; margin-left: 0; padding: clamp(70px, 11vw, 150px) 0 clamp(70px, 11vw, 150px) var(--rail); background: var(--yellow-accent); color: var(--ink); overflow: hidden; }
+.close-section h2 { font-size: clamp(2.5rem, 7vw, 6rem); max-width: 18ch; }
+.close-grid { display: grid; grid-template-columns: 0.4fr 1.6fr; gap: 30px 60px; }
+@media (max-width: 900px) { .close-grid { grid-template-columns: 1fr; } }
+.close-section .label { color: rgba(34, 34, 34, 0.66); }
+.close-section .label::before { background: var(--ink); box-shadow: none; }
+.close-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+@media (max-width: 900px) { .close-actions { grid-column: 1; } }
+.close-section .btn { border-color: rgba(34, 34, 34, 0.4); color: var(--ink); }
+.close-section .btn::before { background: var(--ink); }
+.close-section .btn:hover, .close-section .btn:focus-visible { color: var(--yellow-accent); border-color: var(--ink); }
+
+.site-foot {
+  margin-left: 0;
+  padding: 46px 0 46px var(--rail);
+  border-top: 1px solid var(--hairline);
+  color: var(--text-low);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.site-foot .shell { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+
+/* ==========================================================================
+   Reveal contract. Everything that moves on entry is declared here, once, and
+   the whole block is gated so reduced-motion users get a static, complete page.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal].is-in { opacity: 1; transform: none; }
+
+  .stage h1 .word > span {
+    transform: translate3d(0, 108%, 0);
+    animation: word-rise 1s var(--ease-out) forwards;
+    animation-delay: calc(var(--word-index, 0) * 130ms);
+  }
+
+  .stage-meta::after { animation: rule-scan 7s var(--ease-io) 1.8s infinite; }
+
+  .stage-mark path {
+    stroke-dasharray: 1400;
+    stroke-dashoffset: 1400;
+    animation: draw-mark 2.6s var(--ease-io) 0.2s forwards;
+  }
+
+  .pulse i::after { animation: pulse-ring 2.6s var(--ease-out) infinite; }
+}
+
+@keyframes word-rise { to { transform: translate3d(0, 0, 0); } }
+@keyframes rule-scan {
+  0%, 8%    { transform: scaleX(0); transform-origin: 0 50%; opacity: 1; }
+  38%, 46%  { transform: scaleX(1); transform-origin: 0 50%; opacity: 1; }
+  47%       { transform: scaleX(1); transform-origin: 100% 50%; }
+  78%, 100% { transform: scaleX(0); transform-origin: 100% 50%; opacity: 1; }
+}
+@keyframes draw-mark { to { stroke-dashoffset: 0; } }
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.9; }
+  70%  { transform: scale(3.2); opacity: 0; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* On reduced motion the horizontal track cannot be scrubbed, so it becomes an
+   ordinary wrapping grid and the sticky viewport is released. */
+@media (prefers-reduced-motion: reduce) {
+  .track-viewport { position: static; height: auto; }
+  .track { flex-wrap: wrap; }
+  .movement-card { flex: 1 1 260px; }
+}
+
+/* ==========================================================================
+   Impeccable remediation pass — 2026-09-02.
+
+   The .label kicker is gone from the markup entirely, so its rule is dropped
+   rather than left behind as dead CSS. What follows adjusts the pieces whose
+   composition changed once the kickers came out and the status chips moved to
+   the foot of their card.
+   ========================================================================== */
+
+/* Headings now open each movement with nothing above them, so they carry the
+   top margin the kicker used to hold. */
+.movement-head h2 { margin-top: 0; }
+
+/* The status chip is a state readout at the foot of the record, not a label at
+   its head. It is pushed down so every card's chip sits on the same baseline
+   regardless of how long its copy runs. */
+.record .status { margin-top: auto; }
+.record p { margin-bottom: 4px; }
+
+/* The register headings gained a clause each; they need a slightly tighter
+   measure to hold their shape. */
+.movement-head h2 { max-width: 20ch; }
+#access-title { max-width: 24ch; }
+
+/* Panels are opaque now, so the pointer lens is the only thing left creating
+   depth on them. It was tuned against a translucent surface and reads too hot
+   on a solid one. */
+.panel::before {
+  background: radial-gradient(320px circle at var(--lens-x, 50%) var(--lens-y, 0%), rgba(43, 107, 255, 0.1), transparent 62%);
+}
+
+/* The close band and footer are now full-bleed on both edges rather than inset
+   on the left by the rail, so their inner shell carries the rail offset and
+   the content still lines up with every section above it. */
+@media (max-width: 900px) {
+  .close-section { padding-left: 0; }
+  .site-foot { padding-left: 0; }
+}

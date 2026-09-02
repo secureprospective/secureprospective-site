@@ -1,0 +1,23 @@
+---
+const year = new Date().getFullYear();
+const links = [
+  { href: '/services', label: 'The Operation' },
+  { href: '/the-work', label: 'SP+' },
+  { href: '/the-method', label: 'The Method' },
+  { href: '/the-operator', label: 'The Operator' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<footer class="site-footer" transition:name="app-footer">
+  <div class="footer-grid shell">
+    <div class="footer-index">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </div>
+    <div class="footer-rule"></div>
+    <div class="footer-close">
+      <span>© {year} SecureProspective</span>
+      <p>Secure the operating foundation. Build SP+ next.</p>
+    </div>
+  </div>
+</footer>

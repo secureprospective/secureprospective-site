@@ -1,0 +1,232 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Mark from '../components/Mark.astro';
+
+const movements = [
+  { no: '01', name: 'Diagnose', line: 'Find the real constraint.' },
+  { no: '02', name: 'Position', line: 'Place the right tool.' },
+  { no: '03', name: 'Shape', line: 'Make output ownable.' },
+  { no: '04', name: 'Transform', line: 'Change the operation.' },
+  { no: '↺', name: 'Re-diagnose', line: 'Secure the next state.' },
+];
+
+const sections = [
+  { id: 'stage', label: 'The name' },
+  { id: 'states', label: 'The two states' },
+  { id: 'method', label: 'The method' },
+  { id: 'register', label: 'The proof register' },
+  { id: 'access', label: 'Access' },
+];
+
+const nav = [
+  { href: '/services', label: 'The Operation' },
+  { href: '/the-work', label: 'SP+' },
+  { href: '/the-method', label: 'The Method' },
+  { href: '/the-operator', label: 'The Operator' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<Layout title="Secure Prospective" description="A revenue-producing IMO building its prospective form through SP+, the first AI-native deliverable.">
+  <aside class="rail" aria-label="Section index">
+    <Mark class="rail-mark" />
+    <ul class="rail-index">
+      {sections.map((section) => (
+        <li>
+          <button type="button" data-rail-dot={section.id} aria-current="false">
+            <span class="sr-only">{section.label}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+    <span class="rail-meter"><span data-meter>000</span> / 100</span>
+  </aside>
+
+  <header class="topbar">
+    <a class="topbar-name" href="/">Secure Prospective <em>IMO</em></a>
+    <nav class="topbar-links" aria-label="Primary navigation">
+      {nav.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+  </header>
+
+  <div class="page">
+    <main id="main">
+      <!-- 00 — the name, stated once, at full volume. -->
+      <section class="stage" id="stage" aria-labelledby="stage-title">
+        <div class="shell stage-inner">
+          <Mark class="stage-mark" />
+          <h1 id="stage-title" data-split>Secure Prospective</h1>
+          <div class="stage-meta">
+            <p class="stage-phonetic">/sɪˈkjʊr//prəˈspek.tɪv/</p>
+            <span class="pulse"><i></i> Revenue active</span>
+            <span class="pulse"><i></i> SP+ in build</span>
+          </div>
+          <div class="stage-cta">
+            <a class="btn btn--solid" href="/the-work" data-magnetic>
+              <span>Explore SP+</span><span class="btn-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="btn" href="/services" data-magnetic>
+              <span>Enter the operation</span><span class="btn-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 01 — the business that exists, and the one being built. -->
+      <section class="movement" id="states" aria-labelledby="states-title">
+        <div class="shell">
+          <div class="movement-head" data-reveal>
+            <h2 id="states-title">One operation, running in two tenses.</h2>
+            <p>
+              The method is not a consulting product sitting above the business. It is the
+              discipline being applied inside it. Every claim moves through an evidence gate.
+            </p>
+          </div>
+
+          <div class="states">
+            <article class="panel panel--live" data-lens data-reveal>
+              <div class="panel-head"><span>State // Operating</span><span>Revenue active</span></div>
+              <h3>The business that exists.</h3>
+              <p>
+                SecureProspective operates inside the work: annuity and life-insurance wholesale,
+                producer development, case design, suitability, and infrastructure for active agents.
+              </p>
+              <dl class="readouts">
+                <div class="readout">
+                  <dt>Active producers</dt>
+                  <dd data-count-to="8">8</dd>
+                </div>
+                <div class="readout">
+                  <dt>Current annual annuity volume assisted</dt>
+                  <dd data-count-to="18" data-count-prefix="~$" data-count-suffix="M">~$18M</dd>
+                </div>
+                <div class="readout">
+                  <dt>Total annuity production assisted over six years</dt>
+                  <dd data-count-to="110" data-count-prefix="~$" data-count-suffix="M">~$110M</dd>
+                </div>
+              </dl>
+              <a class="btn" href="/services" data-magnetic>
+                <span>Enter the operation</span><span class="btn-arrow" aria-hidden="true">→</span>
+              </a>
+            </article>
+
+            <article class="panel panel--build" data-lens data-reveal style="--reveal-delay: 120ms">
+              <div class="panel-head"><span>State // In build</span><span>Deliverable 001</span></div>
+              <h3>The workstation that protects the practice.</h3>
+              <p>
+                SP+ is a Fedora-based immutable workstation for insurance agents and financial
+                advisors, encrypted from installation, contained where practical, and built around
+                human-held AI assistance.
+              </p>
+              <div class="terms">
+                <p>
+                  <strong>No software fee. No recurring SP+ subscription.</strong> Start with a fit
+                  review. Qualification requires five production contracts selected with Christopher.
+                </p>
+              </div>
+              <a class="btn" href="/the-work" data-magnetic>
+                <span>See how SP+ works</span><span class="btn-arrow" aria-hidden="true">→</span>
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 — five movements, travelled sideways. -->
+      <section class="track-section" id="method" data-track-section aria-labelledby="method-title">
+        <div class="track-viewport">
+          <div class="shell movement-head" data-reveal>
+            <h2 id="method-title">The method: one operation, five movements.</h2>
+          </div>
+          <ol class="track" data-track>
+            {movements.map((movement) => (
+              <li class="movement-card">
+                <span class="movement-card-no">{movement.no}</span>
+                <h3>{movement.name}</h3>
+                <p>{movement.line}</p>
+              </li>
+            ))}
+          </ol>
+          <div class="track-progress"><span data-track-progress></span></div>
+        </div>
+      </section>
+
+      <!-- 03 — the register, as live records. -->
+      <section class="movement" id="register" aria-labelledby="register-title">
+        <div class="shell">
+          <div class="movement-head" data-reveal>
+            <h2 id="register-title">The proof register claims only what the record holds.</h2>
+          </div>
+
+          <div class="register">
+            <a class="record record--wide" href="/services#operating-record" data-reveal>
+              <h3>The IMO operating record</h3>
+              <p>Revenue, producers, production, responsibility.</p>
+              <span class="status status--proven"><i></i> Proven</span>
+              <span class="record-no">01</span>
+            </a>
+            <a class="record record--half" href="/the-work#sp-plus" data-reveal style="--reveal-delay: 90ms">
+              <h3>SP+ first deliverable</h3>
+              <p>The encrypted, immutable, AI-first advisor workstation.</p>
+              <span class="status status--active"><i></i> Active</span>
+              <span class="record-no">02</span>
+            </a>
+            <a class="record record--half" href="/the-work#access" data-reveal style="--reveal-delay: 180ms">
+              <h3>SP+ partnership access</h3>
+              <p>No software fee. No subscription. Qualify through five production contracts.</p>
+              <span class="status status--active"><i></i> Available</span>
+              <span class="record-no">03</span>
+            </a>
+            <div class="record record--wide record--future" data-reveal style="--reveal-delay: 270ms">
+              <h3>AI-native transformation</h3>
+              <p>An external offer earned through the record above.</p>
+              <span class="status status--future"><i></i> Prospective</span>
+              <span class="record-no">04</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 — the close. -->
+      <section class="close-section" id="access" aria-labelledby="access-title">
+        <div class="shell close-grid">
+          <h2 id="access-title">
+            SP+ partnership access: no software fee, no subscription. Qualify through five
+            contracts and build the opportunity together.
+          </h2>
+          <div class="close-actions">
+            <a class="btn" href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review" data-magnetic>
+              <span>Start an SP+ fit review</span><span class="btn-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="btn" href="/the-work#access" data-magnetic>
+              <span>See the access model</span><span class="btn-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-foot">
+      <div class="shell">
+        <span>© {new Date().getFullYear()} SecureProspective</span>
+        <span>Secure the operating foundation. Build SP+ next.</span>
+      </div>
+    </footer>
+  </div>
+</Layout>
+
+<style>
+  /* The only visually-hidden utility this page needs: the rail's dots are
+     icon-only controls and must still announce which section they reach. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

@@ -1,0 +1,12 @@
+{
+  "name": "impeccable-detector-deps",
+  "private": true,
+  "description": "Parser dependencies for the Impeccable detector. Node resolves these by walking up from scripts/detector/. Without them the detector silently degrades to regex matching and undercounts findings.",
+  "dependencies": {
+    "css-select": "^5.1.0",
+    "css-tree": "^3.1.0",
+    "domutils": "^3.2.2",
+    "htmlparser2": "^10.0.0",
+    "puppeteer": "^25.9.0"
+  }
+}

@@ -1,0 +1,68 @@
+/* ==========================================================================
+   CONCEPT B — "The Signal Room."
+
+   The brand primitives are unchanged: the same four brand colours, the same
+   two typefaces, the same mark. What changes is the room they are standing in.
+
+   Concept A lights the brand from the front — platinum stock, ink on light,
+   cards on a table. Concept B lights it from behind. The ground goes to deep
+   ink, and compliance blue and signal yellow stop being fills and start being
+   light sources. Gold becomes the warm metal it always was. The result reads
+   as an instrument room rather than a brochure: something running, observed,
+   under control.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand constants. Identical values to production. ---- */
+  --blue-brand: #0033A0;
+  --gold-identity: #D4AF37;
+  --yellow-accent: #FFD700;
+  --silver-base: #E5E4E2;
+  --ink: #222222;
+  --white: #FFFFFF;
+
+  /* ---- The room. A near-black built from the brand blue rather than a
+         neutral grey, so every surface carries the blue in its bones. ---- */
+  --void: #05070E;
+  --deep: #080C18;
+  --panel: #0C1223;
+  --panel-raised: #111A2F;
+  --hairline: rgba(229, 228, 226, 0.12);
+  --hairline-bright: rgba(229, 228, 226, 0.28);
+
+  /* ---- Light sources. Blue and yellow as emitted light, not as paint. ---- */
+  --blue-lit: #2B6BFF;
+  --blue-glow: rgba(43, 107, 255, 0.45);
+  --yellow-glow: rgba(255, 215, 0, 0.5);
+  --gold-glow: rgba(212, 175, 55, 0.35);
+
+  /* ---- Type on dark. Pure white at body size vibrates against near-black,
+         so the reading colour is a warm off-white held just below full. ---- */
+  --text-high: #F2F4F8;
+  /* Raised after the Impeccable contrast pass. At 0.72 / 0.50 these landed
+     between 2.6:1 and 4.3:1 over the translucent panels, under the 4.5:1 floor.
+     The panels themselves were also made near-opaque; both changes were needed,
+     because a backdrop-filtered surface cannot promise a contrast ratio. */
+  --text-mid: rgba(242, 244, 248, 0.88);
+  --text-low: rgba(242, 244, 248, 0.7);
+
+  /* ---- Typography: the production faces, unchanged. ---- */
+  --font-display: 'SP Primal', system-ui, sans-serif;
+  --font-body: 'SP IBM Plex Sans', system-ui, -apple-system, sans-serif;
+
+  /* ---- Motion. One curve for travel, one for settle. ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 220ms;
+  --dur-base: 520ms;
+  --dur-slow: 900ms;
+
+  /* ---- Layout ---- */
+  --shell: 1320px;
+  --gutter: clamp(20px, 4vw, 56px);
+  --rail: 68px;
+}
+
+@media (max-width: 900px) {
+  :root { --rail: 0px; }
+}

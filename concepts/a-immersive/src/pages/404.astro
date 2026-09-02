@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Not in this concept — Secure Prospective" description="This preview builds the homepage only.">
+  <Nav />
+  <main id="main" transition:name="page-card">
+    <section class="closing-field">
+      <div class="shell closing-field-grid">
+        <p>Concept preview</p>
+        <h2>This page isn't built yet.</h2>
+        <div class="closing-actions">
+          <a href="/" class="action action--signal">Back to the homepage <span>→</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  /* The concept preview ships the homepage only, so every navigation target
+     lands here. Kept deliberately plain: it explains the boundary of the
+     preview without pretending to be a designed page. */
+  .closing-field { min-height: 62vh; display: grid; align-items: center; }
+</style>

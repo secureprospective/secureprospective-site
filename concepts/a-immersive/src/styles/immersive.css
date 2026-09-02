@@ -1,0 +1,435 @@
+/* ==========================================================================
+   CONCEPT A — "The Deck, Dealt."
+
+   An enhancement layer over the production Property Card System. site.css is
+   loaded first and untouched; everything here adds depth, motion and reading
+   comfort on top of it. Three rules held throughout:
+
+   1. The only shadow in this system is hard-edged Card-Lift, zero blur. Depth
+      is built from offset, stock colour and hairlines, never from a soft glow.
+   2. Corners stay square. Nothing here rounds anything the system squares.
+   3. Every motion is gated behind prefers-reduced-motion: no-preference, and
+      the page is complete and legible with all of it switched off.
+   ========================================================================== */
+
+:root {
+  /* Depth ladder. Each rung is the same hard shadow at a greater offset, so
+     "higher off the table" reads as a bigger cast, not a blurrier one. */
+  --lift-1: 3px 3px 0 rgba(34, 34, 34, 0.28);
+  --lift-2: 6px 6px 0 rgba(34, 34, 34, 0.35);
+  --lift-3: 12px 12px 0 rgba(34, 34, 34, 0.4);
+  --lift-blue: 6px 6px 0 rgba(0, 51, 160, 0.32);
+  --lift-yellow: 6px 6px 0 rgba(255, 215, 0, 0.55);
+
+  /* One easing for the whole page: exponential ease-out, the same curve the
+     card-lift page transition already uses. */
+  --ease-deck: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 200ms;
+  --dur-base: 420ms;
+  --dur-slow: 760ms;
+
+  /* Reading measure. The production rule is 70ch; long ledes get a tighter
+     one so the eye does not have to travel to find the next line. */
+  --measure-lede: 58ch;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  padding: 12px 20px;
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transform: translateY(-120%);
+  transition: transform var(--dur-fast) var(--ease-deck);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* --------------------------------------------------------------------------
+   Scroll spine — the ticker pulse, promoted from a hero effect to the page's
+   backbone. A hairline of signal yellow that fills as the deck is dealt.
+   -------------------------------------------------------------------------- */
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 120;
+  height: 3px;
+  background: rgba(34, 34, 34, 0.1);
+  pointer-events: none;
+}
+.scroll-progress span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   Deal-in. Sections arrive as cards laid onto the table: up from below, a
+   hair of scale, the hard shadow present on the way in and gone once landed.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-deal] {
+    opacity: 0;
+    transform: translate3d(-1.2rem, 2.4rem, 0) scale(0.988);
+    box-shadow: var(--lift-2);
+    transition:
+      opacity var(--dur-slow) var(--ease-deck),
+      transform var(--dur-slow) var(--ease-deck),
+      box-shadow var(--dur-slow) var(--ease-deck);
+    transition-delay: var(--deal-delay, 0ms);
+    will-change: transform, opacity;
+  }
+  [data-deal].is-dealt {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    box-shadow: 0 0 0 rgba(34, 34, 34, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero. The existing ticker canvas stays exactly as it is and gains a
+   parallax layer above it plus a stamped, per-letter title reveal.
+   -------------------------------------------------------------------------- */
+
+.identity-hero { position: relative; overflow: hidden; }
+
+/* A second, slower field of hairlines behind the lockup gives the hero real
+   depth: two planes moving at different rates rather than one flat canvas. */
+.identity-hero::after {
+  content: '';
+  position: absolute;
+  inset: -10% -5%;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(0, 51, 160, 0.07) 0 1px, transparent 1px 96px),
+    repeating-linear-gradient(0deg, rgba(0, 51, 160, 0.05) 0 1px, transparent 1px 96px);
+  transform: translate3d(0, var(--hero-parallax, 0px), 0);
+  pointer-events: none;
+}
+.identity-lockup { position: relative; z-index: 2; }
+
+/* Per-letter stamp. Each glyph is pressed onto the card like a die-cut, in
+   sequence, left to right. */
+.stamp-letter {
+  display: inline-block;
+  white-space: pre;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stamp-letter {
+    opacity: 0;
+    transform: translate3d(0, 0.36em, 0) scale(1.08);
+    animation: stamp-in 620ms var(--ease-deck) forwards;
+    animation-delay: calc(var(--stamp-index, 0) * 42ms + 120ms);
+  }
+}
+@keyframes stamp-in {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.pronunciation { position: relative; z-index: 2; }
+
+/* The SP+ card in the hero is the page's one promoted card: it sits highest
+   on the table and answers the pointer with a real, tracked offset. */
+.hero-sp-plus {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--lift-2);
+  transition:
+    transform var(--dur-base) var(--ease-deck),
+    box-shadow var(--dur-base) var(--ease-deck);
+  will-change: transform;
+}
+.hero-sp-plus:hover,
+.hero-sp-plus:focus-visible {
+  transform: translate3d(-3px, -3px, 0);
+  box-shadow: var(--lift-3);
+}
+
+/* A signal pulse that runs the top edge of the card, the same yellow arc the
+   hero ticker sends along its rows. */
+.hero-sp-plus::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--yellow-accent), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-sp-plus::before { animation: edge-pulse 4.2s linear infinite; }
+}
+@keyframes edge-pulse {
+  0%   { background-position: -45% 0; opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { background-position: 145% 0; opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Dual state. Two cards on a table, so they tilt toward the pointer and
+   their cast shadow moves opposite the tilt.
+   -------------------------------------------------------------------------- */
+
+.dual-state { perspective: 1400px; }
+
+.state-field {
+  position: relative;
+  transition: transform var(--dur-base) var(--ease-deck), box-shadow var(--dur-base) var(--ease-deck);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .state-field[data-tilt]:hover {
+    transform:
+      perspective(1400px)
+      rotateX(calc(var(--tilt-x, 0) * 1deg))
+      rotateY(calc(var(--tilt-y, 0) * 1deg))
+      translate3d(0, -4px, 0);
+    z-index: 3;
+  }
+  .state-field--secure[data-tilt]:hover { box-shadow: var(--lift-yellow); }
+  .state-field--prospective[data-tilt]:hover { box-shadow: var(--lift-2); }
+}
+
+.state-lede { max-width: var(--measure-lede); }
+
+/* Ledger figures count up, and sit on a hairline that draws itself in. */
+.evidence-ledger > div { position: relative; }
+.evidence-ledger strong { display: inline-block; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .evidence-ledger > div::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.4;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform var(--dur-slow) var(--ease-deck);
+    transition-delay: calc(var(--ledger-index, 0) * 120ms);
+  }
+  .is-dealt .evidence-ledger > div::after { transform: scaleX(1); }
+}
+
+/* --------------------------------------------------------------------------
+   Method spine. The five movements gain an actual spine: a vertical rail that
+   fills as you scroll it, with each step lighting as the fill passes it.
+   -------------------------------------------------------------------------- */
+
+.method-spine { position: relative; }
+.spine-copy p { max-width: var(--measure-lede); }
+
+.spine-steps { position: relative; counter-reset: movement; }
+
+.spine-steps::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: rgba(34, 34, 34, 0.14);
+}
+.spine-steps::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 2px;
+  height: 100%;
+  background: var(--yellow-accent);
+  transform: scaleY(var(--spine-fill, 0));
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+
+.spine-steps li {
+  position: relative;
+  transition: transform var(--dur-base) var(--ease-deck), background-color var(--dur-base) var(--ease-deck);
+}
+.spine-steps li.is-lit { background: var(--white); box-shadow: var(--lift-1); }
+.spine-steps li.is-lit span { color: var(--ink); }
+
+/* The movement number gets a yellow chip once its step is lit. */
+.spine-steps li span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  border: 1px solid currentColor;
+  transition: background-color var(--dur-fast) var(--ease-deck), color var(--dur-fast) var(--ease-deck);
+}
+.spine-steps li.is-lit span { background: var(--yellow-accent); border-color: var(--ink); }
+
+/* --------------------------------------------------------------------------
+   Proof register. Rows deal in one after another and lift on approach.
+   -------------------------------------------------------------------------- */
+
+.proof-line {
+  position: relative;
+  transition:
+    transform var(--dur-base) var(--ease-deck),
+    box-shadow var(--dur-base) var(--ease-deck),
+    background-color var(--dur-base) var(--ease-deck);
+}
+.proof-line:not(.proof-line--future):hover,
+.proof-line:not(.proof-line--future):focus-visible {
+  transform: translate3d(-4px, -4px, 0);
+  box-shadow: var(--lift-2);
+  background: var(--silver-base);
+}
+
+/* The live rows carry a slow breathing pulse on their status chip so the
+   register reads as something still running, not a static table. */
+@media (prefers-reduced-motion: no-preference) {
+  .proof-status--active { animation: chip-breathe 3.4s var(--ease-deck) infinite; }
+}
+@keyframes chip-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+  50%      { box-shadow: 3px 3px 0 0 rgba(255, 215, 0, 0.9); }
+}
+
+/* --------------------------------------------------------------------------
+   Closing field. The ink card is wiped in by a yellow edge that passes across
+   it, then leaves — a card being slid into place rather than faded up.
+   -------------------------------------------------------------------------- */
+
+.closing-field { position: relative; overflow: hidden; }
+.closing-field h2 { max-width: 22ch; }
+
+.closing-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .closing-field.is-dealt::before { animation: wipe-through 900ms var(--ease-deck) forwards; }
+}
+@keyframes wipe-through {
+  0%   { transform: scaleX(0); transform-origin: 0 50%; }
+  45%  { transform: scaleX(1); transform-origin: 0 50%; }
+  46%  { transform: scaleX(1); transform-origin: 100% 50%; }
+  100% { transform: scaleX(0); transform-origin: 100% 50%; }
+}
+
+/* --------------------------------------------------------------------------
+   Navigation. Stays the fixed frame the system asks for, but gains stock and
+   a hard bottom edge once the page has moved, so it separates from content.
+   -------------------------------------------------------------------------- */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: box-shadow var(--dur-base) var(--ease-deck), background-color var(--dur-base) var(--ease-deck);
+}
+.site-nav.is-detached {
+  background: var(--white);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Reading comfort. The production type scale is unchanged; these are the
+   details that make long-form blocks easier on the eye at large sizes.
+   -------------------------------------------------------------------------- */
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ==========================================================================
+   Impeccable remediation pass — 2026-09-02.
+
+   Every rule below closes a finding the Impeccable detector raised against the
+   deployed build. They are grouped by finding so the reason survives the edit.
+   ========================================================================== */
+
+/* [all-caps-body] — the ledger's descriptive lines were set in uppercase at
+   11px. "Total annuity production assisted over six years" is a sentence, not
+   a label, and all-caps strips the word shapes the eye reads by. The rest of
+   the stamped-label identity is untouched: only the long descriptive runs are
+   returned to sentence case, and they gain a pixel and lose the tracking that
+   was fighting them. */
+.evidence-ledger span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  opacity: 0.88;
+}
+
+/* Same finding, same reasoning: the proof register's row titles are full
+   phrases rather than labels. Kept bold and tight so they still read as
+   stamped card titles, without the uppercase. */
+.proof-line strong { text-transform: none; letter-spacing: -0.005em; font-size: 1.05rem; }
+
+/* [wide-tracking] — 0.06em on body-sized text slows reading. Short uppercase
+   labels keep their tracking; anything at body size is brought to 0.05em. */
+.action,
+.pronunciation { letter-spacing: 0.05em; }
+
+/* [body-text-viewport-edge] — below 760px the state panels' body copy reached
+   the viewport edge. The gutter is now set explicitly rather than inherited,
+   and stated as a floor so no narrower breakpoint can erode it. */
+@media (max-width: 760px) {
+  .shell { width: min(100% - 48px, var(--container-max, 1200px)); }
+
+  .state-field-body { padding: 56px 24px; }
+
+  .identity-lockup,
+  .spine-copy,
+  .proof-register-title,
+  .proof-lines,
+  .closing-field-grid { padding-inline: max(0px, env(safe-area-inset-left, 0px)); }
+
+  /* The paragraphs the detector named, guaranteed an inset of their own so
+     they cannot bleed even if a parent's padding is overridden later. */
+  .state-lede,
+  .build-proof,
+  .hero-sp-plus { max-width: 100%; }
+}
+
+@media (max-width: 360px) {
+  .shell { width: min(100% - 40px, var(--container-max, 1200px)); }
+  .state-field-body { padding: 48px 20px; }
+}
+
+/* The register heading grew a clause when its kicker was folded in, so it
+   needs a slightly tighter measure to keep its two-line shape. */
+.proof-register-title h2 { max-width: 16ch; }
+.closing-field h2 { max-width: 26ch; }
+
+/* --- Second remediation round -------------------------------------------- */
+
+/* [all-caps-body] — the footer's closing line is a sentence set in uppercase
+   at 15px. It is the last thing read on the page and the hardest to parse. */
+.footer-close p { text-transform: none; letter-spacing: 0.005em; }
+
+/* [body-text-viewport-edge] — the reported 7px inset was not a padding bug: it
+   was the deal-in transform being measured mid-flight. The card enters from
+   down and to the LEFT, so for the duration of the animation its copy really
+   does sit ~19px further left than its resting position, which on a narrow
+   screen puts it against the glass. On desktop there is room for the diagonal;
+   below 760px the horizontal component is dropped and cards deal straight up,
+   so no frame of the animation ever pushes text off the page. */
+@media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+  [data-deal] { transform: translate3d(0, 2.4rem, 0) scale(0.988); }
+}

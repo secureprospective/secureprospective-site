@@ -1,0 +1,48 @@
+---
+import '../styles/tokens.css';
+import '../styles/fonts.css';
+import '../styles/radical.css';
+
+const {
+  title = 'Secure Prospective',
+  description = 'A revenue-producing IMO building its prospective form through SP+, the first AI-native deliverable.',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#05070E" />
+    <meta name="color-scheme" content="dark" />
+    <title>{title}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/Primal.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/IBMPlexSans-400.woff2" crossorigin />
+  </head>
+  <body>
+    <!--
+    CONCEPT B — "The Signal Room."
+    The brand constants are untouched: the same blue, yellow, gold and silver,
+    the same Primal and IBM Plex Sans, the same mark. Everything else is torn
+    up. The Property Card world lights the brand from the front; this lights it
+    from behind, and the page stops being a document about an operation and
+    becomes the room the operation is run from — a live field, an instrument
+    rail, readouts, and a method you travel through sideways rather than read
+    down. The copy and the claims are the production site's, unchanged, because
+    the argument was never the problem.
+    -->
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="field" aria-hidden="true"><canvas data-field></canvas></div>
+    <slot />
+    <script>
+      import '../scripts/motion.js';
+    </script>
+  </body>
+</html>
