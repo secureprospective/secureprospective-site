@@ -36,3 +36,25 @@ It is deliberately able to fail, and it did: on 2026-09-02 both concepts failed
 `no-JavaScript completeness` because their reveal styles set `opacity: 0` behind
 `prefers-reduced-motion: no-preference`, a state only script can undo. A gate that has
 never produced a negative result is a false positive, not evidence.
+
+## divergence.mjs — are the pages actually different from each other?
+
+Added 2026-09-02 when Concept A was rolled across the five inner pages with the
+requirement "No 2 pages are the same, that is because a different page has a different
+message." Five agents designing in parallel against one shared system is exactly the
+setup that yields five variations of one page, and reviewing pages one at a time cannot
+see it.
+
+`node concepts/tools/divergence.mjs <base-url> <slug> [slug...]` takes a signature of
+each page — the classes its own stylesheet introduces, the section rhythm, the rendered
+type scale, the palette weighted by area, and the data- attributes driving motion — then
+reports pairwise overlap. Composite above 0.80 is flagged and exits 2.
+
+**Baseline, measured against live secureprospective.com on 2026-09-02:** composites 0.52
+to 0.83, with `the-method` / `the-operator` flagged at 0.83. That is the undifferentiated
+state the concept work has to beat, so it doubles as the control proving the gate fails.
+
+One trap worth recording: the first version scored two pages with no motion hooks as
+0.00 similar on that axis, because an empty-set Jaccard returned 0. That rewarded pages
+for having no motion and made the gate incapable of firing. Empty and empty are
+identical, not different.
