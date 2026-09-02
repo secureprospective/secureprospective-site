@@ -58,3 +58,26 @@ One trap worth recording: the first version scored two pages with no motion hook
 0.00 similar on that axis, because an empty-set Jaccard returned 0. That rewarded pages
 for having no motion and made the gate incapable of firing. Empty and empty are
 identical, not different.
+
+## density.mjs — composition gate
+
+    node concepts/tools/density.mjs <base-url> <slug|-> [slug...]
+
+Finds defects that live in the arrangement rather than in any single element,
+which is the blind spot `mobile.mjs` cannot cover: a section whose content
+collapsed out of it leaves a tall band of nothing, and a card that lost its
+contents keeps its border. Both pass an element-level audit and both look, to a
+visitor, like the page failed to load.
+
+It measures *ink* — text an element holds itself, plus images. Filled and
+bordered surfaces are deliberately not ink: a coloured band is emptiness with a
+colour on it, and counting surfaces also made every card contain itself, which
+made the hollow check incapable of firing.
+
+Hollowness is the total absence of content, not a low density of it. A ratio
+threshold was tried and rejected because it flagged every rail and marker column
+on the site; those are narrow grid gutters holding one short label, and by area
+they are indistinguishable from a card that lost its contents.
+
+Proven against a fixture carrying a planted 900px void and a planted empty
+bordered box; both checks fire, and the gate passes the real site.
