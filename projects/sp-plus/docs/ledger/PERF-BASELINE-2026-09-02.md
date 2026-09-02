@@ -55,3 +55,80 @@ ClaudeBox are the same model and their agreement is weak evidence.
    rather than truncating it. Briefs for Bee must be small enough to finish.
 3. Check process names before concluding a job is dead: Bee runs as `pi`, not
    `codex`/`opencode`. Same class as `pgrep notify-send` matching `timeout`.
+
+---
+
+# AUDIT + RED TEAM RESULTS — 2026-09-02
+
+## Two of three original hypotheses were WRONG. Measurement beat intuition.
+
+| # | Hypothesis | Tom (measured) | Bee (gpt-5.6, independent) |
+|---|---|---|---|
+| H1 | Collapsing 9 dnf transactions is a big win | Not the dominant cost | **FALSE** — low return |
+| H2 | nodejs/npm wastefully shipping | 0.7s — **NOT WORTH DOING** | UNKNOWABLE without measuring runtime need |
+| H3 | 55 RUN / 103 COPY layers are a significant cost | Not what dominates | **FALSE** — likely a wasted build cycle |
+| H4 | 291 MB initramfs is a major boot tax | not yet measured | UNKNOWABLE without measuring |
+
+Two independent models agreeing that H1/H3 are false is far stronger evidence
+than ClaudeBox and Tom agreeing (same model, weak evidence).
+
+## WHAT ACTUALLY DOMINATES (Tom, measured)
+
+**1.68 GB uncompressed is content SP+ installs and then throws away** — it ships
+in the payload but is absent from the final filesystem. Chiefly:
+- base-image RPMs SP+ deletes (firefox, nvidia firmware, glibc-all-langpacks,
+  mariadb, CJK fonts) — ~406 MB compressed / ~30s
+- a 149 MB dnf metadata cache created by the releasever gate, cleaned 4 layers
+  too late — **FIXED in 13e97c8, ~8.2s**
+Of what SP+ genuinely KEEPS, one dnf transaction (line 38) is 676 MB compressed
+= 40% of everything SP+ adds. Its single most removable item is
+`libreoffice-base`, which hard-requires a 248 MB JDK.
+
+## RANKED, PRICED IN SECONDS (~73s of install per GB)
+
+| Proposal | Saves | Risk | Status |
+|---|---|---|---|
+| `dnf clean all` in the releasever layer | ~8.2s | low | **DONE — 13e97c8** |
+| Remove `libreoffice-base` (+248 MB JDK) | ~9.4s | FEATURE CUT | **Christopher's call** |
+| Squash/flatten the image | ~38-55s | HIGH, structural | **HELD — see below** |
+| Build on a base without the deleted RPMs | ~30s | changes TRUST ROOT | **Christopher's call** |
+| Drop `nodejs22-full-i18n` | 0.7s | low | **Rejected — not worth it** |
+
+## WHY THE SQUASH IS HELD (the biggest single win)
+
+Squashing collapses layers, so `bootc upgrade` can no longer ship deltas — every
+future update pulls the whole image. Bee, independently: *"Layer changes can also
+worsen incremental upgrade/download behavior."* We spent 2026-09-01 fixing the
+update lane. Trading a faster first install for permanently heavier updates is an
+operator decision, not an overnight one.
+
+## CORRECTION TO THE FRAMING (Bee)
+
+"Install time = bytes written" is a useful HEURISTIC, not a law. A bootc install
+also does: OCI read+decompression, import into OSTree, deployment checkout,
+SELinux metadata/xattrs, boot assets, LUKS setup. Treat ~73s/GB as an estimator
+and always CONFIRM with a real measured run.
+
+## BOOTC TRAPS — DO NOT DO THESE (Bee)
+
+- Do not remove `ostree` / `ostree-prepare-root` or its initramfs config, or the
+  bootc base integration — breaks deployment switch-root.
+- Do not remove `cryptsetup` / `systemd-cryptsetup`, TPM2/Clevis/FIDO, keyboard,
+  storage or filesystem drivers — **breaks LUKS unlock**.
+- Do not mutate deployed systems with `rpm-ostree install` / `rpm-ostree
+  initramfs` — `bootc upgrade` will error.
+- Preserve SELinux policy/xattrs, the bootc image label, and kernel+initramfs at
+  `/usr/lib/modules/$kver/` — do NOT relocate them to `/boot`.
+
+## INITRAMFS — KEEP `--no-hostonly` (Bee, strong)
+
+For unknown advisor laptops, keep it. The safe middle is a CURATED generic
+initramfs: omit only demonstrably irrelevant dracut modules after testing Intel/
+AMD/NVIDIA graphics, NVMe/SATA/RAID, filesystems, UEFI, LUKS, TPM, keyboard and
+any network unlock path. Never ship an initramfs built host-only on the builder.
+
+## SCHEDULING RULE LEARNED
+
+**Never run a container build while a boot/install timing run is in flight.** A
+rootful build saturates all 16 cores and corrupts the timings it shares a host
+with. Builds and benchmarks must be serialised.
