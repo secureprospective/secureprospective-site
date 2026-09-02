@@ -81,3 +81,26 @@ they are indistinguishable from a card that lost its contents.
 
 Proven against a fixture carrying a planted 900px void and a planted empty
 bordered box; both checks fire, and the gate passes the real site.
+
+## contrast.mjs — legibility gate
+
+    node concepts/tools/contrast.mjs <base-url> <slug|-> [slug...]
+
+`mobile.mjs` catches text that is too small. Text can be a comfortable size and
+still be unreadable, because legibility is a relationship between the ink and
+the surface behind it rather than a property of either one.
+
+Contrast is measured against the first ancestor that actually paints an opaque
+background, after compositing the text's own alpha, which is what the eye sees.
+An element over a background-image is skipped rather than guessed at: a
+photograph has no single colour and inventing one produces a number that is
+confidently wrong.
+
+Thresholds are WCAG AA, 4.5:1 for body and 3:1 for large text. Brand yellow set
+as text on a light surface is reported under its own kind, because that is a
+standing brand rule rather than a numeric near-miss. It is matched by colour
+shape, not by one hex value that a token rename would silently defeat.
+
+Proven against a fixture carrying pale text, yellow on white, and quarter-alpha
+ink; all three fire, yellow on ledger ink stays silent, and large grey text is
+judged at 3:1 rather than blanket-failed.
