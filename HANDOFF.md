@@ -1,88 +1,88 @@
-# Handoff
+# HANDOFF — SP+ install/boot performance campaign
 
-## 2026-08-28 — Calm live contrast and pinstripe trial closed
+**Baton:** ClaudeBox (headbrain), paused 2026-09-02. Christopher moved to other work.
+**Branch:** `session/sp-plus-plan`
 
-- **Baton:** Bee — 2026-08-28
-- **Where it stands:** Source trial is ready on `session/sp-plus-plan`: dark focused window edge is lighter blue `#76B4D4`; unselected edge is dark coral `#C4462E`; solid pinstripe is 3px; glow rows remain unchanged. Light mode has the same 3px geometry with warm active/inactive edge colors. Source was pushed to the running VM user theme and applied from the VM desktop terminal.
-- **Gates:** `projects/sp-plus/theme/tools/validate-spplus-calm.sh` PASS 13/13; `git diff --check` PASS; `org.kde.kwin.aurorae.v2` remains in both look-and-feel defaults. Host framebuffer evidence was captured for the inverse behavior and 3px stripe.
-- **Build boundary:** No image or ISO build. `fedora-test35` was not rebooted, reset, or destroyed. The trial is not visually approved; Christopher reported that the result still looked substantially unchanged.
-- **Next move:** Christopher judges the current VM/screenshot. If rejected, make one focused visual correction to the source, push, apply in the VM terminal, and capture new framebuffer evidence. If accepted, update the evidence notes, then coordinate Tom for the image build.
-- **Blocked on:** Visual acceptance. `THEME-APPROVED.md` and `THEME-APPROVED.DONE` are intentionally not present.
-- **Tried and rejected:** A literal color swap alone did not make the pinstripe legible because the opaque rows matched the graphite ground. The current trial assigns behavior colors to the solid rows while preserving the glow ramp.
+## Where it stands
 
-## 2026-08-28 — cycle36 runtime and desktop fixes implemented
+The install is ~510 s, and **96% of it is one phase: "Deploying image" (~490 s)**.
+Boot is ~23.8 s of machine time and is NOT the problem — do not spend time there.
 
-- **Baton:** Bee — 2026-08-28
-- **Where it stands:** Implemented FIX 1-7 in commit `be4ae98` on `session/sp-plus-plan`: full ICU plus Intl gate; Plasma 6.7 Aurorae v2 and first-login read-back/retry; literal wsdd hardening drop-in; `/etc/xdg/kscreenlockerrc`; Welcome close/exit behavior and live close gate; `lm_sensors`; Discover Flatpak/rpm-ostree launcher policy. FIX 8 was investigated from the real desktop session and did not reproduce, so no fix was added.
-- **Gates:** `tests/cycle36-source-gate.sh` PASS; `tests/config-preflight.sh` PASS 13/13; shell/Python syntax and `git diff --check` PASS. Old installed VM field inspection intentionally FAILed on the pre-fix defects, proving the new checks surface them. Full report and sentinel are in `~/work/sp-plus/bee/`.
-- **Build boundary:** No ISO or image build started. `fedora-test35` was not rebooted, reset, or reconfigured.
-- **Next move:** Christopher decides when to build. After a rebuilt image exists, run the installed-system field gate as root, `tests/welcome-close-gate.sh` from the real desktop session, and inspect Discover/Calm visually.
-- **Blocked on:** Post-fix image build and fresh installed-system verification.
-- **Tried and rejected:** No FIX 8 polkit change; the real-session `firewall-config` launch remained normal, so the report records the SSH-context authorization error as a test artifact.
+We now know what the bottleneck is NOT. Three levers are dead, with evidence:
 
-## 2026-08-27 — SP+ Calm KDE theme bundle added
+1. **Image size.** Removed 101 MB from the ISO / 158 MB from the image. No measurable
+   install-time gain. The "73 s per GB" estimator that motivated it was retracted.
+2. **OCI payload compression.** The kickstart installs via
+   `--source-imgref containers-storage:`, so layers are already uncompressed. There is
+   no decompression in the hot path to remove.
+3. **More CPU cores.** 8 vCPU is not faster than 4; the fastest run of three was a
+   4-vCPU run. The deploy pipeline does not parallelise.
 
-- **Baton:** ClaudeBox — 2026-08-27
-- **Where it stands:** Added committed theme-only candidate in `projects/sp-plus/theme/sp-plus-calm/` (commit `ed314a9`). It has Plasma 6 Global Theme light/dark packages, Plasma styles, complete color palettes, original Aurorae controls, Paper-Mono-Dark + JetBrains Mono defaults, GTK 3/4 bridge examples, native Breeze Qt fallback, and a logo-only 7680x4320 wallpaper. Research and the integration boundary are in `projects/sp-plus/theme/SPPLUS-CALM-RESEARCH.md` and `theme/sp-plus-calm/INSTALL-MANIFEST.md`.
-- **Gates:** `projects/sp-plus/theme/tools/validate-spplus-calm.sh` passes 8/8; shell/Python syntax, desktop-file validation, and SVG XML validation pass. The 8K wallpaper was visually inspected from the generated preview.
-- **Build boundary:** The active ISO/QEMU work was not touched. The modified `projects/sp-plus/images/kde/Containerfile` was deliberately left unstaged. No ISO build was started or changed by this lane.
-- **Next move:** After the current ISO cycle is safe, ClaudeBox integrates the bundle in the image owner’s Containerfile, installs `paper-icon-theme` and `jetbrains-mono-fonts`, and runs the documented VM inspection gates for both themes, KWin Aurorae, Brave/GTK, lock/unlock, and HiDPI.
-- **Blocked on:** Plasma 6 VM validation and image integration. The theme bundle is complete as a source artifact, not yet installed in the ISO.
-- **Tried and rejected:** Reusing or modifying the existing Windows Modern bundle; the new candidate is isolated to avoid the active ISO/theme lane. A custom lockscreen and third-party Qt widget fork were rejected as update-sensitive; native Plasma/Breeze fallback is safer until VM evidence exists.
+Host sampling during deploy: CPU 245% avg of 400%, **disk write 1.8 MB/s, iowait 5%,
+never above 30%.** The phase is CPU-bound on a mostly serial pipeline.
 
-## 2026-08-26 — SP+ help documentation added
+**The one surviving hypothesis:** the time goes to per-object CPU work — hashing,
+SELinux relabeling, or ostree object creation. Reduce WORK, not BYTES.
 
-- **Baton:** Bee — 2026-08-26
-- **Where it stands:** Added `projects/sp-plus/knowledge/START-HERE.md`, a plain-English master help guide with a task and symptom index, installation and first-day checklist, everyday work, safety, updates, troubleshooting, Assistant/support guidance, evidence-report guidance, and glossary. Added `projects/sp-plus/docs/SP-PLUS-HELP-DESIGN.md` with the beginner-distro research, source links, information-architecture decisions, article standard, and claim-safety rules.
-- **Build boundary:** Only those two documentation files and this handoff changed. Existing build work and untracked `grafix/` files were left untouched.
-- **Next move:** Wire `knowledge/START-HERE.md` into the PWA help navigation, then test the links and wording with a non-Linux advisor. Mark any test-only or not-yet-shipped feature in the UI before pilot use.
-- **Blocked on:** PWA rendering and final feature availability. The help copy must not be treated as proof that a planned screen exists in the current test image.
-- **Tried and rejected:** A single undifferentiated manual was not used as the only structure. The master guide is the front door, while focused articles remain the troubleshooting paths.
+## Blocked on
 
-## 2026-08-26 — SP+ research complete, build begins next session
+Nothing. The next step is measurement, and it is already running.
 
-The `advisor-os` subproject is renamed **SP+** and now carries an eight-document planning
-set at `projects/sp-plus/docs/`. **Start at `docs/08-BUILD-SESSION-HANDOFF.md`**; it is
-written to be sufficient on its own.
+## In flight when the baton was set down
 
-Branch `session/sp-plus-plan` (unpushed), cut from `session/advisor-os-poc` at `48b033a`.
+**Tom is running a guest-side CPU profile of the deploy phase.** Started 2026-09-02
+~07:29 local, 5400 s timeout. His report lands on disk and survives the session.
 
-**Architecture of record.** Build SP+ as a bootc image derived from the official Fedora
-Atomic Desktop bootc images (`quay.io/fedora/fedora-kinoite:44` for KDE,
-`quay.io/fedora/fedora-silverblue:44` for GNOME, both verified `containers.bootc=1`), not
-from the minimal `fedora-bootc` base. Install media is `image-builder --type
-bootc-generic-iso` from a purpose-built `sp-plus-installer` container carrying Anaconda,
-with the payload embedded via `--bootc-installer-payload-ref`. Anaconda is the installer
-of record. Golden-image capture is rejected as a shipping mechanism.
+```
+# collect Tom's report (Beelink):
+cat ~/tom-spplus-deploy-cpu-profile.out
+cat ~/tom-spplus-deploy-cpu-profile.sentinel   # EXIT= and byte count
+# reject the report if it is under 1500 bytes or starts with <tool_call>
+pgrep -f tom-dispatch/spplus-deploy-cpu-profile.sh   # still running?
+```
+Brief: `~/briefs/spplus-deploy-cpu-profile.md`. It asks ONE question: which processes
+and which operations hold the CPU during deploy, ranked, with numbers.
 
-**Three hard rules.** No out-of-tree kernel modules or custom kernel, so Fedora's signed
-shim/GRUB/kernel give Secure Boot with zero MOK enrollment. The ISO never contains the
-encryption secret: the advisor sets the LUKS2 passphrase in Anaconda, and the recovery key
-plus TPM2 enrollment happen at first boot on their own machine. `--target-imgref` is
-mandatory in the Anaconda `bootc` kickstart, because omitting it produces a fleet that
-installs perfectly and silently never updates.
+If Tom's VM `spplus-bench-r1` is still running with no sentinel, he died: reap the VM
+(`virsh -c qemu:///session destroy/undefine --nvram`) and re-dispatch.
 
-**Next action.** `sudo apt install -y podman buildah skopeo`, then Phase 0 of
-`docs/03-ISO-BUILD-PLAN.md`. The first deliverable is an ISO that completes an Anaconda
-install in QEMU under enforced Secure Boot (`OVMF_CODE_4M.secboot.fd` +
-`OVMF_VARS_4M.ms.fd`, both present on Beelink), then the same ISO on the Dell laptop
-Christopher has prepared. Gate 0.B is the Dell: Secure Boot enabled, no MOK screen.
+## THE RULE THAT CHANGED — read this before measuring anything
 
-**Calendar.** Fedora 45 GA is 2026-10-20. The F44→F45 migration is a scheduled rehearsal
-run on the canary ring that week while the fleet is small, not a chore deferred (D28).
+**Two runs of an IDENTICAL config differed by 33.5 s (~7%).** The noise floor is ~33 s.
 
-**Open, Christopher's call.** Whether Brave stays (Q1), RPM Fusion codecs (Q3), the
-hardware matrix survey (Q6, start now — it takes calendar time), and whether the assistant
-ships in v1 at all (Q11). None block Phase 0.
+- **Every performance comparison runs >=3 times and reports the MEDIAN and the spread.**
+  `spplus-bench.sh` takes a run count as its 2nd arg. We had been passing `1`.
+- Any single-run difference under ~35 s is noise. Do not report it as a result.
+- A single run answers "did it break", never "is it faster".
 
-**Not done, deliberately.** 4.5 GB of superseded build artifacts under
-`projects/sp-plus/artifacts/` are gitignored and left in place pending Christopher's call.
-The branch is unpushed. CT105's backbone still owes a dated entry for the rename; source
-material is `projects/sp-plus/docs/RENAME-LOG-2026-08-25.md`.
+## Tried and rejected, with why
 
----
+- Byte-shaving for install speed — measured, no effect (above).
+- OCI compression — structurally impossible via containers-storage transport.
+- More vCPUs — measured, no effect; 4 beat 8.
+- Running two bench harnesses concurrently WITHOUT overriding `PREFIX` — the harness
+  hardcodes domain `spplus-bench-r1` and its `destroy_ours` will tear down the other
+  run's VM. Use `spplus-bench-vcpu.sh` (PREFIX/VCPUS/OWNER_TITLE overridable).
+- The harness boot leg hangs at the LUKS prompt and burns `BOOT_TIMEOUT` (900 s) for
+  nothing. Stop after the install unless boot is actually being measured.
 
-## Prior handoffs
+## Log-reading trap
 
-Earlier entries are preserved in git history and in
-`projects/sp-plus/docs/SESSION-LOG-2026-08-25.md`.
+Boot logs show a ~355 s gap immediately before `Please enter passphrase`. That is the
+harness waiting and then typing, flushed as one line. **It is not machine time.**
+
+## Next actions, in order
+
+1. Collect Tom's CPU breakdown (command above). It decides everything after it.
+2. Pick the target it names (hashing / SELinux relabel / object creation) and make ONE
+   surgical change.
+3. Measure it with **3 runs and a median**, not one.
+4. Fix the dead `--add-drivers bochs_drm` line — the module does not exist and
+   `--add-drivers` fails as a GROUP, so it is silently killing the whole driver list.
+   `bochs_drm` -> `bochs`, or delete the line.
+
+## Known-good rollback ISOs — never delete
+
+- `~/Downloads/sp-plus-1.0-test56-20260902.iso` sha256 2d12181473ec98a0cded0f10ceaa01e48898f47ec9fd1ec75f4690c12078eccf
+- test55 sha256 86951b7fd636df8f1b74704be76f9b9dbe9b2c45cb5eaf70c2ee8555bf54807d
+- `~/Downloads/sp-plus-1.0-20260901.iso` sha256 921da03309889ea9ca2548677cf2698b40172db330113185971426717ecf0d23
