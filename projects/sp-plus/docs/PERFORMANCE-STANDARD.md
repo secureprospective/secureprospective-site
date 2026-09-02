@@ -17,7 +17,9 @@ never on Beelink hardware. A number produced any other way is not admissible.
 | — **payload write to disk** | **414.5s (83%)** |
 | — post-install + bootloader | ~16s (3%) |
 | ISO size | 5,655,955,456 B (5.66 GB) |
-| Boot | see ledger; first honest measurement 2026-09-02 |
+| **Machine boot (passphrase wait excluded)** | **~23.8s** |
+| — kernel -> LUKS prompt | 3.2s |
+| — unlock -> login ready | 20.6s |
 
 **The estimator: ~73 seconds of install time per GB of payload.**
 Use it to price proposals BEFORE building. Confirm with a real run AFTER.
@@ -60,6 +62,12 @@ It is a heuristic, not a law — see §4.
   Measured, it is not what dominates. Two independent models agreed. Layer
   surgery is the classic wasted build cycle here.
 - **`nodejs`/`npm` looked like obvious waste.** Worth 0.7 seconds. Not worth doing.
+- **The 291 MB initramfs looked like a boot tax.** It reaches the LUKS prompt in
+  3.2s. Refuted. Trimming `--no-hostonly` would have risked unbootable laptops
+  to win nothing.
+- **A "truncated" boot capture was not a harness bug** — boot was blocked at the
+  LUKS passphrase prompt for 4m08s. Encrypted products cannot be boot-timed
+  without supplying the passphrase and excluding that wait from the number.
 - **What actually dominated:** 1.68 GB that SP+ installs and then deletes, which
   still ships because an OCI layer cannot un-write an earlier layer's bytes.
   **Delete in the SAME layer as the install, or the bytes ship anyway.**

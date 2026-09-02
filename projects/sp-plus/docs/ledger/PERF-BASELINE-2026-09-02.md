@@ -132,3 +132,52 @@ any network unlock path. Never ship an initramfs built host-only on the builder.
 **Never run a container build while a boot/install timing run is in flight.** A
 rootful build saturates all 16 cores and corrupts the timings it shares a host
 with. Builds and benchmarks must be serialised.
+
+---
+
+# BOOT — MEASURED 2026-09-02 (and H4 refuted)
+
+## The capture was not "truncating". Boot was BLOCKED at the LUKS prompt.
+
+Earlier runs looked like a broken harness (a 6.0s capture). The real cause: SP+
+is encrypted, so boot stops at `Please enter passphrase for disk luks-...` and
+waits. In the measured run it waited **4 minutes 8 seconds** for input. Any
+"boot time" that includes that wait is measuring the typist, not the machine.
+
+## Machine boot time, passphrase wait excluded
+
+| Phase | Time |
+|---|---|
+| Kernel start -> LUKS passphrase prompt | **3.2s** |
+| *(advisor types passphrase)* | *human time — excluded* |
+| Unlock -> switch-root | 3.0s |
+| Unlock -> `systemd-user-sessions` (login ready) | **20.6s** |
+| **TOTAL MACHINE BOOT** | **~23.8s** |
+
+Evidence: `~/logs/sp-plus/bench/20260902T035953Z/boot-1.stamped`.
+Kernel 0.000 at epoch 1788322060.589; cryptsetup starts 1788322063.789;
+passphrase accepted ~1788322311.41; `Permit User Sessions` finished
+1788322331.996.
+
+## H4 REFUTED — the 291 MB initramfs is NOT a boot bottleneck
+
+The initramfs loads, starts systemd, and reaches the passphrase prompt in
+**3.2 seconds**. Its size is unusual but it is not costing meaningful boot time.
+
+**This is why `--no-hostonly` must stay.** Bee warned that trimming it risks
+laptops that will not boot. We now know the win it was supposed to buy does not
+exist. Trimming the initramfs would have traded real risk for nothing.
+
+Do not revisit initramfs trimming without new evidence that contradicts the
+3.2s measurement above.
+
+## What this means for the goal
+
+Boot is already fast in machine terms (~24s). The advisor's *perceived* boot time
+is dominated by typing the passphrase, which is a REQUIRED security property, not
+a defect. The honest remaining boot levers are inside the 20.6s post-unlock
+window (`systemd-analyze blame` on that span), not the initrd.
+
+**Not yet done:** `systemd-analyze` from inside the booted VM. The serial console
+does not print systemd's own summary, so the blame/critical-chain breakdown of
+that 20.6s window is still unmeasured. That is the next real boot question.
