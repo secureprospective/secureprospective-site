@@ -1292,9 +1292,12 @@ RUN dnf install -y --setopt=install_weak_deps=False gvfs gvfs-smb \
 # we want present, the one we refuse absent, and no wrapper left behind.
 RUN set -eux; \
     P=/usr/lib64/qt6/plugins/discover; \
-    for b in flatpak rpm-ostree fwupd; do \
+    for b in flatpak fwupd; do \
         test -e "$P/$b-backend.so" || { echo "STORE GATE FAIL: missing backend $b" >&2; exit 1; }; \
     done; \
+    if test -e "$P/rpm-ostree-backend.so"; then \
+        echo "STORE GATE FAIL: the rpm-ostree backend is back; the OS lane belongs to spplus-update-control alone" >&2; exit 1; \
+    fi; \
     if test -e "$P/packagekit-backend.so"; then \
         echo "STORE GATE FAIL: PackageKit backend is present on an image-mode host" >&2; exit 1; \
     fi; \
@@ -1309,7 +1312,7 @@ RUN set -eux; \
     test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
     grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
     grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
-    echo "STORE_GATE_OK stock Discover, backends flatpak+rpm-ostree+fwupd, no PackageKit, Flathub shipped"
+    echo "STORE_GATE_OK stock Discover, backends flatpak+fwupd, no rpm-ostree, no PackageKit, Flathub shipped"
 
 # ---- 6a. SP+ Calm, the shipped default look (DN-27) --------------------------
 # SP+ Calm is the OS's own visual language and is deliberately NOT branded to
