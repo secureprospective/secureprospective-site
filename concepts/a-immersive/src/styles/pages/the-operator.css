@@ -44,7 +44,7 @@
 
 .operator-hero {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   border-bottom: 2px solid var(--ink);
   background: var(--silver-base);
 }
@@ -538,8 +538,11 @@
   color: var(--blue-brand);
 }
 
-.operator-station--technology .operator-station-heading > span,
-.operator-station--technology .operator-station-transfer > span {
+/* The technology station sits on blue, so its heading label takes the yellow.
+   This rule is separate from the h3 sizing below on purpose: the two were once
+   grouped, and editing the group left this selector attached to the wrong
+   declarations, which cost the label both its colour and its size. */
+.operator-station--technology .operator-station-heading > span {
   color: var(--yellow-accent);
 }
 
@@ -587,6 +590,7 @@
 }
 
 .operator-station-transfer {
+  --transfer-eyebrow: var(--yellow-accent);
   align-self: stretch;
   display: flex;
   flex-direction: column;
@@ -607,7 +611,10 @@
 }
 
 .operator-station-transfer > span {
-  color: var(--yellow-accent);
+  /* Declared on the card, not here, so a variant that flips the surface changes
+     the eyebrow with it. This label was previously restated per variant and one
+     restatement fell out of step, leaving yellow text on the yellow card. */
+  color: var(--transfer-eyebrow);
 }
 
 .operator-station-transfer strong {
@@ -634,6 +641,7 @@
 }
 
 .operator-station--technology .operator-station-transfer {
+  --transfer-eyebrow: var(--ink);
   background: var(--yellow-accent);
   color: var(--ink);
   box-shadow: var(--operator-lift-ink);

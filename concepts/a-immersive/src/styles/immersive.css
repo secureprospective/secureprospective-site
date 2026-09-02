@@ -176,7 +176,7 @@
 .hero-sp-plus {
   position: relative;
   z-index: 2;
-  overflow: hidden;
+  overflow: clip;
   box-shadow: var(--lift-2);
   transition:
     transform var(--dur-base) var(--ease-deck),
@@ -378,7 +378,7 @@
    the fold. */
 .proof-status--active {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 .proof-status--active::after {
   position: absolute;
@@ -530,4 +530,100 @@ p { text-wrap: pretty; }
   [data-motion-enabled] [data-deal] { transform: translate3d(0, 2.4rem, 0) scale(0.992); }
   [data-motion-enabled] .proof-register-title[data-deal],
   [data-motion-enabled] .proof-line[data-deal] { transform: translate3d(0, 2.4rem, 0) scale(0.992); }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile audit remediation. The stamped labels stay part of the design, but
+   the phone gets a readable floor and a real thumb-sized hit area. The scan
+   bars are decorative overflow, so clip them without creating a hidden scroll
+   surface for the content around them.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  :root { --mobile-label-size: 12px; }
+
+  .site-nav .nav-toggle-label,
+  .site-nav .site-link,
+  .site-footer .footer-index a,
+  .site-footer .footer-close > span,
+  .hero-sp-plus > span,
+  .hero-sp-plus > b,
+  .state-field-head,
+  .spine-steps > li > span,
+  .proof-status,
+  .operation-rail,
+  .operation-evidence-head,
+  .operation-facts th,
+  .operation-evidence-note > span,
+  .operation-panel-marker,
+  .operation-test > span,
+  .operation-work-label,
+  .operation-bridge,
+  .operation-state-table dt,
+  .method-hero-index,
+  .method-loop-header,
+  .method-loop-number,
+  .method-loop-name small,
+  .method-loop-state,
+  .method-loop-return,
+  .method-cycle-heading-index,
+  .method-station-code,
+  .method-station-state,
+  .method-quote figcaption,
+  .method-control-letter,
+  .method-output-register dt,
+  .method-return-register-head,
+  .method-return-register-foot,
+  .operator-rail-top,
+  .operator-rail-bottom,
+  .operator-hero-link,
+  .operator-hero-condition > span,
+  .operator-route-index,
+  .operator-thesis-index,
+  .operator-record-index,
+  .operator-station-index,
+  .operator-station-heading > span,
+  .operator-facts dt,
+  .operator-station-transfer > span,
+  .operator-current-mark > span,
+  .operator-close-copy > span,
+  .contact-hero-index,
+  .contact-channel-head,
+  .contact-hero-footer,
+  .contact-route-readout,
+  .contact-line-status,
+  .contact-line-action strong {
+    font-size: var(--mobile-label-size) !important;
+  }
+
+  .text-link,
+  .site-footer .footer-index a,
+  .operation-index a,
+  .operation-hero-link,
+  .operation-text-link,
+  .operator-hero-link {
+    min-height: 44px;
+  }
+
+  .site-footer .footer-index a { min-width: 44px; }
+
+  .text-link,
+  .site-footer .footer-index a {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .method-loop-list li + li { padding-top: 8px; }
+
+  .proof-line {
+    grid-template-columns: max-content minmax(0, 1fr) 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-toggle { gap: 8px; padding-left: 8px; }
+
+  .proof-line {
+    grid-template-columns: max-content minmax(0, 1fr) 20px;
+  }
 }

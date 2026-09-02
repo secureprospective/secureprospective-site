@@ -30,6 +30,15 @@ if (!url) {
   console.error('usage: node concepts/tools/motion.mjs <url> [--throttle N]');
   process.exit(64);
 }
+// This takes one whole URL, unlike the sibling gates which take a base and a
+// list of slugs. Passing it a base and a slug silently audited the base six
+// times and reported six identical passes, so an unexpected argument is a hard
+// error rather than something to ignore.
+const extra = process.argv.slice(3).filter((a, i, all) => a !== '--throttle' && all[i - 1] !== '--throttle');
+if (extra.length) {
+  console.error(`unexpected argument "${extra[0]}". This gate takes one full URL, not a base and a slug.`);
+  process.exit(64);
+}
 const throttleIndex = process.argv.indexOf('--throttle');
 const CPU_THROTTLE = throttleIndex > -1 ? Number(process.argv[throttleIndex + 1]) : 4;
 

@@ -166,7 +166,7 @@
   position: relative;
   width: min(100%, 980px);
   margin-top: clamp(32px, 4vw, 48px);
-  overflow: hidden;
+  overflow: clip;
   border: 1px solid var(--ink);
   background: var(--white);
   box-shadow: 8px 8px 0 rgba(0, 51, 160, 0.18);
