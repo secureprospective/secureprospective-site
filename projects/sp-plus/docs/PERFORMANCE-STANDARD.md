@@ -21,15 +21,25 @@ never on Beelink hardware. A number produced any other way is not admissible.
 | — kernel -> LUKS prompt | 3.2s |
 | — unlock -> login ready | 20.6s |
 
-**The estimator: ~73 seconds of install time per GB of payload.**
-Use it to price proposals BEFORE building. Confirm with a real run AFTER.
-It is a heuristic, not a law — see §4.
+**RETRACTED 2026-09-02: the "~73 s per GB" estimator is NOT VALID. Do not use it.**
+It was computed by dividing the 414.5 s payload-write wall clock by the payload
+size. That interval is not disk writes: it also contains source-squashfs reads and
+decompression, OCI/containers-storage streaming, tar parsing, hashing, OSTree
+object creation, temporary checkout and merge, deployment checkout, SELinux work,
+bootloader work and final flushes. Dividing it by one byte count describes that
+single benchmark and nothing else — it cannot predict the effect of a size change,
+and it cannot tell CPU-bound from I/O-bound work. (Independent review, 2026-09-02.)
+
+**Therefore: bytes saved may NOT be converted into seconds saved.** Report bytes as
+bytes. A time saving is only real once a bench run measures it.
 
 ## 2. The loop (do it in this order, every time)
 
 1. **Measure first.** No optimisation begins without a baseline from the harness.
-2. **Price it in seconds.** Convert bytes saved to seconds at ~73s/GB and say the
-   number out loud. "Smaller is better" is not a justification.
+2. **Do NOT convert bytes into seconds.** There is no valid conversion (see §1).
+   State bytes as bytes, state the mechanism you believe will save time, and treat
+   the seconds as UNKNOWN until a bench run measures them. "Smaller is better" is
+   still not a justification — but neither is an invented rate.
 3. **State the risk and how you would detect the breakage.** An optimisation
    whose failure mode you cannot name has not been thought through.
 4. **Get it challenged by a different model.** ClaudeBox and Tom are the same
@@ -55,6 +65,10 @@ It is a heuristic, not a law — see §4.
 
 ## 4. What we got WRONG, so nobody repeats it
 
+- **We invented a bogus estimator and nearly standardised it.** "~73 s/GB" was
+  derived from one benchmark and presented as a conversion rate. It is not one.
+  Independent review caught it. Deriving a rate from a single measurement and then
+  using it to predict a different scenario is the mistake to avoid here.
 - **"Install time = bytes written" is a heuristic, not a law.** A bootc install
   also does OCI read+decompression, OSTree import and checkout, SELinux
   xattrs, boot assets and LUKS setup.
