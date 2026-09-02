@@ -135,9 +135,5 @@ say "verifying the signature we just made"
     "$REPO@$DIGEST" >/dev/null \
     && echo "  ok  signature verifies against $KEYDIR/cosign.pub"
 
-say "verifying the signature we just made"
-"$COSIGN" verify --key "$KEYDIR/cosign.pub" "$REPO@$DIGEST" >/dev/null
-echo "  ok  signature verifies against $KEYDIR/cosign.pub"
-
 say "published"
 printf '%s@%s\n' "$REPO" "$DIGEST"
