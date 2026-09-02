@@ -83,6 +83,57 @@ for k in ("ok","state","reason"): assert k in d, "missing "+k
     fi
 done
 
+# 6b. THE PARSER, against a REAL bootc status document.
+#
+# WHY THIS EXISTS. Everything above tests decide(). decide() was correct while
+# the machine still reported "up to date" with a genuine update waiting, because
+# the bug was one layer earlier: cachedUpdate is NOT shaped like a deployment.
+# booted/staged carry their image record under .image; cachedUpdate IS the image
+# record. Running it through the deployment parser looked one level too deep,
+# found nothing, and turned the guard into "never offer anything, ever" -- the
+# silent opposite of the bug it was written to prevent. Caught on the test VM
+# 2026-09-02, on a machine that had a real update sitting on the registry.
+#
+# The document below is REAL output from bootc 1.x on that VM, trimmed. If a
+# future bootc changes these shapes, this gate fails loudly at build time
+# instead of the fleet quietly never updating again.
+REAL_STATUS='{"status":{
+  "booted":{
+    "image":{"image":{"image":"ghcr.io/secureprospective/sp-plus-kde:latest","transport":"registry"},
+             "imageDigest":"sha256:booted","version":"1","timestamp":"2026-09-02T01:10:07.765591329Z"},
+    "cachedUpdate":{"image":{"image":"ghcr.io/secureprospective/sp-plus-kde:latest","transport":"registry"},
+                    "imageDigest":"sha256:cached","version":"1","timestamp":"2026-09-02T01:37:19.001677642Z"}},
+  "staged":null}}'
+
+parsed=$("$HELPER" parse "$REAL_STATUS")
+for want in booted cached; do
+    got=$(printf '%s' "$parsed" | python3 -c 'import json,sys; print(json.load(sys.stdin)[sys.argv[1]].get("digest",""))' "$want")
+    if [ "$got" = "sha256:$want" ]; then
+        echo "  ok   parser reads the $want digest from real bootc output"
+    else
+        echo "  FAIL parser lost the $want digest -> got '$got'" >&2
+        fails=$((fails + 1))
+    fi
+done
+
+stamp=$(printf '%s' "$parsed" | python3 -c 'import json,sys; print(json.load(sys.stdin)["cached"].get("timestamp",""))')
+if [ -n "$stamp" ]; then
+    echo "  ok   parser reads the cached timestamp (the guard needs it)"
+else
+    echo "  FAIL parser lost the cached timestamp; the guard cannot compare" >&2
+    fails=$((fails + 1))
+fi
+
+# End to end through the real parser: a newer cachedUpdate must read available.
+end=$(printf '%s' "$parsed" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))')
+state=$(field "$("$HELPER" simulate "$end")" state)
+if [ "$state" = "available" ]; then
+    echo "  ok   real bootc output end to end -> available"
+else
+    echo "  FAIL real bootc output end to end -> got '$state', want 'available'" >&2
+    fails=$((fails + 1))
+fi
+
 # 7. The guard must be decided on timestamps, not on digest inequality alone.
 #    Sharing a digest comparison but differing timestamps is covered above; this
 #    asserts the source has not quietly reverted to a digest-only test.

@@ -47,8 +47,12 @@ print(json.dumps({"ok": False, "state": "error", "reason": sys.argv[1]}))' "$1"
 # Everything below reads bootc status through one parser. It reports the booted
 # and staged digests and, critically, the two timestamps the downgrade guard
 # needs. A machine with no cachedUpdate yet is a normal state, not an error.
-read_state() {
-    bootc status --format=json 2>/dev/null | python3 -c '
+parse_state() {
+    # Reads a bootc status document on stdin, prints the three records the
+    # guard needs. Split out of read_state so a gate can feed it a REAL
+    # captured status without a machine -- the cachedUpdate shape bug of
+    # 2026-09-02 was invisible to a gate that only tested decide().
+    python3 -c '
 import json, sys
 
 try:
@@ -58,23 +62,37 @@ except Exception:
     raise SystemExit(0)
 
 
+def fields(rec):
+    """Pull the three things the guard needs out of an image record."""
+    rec = rec or {}
+    return {
+        "digest": rec.get("imageDigest") or "",
+        "version": rec.get("version") or "",
+        "timestamp": rec.get("timestamp") or "",
+    }
+
+
 def image_of(node):
+    """A deployment (booted/staged) carries its image record under .image."""
     if not node:
         return {}
-    img = node.get("image") or {}
-    return {
-        "digest": img.get("imageDigest") or "",
-        "version": img.get("version") or "",
-        "timestamp": img.get("timestamp") or "",
-    }
+    return fields(node.get("image"))
+
 
 booted = image_of(st.get("booted"))
 staged = image_of(st.get("staged"))
-# cachedUpdate lives under booted; it is what a --check last learned.
-cached = image_of((st.get("booted") or {}).get("cachedUpdate"))
+# cachedUpdate is NOT shaped like a deployment. It sits under booted and is
+# ALREADY the image record -- no .image wrapper -- so it must not go through
+# image_of(). Running it through image_of() looks one level too deep, finds
+# nothing, and the guard then reports "up to date" while a real update is
+# sitting on the registry. That is a silent no-more-updates-ever bug, and it
+# shipped: caught on the test VM 2026-09-02 with a genuine update waiting.
+cached = fields((st.get("booted") or {}).get("cachedUpdate"))
 print(json.dumps({"booted": booted, "staged": staged, "cached": cached}))
 '
 }
+
+read_state() { bootc status --format=json 2>/dev/null | parse_state; }
 
 # The downgrade guard, and the reason this file exists. Answers one question:
 # given what is booted and what the registry offers, is there a real update?
@@ -181,13 +199,22 @@ apply)
     setsid bash -c 'sleep 2; systemctl reboot' >/dev/null 2>&1 &
     ;;
 
+parse)
+    # Test seam: run the real parser over a bootc status supplied as an
+    # argument. Reads nothing off this machine.
+    if [ -z "${2:-}" ]; then
+        fail "parse needs a bootc status document."
+    fi
+    printf '%s' "$2" | parse_state
+    ;;
+
 simulate)
     # The test seam. Runs the REAL decide() against a state supplied on the
     # command line instead of one read off the machine. It exists because the
     # case this helper was written for -- the registry sitting BEHIND the
     # booted image -- cannot be produced on demand against a live registry,
-    # and `bootc upgrade --check` clears cachedUpdate, so the guard branch is
-    # otherwise untestable. Reads nothing and changes nothing.
+    # and a live registry only ever gives us the newer case anyway, so the
+    # guard branch is otherwise untestable. Reads nothing, changes nothing.
     if [ -z "${2:-}" ]; then
         fail "simulate needs a state object."
     fi
