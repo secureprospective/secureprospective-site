@@ -47,17 +47,43 @@ not as Secure Prospective, no matter how correct the colours are.
 
 | Role | Family | Notes |
 |---|---|---|
-| Display | **Primal**, 700 | Provided as `fonts/Primal.ttf`, converted from the site's `Primal.woff2`. 164 glyphs, full ASCII, so it is usable for real interface text and not only for the logo. |
+| Display | **IBM Plex Sans**, 700 | Set by Christopher 2026-09-02, replacing Primal. See the override below. |
 | Body | **IBM Plex Sans**, 400/500/600/700 | Packaged in Fedora as `ibm-plex-sans-fonts`; use the distro package rather than the site's subsetted woff2 files. |
+
+### Primal is not used in SP+
+
+**Set by Christopher, 2026-09-02.** Primal is not used in SP+, in any short, or in any
+creative work produced for the product. Display type is IBM Plex Sans Bold.
+
+The reason is legibility, not taste. Primal renders `O` with a slash, so a headline
+reading "THIS IS NOT WINDOWS" arrives as "WINDOWS" with a slashed O. On a vertical short
+a viewer has roughly a second to take a line in, and a display face that costs a beat of
+comprehension costs the whole video. The same argument applies to interface text a
+non-technical adviser has to read quickly.
+
+**Scope of this override.** It binds SP+ and everything made for it. It does **not**
+change secureprospective.com, which still serves Primal in its own hero and logo.
+Whether the live site changes is a separate decision and has not been made here. This
+means the site and the product deliberately differ on display type; the rest of the
+system -- palette, square geometry, hard offset shadows, motion timing -- is unchanged
+and still binds both.
+
+**Enforced in code**, not left to whoever writes the next job file: the shorts renderer
+raises if any caller asks for a Primal face. See
+`sp-plus-shorts/docs/BRAND-RULES.md` and `vm/scripts/spshorts-overlay`.
+
+**The open licensing question below is therefore moot for SP+.** The font is not shipped
+in the image and is not loaded at runtime, so no redistribution grant is needed.
 
 Scale, as declared: display 72, h1 48, h2 36, h3 24, body-lg 20, body 16, caption 14.
 Spacing runs 4, 8, 16, 24, 32, 48, 64, 96. Container max 1200, gutter 24.
 
-**Open licensing question, for Christopher.** IBM Plex Sans is OFL and safe to ship. The
-Primal binary carries no embedded licence string, and shipping a font inside a distributed
-OS image is a different grant from serving it on a website. Confirm the licence permits
-redistribution before cycle35 ships it. Until then it is staged here, not installed by the
-Containerfile.
+**Open licensing question, now closed for SP+.** IBM Plex Sans is OFL and safe to ship.
+The Primal binary carries no embedded licence string, and shipping a font inside a
+distributed OS image is a different grant from serving it on a website. That question no
+longer needs answering for SP+, because the override above means Primal is never shipped
+and never loaded. `fonts/Primal.ttf` is retained here only as a record of what the
+website serves. It stays out of the Containerfile.
 
 ## The hero animation
 
@@ -126,9 +152,10 @@ statement of the identity anywhere in either project.
 
 ### Typography, confirmed
 
-Primal for display and IBM Plex Sans for body are the website's locked pairing, both
-self-hosted, with an explicit rule of **no font CDNs**. SP+ satisfies that by installing
-them into the image.
+Primal for display and IBM Plex Sans for body are **the website's** locked pairing, both
+self-hosted, with an explicit rule of **no font CDNs**. The no-CDN rule binds SP+ and is
+satisfied by installing fonts into the image. The pairing itself no longer binds SP+:
+per the override in the Type section, SP+ uses IBM Plex Sans for both display and body.
 
 ## The SP+ Calm wallpaper
 
