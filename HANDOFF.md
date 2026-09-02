@@ -28,9 +28,9 @@ SELinux relabeling, or ostree object creation. Reduce WORK, not BYTES.
 
 Nothing. The next step is measurement, and it is already running.
 
-## In flight when the baton was set down
+## Tom's dispatch — COMPLETE, collected, filed below
 
-**Tom is running a guest-side CPU profile of the deploy phase.** Started 2026-09-02
+(was: a guest-side CPU profile of the deploy phase) Started 2026-09-02
 ~07:29 local, 5400 s timeout. His report lands on disk and survives the session.
 
 ```
@@ -71,12 +71,63 @@ If Tom's VM `spplus-bench-r1` is still running with no sentinel, he died: reap t
 Boot logs show a ~355 s gap immediately before `Please enter passphrase`. That is the
 harness waiting and then typing, flushed as one line. **It is not machine time.**
 
+## THE ANSWER CAME BACK — Tom's deploy CPU profile (2026-09-02)
+
+Full report: `projects/sp-plus/docs/research/deploy-cpu-profile-2026-09-02.md`.
+Method: per-process `/proc/<pid>/stat` deltas every 3 s from a bench-only `%pre`, emitted
+to `/dev/ttyS0`. 137 samples, full deploy coverage. Deploy = 423.3 s of a 482.6 s install.
+
+**Guest CPU during deploy, ranked:**
+
+| process | % of deploy CPU | threading |
+|---|---|---|
+| **anaconda** (python3) | **51.9%** | single-threaded, pinned at exactly 1.0 core the whole time |
+| bootc | 25.9% | 15 threads exist, never exceeds 1.02 cores |
+| skopeo | 14.8% | 9 threads, ~1.05 core ceiling, active only in the first 5 min |
+| ostree | 3.3% | literally 1 thread |
+
+**NO process ever exceeded 1.09 cores in any of 137 samples.** The 1.85 guest cores are two
+or three independent single-core-bound processes overlapping — not one wide workload. This
+independently explains why the 8-vCPU arm did nothing: there is no parallelism to widen.
+
+**The biggest lever on the board: Anaconda burns ~420 CPU-seconds — 51.9%, more than the
+entire bootc toolchain combined — doing none of the payload work.** It is flat at 1.0 core
+across every regime, unaffected by what skopeo/ostree/bootc are doing.
+CAUSE IS UNVERIFIED. Leading hypothesis (untested): the text-mode TUI full-screen repaint
+loop against the serial console — every `Deploying image: N%` update repaints, and the raw
+log is dense with escape sequences. Cheap first experiment: one run with a quiet console.
+
+**Second target: the "99%" plateau is 134 s — 32% of the whole deploy phase** — of pure
+bootc finalisation with skopeo and ostree at exactly zero. Self-contained, worth its own
+dispatch.
+
+**Ruled out as levers, with evidence:**
+- **SELinux relabel** — happens inline in `ostree commit --selinux-policy`, only 3.3%. No
+  separate `setfiles`/`restorecon` process exists in any sample. The `%post` relabel is
+  outside the window and the whole post-install phase is ~4 s.
+- **Hashing** — no digest helper process exists; bounded at <=18.1% (skopeo+ostree combined)
+  and confined to the import phase. Cannot touch the plateau.
+- **Decompression** — no decompressor process in any sample; source is an already-extracted
+  `containers-storage:`. Confirms the earlier compression finding from a second direction.
+- **rpm-ostree** — 0 jiffies. It is not in this path at all.
+
+**Caveat on the above:** attribution is per-PROCESS, not in-process. Splitting skopeo's or
+ostree's internal time between tar, sha256, xattr and syscalls needs `perf record` in the
+guest, which was not done.
+
+**Harness bug Tom fixed (uncommitted, in `~/fleet/bin/spplus-bench.sh`):** with no reader on
+the console pty the buffer fills, the qemu chardev blocks, and libvirt's `log.file` silently
+stops mid-install. It truncated his first run at "Deploying image: 42%". He added a pty
+drainer. **This bug predates today and will silently truncate any high-volume serial capture.**
+Review and commit that fix.
+
 ## Next actions, in order
 
-1. Collect Tom's CPU breakdown (command above). It decides everything after it.
-2. Pick the target it names (hashing / SELinux relabel / object creation) and make ONE
-   surgical change.
-3. Measure it with **3 runs and a median**, not one.
+1. **Test the Anaconda hypothesis** — it is 51.9% of deploy CPU and the cause is unknown.
+   One run with a quiet/non-redrawing console vs. current. Cheapest big lever we have.
+2. **Attack the 134 s bootc finalisation plateau** — 32% of deploy, own dispatch.
+3. Measure BOTH with **3 runs and a median**, never one (see the rule above).
+4. Review and commit Tom's console-pty drainer fix in `~/fleet/bin/spplus-bench.sh`.
 4. Fix the dead `--add-drivers bochs_drm` line — the module does not exist and
    `--add-drivers` fails as a GROUP, so it is silently killing the whole driver list.
    `bochs_drm` -> `bochs`, or delete the line.
