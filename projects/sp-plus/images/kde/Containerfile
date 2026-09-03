@@ -1534,9 +1534,9 @@ RUN set -eux; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-schwab.svg; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-wealthscape.svg; \
     gtk-update-icon-cache -f /usr/share/icons/hicolor || true; \
-    grep -q 'net.cozic.joplin_desktop' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
-    grep -q '^Branch=stable' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
-    echo "PWA_GATE_OK six advisor web apps chromeless, icons present, Joplin queued"
+    test ! -e /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall \
+      || { echo "PWA_GATE: Joplin was removed 2026-09-03 but its preinstall is back"; exit 1; }; \
+    echo "PWA_GATE_OK six advisor web apps chromeless, icons present"
 
 # Ship SP+ Windows 11 Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
@@ -2205,6 +2205,78 @@ assert d['RestoreOnStartup'] == 4 and d['RestoreOnStartupURLs'] == ['http://127.
 assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help'" \
  && test -d /etc/brave/policies/managed \
  && echo "BRAVE_POLICY_OK $(python3 -c "import json; print(len(json.load(open('/etc/brave/policies/managed/sp-plus.json'))))") policies, valid JSON"
+
+# ---- Brave is the ONLY browser, so it must never ask to be made default -------
+#
+# Reported 2026-09-03: clicking "Make Brave default" on first open closes the
+# window with no error. Measured on the RC1e guest BEFORE changing anything:
+#
+#     xdg-settings get default-web-browser  ->  brave-browser.desktop
+#     /etc/xdg/mimeapps.list      x-scheme-handler/http(s)=brave-browser.desktop
+#     /etc/xdg/kde-mimeapps.list  x-scheme-handler/http(s)=brave-browser.desktop
+#
+# So Brave ALREADY owns every http(s) link at the OS level and has since the
+# mimeapps work. The button is Brave's own first-run check, which does not
+# consult xdg-settings -- it asks regardless, and the click path is what breaks.
+# Nothing is gained by "setting" a default that is already set; the fix is to
+# stop Brave asking, so the broken path is never reachable.
+#
+# `DefaultBrowserSettingEnabled: false` is already in the managed policy above
+# and did NOT suppress this, which is why the flag below is not redundant.
+#
+# TWO LEVERS, deliberately belt-and-braces:
+#
+#   1. --no-default-browser-check on every Exec line. This is the documented
+#      Chromium runtime flag and is the lever we rely on. It covers menu
+#      launches AND xdg-open, because xdg-open resolves http(s) through
+#      mimeapps.list to brave-browser.desktop and runs its Exec.
+#
+#   2. initial_preferences in the binary's own directory. Chromium's first-run
+#      documentation says the file lives "in the same folder as the chrome.exe
+#      binary"; /opt/brave.com/brave/ is that folder here (brave-browser lives
+#      in it). UNVERIFIED FOR BRAVE ON LINUX -- the upstream doc is Windows and
+#      macOS centric and never states a Linux path, and the binary's strings
+#      carry the bare names `initial_preferences`/`master_preferences` with no
+#      absolute path. Treat this as best-effort. If lever 1 alone is proven to
+#      settle it, this can be dropped rather than carried as cargo cult.
+#
+# ACCEPTANCE, and it is empirical because the reasoning above cannot prove it:
+# on the next ISO, open Brave as a fresh user and confirm no "make default"
+# prompt or button appears, and that Brave stays open. A gate here can only
+# prove the flag and the file are present, never that the prompt is gone.
+RUN set -eux; \
+    for f in /usr/share/applications/brave-browser.desktop; do \
+      test -f "$f" || { echo "brave desktop file missing at $f"; exit 1; }; \
+      sed -i 's|^Exec=/usr/bin/brave-browser-stable|Exec=/usr/bin/brave-browser-stable --no-default-browser-check|' "$f"; \
+    done; \
+    printf '%s\n' \
+      '{' \
+      '  "browser": {' \
+      '    "check_default_browser": false' \
+      '  },' \
+      '  "distribution": {' \
+      '    "suppress_first_run_default_browser_prompt": true,' \
+      '    "skip_first_run_ui": true,' \
+      '    "import_bookmarks": false,' \
+      '    "import_history": false,' \
+      '    "import_search_engine": false,' \
+      '    "make_chrome_default": false,' \
+      '    "make_chrome_default_for_user": false' \
+      '  }' \
+      '}' \
+      > /opt/brave.com/brave/initial_preferences; \
+    chmod 0644 /opt/brave.com/brave/initial_preferences; \
+    python3 -c "import json; json.load(open('/opt/brave.com/brave/initial_preferences'))"; \
+    grep -q '^Exec=/usr/bin/brave-browser-stable --no-default-browser-check %U$' \
+      /usr/share/applications/brave-browser.desktop \
+      || { echo "BRAVE_DEFAULT_GATE: the primary Exec line was not flagged"; exit 1; }; \
+    ! grep -E '^Exec=/usr/bin/brave-browser-stable( %U)?$' \
+      /usr/share/applications/brave-browser.desktop \
+      || { echo "BRAVE_DEFAULT_GATE: an unflagged Exec line survived"; exit 1; }; \
+    xdg_default=$(grep -h '^x-scheme-handler/https=' /etc/xdg/mimeapps.list); \
+    test "$xdg_default" = "x-scheme-handler/https=brave-browser.desktop" \
+      || { echo "BRAVE_DEFAULT_GATE: Brave is not the https handler ($xdg_default)"; exit 1; }; \
+    echo "BRAVE_DEFAULT_GATE_OK brave owns http(s), first-run default check suppressed"
 
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1
