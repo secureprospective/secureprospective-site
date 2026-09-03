@@ -121,3 +121,67 @@ for pid in $after_close_renderers; do
   }
 done
 printf 'WELCOME_CLEAN_EXIT_OK welcome.py=0 QtWebEngineProcess=0 zygote=0\n'
+
+# ---- BUSY CLOSE (W-1 / W-2). ------------------------------------------------
+# Everything above closes an IDLE Welcome: --self-test-close fires 1s after the
+# window opens, self._workers is empty, and Bridge.shutdown() is a no-op. Every
+# gate in this repo used that path, so the drain -- the code that runs when an
+# advisor closes Welcome while it is doing something -- was never executed by a
+# test. Measured on the test56 guest 2026-09-03, the shipped drain froze the UI
+# thread for the worker's full runtime (0 timer events delivered in 30s) and
+# parked a live worker whenever the worker outran the bound.
+#
+# This closes Welcome on top of a REAL running worker, using the PIN_HELP env
+# seam to stage a slow helper.
+SLOW_HELPER="$(mktemp /tmp/spplus-slow-pin.XXXXXX)"
+printf '#!/bin/sh\nsleep %s\necho pinned\n' "${BUSY_WORKER_SECONDS:-20}" > "$SLOW_HELPER"
+chmod +x "$SLOW_HELPER"
+
+busy_before_apps="$(process_ids)"
+busy_before_renderers="$(renderer_ids)"
+busy_log="$(mktemp /tmp/spplus-busy-close.XXXXXX)"
+busy_t0=$(date +%s)
+SPPLUS_PIN_HELP="$SLOW_HELPER" timeout 180 "$LAUNCHER" --force --self-test-close-busy \
+  > "$busy_log" 2>&1
+busy_rc=$?
+busy_elapsed=$(( $(date +%s) - busy_t0 ))
+rm -f "$SLOW_HELPER"
+
+[ "$busy_rc" -eq 0 ] || {
+  echo "WELCOME_LIFECYCLE_FAIL: busy close exit=$busy_rc" >&2
+  sed -n '1,40p' "$busy_log" >&2
+  exit 1
+}
+# The drain must WAIT for the worker. An exit faster than the worker means the
+# worker was abandoned mid-subprocess, which is the failure the drain exists to
+# prevent -- a half-written system Flatpak install.
+[ "$busy_elapsed" -ge "${BUSY_WORKER_SECONDS:-20}" ] || {
+  echo "WELCOME_LIFECYCLE_FAIL: busy close returned in ${busy_elapsed}s, faster than the ${BUSY_WORKER_SECONDS:-20}s worker; the drain did not wait" >&2
+  exit 1
+}
+# A parked worker is one still running when the process tore down: the drain
+# bound is smaller than some worker's own timeout. See DRAIN_BOUND_MS.
+grep -q '^WELCOME_PARKED_WORKERS=0$' "$busy_log" || {
+  echo "WELCOME_LIFECYCLE_FAIL: drain parked a live worker (or reported nothing):" >&2
+  grep -E 'WELCOME_PARKED_WORKERS' "$busy_log" >&2 || echo '  (no WELCOME_PARKED_WORKERS line at all)' >&2
+  exit 1
+}
+# Running an event loop during the drain means a worker can finish after the
+# view is gone. That must not surface as a traceback in the advisor's journal.
+if grep -qE 'Traceback|RuntimeError' "$busy_log"; then
+  echo 'WELCOME_LIFECYCLE_FAIL: busy close raised an exception:' >&2
+  grep -nE -A3 'Traceback|RuntimeError' "$busy_log" >&2
+  exit 1
+fi
+sleep 3
+for pid in $(process_ids); do
+  has_id "$pid" "$busy_before_apps" || {
+    echo "WELCOME_LIFECYCLE_FAIL: welcome.py remains after busy close: $pid" >&2; exit 1; }
+done
+for pid in $(renderer_ids); do
+  has_id "$pid" "$busy_before_renderers" || {
+    echo "WELCOME_LIFECYCLE_FAIL: QtWebEngineProcess remains after busy close: $pid" >&2; exit 1; }
+done
+rm -f "$busy_log"
+printf 'WELCOME_BUSY_CLOSE_OK drained a %ss worker in %ss, parked=0, no exception, no leftovers\n' \
+  "${BUSY_WORKER_SECONDS:-20}" "$busy_elapsed"

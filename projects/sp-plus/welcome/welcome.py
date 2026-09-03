@@ -15,7 +15,8 @@ import subprocess
 import time
 import uuid
 from urllib.parse import parse_qs, quote, urlparse
-from PySide6.QtCore import QSettings, QThread, QTimer, QUrl, QObject, Signal, Slot
+from PySide6.QtCore import (QEventLoop, QSettings, QThread, QTimer, QUrl, QObject,
+                            Signal, Slot)
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -42,6 +43,16 @@ THEME_EVENT_LOG = os.environ.get(
         'sp-plus' / 'theme-events.jsonl'))
 THEME_JOURNAL = os.environ.get('SPPLUS_JOURNAL_COMMAND', '/usr/bin/systemd-cat')
 THEME_APPLY_TIMEOUT = float(os.environ.get('SPPLUS_THEME_APPLY_TIMEOUT', '600'))
+# The shutdown drain must outlast the SLOWEST worker, not the theme one. Until
+# 2026-09-03 the bound was THEME_APPLY_TIMEOUT + 30 = 630s, while UpdateWorker
+# action 'stage' and FlatpakInstallWorker both carry a 1800s subprocess limit.
+# Closing Welcome during a staged update or an application install therefore
+# parked a LIVE worker by arithmetic, not by fault -- measured on the test56
+# guest 2026-09-03: bound 30s against a 45s worker parked it every time.
+# Keep this at or above every `timeout=` in this file; the busy-close gate
+# fails the build if a worker is added that outruns it.
+LONGEST_WORKER_TIMEOUT = 1800.0
+DRAIN_BOUND_MS = int((max(THEME_APPLY_TIMEOUT, LONGEST_WORKER_TIMEOUT) + 30.0) * 1000)
 
 # Workers that were still running when the application quit and did not stop
 # inside the shutdown drain. Destroying a running QThread aborts the process,
@@ -1102,6 +1113,10 @@ class WelcomeBridge(QObject):
         # worker alone, and never propagated, so adding a feature meant
         # copying the broken lifecycle rather than the fixed one.
         self._workers = set()
+        # Once the drain starts, no new worker may join it: a verb dispatched
+        # from the page while shutdown is running would be waited on by a loop
+        # that has already taken its snapshot, or missed entirely.
+        self._draining = False
         # Genuinely per-verb policy, and nothing else: the last capability
         # payload per service, and the one-apply-at-a-time rule for themes.
         self._service_cache = {}
@@ -1109,10 +1124,29 @@ class WelcomeBridge(QObject):
         view.titleChanged.connect(self.on_title)
 
     def _send(self, sink, payload):
-        """Hand one payload to the page. The single shell -> page channel."""
+        """Hand one payload to the page. The single shell -> page channel.
+
+        Silently drops the payload once the drain has started. closeEvent posts
+        a deferred delete of the view, and the drain's event loop processes it,
+        so a worker finishing DURING shutdown has no page left to answer:
+
+            RuntimeError: libshiboken: Internal C++ object
+            (PySide6.QtWebEngineWidgets.QWebEngineView) already deleted.
+
+        Observed 2026-09-03 on the first busy-close run. There is no advisor
+        watching a window that is already gone, so there is nothing to report
+        and nothing to fix up -- the result is simply not needed. The guard is
+        belt and braces: the flag covers the ordinary case, and the except
+        covers a view torn down by any route the flag does not see.
+        """
+        if self._draining:
+            return
         encoded = json.dumps(payload, ensure_ascii=True)
-        self.view.page().runJavaScript(
-            f'window.spWelcome && window.spWelcome.{sink}({encoded})')
+        try:
+            self.view.page().runJavaScript(
+                f'window.spWelcome && window.spWelcome.{sink}({encoded})')
+        except RuntimeError:
+            pass
 
     def _dispatch(self, worker, sink, on_result=None):
         """Start one worker and route its payload to the page.
@@ -1132,6 +1166,8 @@ class WelcomeBridge(QObject):
         on_result(worker, payload) may rewrite the payload before it reaches
         the page, or return None to suppress the send.
         """
+        if self._draining:
+            return
         self._workers.add(worker)
         worker.result_ready.connect(
             lambda w, payload: self._deliver(sink, w, payload, on_result))
@@ -1176,10 +1212,43 @@ class WelcomeBridge(QObject):
         thread that somehow outlasts even that is parked at module scope
         rather than destroyed, because leaking one thread object is a correct
         program that exits, and destroying it is not.
+
+        WHY THIS RUNS AN EVENT LOOP INSTEAD OF QThread.wait(). wait() blocks
+        the thread it is called on, and this slot runs on aboutToQuit -- the
+        Qt/UI thread. Measured on the test56 guest 2026-09-03: closing Welcome
+        with a 15s worker running blocked that thread for 14.0s, and with the
+        shipped 1800s workers it is up to 630s of a process the advisor has
+        already closed, holding its heap and its WebEngine renderer, with no
+        window on screen. Nothing could run in that window -- including the
+        deferred delete of the view posted by closeEvent, which is what tears
+        the renderer down.
+
+        A nested QEventLoop waits just as long for the worker but keeps
+        delivering events, so the view is destroyed and the renderer exits
+        while the drain runs. The workers wrap subprocesses carrying their own
+        time limits, so there is still nothing to interrupt: interrupting a
+        half-written system Flatpak install is worse than waiting for it.
         """
-        bound_ms = int((THEME_APPLY_TIMEOUT + 30) * 1000)
+        self._draining = True
+        if not any(worker.isRunning() for worker in self._workers):
+            self._workers.clear()
+            return
+        loop = QEventLoop()
+        deadline = QTimer()
+        deadline.setSingleShot(True)
+        deadline.timeout.connect(loop.quit)
+
+        def finished_one():
+            if not any(worker.isRunning() for worker in self._workers):
+                loop.quit()
+
         for worker in list(self._workers):
-            if worker.isRunning() and not worker.wait(bound_ms):
+            worker.finished.connect(finished_one)
+        deadline.start(DRAIN_BOUND_MS)
+        loop.exec()
+        deadline.stop()
+        for worker in list(self._workers):
+            if worker.isRunning():
                 _PARKED_WORKERS.append(worker)
         self._workers.clear()
 
@@ -1703,6 +1772,7 @@ def main():
     parser.add_argument('--self-test-ask', action='store_true',
                         help='include the ask verb in --self-test (calls Fin; slow)')
     parser.add_argument('--self-test-close', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--self-test-close-busy', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--help-depth', type=int, choices=(1, 2), default=0, help='capture Everyday work or its LibreOffice article')
     args = parser.parse_args()
     # Qt calls qFatal() when it cannot open a display, which aborts the process
@@ -1749,11 +1819,24 @@ def main():
     window.showMaximized()
     if args.self_test_close:
         QTimer.singleShot(1000, window.close)
+    if args.self_test_close_busy:
+        # Close while a worker is genuinely running. --self-test-close closes an
+        # IDLE Welcome, so the drain is a no-op there and every gate that used it
+        # passed against a shutdown path it never exercised. PIN_HELP is already
+        # an env seam, so the gate stages a slow helper and this closes on top of
+        # it -- the real bridge, the real worker lifecycle, the real closeEvent.
+        QTimer.singleShot(500,
+                          lambda: window.bridge._dispatch(PinHelpWorker(), 'pinHelpResult'))
+        QTimer.singleShot(1500, window.close)
     if args.self_test:
         tester = SelfTest(window, include_ask=args.self_test_ask)
         window._self_test = tester
         tester.run()
-    return app.exec()
+    rc = app.exec()
+    # The gate reads this. A non-zero count is a worker that outran the drain
+    # bound and was parked while still running -- see DRAIN_BOUND_MS.
+    print('WELCOME_PARKED_WORKERS=%d' % len(_PARKED_WORKERS), flush=True)
+    return rc
 
 if __name__ == '__main__':
     raise SystemExit(main())
