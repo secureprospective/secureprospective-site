@@ -1387,29 +1387,10 @@ RUN dnf install -y --setopt=install_weak_deps=False gvfs gvfs-smb \
 # should load what is there. So the wrapper is gone and the stock .desktop files
 # are left alone, and the assertions below pin the outcome instead: the backends
 # we want present, the one we refuse absent, and no wrapper left behind.
-RUN set -eux; \
-    P=/usr/lib64/qt6/plugins/discover; \
-    for b in flatpak fwupd; do \
-        test -e "$P/$b-backend.so" || { echo "STORE GATE FAIL: missing backend $b" >&2; exit 1; }; \
-    done; \
-    if test -e "$P/rpm-ostree-backend.so"; then \
-        echo "STORE GATE FAIL: the rpm-ostree backend is back; the OS lane belongs to spplus-update-control alone" >&2; exit 1; \
-    fi; \
-    if test -e "$P/packagekit-backend.so"; then \
-        echo "STORE GATE FAIL: PackageKit backend is present on an image-mode host" >&2; exit 1; \
-    fi; \
-    test ! -e /usr/bin/spplus-discover; \
-    for d in org.kde.discover.desktop org.kde.discover.flatpak.desktop; do \
-        f=/usr/share/applications/$d; \
-        test -f "$f" || continue; \
-        grep -q '^Exec=plasma-discover' "$f" || { echo "STORE GATE FAIL: $d does not launch stock plasma-discover" >&2; exit 1; }; \
-        if grep -q 'spplus-discover' "$f"; then echo "STORE GATE FAIL: $d still points at the removed wrapper" >&2; exit 1; fi; \
-        desktop-file-validate "$f"; \
-    done; \
-    test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
-    grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
-    grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
-    echo "STORE_GATE_OK stock Discover, backends flatpak+fwupd, no rpm-ostree, no PackageKit, Flathub shipped"
+# The store assertions that used to sit here have MOVED to the end of the build,
+# immediately before `bootc container lint` (D-4). They were upstream of a later
+# `dnf install`, which meant a transaction that resurrected the rpm-ostree backend
+# would pass this build unnoticed. Search for "FINAL STORE GATE".
 
 # ---- 6a. SP+ Calm, the shipped default look (DN-27) --------------------------
 # SP+ Calm is the OS's own visual language and is deliberately NOT branded to
@@ -2153,5 +2134,45 @@ LABEL org.opencontainers.image.title="SP+" \
       org.opencontainers.image.description="SP+ Advisor OS — KDE image-mode payload" \
       org.opencontainers.image.version="${SPPLUS_RELEASE}" \
       com.secureprospective.build="${SPPLUS_BUILD}"
+
+# ---- FINAL STORE GATE (D-4). Deliberately the LAST thing before the lint. ------
+#
+# This block used to sit around line 1332, immediately after the backend removal it
+# checks. That is the intuitive place and it is the wrong one. `RUN dnf install ...
+# kvantum paper-icon-theme ... ibm-plex-sans-fonts` runs AFTER it, and this very
+# file already documents the resurrection mechanism at the Discover section: "a
+# later dnf install pulled plasma-discover-notifier back in and restored the file."
+# So if any later transaction updated plasma-discover, the rpm-ostree backend came
+# back, contract clause 2 was violated in the shipped image, and the build still
+# went green. It would have been caught by scripts/publish-image.sh -- but only for
+# images that go through publish, not for a locally built ISO handed to a tester,
+# which is exactly what the test ISOs are.
+#
+# The rule this encodes: a gate must be downstream of every operation that can
+# violate it. Anything added below this line and above `bootc container lint` is
+# outside the gate again -- put new dnf work ABOVE this block, not below it.
+RUN set -eux; \
+    P=/usr/lib64/qt6/plugins/discover; \
+    for b in flatpak fwupd; do \
+        test -e "$P/$b-backend.so" || { echo "STORE GATE FAIL: missing backend $b" >&2; exit 1; }; \
+    done; \
+    if test -e "$P/rpm-ostree-backend.so"; then \
+        echo "STORE GATE FAIL: the rpm-ostree backend is back; the OS lane belongs to spplus-update-control alone" >&2; exit 1; \
+    fi; \
+    if test -e "$P/packagekit-backend.so"; then \
+        echo "STORE GATE FAIL: PackageKit backend is present on an image-mode host" >&2; exit 1; \
+    fi; \
+    test ! -e /usr/bin/spplus-discover; \
+    for d in org.kde.discover.desktop org.kde.discover.flatpak.desktop; do \
+        f=/usr/share/applications/$d; \
+        test -f "$f" || continue; \
+        grep -q '^Exec=plasma-discover' "$f" || { echo "STORE GATE FAIL: $d does not launch stock plasma-discover" >&2; exit 1; }; \
+        if grep -q 'spplus-discover' "$f"; then echo "STORE GATE FAIL: $d still points at the removed wrapper" >&2; exit 1; fi; \
+        desktop-file-validate "$f"; \
+    done; \
+    test -s /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    echo "STORE_GATE_OK stock Discover, backends flatpak+fwupd, no rpm-ostree, no PackageKit, Flathub shipped"
 
 RUN bootc container lint
