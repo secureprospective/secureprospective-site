@@ -1007,8 +1007,8 @@ RUN printf '%s\n' \
       'ANSI_COLOR="0;38;2;180;180;190"' \
       'LOGO=sp-plus-logo-icon' \
       'HOME_URL="https://secureprospective.com/"' \
-      'SUPPORT_URL="https://secureprospective.com/support"' \
-      'BUG_REPORT_URL="https://secureprospective.com/support"' \
+      'SUPPORT_URL="https://secureprospective.com/contact"' \
+      'BUG_REPORT_URL="https://secureprospective.com/contact"' \
       > /usr/lib/os-release \
  && ln -sf ../usr/lib/os-release /etc/os-release \
  && printf '%s\n' '\S' 'Kernel \r on an \m (\l)' '' > /etc/issue \
