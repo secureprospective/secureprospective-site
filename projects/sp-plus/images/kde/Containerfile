@@ -606,6 +606,10 @@ RUN set -eux; \
     D=/usr/lib64/qt6/plugins/discover; \
     rm -f "$D/rpm-ostree-backend.so"; \
     test ! -e "$D/rpm-ostree-backend.so"; \
+    N=/usr/lib64/qt6/plugins/discover-notifier; \
+    rm -f "$N/rpm-ostree-notifier.so"; \
+    test ! -e "$N/rpm-ostree-notifier.so"; \
+    test -e "$N/FlatpakNotifier.so"; \
     test -e "$D/flatpak-backend.so"; \
     test -e "$D/fwupd-backend.so"; \
     grep -q 'spplus-update-control' /usr/libexec/spplus-stage-update; \
@@ -2151,6 +2155,22 @@ LABEL org.opencontainers.image.title="SP+" \
 # The rule this encodes: a gate must be downstream of every operation that can
 # violate it. Anything added below this line and above `bootc container lint` is
 # outside the gate again -- put new dnf work ABOVE this block, not below it.
+#
+# WHY THIS SWEEPS A TREE INSTEAD OF NAMING ONE FILE. Until 2026-09-03 this gate
+# tested exactly two filenames under plugins/discover. It passed, and the image
+# it passed still shipped
+#     /usr/lib64/qt6/plugins/discover-notifier/rpm-ostree-notifier.so
+# from the separate package plasma-discover-rpm-ostree, in a directory the gate
+# never looked at. The notifier daemon autostarts every login via
+# /etc/xdg/autostart/org.kde.discover.notifier.desktop, so that plugin was loaded
+# in front of every advisor, doing the same digest comparison that the backend
+# was removed for -- and the registry-is-behind case it misreads as "an update
+# exists" was live on the test56 guest when this was found.
+#
+# A gate that names files can only ever catch the file someone thought of. The
+# OS lane belongs to spplus-update-control alone, so the assertion that matches
+# the contract is "no rpm-ostree or packagekit plugin anywhere in the Discover
+# plugin tree", which is what this now checks.
 RUN set -eux; \
     P=/usr/lib64/qt6/plugins/discover; \
     for b in flatpak fwupd; do \
@@ -2162,6 +2182,14 @@ RUN set -eux; \
     if test -e "$P/packagekit-backend.so"; then \
         echo "STORE GATE FAIL: PackageKit backend is present on an image-mode host" >&2; exit 1; \
     fi; \
+    for dir in /usr/lib64/qt6/plugins/discover /usr/lib64/qt6/plugins/discover-notifier; do \
+        test -d "$dir" || continue; \
+        stray="$(find "$dir" \( -iname '*rpm-ostree*' -o -iname '*packagekit*' \) -print)"; \
+        if test -n "$stray"; then \
+            echo "STORE GATE FAIL: OS-lane plugin survives in $dir: $stray" >&2; exit 1; \
+        fi; \
+    done; \
+    test -e /usr/lib64/qt6/plugins/discover-notifier/FlatpakNotifier.so; \
     test ! -e /usr/bin/spplus-discover; \
     for d in org.kde.discover.desktop org.kde.discover.flatpak.desktop; do \
         f=/usr/share/applications/$d; \
