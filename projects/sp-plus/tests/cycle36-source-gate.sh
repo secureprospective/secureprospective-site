@@ -69,7 +69,13 @@ pass 'lm_sensors package and runtime gate'
 # present, PackageKit stays absent, and no wrapper is left behind.
 grep -qF 'STORE_GATE_OK' "$CF" || fail 'stock-Discover store gate missing'
 grep -qF 'packagekit-backend.so' "$CF" || fail 'Discover PackageKit exclusion gate missing'
-grep -qF 'for b in flatpak rpm-ostree fwupd; do' "$CF" || fail 'fwupd backend is not asserted; firmware updates would go missing again'
+# The asserted backend list is exactly `flatpak fwupd`: fwupd must be present so
+# firmware updates keep being offered, and rpm-ostree must NOT be in the required
+# list -- update-contract clause 2 forbids that backend, and the image gate below
+# this loop asserts it absent. This grep is anchored on the full literal loop, so
+# putting rpm-ostree back into the required set fails here.
+grep -qF 'for b in flatpak fwupd; do' "$CF" || fail 'the asserted backend list is not exactly flatpak+fwupd; fwupd would go missing or a forbidden backend was required'
+grep -qF 'STORE GATE FAIL: the rpm-ostree backend is back' "$CF" || fail 'the rpm-ostree backend-absent assertion is missing'
 grep -qF 'test ! -e /usr/bin/spplus-discover' "$CF" || fail 'removed Discover wrapper is not asserted absent'
 [ ! -e "$C/spplus-discover" ] || fail 'the removed Discover wrapper is still in config/'
 pass 'stock Discover, all installed backends, no PackageKit'
