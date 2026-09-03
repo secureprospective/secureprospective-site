@@ -104,3 +104,34 @@ shape, not by one hex value that a token rename would silently defeat.
 Proven against a fixture carrying pale text, yellow on white, and quarter-alpha
 ink; all three fire, yellow on ledger ink stays silent, and large grey text is
 judged at 3:1 rather than blanket-failed.
+
+## afternav.mjs — after-navigation gate
+
+    node concepts/tools/afternav.mjs <base-url> <slug|-> [slug...]
+
+Every other gate loads a page fresh and measures it. The site navigates with
+View Transitions, which swap the document without a reload, so a fresh load is
+the one state in which a rebinding defect cannot appear. That is how a dead
+mobile menu passed nine consecutive navigation checks: it worked perfectly on
+arrival and died the moment anyone used it.
+
+Each page is measured twice, once loaded directly and once arrived at by
+clicking a link, and the two are compared. A page that differs depending on how
+the visitor reached it is broken for the visitor who navigated.
+
+- **controls after nav** — every control that responds to a click on a fresh
+  load still responds on arrival. This sits directly on the reported defect.
+- **state after nav** — scroll-driven state a fresh load reaches is also
+  reached on arrival.
+- **content after nav** — text visible on load is visible on arrival.
+- **no listener stacking** — navigating away and back repeatedly does not leave
+  a growing pile of scroll and resize handlers.
+
+Each check was proven against a deliberately broken build before being trusted:
+the pre-fix Nav.astro (controls fired on all six pages), motion.js with its
+page-load hook removed (state fired), and motion.js with one teardown line
+removed (stacking fired, at exactly 1.0 leaked per navigation).
+
+`content after nav` has never fired here, and cannot on this site: no content is
+gated behind script at all, which motion.mjs's no-JavaScript check independently
+confirms. It is retained for the case where that stops being true.
