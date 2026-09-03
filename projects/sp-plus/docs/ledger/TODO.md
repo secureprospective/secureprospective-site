@@ -120,3 +120,76 @@ over the installed `/etc` from `%post` using the TARGET policy's file_contexts.
 ### T-16 - Make the LUKS passphrase prompt visible on the local console 🔴 BLOCKS THE DELL
 Cause of DN-15. Likely `plymouth` + fbcon console hand-off. Acceptance: on a physical-style boot
 with no serial console, the passphrase prompt is legible on screen within 30s of power-on.
+
+### T-17 - Redesign the installer sidebar so the install screen carries content
+Cosmetic, NOT release-blocking. Deferred 2026-09-03 until after RC1e testing, by Christopher.
+
+Today the ~9-minute install shows correct SP+ branding (logo on a flat `#0033A0` sidebar) and
+nothing else. It is the first SP+ surface a prospective client ever sees, and it is empty.
+
+**What is NOT available** (verified 2026-09-03 against anaconda-gui-44.30-2.fc44, do not retest):
+- **The `rnotes` slideshow is gone.** Anaconda 44 contains ZERO references to `rnotes`; the
+  rotating release-notes carousel was removed upstream. The `rnotes/` directory that
+  `fedora-logos` still ships is vestigial. Do not build assets for it.
+- **Screenshots on the progress screen are not practical.** The only region we own is the narrow
+  left sidebar; a UI screenshot there is illegible. Injecting widgets into the main area means
+  patching `ui/gui/spokes/installation_progress.py` or its glade - unsupported and fragile on a
+  path where a failure means no one can install the product.
+
+**What IS available:** the sidebar background image, via `installer/product/anaconda-gtk.css`,
+which we already own and which already works through the `custom_stylesheet` hook
+(`/etc/anaconda/conf.d/10-sp-plus.conf`). One tall PNG into
+`installer/product/pixmaps/`, one `background-image` line on `.logo-sidebar`.
+
+**Proposed content:** logo at top, then 3-5 short lines of what SP+ is and what the installer is
+doing (immutable OS, encrypted by default, curated advisor toolkit). Static, not rotating.
+
+**Acceptance:** install to the test VM, take a host-side `virsh screenshot` during the deploy
+phase, and confirm the sidebar text is legible at the VMs native resolution - measured from the
+
+### T-17 - Redesign the installer sidebar so the install screen carries content
+Cosmetic, NOT release-blocking. Deferred 2026-09-03 until after RC1e testing, by Christopher.
+
+Today the ~9-minute install shows correct SP+ branding (logo on a flat `#0033A0` sidebar) and
+nothing else. It is the first SP+ surface a prospective client ever sees, and it is empty.
+
+**What is NOT available** (verified 2026-09-03 against anaconda-gui-44.30-2.fc44, do not retest):
+- **The `rnotes` slideshow is gone.** Anaconda 44 contains ZERO references to `rnotes`; the
+  rotating release-notes carousel was removed upstream. The `rnotes/` directory that
+  `fedora-logos` still ships is vestigial. Do not build assets for it.
+- **Screenshots on the progress screen are not practical.** The only region we own is the narrow
+  left sidebar; a UI screenshot there is illegible. Injecting widgets into the main area means
+  patching `ui/gui/spokes/installation_progress.py` or its glade - unsupported and fragile on a
+  path where a failure means no one can install the product.
+
+**What IS available:** the sidebar background image, via `installer/product/anaconda-gtk.css`,
+which we already own and which already works through the `custom_stylesheet` hook
+(`/etc/anaconda/conf.d/10-sp-plus.conf`). One tall PNG into `installer/product/pixmaps/`, one
+`background-image` line on `.logo-sidebar`.
+
+**Proposed content:** logo at top, then 3-5 short lines of what SP+ is and what the installer is
+doing (immutable OS, encrypted by default, curated advisor toolkit). Static, not rotating.
+
+**Acceptance:** install to the test VM, take a host-side `virsh screenshot` during the deploy
+phase, and confirm the sidebar text is legible at the VM's native resolution - measured from the
+screenshot, not from the design file.
+
+### T-18 - The rebranding loop overwrites files by path, not by type
+Cosmetic/hygiene, NOT release-blocking. Found 2026-09-03 while investigating T-17.
+
+`images/kde/Containerfile` (around line 1073) walks `rpm -ql fedora-logos`, filters to
+`/(plymouth|sddm|pixmaps|anaconda)/`, and runs `cp -f "$ICON" "$f"` for everything whose name
+does not end in `.svg`. The catch-all does not check file type, so in the runtime image
+`/usr/share/anaconda/pixmaps/fedora.css` and `/usr/share/anaconda/boot/splash.lss` are both
+byte-identical 127884-byte copies of a PNG.
+
+**Blast radius is believed to be zero** and that is why it is not a blocker: Anaconda is not
+installed in the runtime image, so these files are dead weight there. The INSTALLER is built from
+`installer/Containerfile`, which brands correctly into `pixmaps/sp-plus/` and deliberately does
+not overwrite stock assets. **This belief is unverified** - nothing has confirmed that no other
+component reads those paths.
+
+**Fix:** extend the `case` to skip non-image extensions (`.css`, `.lss`, `.txt`) rather than
+letting `*)` clobber them.
+**Acceptance:** rebuild and confirm `file /usr/share/anaconda/pixmaps/fedora.css` reports text,
+not PNG data.
