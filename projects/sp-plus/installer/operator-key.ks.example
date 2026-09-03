@@ -13,7 +13,7 @@
 # -- including an advisor's, on an advisor's network, holding client PII --
 # trusted the holder of one private key over a listening sshd. That layer and its
 # gate are gone; the Containerfile now FAILS the build if anything reappears in
-# /etc/skel/.ssh. The legitimate need behind it (a shell on a machine you own for
+# /etc/skel. The legitimate need behind it (a shell on a machine you own for
 # auditing and support) is met here instead, at INSTALL time, per machine, by the
 # person doing the install.
 #
@@ -30,29 +30,108 @@
 #     those, it is not.
 #
 # HOW TO USE IT
-#   1. cp installer/operator-key.ks.example /tmp/operator-key.ks     # outside git
-#   2. Edit /tmp/operator-key.ks: set the real username and the real public key.
-#   3. Include it from a LOCAL, throwaway copy of the kickstart used for that
+#      Copy this file, fill in BOTH placeholders, and hand it to the installer
 #      build -- do not add the include to installer/interactive-defaults.ks:
 #          %include /tmp/operator-key.ks
 #      or pass it as an additional kickstart to the installer build.
 #
-# NOTES ON THE `sshkey` COMMAND
-#   * `--username=` must name an account that EXISTS by the time kickstart runs.
-#     SP+ ships no human account (DN-13); the account is the one the operator
-#     creates in Anaconda's User Creation spoke, so the name below must match what
-#     was typed there. If it does not match, Anaconda fails the install rather
-#     than silently skipping -- which is the behaviour we want.
-#   * Anaconda writes the key to ~/.ssh/authorized_keys with the right ownership
-#     and mode. Nothing needs to be chmod-ed afterwards.
+# WHY THIS IS A %post AND NOT THE `sshkey` COMMAND -- MEASURED 2026-09-03
+# ------------------------------------------------------------------------------
+# This overlay used to be a single `sshkey --username=... "ssh-ed25519 ..."` line.
+# On SP+ THAT DIRECTIVE IS A SILENT NO-OP. It was measured on an RC1c install:
+#
+#   * Anaconda parsed the key correctly and logged it:
+#       Users[2888]: A new ssh key list has been set: [SshKeyData(key='ssh-ed25519
+#       AAAA...', username='test')]
+#   * It ran AnaTaskThread-SetSshKeysTask-1 and logged "Thread Done".
+#     NO ERROR, NO WARNING, EXIT 0, and the install reported success.
+#   * /home/test/.ssh DID NOT EXIST on the booted system, and a filesystem-wide
+#     search found NO authorized_keys anywhere.
+#
+# THE CAUSE IS ORDERING, and it is structural to bootc -- not a bug we can wait
+# out. Timestamps from that install's journal:
+#       19:39:46  bootc deploy writes 01_users.cfg
+#       19:39:54  CreateUsersTask, then SetSshKeysTask -- both "Done"
+#       19:41     /var/home/test is ACTUALLY CREATED
+# On an image-mode system the account is materialised at FIRST BOOT from
+# 01_users.cfg. Anaconda writes the key roughly two minutes BEFORE the home
+# directory it belongs in exists, and first-boot home creation then supersedes it.
+# `/home` is a symlink to `var/home`, and /var is not the install-time sysroot.
+#
+# So the key must go somewhere that (a) exists during %post and (b) is carried
+# into the deployment: that is /etc. sshd is told to read it with an
+# AuthorizedKeysFile drop-in, which is what the %post below writes.
+#
+# VERIFIED, not assumed: on the RC1c VM, with the user's own
+# ~/.ssh/authorized_keys renamed away so it could not mask the result, sshd
+# authenticated using ONLY /etc/ssh/authorized_keys.d/test, with SELinux
+# enforcing. `sshd -T` reported:
+#       authorizedkeysfile .ssh/authorized_keys /etc/ssh/authorized_keys.d/%u
+#
+# NOTES ON THE KEY ITSELF
+#   * The username must match the account created in Anaconda's User Creation
+#     spoke. SP+ ships no human account (DN-13).
+#     UNLIKE the old `sshkey` command, a WRONG USERNAME HERE FAILS QUIETLY -- the
+#     file is simply never read by sshd, because it is named after the user. Check
+#     it. The verification step at the bottom of this file is how.
 #   * The key MUST be a public key. A line containing "PRIVATE KEY" is a mistake
 #     serious enough that you should assume the key is compromised and rotate it.
-#   * One key per line, one `sshkey` line per key.
+#   * One key per line. Add more lines to the same file for more keys.
 #
-# The image side is already hardened to match: /etc/ssh/sshd_config.d/45-sp-plus.conf
-# sets PasswordAuthentication no, KbdInteractiveAuthentication no, PermitRootLogin
-# no, PubkeyAuthentication yes. A key placed here is therefore the ONLY way in.
+# WHY THE DROP-IN IS NUMBERED 46
+# sshd takes the FIRST obtained value for each keyword, so an earlier-sorting
+# drop-in wins. 45-sp-plus.conf is the image's hardening (PasswordAuthentication
+# no, KbdInteractiveAuthentication no, PermitRootLogin no, PubkeyAuthentication
+# yes). 46 sits immediately after it and before Fedora's 50-redhat.conf, so this
+# setting cannot be lost to a future Fedora change, and it cannot pre-empt the
+# hardening above it. A key placed here is the ONLY way in.
 # =============================================================================
 
+%post --erroronfail --interpreter=/bin/bash --log=/root/sp-plus-operator-key.log
+set -euo pipefail
+
 # REPLACE BOTH PLACEHOLDERS. Leaving them as-is is intended to fail loudly.
-sshkey --username=REPLACE_WITH_THE_USERNAME_CREATED_IN_ANACONDA "ssh-ed25519 REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY operator@example.invalid"
+OPERATOR_USER="REPLACE_WITH_THE_USERNAME_CREATED_IN_ANACONDA"
+OPERATOR_KEY="ssh-ed25519 REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY operator@example.invalid"
+
+# Fail the install rather than produce a machine you cannot reach, or one that
+# trusts a placeholder. This is the loud failure the old `sshkey` line never gave.
+case "$OPERATOR_USER" in REPLACE_WITH_*)
+  echo "OPERATOR KEY OVERLAY: username placeholder was not replaced" >&2; exit 1 ;;
+esac
+case "$OPERATOR_KEY" in *REPLACE_WITH_*)
+  echo "OPERATOR KEY OVERLAY: key placeholder was not replaced" >&2; exit 1 ;;
+esac
+case "$OPERATOR_KEY" in *"PRIVATE KEY"*)
+  echo "OPERATOR KEY OVERLAY: that is a PRIVATE key. Rotate it and use the .pub" >&2; exit 1 ;;
+esac
+case "$OPERATOR_KEY" in ssh-ed25519\ *|ssh-rsa\ *|ecdsa-sha2-*|sk-ssh-*|sk-ecdsa-*) ;;
+  *) echo "OPERATOR KEY OVERLAY: not a recognised public key line" >&2; exit 1 ;;
+esac
+
+install -d -m 755 /etc/ssh/authorized_keys.d
+printf '%s\n' "$OPERATOR_KEY" > "/etc/ssh/authorized_keys.d/${OPERATOR_USER}"
+chmod 644 "/etc/ssh/authorized_keys.d/${OPERATOR_USER}"
+
+# sshd must be told to look there. .ssh/authorized_keys is kept FIRST so the
+# ordinary per-user path keeps working exactly as it does on stock Fedora.
+printf 'AuthorizedKeysFile .ssh/authorized_keys /etc/ssh/authorized_keys.d/%%u\n' \
+  > /etc/ssh/sshd_config.d/46-sp-plus-operator.conf
+chmod 644 /etc/ssh/sshd_config.d/46-sp-plus-operator.conf
+
+# SELinux is enforcing; an unlabelled file here authenticates nobody.
+restorecon -RF /etc/ssh/authorized_keys.d /etc/ssh/sshd_config.d 2>/dev/null || :
+
+# THE TREE IS THE EVIDENCE, NOT THE EXIT CODE. Refuse to finish an install that
+# produced an unreachable machine.
+test -s "/etc/ssh/authorized_keys.d/${OPERATOR_USER}"
+grep -q 'authorized_keys.d' /etc/ssh/sshd_config.d/46-sp-plus-operator.conf
+echo "OPERATOR KEY OVERLAY: installed for ${OPERATOR_USER}"
+%end
+
+# VERIFY AFTER THE FIRST BOOT -- do not assume this worked:
+#   ssh -i /path/to/the/private/key OPERATOR_USER@THE_MACHINE  # Replace both
+# If it refuses, on the machine's own console run:
+#   sudo sshd -T | grep -i authorizedkeysfile
+#   sudo cat /etc/ssh/authorized_keys.d/OPERATOR_USER          # Replace
+# and confirm the filename matches the account name exactly.

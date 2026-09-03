@@ -964,9 +964,19 @@ KS="$REPO/projects/sp-plus/installer/interactive-defaults.ks"
 [ -f "$REPO/projects/sp-plus/installer/operator-key.ks.example" ] \
   || { P25_OK=0; echo "       the documented operator-key overlay is missing"; }
 # ...and the example must stay an example.
-grep -qE '^sshkey .*REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY' \
-  "$REPO/projects/sp-plus/installer/operator-key.ks.example" \
-  || { P25_OK=0; echo "       operator-key.ks.example no longer carries a placeholder; a real key may have been committed"; }
+# The overlay is a %post (Anaconda's `sshkey` is a silent no-op on bootc: it writes
+# the key ~2 min before first boot creates /var/home/<user>. Measured 2026-09-03).
+# Both placeholders must survive, and no real key may be committed.
+OKS="$REPO/projects/sp-plus/installer/operator-key.ks.example"
+grep -qE '^OPERATOR_KEY="ssh-ed25519 REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY' "$OKS" \
+  || { P25_OK=0; echo "       operator-key.ks.example no longer carries a key placeholder; a real key may have been committed"; }
+grep -qE '^OPERATOR_USER="REPLACE_WITH_THE_USERNAME_CREATED_IN_ANACONDA"' "$OKS" \
+  || { P25_OK=0; echo "       operator-key.ks.example no longer carries the username placeholder"; }
+# It must still be the mechanism that actually works, not a reverted sshkey line.
+grep -qE '^sshkey ' "$OKS" \
+  && { P25_OK=0; echo "       operator-key.ks.example uses the sshkey command again; that is a SILENT no-op on bootc"; }
+grep -qF 'authorized_keys.d' "$OKS" \
+  || { P25_OK=0; echo "       operator-key.ks.example no longer installs the key into /etc/ssh/authorized_keys.d"; }
 # The hardening drop-in must exist and say all four things.
 [ -f "$C/ssh/45-sp-plus.conf" ] \
   || { P25_OK=0; echo "       the sshd hardening drop-in config/ssh/45-sp-plus.conf is missing"; }
