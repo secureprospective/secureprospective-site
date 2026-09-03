@@ -39,19 +39,49 @@ const isActive = (href: string) => path === href;
 </header>
 
 <script>
-  const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
-  const links = document.getElementById('site-links');
-  if (toggle && links) {
+  const parts = () => ({
+    toggle: document.querySelector<HTMLButtonElement>('.nav-toggle'),
+    links: document.getElementById('site-links'),
+  });
+
+  const setMenu = (toggle: HTMLButtonElement, links: HTMLElement, open: boolean) => {
+    links.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+
+  // The header is replaced on every view transition, so the button carrying the
+  // listener is thrown away with it. Binding once at module evaluation left the
+  // menu working exactly until the first navigation and dead until a reload.
+  // The dataset flag matters because a persisted element survives the swap, and
+  // a second listener on it would toggle the menu twice per tap and appear to do
+  // nothing at all.
+  const bindToggle = () => {
+    const { toggle, links } = parts();
+    if (!toggle || !links || toggle.dataset.navBound === 'true') return;
+    toggle.dataset.navBound = 'true';
     toggle.addEventListener('click', () => {
-      const open = links.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', String(open));
+      setMenu(toggle, links, !links.classList.contains('is-open'));
     });
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && links.classList.contains('is-open')) {
-        links.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.focus();
-      }
-    });
-  }
+  };
+
+  // Document-level listeners are bound once for the life of the tab. Binding
+  // these inside the per-page hook would stack another copy on every navigation.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const { toggle, links } = parts();
+    if (toggle && links && links.classList.contains('is-open')) {
+      setMenu(toggle, links, false);
+      toggle.focus();
+    }
+  });
+
+  // Tapping a link navigates without a reload, so an open menu would otherwise
+  // still be covering the page it just moved to.
+  document.addEventListener('astro:before-swap', () => {
+    const { toggle, links } = parts();
+    if (toggle && links) setMenu(toggle, links, false);
+  });
+
+  document.addEventListener('astro:page-load', bindToggle);
+  bindToggle();
 </script>

@@ -11,6 +11,7 @@
      links usable   every link is on-screen, at least 44px tall, not overlapped
      escape closes  Escape closes it and returns focus to the toggle
      tap closes     tapping a link navigates rather than dead-ending
+     survives nav   the menu still opens after a client-side navigation
      no trap        the page behind does not stay scroll-locked after closing
 
    Usage: node concepts/tools/mobilenav.mjs <base-url> <slug|-> [slug...]
@@ -98,6 +99,67 @@ for (const slug of slugs) {
     note(closed.expanded === 'false' && !closed.open, 'Escape closes the menu');
     note(closed.focused, 'focus returns to the toggle');
     note(!closed.bodyLocked, 'page is not left scroll-locked');
+
+    // Everything above tests a freshly loaded document. The site navigates with
+    // View Transitions, which swap the header without a reload, so a listener
+    // bound once at module evaluation dies on the first navigation and the menu
+    // is dead until a refresh. That is invisible to every check above, and it is
+    // the defect this whole gate existed to catch and did not.
+    const startUrl = page.url();
+    await page.evaluate(() => {
+      const t = document.querySelector('.nav-toggle');
+      const l = document.getElementById('site-links');
+      if (t && l && !l.classList.contains('is-open')) t.click();
+    });
+    await new Promise((r) => setTimeout(r, 300));
+
+    const navigated = await page
+      .evaluate(() => {
+        // Not simply the first link: on the page that link points at, tapping it
+        // does not change the URL, and the navigation wait below would time out
+        // and report a defect on a menu that works.
+        const here = window.location.pathname.replace(/\/$/, '');
+        const target = Array.from(document.querySelectorAll('#site-links a')).find(
+          (a) => new URL(a.href).pathname.replace(/\/$/, '') !== here
+        );
+        if (!target) return false;
+        target.click();
+        return true;
+      })
+      .then(() =>
+        page
+          .waitForFunction((from) => window.location.href !== from, { timeout: 8000 }, startUrl)
+          .then(() => true)
+          .catch(() => false)
+      );
+    note(navigated, 'tapping a link navigates');
+
+    if (navigated) {
+      await new Promise((r) => setTimeout(r, 700));
+
+      const afterSwap = await page.evaluate(() => {
+        const l = document.getElementById('site-links');
+        return l ? l.classList.contains('is-open') : null;
+      });
+      note(afterSwap === false, 'menu does not stay open across the navigation');
+
+      const t2 = await page.$('.nav-toggle');
+      if (t2) await t2.tap();
+      await new Promise((r) => setTimeout(r, 400));
+      const reopened = await page.evaluate(() => {
+        const t = document.querySelector('.nav-toggle');
+        const l = document.getElementById('site-links');
+        return {
+          expanded: t ? t.getAttribute('aria-expanded') : null,
+          visible: l ? getComputedStyle(l).display !== 'none' && l.getBoundingClientRect().height > 0 : false,
+        };
+      });
+      note(
+        reopened.expanded === 'true' && reopened.visible,
+        'menu still opens after a navigation',
+        `aria-expanded=${reopened.expanded} visible=${reopened.visible}`
+      );
+    }
 
     await page.close();
   }
