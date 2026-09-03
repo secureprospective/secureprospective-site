@@ -946,6 +946,41 @@ else
   bad "DN-43/44/45 theme source gate failed" "do not build until the apply path and every preview receipt are present"
 fi
 
+# P-25  D-1. NO SSH KEY SHIPS, ANYWHERE, and sshd is key-only.
+# The image side is gated in the Containerfile (an inverse gate on /etc/skel/.ssh
+# plus an `sshd -T` read-back). This is the SOURCE side: the release ISO's own
+# inputs must not carry a key either, because a key in the kickstart would reach
+# every machine installed from the public ISO just as surely as one in /etc/skel.
+P25_OK=1
+[ ! -e "$C/skel-ssh" ] \
+  || { P25_OK=0; echo "       config/skel-ssh/ is back; no SSH key may live in the image tree"; }
+grep -qF 'COPY --chmod=600 config/skel-ssh/authorized_keys' "$CF" \
+  && { P25_OK=0; echo "       the image copies an authorized_keys into /etc/skel again"; }
+# The release kickstart must carry no operator key. The overlay that does carry
+# one is installer/operator-key.ks.example and is deliberately not included here.
+KS="$REPO/projects/sp-plus/installer/interactive-defaults.ks"
+[ "$(grep -c sshkey "$KS")" = 0 ] \
+  || { P25_OK=0; echo "       the release kickstart contains an sshkey line; the public ISO must ship no key"; }
+[ -f "$REPO/projects/sp-plus/installer/operator-key.ks.example" ] \
+  || { P25_OK=0; echo "       the documented operator-key overlay is missing"; }
+# ...and the example must stay an example.
+grep -qE '^sshkey .*REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY' \
+  "$REPO/projects/sp-plus/installer/operator-key.ks.example" \
+  || { P25_OK=0; echo "       operator-key.ks.example no longer carries a placeholder; a real key may have been committed"; }
+# The hardening drop-in must exist and say all four things.
+[ -f "$C/ssh/45-sp-plus.conf" ] \
+  || { P25_OK=0; echo "       the sshd hardening drop-in config/ssh/45-sp-plus.conf is missing"; }
+for kw in 'PasswordAuthentication no' 'KbdInteractiveAuthentication no' \
+          'PermitRootLogin no' 'PubkeyAuthentication yes'; do
+  grep -qxF "$kw" "$C/ssh/45-sp-plus.conf" 2>/dev/null \
+    || { P25_OK=0; echo "       the sshd drop-in does not set '$kw'"; }
+done
+grep -qF 'COPY config/ssh/45-sp-plus.conf /etc/ssh/sshd_config.d/45-sp-plus.conf' "$CF" \
+  || { P25_OK=0; echo "       the image does not install the sshd hardening drop-in"; }
+[ "$P25_OK" -eq 1 ] \
+  && ok "D-1 no SSH key ships in the image or the release kickstart, and sshd is key-only" \
+  || bad "D-1 SSH key gate failed" "a shipped key over a listening sshd is the worst defect this product can have"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

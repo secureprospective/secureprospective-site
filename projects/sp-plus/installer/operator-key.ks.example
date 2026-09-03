@@ -1,0 +1,58 @@
+# SP+ OPERATOR KEY OVERLAY -- NOT PART OF THE RELEASE ISO
+# =============================================================================
+#
+# WHAT THIS IS
+# A kickstart overlay that installs ONE operator SSH public key onto the account
+# the installer creates, so Christopher (or a lab technician) can reach a machine
+# he installed himself over a real shell. It exists because SP+ deliberately no
+# longer ships any key inside the image.
+#
+# WHY IT EXISTS AT ALL (D-1, 2026-09-03)
+# The image used to carry `config/skel-ssh/authorized_keys` into
+# /etc/skel/.ssh/authorized_keys. That meant EVERY machine installed from the ISO
+# -- including an advisor's, on an advisor's network, holding client PII --
+# trusted the holder of one private key over a listening sshd. That layer and its
+# gate are gone; the Containerfile now FAILS the build if anything reappears in
+# /etc/skel/.ssh. The legitimate need behind it (a shell on a machine you own for
+# auditing and support) is met here instead, at INSTALL time, per machine, by the
+# person doing the install.
+#
+# THE RULE, AND IT IS NOT NEGOTIABLE
+#   * The public release ISO ships NO key anywhere: not in the image, and not in
+#     `installer/interactive-defaults.ks`. That release kickstart must contain no
+#     `sshkey` line at all -- `grep -c sshkey installer/interactive-defaults.ks`
+#     must print 0. It is checked by tests/config-preflight.sh.
+#   * This file is an EXAMPLE. It carries a placeholder, never a real key, so it
+#     is safe to keep in git. Copy it, fill it in, and keep the filled-in copy out
+#     of this repository.
+#   * A filled-in copy belongs only on ISOs built for Christopher's own installs
+#     and test VMs. If you are unsure whether the ISO you are building is one of
+#     those, it is not.
+#
+# HOW TO USE IT
+#   1. cp installer/operator-key.ks.example /tmp/operator-key.ks     # outside git
+#   2. Edit /tmp/operator-key.ks: set the real username and the real public key.
+#   3. Include it from a LOCAL, throwaway copy of the kickstart used for that
+#      build -- do not add the include to installer/interactive-defaults.ks:
+#          %include /tmp/operator-key.ks
+#      or pass it as an additional kickstart to the installer build.
+#
+# NOTES ON THE `sshkey` COMMAND
+#   * `--username=` must name an account that EXISTS by the time kickstart runs.
+#     SP+ ships no human account (DN-13); the account is the one the operator
+#     creates in Anaconda's User Creation spoke, so the name below must match what
+#     was typed there. If it does not match, Anaconda fails the install rather
+#     than silently skipping -- which is the behaviour we want.
+#   * Anaconda writes the key to ~/.ssh/authorized_keys with the right ownership
+#     and mode. Nothing needs to be chmod-ed afterwards.
+#   * The key MUST be a public key. A line containing "PRIVATE KEY" is a mistake
+#     serious enough that you should assume the key is compromised and rotate it.
+#   * One key per line, one `sshkey` line per key.
+#
+# The image side is already hardened to match: /etc/ssh/sshd_config.d/45-sp-plus.conf
+# sets PasswordAuthentication no, KbdInteractiveAuthentication no, PermitRootLogin
+# no, PubkeyAuthentication yes. A key placed here is therefore the ONLY way in.
+# =============================================================================
+
+# REPLACE BOTH PLACEHOLDERS. Leaving them as-is is intended to fail loudly.
+sshkey --username=REPLACE_WITH_THE_USERNAME_CREATED_IN_ANACONDA "ssh-ed25519 REPLACE_WITH_THE_OPERATOR_PUBLIC_KEY operator@example.invalid"

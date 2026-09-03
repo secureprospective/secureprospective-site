@@ -76,45 +76,57 @@ RUN curl -fsSLo /etc/yum.repos.d/brave-browser.repo \
 # so nothing was ever listening. Enable it. There is no shipped account and no shipped
 # password (DN-13), so an installed machine still refuses every remote login until the
 # person who installed it creates their own user -- enabling the daemon does not open
-# the machine up on its own. Production hardening (key-only, or off entirely) is a
-# later decision; for the demo and for this audit it must be on.
+# the machine up on its own. The production-hardening question this comment used to
+# defer is now DECIDED and implemented in 2a-ter below: sshd stays on, key-only.
 RUN dnf install -y --setopt=install_weak_deps=False openssh-server \
  && dnf clean all \
  && systemctl enable sshd.service \
  && test -L /etc/systemd/system/multi-user.target.wants/sshd.service
 
-# ---- 2a-ter. TEST-CYCLE ONLY: Christopher's key reaches the advisor account ----
+# ---- 2a-ter. sshd is key-only, and NO key ships in the image (D-1) ----------
 #
-# ############################################################################
-# #  THIS BLOCK IS FOR THE cycle35 AUDIT AND MUST COME OUT BEFORE ANY IMAGE  #
-# #  GOES TO A REAL ADVISOR. It is not hardening; it is the opposite.        #
-# ############################################################################
+# HISTORY, so nobody re-adds it. Until this commit this spot held a
+# `COPY config/skel-ssh/authorized_keys /etc/skel/.ssh/authorized_keys` layer with
+# a banner on it saying it had to come out before any advisor image. It did not
+# come out on its own, and it reached a release branch. Every machine installed
+# from such an ISO trusts the holder of one private key over a listening sshd, on
+# whatever network the advisor plugs into, on a machine holding client PII. The
+# old gate made this worse rather than better: it asserted the key was PRESENT and
+# well-formed, so the build enforced the exact opposite of the release requirement.
 #
-# Why it exists: the cycle35 sweep has to verify things that only exist in the
-# advisor's OWN home directory -- whether the look-and-feel was actually APPLIED
-# (DN-24), whether the wallpaper stuck in plasma-org.kde.plasma.desktop-appletsrc,
-# whether Print Screen reached Flameshot in kglobalshortcutsrc. The QEMU guest
-# agent cannot read any of it: it runs confined as virt_qemu_ga_t and SELinux
-# denies it user_home_t, so through that channel the absence of a file is not
-# evidence of absence. Without a real shell as the user, the most important
-# checks in tests/field-inspect.sh return UNKNOWN rather than OK or PROBLEM.
+# THE DECISION (Christopher, 2026-09-03): keep sshd, key-only auth, and
+# Christopher's key reaches a machine from the INSTALLER, never from the image.
+# The public release ISO ships no key anywhere -- not in the image, not in
+# `installer/interactive-defaults.ks`. For his own installs and test VMs he layers
+# `installer/operator-key.ks.example`, which carries an explicit `sshkey` line and
+# is deliberately not part of the release ISO.
 #
-# What this does NOT do: it creates no account. DN-13 still holds -- SP+ ships no
-# human user. The key lands in /etc/skel, so it reaches whatever account Anaconda's
-# user spoke creates and no other. An installed machine still refuses every remote
-# login until that person exists.
-#
-# What it DOES mean, stated plainly: any machine installed from an ISO carrying
-# this layer trusts the holder of the matching private key. That is acceptable for
-# a throwaway audit VM on Christopher's own LAN and is not acceptable anywhere else.
-COPY --chmod=600 config/skel-ssh/authorized_keys /etc/skel/.ssh/authorized_keys
+# The gate below is therefore INVERSE: it fails the build if a key, or even the
+# directory that would hold one, ever comes back into /etc/skel.
+COPY config/ssh/45-sp-plus.conf /etc/ssh/sshd_config.d/45-sp-plus.conf
 
-RUN chmod 0700 /etc/skel/.ssh \
- && test -s /etc/skel/.ssh/authorized_keys \
- && grep -q '^ssh-ed25519 ' /etc/skel/.ssh/authorized_keys \
- && test "$(wc -l < /etc/skel/.ssh/authorized_keys)" = 1 \
- && ! grep -qi 'PRIVATE KEY' /etc/skel/.ssh/authorized_keys \
- && echo "AUDIT_SSH_KEY_OK test-cycle only, remove before any advisor image"
+RUN set -eux; \
+    if test -e /etc/skel/.ssh/authorized_keys; then \
+        echo "SSH KEY GATE FAIL: an authorized_keys file is shipping in /etc/skel; no key may ship in the image (D-1)" >&2; exit 1; \
+    fi; \
+    if test -e /etc/skel/.ssh; then \
+        echo "SSH KEY GATE FAIL: /etc/skel/.ssh exists in the image; the skel ssh directory must not ship at all (D-1)" >&2; exit 1; \
+    fi; \
+    test -s /etc/ssh/sshd_config.d/45-sp-plus.conf; \
+    chmod 0644 /etc/ssh/sshd_config.d/45-sp-plus.conf; \
+    ssh-keygen -q -t ed25519 -N '' -f /tmp/sshd-gate-hostkey; \
+    sshd -t -h /tmp/sshd-gate-hostkey; \
+    sshd -T -h /tmp/sshd-gate-hostkey > /tmp/sshd-effective.conf; \
+    grep -qx 'passwordauthentication no' /tmp/sshd-effective.conf \
+        || { echo "SSH GATE FAIL: sshd -T does not report passwordauthentication no" >&2; exit 1; }; \
+    grep -qx 'kbdinteractiveauthentication no' /tmp/sshd-effective.conf \
+        || { echo "SSH GATE FAIL: sshd -T does not report kbdinteractiveauthentication no" >&2; exit 1; }; \
+    grep -qx 'permitrootlogin no' /tmp/sshd-effective.conf \
+        || { echo "SSH GATE FAIL: sshd -T does not report permitrootlogin no" >&2; exit 1; }; \
+    grep -qx 'pubkeyauthentication yes' /tmp/sshd-effective.conf \
+        || { echo "SSH GATE FAIL: sshd -T does not report pubkeyauthentication yes" >&2; exit 1; }; \
+    rm -f /tmp/sshd-effective.conf /tmp/sshd-gate-hostkey /tmp/sshd-gate-hostkey.pub; \
+    echo "SSH_KEY_GATE_OK no key in /etc/skel, sshd is key-only"
 
 # ---- 2a-bis. WS-Discovery, so an advisor can SEE the office shares ----
 # DN-26 makes SP+ Welcome walk the advisor through connecting a shared network drive.
