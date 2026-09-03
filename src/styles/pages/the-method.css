@@ -1,0 +1,984 @@
+/* ============================================================================
+   THE METHOD — the control loop.
+
+   This page keeps Concept A's Property Card System, but changes the composition.
+   The operation is not presented as a row of consulting cards. One continuous
+   control register carries five movements, and the return path stays visible.
+   ============================================================================ */
+
+.method-page {
+  --method-rail: 192px;
+  --method-blue-rule: rgba(0, 51, 160, 0.34);
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.method-page h1,
+.method-page h2,
+.method-page h3 {
+  text-wrap: balance;
+}
+
+.method-page p,
+.method-page li,
+.method-page dd {
+  text-wrap: pretty;
+}
+
+/* --------------------------------------------------------------------------
+   Hero: the first viewport is a control board, not a generic interior hero.
+   -------------------------------------------------------------------------- */
+
+.method-hero {
+  min-height: clamp(680px, calc(100svh - 76px), 860px);
+  border-bottom: 2px solid var(--ink);
+  background: var(--silver-base);
+}
+
+.method-hero-grid {
+  display: grid;
+  grid-template-columns: var(--method-rail) minmax(0, 1fr);
+  min-height: inherit;
+}
+
+.method-hero-index {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 32px 24px 32px 0;
+  border-right: 1px solid var(--ink);
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.method-index-note {
+  display: grid;
+  align-items: end;
+  gap: 14px;
+  margin-top: auto;
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.method-index-mark {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--ink);
+  background: var(--yellow-accent);
+}
+
+.method-index-mark::before,
+.method-index-mark::after {
+  position: absolute;
+  content: '';
+  background: var(--ink);
+}
+
+.method-index-mark::before {
+  top: 20px;
+  right: 5px;
+  left: 5px;
+  height: 1px;
+}
+
+.method-index-mark::after {
+  top: 5px;
+  bottom: 5px;
+  left: 20px;
+  width: 1px;
+}
+
+.method-hero-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  align-items: center;
+  gap: clamp(34px, 6vw, 92px);
+  min-width: 0;
+  padding: clamp(56px, 7vw, 96px) 0 clamp(56px, 7vw, 96px) clamp(36px, 7vw, 96px);
+}
+
+.method-hero-copy {
+  min-width: 0;
+}
+
+.method-hero h1 {
+  max-width: 11ch;
+  font-size: clamp(3.45rem, 6.4vw, 6.2rem);
+  letter-spacing: -0.018em;
+  line-height: 0.9;
+}
+
+.method-hero-copy > p {
+  max-width: 50ch;
+  margin-top: 34px;
+  font-size: clamp(1.08rem, 1.55vw, 1.3rem);
+  line-height: 1.55;
+}
+
+/* A single instrument panel contains the sequence. Rows are controls on one
+   surface, not five independent feature cards. */
+
+.method-loop {
+  position: relative;
+  min-width: 0;
+  padding: 26px 24px 22px;
+  border: 1px solid var(--ink);
+  background: var(--blue-brand);
+  color: var(--white);
+  box-shadow: var(--lift-2);
+}
+
+.method-loop::before {
+  position: absolute;
+  top: 73px;
+  bottom: 68px;
+  left: 40px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.52);
+  content: '';
+  pointer-events: none;
+}
+
+.method-loop::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--yellow-accent);
+  content: '';
+  pointer-events: none;
+  transform: scaleX(var(--method-progress, 0));
+  transform-origin: 0 50%;
+}
+
+.method-loop-header,
+.method-loop-return,
+.method-return-register-head,
+.method-return-register-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.method-loop-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.method-loop-header [data-cycle-status] {
+  color: var(--yellow-accent);
+  text-align: right;
+}
+
+.method-loop-list {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  list-style: none;
+}
+
+.method-loop-list li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.27);
+}
+
+.method-loop-link {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  margin-inline: -12px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) ease-out, color var(--dur-fast) ease-out, transform var(--dur-fast) var(--ease-deck);
+}
+
+.method-loop-link:hover,
+.method-loop-link:focus-visible,
+.method-loop-list li.is-current .method-loop-link {
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.method-loop-link:hover,
+.method-loop-link:focus-visible {
+  transform: translate3d(3px, 0, 0);
+}
+
+.method-loop-link:focus-visible {
+  outline: 3px solid var(--yellow-accent);
+  outline-offset: 2px;
+}
+
+.method-loop-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.method-loop-list li.is-current .method-loop-number {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--yellow-accent);
+}
+
+.method-loop-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.method-loop-name strong {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.method-loop-name small {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.method-loop-state {
+  max-width: 84px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.065em;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.method-loop-return {
+  justify-content: flex-start;
+  margin: 16px 0 0 40px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.method-loop-return-line {
+  position: relative;
+  display: block;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 1px;
+  background: var(--yellow-accent);
+}
+
+.method-loop-return-line::after {
+  position: absolute;
+  top: -3px;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid var(--yellow-accent);
+  border-right: 1px solid var(--yellow-accent);
+  content: '';
+  transform: rotate(45deg);
+}
+
+/* --------------------------------------------------------------------------
+   The sequence begins with a quiet register header before the first movement.
+   -------------------------------------------------------------------------- */
+
+.method-cycle-heading {
+  border-bottom: 1px solid var(--ink);
+  background: var(--white);
+}
+
+.method-cycle-heading-grid {
+  display: grid;
+  grid-template-columns: var(--method-rail) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.method-cycle-heading-index {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 48px 24px 48px 0;
+  border-right: 1px solid var(--ink);
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.method-cycle-heading-copy {
+  min-width: 0;
+  padding: clamp(56px, 8vw, 104px) 0 clamp(60px, 8vw, 96px) clamp(36px, 7vw, 96px);
+}
+
+.method-cycle-heading h2 {
+  max-width: 14ch;
+  font-size: clamp(2.9rem, 5.5vw, 5.3rem);
+  line-height: 0.95;
+}
+
+.method-cycle-heading-copy p {
+  max-width: 56ch;
+  margin-top: 30px;
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+/* --------------------------------------------------------------------------
+   The five stations. The left rail is the fixed control column; the right side
+   carries the applied consequence. Each station is one continuous field.
+   -------------------------------------------------------------------------- */
+
+.method-stations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.method-station {
+  scroll-margin-top: 104px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.method-station--diagnose {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.method-station--position {
+  background: var(--silver-base);
+  color: var(--ink);
+}
+
+.method-station--shape {
+  background: var(--blue-brand);
+  color: var(--white);
+}
+
+.method-station--transform {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.method-station--rediagnose {
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.method-station-grid {
+  display: grid;
+  grid-template-columns: var(--method-rail) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.method-station-rail {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(54px, 7vw, 94px) 24px clamp(54px, 7vw, 94px) 0;
+  border-right: 1px solid currentColor;
+}
+
+.method-station--shape .method-station-rail,
+.method-station--transform .method-station-rail {
+  border-color: rgba(255, 255, 255, 0.52);
+}
+
+.method-station-code,
+.method-station-state {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.method-station-code {
+  color: var(--blue-brand);
+}
+
+.method-station--shape .method-station-code,
+.method-station--transform .method-station-code {
+  color: var(--yellow-accent);
+}
+
+.method-station-number {
+  margin-top: auto;
+  color: var(--blue-brand);
+  font-family: var(--font-body);
+  font-size: clamp(2.8rem, 5vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+}
+
+.method-station--shape .method-station-number,
+.method-station--transform .method-station-number {
+  color: var(--yellow-accent);
+}
+
+.method-station-rail > strong {
+  margin-top: 18px;
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.method-station-state {
+  margin-top: 12px;
+  color: currentColor;
+  opacity: 0.7;
+}
+
+.method-station-marker {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  margin-top: 28px;
+  border: 1px solid currentColor;
+  background: transparent;
+  transition: background-color var(--dur-fast) ease-out, box-shadow var(--dur-fast) var(--ease-deck), transform var(--dur-fast) var(--ease-deck);
+}
+
+.method-station.is-current .method-station-marker {
+  border-color: var(--ink);
+  background: var(--yellow-accent);
+  box-shadow: 3px 3px 0 var(--ink);
+  transform: translate3d(-2px, -2px, 0);
+}
+
+.method-station-body {
+  min-width: 0;
+  padding: clamp(66px, 9vw, 122px) 0 clamp(68px, 9vw, 122px) clamp(36px, 7vw, 96px);
+}
+
+.method-station-body h3 {
+  max-width: 15ch;
+  font-size: clamp(2.85rem, 5.8vw, 5.65rem);
+  line-height: 0.94;
+}
+
+.method-station-copy {
+  max-width: 67ch;
+  margin-top: 34px;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+/* Pull-quotes are failure conditions and field tests, not ornamental callouts. */
+
+.method-page .quote-field {
+  display: block;
+  max-width: 900px;
+  margin-top: 52px;
+  padding: 26px 28px 30px;
+  border: 1px solid currentColor;
+  font-family: var(--font-body);
+  line-height: 1;
+  text-transform: none;
+  box-shadow: var(--lift-2);
+}
+
+.method-quote--yellow {
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.method-quote--blue {
+  background: var(--blue-brand);
+  color: var(--white);
+  box-shadow: 6px 6px 0 rgba(255, 255, 255, 0.2);
+}
+
+.method-quote figcaption {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.method-quote blockquote {
+  max-width: 22ch;
+  margin-top: 28px;
+  font-size: clamp(2.05rem, 4.2vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+/* Position is a register of boundaries, not three feature cards. */
+
+.method-controls {
+  margin-top: 52px;
+  padding: 0;
+  border-block: 1px solid currentColor;
+  list-style: none;
+}
+
+.method-controls li {
+  display: grid;
+  grid-template-columns: 44px minmax(150px, 0.65fr) minmax(0, 1.35fr);
+  align-items: baseline;
+  gap: 20px;
+  min-width: 0;
+  padding: 23px 0;
+}
+
+.method-controls li + li {
+  border-top: 1px solid currentColor;
+}
+
+.method-control-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid currentColor;
+  color: var(--blue-brand);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.method-controls strong {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.method-controls p {
+  max-width: 45ch;
+  font-size: 0.97rem;
+  line-height: 1.5;
+}
+
+/* Shape's three readouts share one instrument strip, so the output reads as a
+   handoff between controls rather than a grid of benefits. */
+
+.method-output-register {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 52px;
+  border-block: 1px solid currentColor;
+}
+
+.method-output-register > div {
+  min-width: 0;
+  min-height: 174px;
+  padding: 22px 20px 26px 0;
+}
+
+.method-output-register > div + div {
+  padding-left: 20px;
+  border-left: 1px solid currentColor;
+}
+
+.method-output-register dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.method-output-register dd {
+  margin-top: 54px;
+  font-family: var(--font-body);
+  font-size: clamp(1.35rem, 2.2vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Re-diagnose gets a literal return register, closing the route without
+   pretending the work terminates at Transform. */
+
+.method-return-register {
+  max-width: 760px;
+  margin-top: 54px;
+  padding: 22px 0 20px;
+  border-block: 1px solid currentColor;
+}
+
+.method-return-register-head,
+.method-return-register-foot {
+  font-size: 11px;
+}
+
+.method-return-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 26px;
+}
+
+.method-return-track-point {
+  display: block;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink);
+  background: var(--yellow-accent);
+}
+
+.method-return-track-point:last-child {
+  background: var(--ink);
+}
+
+.method-return-track-rule {
+  position: relative;
+  display: block;
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--ink);
+}
+
+.method-return-track-rule::after {
+  position: absolute;
+  top: -3px;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid var(--ink);
+  border-right: 1px solid var(--ink);
+  content: '';
+  transform: rotate(45deg);
+}
+
+.method-return-register-foot {
+  margin-top: 12px;
+}
+
+.method-station-body .action {
+  margin-top: 42px;
+}
+
+/* --------------------------------------------------------------------------
+   Tablet and mobile: the rail becomes a header, never a shrunken desktop.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1120px) {
+  .method-hero-main {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+  }
+
+  .method-loop {
+    width: min(100%, 720px);
+  }
+}
+
+@media (max-width: 760px) {
+  .method-page {
+    --method-rail: 100%;
+  }
+
+  .method-hero {
+    min-height: 0;
+  }
+
+  .method-hero-grid,
+  .method-cycle-heading-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .method-hero-index {
+    min-height: 52px;
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .method-index-note {
+    display: none;
+  }
+
+  .method-hero-main {
+    gap: 48px;
+    padding: 56px 0 64px;
+  }
+
+  .method-hero h1 {
+    max-width: 12ch;
+    font-size: clamp(2.8rem, 12.5vw, 5.2rem);
+  }
+
+  .method-hero-copy > p {
+    margin-top: 28px;
+    font-size: 1.05rem;
+  }
+
+  .method-loop {
+    padding: 22px 16px 18px;
+  }
+
+  .method-loop::before {
+    top: 69px;
+    bottom: 62px;
+    left: 32px;
+  }
+
+  .method-loop-link {
+    margin-inline: -8px;
+    padding-inline: 8px;
+  }
+
+  .method-loop-return {
+    margin-left: 32px;
+  }
+
+  .method-cycle-heading-index {
+    min-height: 52px;
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .method-cycle-heading-copy {
+    padding: 56px 0 64px;
+  }
+
+  .method-cycle-heading h2 {
+    max-width: 12ch;
+    font-size: clamp(2.55rem, 10.5vw, 4.3rem);
+  }
+
+  .method-cycle-heading-copy p {
+    margin-top: 26px;
+    font-size: 1rem;
+  }
+
+  .method-station-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .method-station-rail {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    min-height: 0;
+    padding: 18px 0;
+    border-right: 0;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .method-station--shape .method-station-rail,
+  .method-station--transform .method-station-rail {
+    border-color: rgba(255, 255, 255, 0.52);
+  }
+
+  .method-station-code {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .method-station-number {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+    margin-top: 14px;
+    font-size: 1.75rem;
+    letter-spacing: -0.04em;
+  }
+
+  .method-station-rail > strong {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    margin-top: 14px;
+    font-size: 1.05rem;
+  }
+
+  .method-station-state {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: end;
+    margin-top: 14px;
+    text-align: right;
+  }
+
+  .method-station-marker {
+    position: absolute;
+    right: 0;
+    bottom: -6px;
+    width: 11px;
+    height: 11px;
+    margin: 0;
+  }
+
+  .method-station-body {
+    padding: 60px 0 70px;
+  }
+
+  .method-station-body h3 {
+    max-width: 13ch;
+    font-size: clamp(2.35rem, 9.5vw, 4rem);
+  }
+
+  .method-station-copy {
+    margin-top: 28px;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .method-page .quote-field {
+    margin-top: 42px;
+    padding: 22px 20px 24px;
+  }
+
+  .method-quote blockquote {
+    margin-top: 22px;
+    font-size: clamp(1.9rem, 8.5vw, 3.2rem);
+  }
+
+  .method-controls {
+    margin-top: 42px;
+  }
+
+  .method-controls li {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 20px 0;
+  }
+
+  .method-control-letter {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 26px;
+    height: 26px;
+  }
+
+  .method-controls strong {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .method-controls p {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.95rem;
+  }
+
+  .method-output-register {
+    grid-template-columns: 1fr;
+    margin-top: 42px;
+  }
+
+  .method-output-register > div,
+  .method-output-register > div + div {
+    min-height: 0;
+    padding: 20px 0 22px;
+    border-left: 0;
+  }
+
+  .method-output-register > div + div {
+    border-top: 1px solid currentColor;
+  }
+
+  .method-output-register dd {
+    margin-top: 20px;
+    font-size: 1.7rem;
+  }
+
+  .method-return-register {
+    margin-top: 42px;
+  }
+
+  .method-station-body .action {
+    width: 100%;
+    min-width: 0;
+    margin-top: 38px;
+  }
+}
+
+@media (max-width: 420px) {
+  .method-loop-header,
+  .method-loop-return,
+  .method-return-register-head,
+  .method-return-register-foot {
+    font-size: 11px;
+    letter-spacing: 0.065em;
+  }
+
+  .method-loop-link {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 10px;
+    min-height: 64px;
+  }
+
+  .method-loop-number {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  .method-loop-name strong {
+    font-size: 0.92rem;
+  }
+
+  .method-loop-name small {
+    font-size: 11px;
+  }
+
+  .method-loop-state {
+    max-width: 62px;
+    font-size: 11px;
+    letter-spacing: 0.045em;
+  }
+
+  .method-station-state {
+    max-width: 96px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .method-loop-link,
+  .method-station-marker {
+    transition: none;
+  }
+}

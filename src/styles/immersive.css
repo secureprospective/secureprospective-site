@@ -1,0 +1,629 @@
+/* ==========================================================================
+   CONCEPT A — "The Deck, Dealt."
+
+   An enhancement layer over the production Property Card System. site.css is
+   loaded first and untouched; everything here adds depth, motion and reading
+   comfort on top of it. Three rules held throughout:
+
+   1. The only shadow in this system is hard-edged Card-Lift, zero blur. Depth
+      is built from offset, stock colour and hairlines, never from a soft glow.
+   2. Corners stay square. Nothing here rounds anything the system squares.
+   3. Every motion is gated behind prefers-reduced-motion: no-preference, and
+      the page is complete and legible with all of it switched off.
+   ========================================================================== */
+
+:root {
+  /* Depth ladder. Each rung is the same hard shadow at a greater offset, so
+     "higher off the table" reads as a bigger cast, not a blurrier one. */
+  --lift-1: 3px 3px 0 rgba(34, 34, 34, 0.28);
+  --lift-2: 6px 6px 0 rgba(34, 34, 34, 0.35);
+  --lift-3: 12px 12px 0 rgba(34, 34, 34, 0.4);
+  --lift-blue: 6px 6px 0 rgba(0, 51, 160, 0.32);
+  --lift-yellow: 6px 6px 0 rgba(255, 215, 0, 0.55);
+
+  /* One easing for the whole page: exponential ease-out, the same curve the
+     card-lift page transition already uses. */
+  --ease-deck: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-base: 360ms;
+  --dur-slow: 620ms;
+
+  /* Reading measure. The production rule is 70ch; long ledes get a tighter
+     one so the eye does not have to travel to find the next line. */
+  --measure-lede: 58ch;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  padding: 12px 20px;
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transform: translateY(-120%);
+  transition: transform var(--dur-fast) var(--ease-deck);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* --------------------------------------------------------------------------
+   Scroll spine — the ticker pulse, promoted from a hero effect to the page's
+   backbone. A hairline of signal yellow that fills as the deck is dealt.
+   -------------------------------------------------------------------------- */
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 120;
+  height: 3px;
+  background: rgba(34, 34, 34, 0.1);
+  pointer-events: none;
+}
+.scroll-progress span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   Deal-in. Sections arrive as cards laid onto the table: up from below, a
+   hair of scale, the hard shadow present on the way in and gone once landed.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-enabled] [data-deal] {
+    opacity: 0;
+    transform: translate3d(0, 2rem, 0) scale(0.992);
+    box-shadow: var(--lift-2);
+    transition:
+      opacity 520ms var(--ease-deck),
+      transform 520ms var(--ease-deck),
+      clip-path 520ms var(--ease-deck),
+      box-shadow 520ms var(--ease-deck);
+    transition-delay: var(--deal-delay, 0ms);
+  }
+
+  /* Each family enters with its own physical cue. State panels settle down,
+     the method is revealed from its lower edge, and register rows advance
+     from the side like a controlled record update. */
+  [data-motion-enabled] .dual-state [data-deal] { transform: translate3d(0, 2.25rem, 0) scale(0.992); }
+  [data-motion-enabled] .method-spine[data-deal] {
+    transform: translate3d(0, 2rem, 0);
+    clip-path: inset(0 0 6% 0);
+  }
+  [data-motion-enabled] .proof-register-title[data-deal] { transform: translate3d(-1.5rem, 0, 0); }
+  [data-motion-enabled] .proof-line[data-deal] { transform: translate3d(1.5rem, 0, 0) scale(0.996); }
+  [data-motion-enabled] .closing-field[data-deal] { transform: translate3d(0, 2.8rem, 0); }
+
+  [data-motion-enabled] [data-deal].is-dealt {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    clip-path: inset(0);
+    box-shadow: 0 0 0 transparent;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero. The operations ticker is the ambient field. Its plane drifts under a
+   fixed identity lockup, while a font-stable stamp and one verification pass
+   give the entrance a sequence.
+   -------------------------------------------------------------------------- */
+
+.identity-hero { position: relative; overflow: hidden; }
+.identity-hero-fx {
+  transform: translate3d(0, var(--hero-parallax, 0px), 0);
+  pointer-events: none;
+}
+.identity-lockup { position: relative; z-index: 2; }
+
+/* Per-letter stamp. Each glyph is pressed onto the card like a die-cut, in
+   sequence, left to right. Words stay atomic so the title never breaks inside
+   a word on a narrow screen. */
+.stamp-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.stamp-letter {
+  display: inline-block;
+  white-space: pre;
+}
+
+/* The static h1 is the no-script fallback. Only the prepared, font-stable
+   version receives the authored entrance. */
+.identity-lockup h1,
+.pronunciation { animation: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-ready] .stamp-letter {
+    opacity: 0;
+    transform: translate3d(0, 0.18em, 0) scale(1.025);
+    animation: stamp-in 480ms var(--ease-deck) forwards;
+    animation-delay: calc(var(--stamp-index, 0) * 18ms + 80ms);
+  }
+  [data-motion-ready] .pronunciation {
+    animation: sub-reveal 360ms var(--ease-deck) 320ms both;
+  }
+  [data-motion-ready] .hero-sp-plus {
+    animation: hero-card-in 640ms var(--ease-deck) 450ms both;
+  }
+}
+
+@keyframes stamp-in {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes sub-reveal {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes hero-card-in {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+
+.pronunciation { position: relative; z-index: 2; }
+
+/* The SP+ card in the hero is the page's one promoted card: it sits highest
+   on the table and answers the pointer with a real, tracked offset. */
+.hero-sp-plus {
+  position: relative;
+  z-index: 2;
+  overflow: clip;
+  box-shadow: var(--lift-2);
+  transition:
+    transform var(--dur-base) var(--ease-deck),
+    box-shadow var(--dur-base) var(--ease-deck);
+}
+.hero-sp-plus:hover,
+.hero-sp-plus:focus-visible {
+  transform: translate3d(-3px, -3px, 0);
+  box-shadow: var(--lift-3);
+}
+
+/* A single verification pass runs along the card's top edge after the
+   identity has registered. It is a signal, not a decorative infinite loop. */
+.hero-sp-plus::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22%;
+  height: 3px;
+  background: var(--yellow-accent);
+  opacity: 0;
+  transform: translate3d(-120%, 0, 0);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-ready] .hero-sp-plus::before {
+    animation: verification-pass 900ms linear 520ms both;
+  }
+}
+@keyframes verification-pass {
+  0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(520%, 0, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   Dual state. Two cards on a table, so they answer a pointer inspection with
+   a damped tilt, a lifted edge and a literal crosshair.
+   -------------------------------------------------------------------------- */
+
+.dual-state { perspective: 1400px; }
+
+.state-field {
+  position: relative;
+  --tilt-x: 0;
+  --tilt-y: 0;
+  --tilt-lift: 0px;
+  transition: box-shadow var(--dur-fast) var(--ease-deck);
+}
+
+/* The inspection cursor is deliberately literal: two hairlines pin the
+   current read point to the card rather than adding a generic glow. */
+.state-field::before,
+.state-field::after {
+  position: absolute;
+  z-index: 2;
+  background: currentColor;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) linear;
+}
+.state-field::before {
+  top: var(--inspect-y, 50%);
+  right: 0;
+  left: 0;
+  height: 1px;
+}
+.state-field::after {
+  top: 0;
+  bottom: 0;
+  left: var(--inspect-x, 50%);
+  width: 1px;
+}
+.state-field[data-inspecting='true']::before,
+.state-field[data-inspecting='true']::after { opacity: 0.42; }
+.inspection-marker {
+  position: absolute;
+  z-index: 3;
+  top: var(--inspect-y, 50%);
+  left: var(--inspect-x, 50%);
+  width: 12px;
+  height: 12px;
+  border: 1px solid currentColor;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0);
+  pointer-events: none;
+  transition: opacity var(--dur-fast) linear;
+}
+.state-field[data-inspecting='true'] .inspection-marker { opacity: 0.9; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .state-field[data-tilt].is-dealt {
+    transform:
+      perspective(1400px)
+      rotateX(calc(var(--tilt-x, 0) * 1deg))
+      rotateY(calc(var(--tilt-y, 0) * 1deg))
+      translate3d(0, var(--tilt-lift, 0px), 0);
+    transform-style: preserve-3d;
+  }
+  .state-field[data-tilt][data-inspecting='true'] { z-index: 3; }
+  .state-field--secure[data-tilt][data-inspecting='true'] { box-shadow: var(--lift-yellow); }
+  .state-field--prospective[data-tilt][data-inspecting='true'] { box-shadow: var(--lift-2); }
+}
+
+.state-lede { max-width: var(--measure-lede); }
+
+/* Ledger figures count up, and sit on a hairline that draws itself in. */
+.evidence-ledger > div { position: relative; }
+.evidence-ledger strong { display: inline-block; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .evidence-ledger > div::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.4;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform var(--dur-slow) var(--ease-deck);
+    transition-delay: calc(var(--ledger-index, 0) * 120ms);
+  }
+  .is-dealt .evidence-ledger > div::after { transform: scaleX(1); }
+}
+
+/* --------------------------------------------------------------------------
+   Method spine. The five movements gain an actual spine: a vertical rail that
+   fills as you scroll it, with each step lighting as the fill passes it.
+   -------------------------------------------------------------------------- */
+
+.method-spine { position: relative; }
+.spine-copy p { max-width: var(--measure-lede); }
+
+.spine-steps { position: relative; counter-reset: movement; }
+
+.spine-steps::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: rgba(34, 34, 34, 0.14);
+}
+.spine-steps::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 2px;
+  height: 100%;
+  background: var(--yellow-accent);
+  transform: scaleY(var(--spine-fill, 0));
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+
+.spine-steps li {
+  position: relative;
+  transition: transform var(--dur-base) var(--ease-deck), background-color var(--dur-base) var(--ease-deck);
+}
+.spine-steps li.is-lit { background: var(--white); box-shadow: var(--lift-1); }
+.spine-steps li.is-lit span { color: var(--ink); }
+
+/* The movement number gets a yellow chip once its step is lit. */
+.spine-steps li span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  border: 1px solid currentColor;
+  transition: background-color var(--dur-fast) var(--ease-deck), color var(--dur-fast) var(--ease-deck);
+}
+.spine-steps li.is-lit span { background: var(--yellow-accent); border-color: var(--ink); }
+
+/* --------------------------------------------------------------------------
+   Proof register. Rows deal in one after another and lift on approach.
+   -------------------------------------------------------------------------- */
+
+.proof-line {
+  position: relative;
+  transition:
+    transform var(--dur-base) var(--ease-deck),
+    box-shadow var(--dur-base) var(--ease-deck),
+    background-color var(--dur-base) var(--ease-deck);
+}
+.proof-line:not(.proof-line--future):hover,
+.proof-line:not(.proof-line--future):focus-visible {
+  transform: translate3d(-4px, -4px, 0);
+  box-shadow: var(--lift-2);
+  background: var(--silver-base);
+}
+
+/* A live row receives one verification sweep when it is dealt. The active
+   state is acknowledged without leaving an unbounded animation running below
+   the fold. */
+.proof-status--active {
+  position: relative;
+  overflow: clip;
+}
+.proof-status--active::after {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 2px;
+  background: var(--ink);
+  content: '';
+  opacity: 0;
+  transform: translate3d(-150%, 0, 0);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .proof-line.is-dealt .proof-status--active::after {
+    animation: status-scan 680ms var(--ease-deck) 180ms both;
+  }
+}
+@keyframes status-scan {
+  0% { opacity: 0; transform: translate3d(-150%, 0, 0); }
+  16% { opacity: 1; }
+  84% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(5200%, 0, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   Closing field. The ink card is wiped in by a yellow edge that passes across
+   it, then leaves — a card being slid into place rather than faded up.
+   -------------------------------------------------------------------------- */
+
+.closing-field { position: relative; overflow: hidden; }
+.closing-field h2 { max-width: 22ch; }
+
+.closing-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .closing-field.is-dealt::before { animation: wipe-through 720ms var(--ease-deck) forwards; }
+}
+@keyframes wipe-through {
+  0%   { transform: scaleX(0); transform-origin: 0 50%; }
+  45%  { transform: scaleX(1); transform-origin: 0 50%; }
+  46%  { transform: scaleX(1); transform-origin: 100% 50%; }
+  100% { transform: scaleX(0); transform-origin: 100% 50%; }
+}
+
+/* --------------------------------------------------------------------------
+   Navigation. Stays the fixed frame the system asks for, but gains stock and
+   a hard bottom edge once the page has moved, so it separates from content.
+   -------------------------------------------------------------------------- */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: box-shadow var(--dur-base) var(--ease-deck), background-color var(--dur-base) var(--ease-deck);
+}
+.site-nav.is-detached {
+  background: var(--white);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Reading comfort. The production type scale is unchanged; these are the
+   details that make long-form blocks easier on the eye at large sizes.
+   -------------------------------------------------------------------------- */
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ==========================================================================
+   Impeccable remediation pass — 2026-09-02.
+
+   Every rule below closes a finding the Impeccable detector raised against the
+   deployed build. They are grouped by finding so the reason survives the edit.
+   ========================================================================== */
+
+/* [all-caps-body] — the ledger's descriptive lines were set in uppercase at
+   11px. "Total annuity production assisted over six years" is a sentence, not
+   a label, and all-caps strips the word shapes the eye reads by. The rest of
+   the stamped-label identity is untouched: only the long descriptive runs are
+   returned to sentence case, and they gain a pixel and lose the tracking that
+   was fighting them. */
+.evidence-ledger span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  opacity: 0.88;
+}
+
+/* Same finding, same reasoning: the proof register's row titles are full
+   phrases rather than labels. Kept bold and tight so they still read as
+   stamped card titles, without the uppercase. */
+.proof-line strong { text-transform: none; letter-spacing: -0.005em; font-size: 1.05rem; }
+
+/* [wide-tracking] — 0.06em on body-sized text slows reading. Short uppercase
+   labels keep their tracking; anything at body size is brought to 0.05em. */
+.action,
+.pronunciation { letter-spacing: 0.05em; }
+
+/* [body-text-viewport-edge] — below 760px the state panels' body copy reached
+   the viewport edge. The gutter is now set explicitly rather than inherited,
+   and stated as a floor so no narrower breakpoint can erode it. */
+@media (max-width: 760px) {
+  .shell { width: min(100% - 48px, var(--container-max, 1200px)); }
+
+  .state-field-body { padding: 56px 24px; }
+
+  .identity-lockup,
+  .spine-copy,
+  .proof-register-title,
+  .proof-lines,
+  .closing-field-grid { padding-inline: max(0px, env(safe-area-inset-left, 0px)); }
+
+  /* The paragraphs the detector named, guaranteed an inset of their own so
+     they cannot bleed even if a parent's padding is overridden later. */
+  .state-lede,
+  .build-proof,
+  .hero-sp-plus { max-width: 100%; }
+}
+
+@media (max-width: 360px) {
+  .shell { width: min(100% - 40px, var(--container-max, 1200px)); }
+  .state-field-body { padding: 48px 20px; }
+}
+
+/* The register heading grew a clause when its kicker was folded in, so it
+   needs a slightly tighter measure to keep its two-line shape. */
+.proof-register-title h2 { max-width: 16ch; }
+.closing-field h2 { max-width: 26ch; }
+
+/* --- Second remediation round -------------------------------------------- */
+
+/* [all-caps-body] — the footer's closing line is a sentence set in uppercase
+   at 15px. It is the last thing read on the page and the hardest to parse. */
+.footer-close p { text-transform: none; letter-spacing: 0.005em; }
+
+/* [body-text-viewport-edge] — the reported 7px inset was not a padding bug: it
+   was the deal-in transform being measured mid-flight. All mobile deal motion
+   is now vertical, so no animation frame moves copy toward the viewport edge. */
+@media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+  [data-motion-enabled] [data-deal] { transform: translate3d(0, 2.4rem, 0) scale(0.992); }
+  [data-motion-enabled] .proof-register-title[data-deal],
+  [data-motion-enabled] .proof-line[data-deal] { transform: translate3d(0, 2.4rem, 0) scale(0.992); }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile audit remediation. The stamped labels stay part of the design, but
+   the phone gets a readable floor and a real thumb-sized hit area. The scan
+   bars are decorative overflow, so clip them without creating a hidden scroll
+   surface for the content around them.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  :root { --mobile-label-size: 12px; }
+
+  .site-nav .nav-toggle-label,
+  .site-nav .site-link,
+  .site-footer .footer-index a,
+  .site-footer .footer-close > span,
+  .hero-sp-plus > span,
+  .hero-sp-plus > b,
+  .state-field-head,
+  .spine-steps > li > span,
+  .proof-status,
+  .operation-rail,
+  .operation-evidence-head,
+  .operation-facts th,
+  .operation-evidence-note > span,
+  .operation-panel-marker,
+  .operation-test > span,
+  .operation-work-label,
+  .operation-bridge,
+  .operation-state-table dt,
+  .method-hero-index,
+  .method-loop-header,
+  .method-loop-number,
+  .method-loop-name small,
+  .method-loop-state,
+  .method-loop-return,
+  .method-cycle-heading-index,
+  .method-station-code,
+  .method-station-state,
+  .method-quote figcaption,
+  .method-control-letter,
+  .method-output-register dt,
+  .method-return-register-head,
+  .method-return-register-foot,
+  .operator-rail-top,
+  .operator-rail-bottom,
+  .operator-hero-link,
+  .operator-hero-condition > span,
+  .operator-route-index,
+  .operator-thesis-index,
+  .operator-record-index,
+  .operator-station-index,
+  .operator-station-heading > span,
+  .operator-facts dt,
+  .operator-station-transfer > span,
+  .operator-current-mark > span,
+  .operator-close-copy > span,
+  .contact-hero-index,
+  .contact-channel-head,
+  .contact-hero-footer,
+  .contact-route-readout,
+  .contact-line-status,
+  .contact-line-action strong {
+    font-size: var(--mobile-label-size) !important;
+  }
+
+  .text-link,
+  .site-footer .footer-index a,
+  .operation-index a,
+  .operation-hero-link,
+  .operation-text-link,
+  .operator-hero-link {
+    min-height: 44px;
+  }
+
+  .site-footer .footer-index a { min-width: 44px; }
+
+  .text-link,
+  .site-footer .footer-index a {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .method-loop-list li + li { padding-top: 8px; }
+
+  .proof-line {
+    grid-template-columns: max-content minmax(0, 1fr) 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-toggle { gap: 8px; padding-left: 8px; }
+
+  .proof-line {
+    grid-template-columns: max-content minmax(0, 1fr) 20px;
+  }
+}

@@ -1,0 +1,204 @@
+---
+/*
+ * The identity field is a restrained operations ticker: rows of dashes travel
+ * in alternating directions while a yellow signal passes through the register.
+ * It is a continuous field, not the page's focal entrance, and it pauses when
+ * the hero leaves the viewport or the document is hidden.
+ */
+---
+
+<div class="identity-hero-fx" aria-hidden="true">
+  <canvas id="hero-fx-canvas" data-hero-fx></canvas>
+</div>
+
+<script>
+  // One lifecycle for the ticker. The initial call and Astro's page-load event
+  // can both fire, so boot is guarded and before-swap resets that guard.
+  (function () {
+    var raf = null;
+    var running = false;
+    var t = 0;
+    var lastTime = 0;
+    var io = null;
+    var canvas = null;
+    var ctx = null;
+    var onResize = null;
+    var onVisibility = null;
+    var onMotionChange = null;
+    var booted = false;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var blue = '0, 51, 160';
+    var yellow = '255, 215, 0';
+
+    function dpr() {
+      return Math.min(window.devicePixelRatio || 1, 2);
+    }
+
+    function isVisible() {
+      if (!canvas || !canvas.isConnected) return false;
+      var rect = canvas.getBoundingClientRect();
+      return rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 0;
+    }
+
+    function resize() {
+      if (!canvas || !canvas.parentElement || !ctx) return;
+      var rect = canvas.parentElement.getBoundingClientRect();
+      var scale = dpr();
+      canvas.width = Math.max(1, Math.round(rect.width * scale));
+      canvas.height = Math.max(1, Math.round(rect.height * scale));
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    }
+
+    function draw() {
+      if (!canvas || !ctx) return;
+      var scale = dpr();
+      var width = canvas.width / scale;
+      var height = canvas.height / scale;
+      if (!width || !height) return;
+
+      ctx.clearRect(0, 0, width, height);
+      var rowHeight = 28;
+      var rows = Math.ceil(height / rowHeight) + 1;
+      var dashWidth = 10;
+      var gap = 8;
+      var unit = dashWidth + gap;
+
+      for (var row = 0; row <= rows; row += 1) {
+        var y = row * rowHeight + rowHeight / 2;
+        var direction = row % 2 === 0 ? 1 : -1;
+        var offset = ((t * 40 * direction) % unit + unit) % unit;
+        var rowPhase = (row * 0.37) % (Math.PI * 2);
+
+        for (var x = -unit; x < width + unit; x += unit) {
+          var dx = x - offset;
+          var wave = Math.sin((dx / width) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
+          var signal = wave > 0.88;
+          var brightness = 0.1 + wave * 0.3;
+          ctx.fillStyle = signal
+            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
+            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.fillRect(dx, y - 1, dashWidth, 2);
+        }
+      }
+    }
+
+    function loop(now) {
+      if (!running) return;
+      var elapsed = lastTime ? Math.min(50, now - lastTime) : 16;
+      lastTime = now;
+      t += elapsed * 0.00075;
+      draw();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function start() {
+      if (running || !canvas || document.hidden || !isVisible()) return;
+      resize();
+      if (reduceMotion.matches) {
+        draw();
+        return;
+      }
+      running = true;
+      lastTime = 0;
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      lastTime = 0;
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    }
+
+    function handleVisibility() {
+      if (document.hidden) stop();
+      else start();
+    }
+
+    function handleMotionChange() {
+      stop();
+      start();
+    }
+
+    function teardown() {
+      stop();
+      if (io) {
+        io.disconnect();
+        io = null;
+      }
+      if (onResize) {
+        window.removeEventListener('resize', onResize);
+        onResize = null;
+      }
+      if (onVisibility) {
+        document.removeEventListener('visibilitychange', onVisibility);
+        onVisibility = null;
+      }
+      if (onMotionChange) {
+        if (reduceMotion.removeEventListener) reduceMotion.removeEventListener('change', onMotionChange);
+        else if (reduceMotion.removeListener) reduceMotion.removeListener(onMotionChange);
+        onMotionChange = null;
+      }
+      if (canvas) canvas.removeAttribute('data-fx-booted');
+      canvas = null;
+      ctx = null;
+      booted = false;
+    }
+
+    function boot() {
+      if (booted) return;
+      var node = document.getElementById('hero-fx-canvas');
+      if (!node) return;
+      var context = node.getContext('2d');
+      if (!context) return;
+
+      booted = true;
+      canvas = node;
+      ctx = context;
+      node.dataset.fxBooted = 'true';
+
+      io = 'IntersectionObserver' in window
+        ? new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) start();
+              else stop();
+            });
+          }, { threshold: 0.05 })
+        : null;
+
+      if (io) io.observe(canvas);
+
+      onResize = function () {
+        if (!canvas || !canvas.offsetWidth) return;
+        resize();
+        if (reduceMotion.matches) draw();
+      };
+      window.addEventListener('resize', onResize, { passive: true });
+
+      onVisibility = handleVisibility;
+      document.addEventListener('visibilitychange', onVisibility);
+
+      onMotionChange = handleMotionChange;
+      if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onMotionChange);
+      else if (reduceMotion.addListener) reduceMotion.addListener(onMotionChange);
+
+      // Font loading can change the hero's intrinsic height on narrow screens.
+      // Reconcile the field when the browser finishes choosing its face.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () {
+          if (canvas === node) onResize();
+        }).catch(function (error) {
+          console.warn('[Concept A ticker] font readiness failed; keeping current field size.', error);
+        });
+      }
+
+      if (isVisible()) start();
+    }
+
+    document.addEventListener('astro:page-load', boot);
+    document.addEventListener('astro:before-swap', teardown);
+    boot();
+  })();
+</script>

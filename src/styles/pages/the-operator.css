@@ -1,0 +1,1236 @@
+/* ==========================================================================
+   THE OPERATOR
+
+   Direction: an annotated field log. The other Concept A pages describe an
+   operation, a product, or a method. This page lets the reader follow the
+   transfer of judgment through three careers and arrive at the person still
+   carrying the operation. Its visual object is a working cross-section, not a
+   founder portrait.
+
+   The shared Property Card system supplies the fixed deck. This file owns the
+   operator page's continuous career map, its three color fields, and the
+   inspection line that connects them.
+   ========================================================================== */
+
+.operator-page {
+  --operator-rule-light: rgba(255, 255, 255, 0.48);
+  --operator-rule-dark: rgba(34, 34, 34, 0.32);
+  --operator-lift: 7px 7px 0 rgba(0, 51, 160, 0.3);
+  --operator-lift-ink: 7px 7px 0 rgba(34, 34, 34, 0.35);
+  overflow-x: clip;
+}
+
+.operator-page h1,
+.operator-page h2,
+.operator-page h3,
+.operator-page p {
+  max-width: none;
+}
+
+.operator-page h1,
+.operator-page h2,
+.operator-page h3 {
+  text-wrap: balance;
+}
+
+.operator-page p {
+  text-wrap: pretty;
+}
+
+/* --------------------------------------------------------------------------
+   Hero: a file rail and an operating condition share the first viewport. The
+   route at the bottom turns the three careers into a readable first action.
+   -------------------------------------------------------------------------- */
+
+.operator-hero {
+  position: relative;
+  overflow: clip;
+  border-bottom: 2px solid var(--ink);
+  background: var(--silver-base);
+}
+
+.operator-hero::after {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 19%;
+  height: 3px;
+  background: var(--yellow-accent);
+  content: '';
+  pointer-events: none;
+  transform: translate3d(-120%, 0, 0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .operator-hero::after {
+    animation: operator-verification-pass 980ms var(--operator-ease, cubic-bezier(0.16, 1, 0.3, 1)) 180ms both;
+  }
+}
+
+@keyframes operator-verification-pass {
+  0% { transform: translate3d(-120%, 0, 0); }
+  14% { transform: translate3d(0, 0, 0); }
+  86% { transform: translate3d(500%, 0, 0); }
+  100% { transform: translate3d(620%, 0, 0); }
+}
+
+.operator-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 218px) minmax(0, 1fr);
+  min-height: clamp(650px, calc(100svh - 76px), 790px);
+}
+
+.operator-hero-rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 30px 23px 28px;
+  border-right: 1px solid var(--ink);
+  background: var(--blue-brand);
+  color: var(--white);
+}
+
+.operator-rail-top,
+.operator-rail-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.operator-rail-top span:last-child {
+  color: var(--yellow-accent);
+}
+
+.operator-rail-mark {
+  position: relative;
+  display: grid;
+  width: 118px;
+  height: 118px;
+  place-items: center;
+  border: 1px solid var(--yellow-accent);
+  color: var(--yellow-accent);
+}
+
+.operator-rail-mark::before,
+.operator-rail-mark::after {
+  position: absolute;
+  background: var(--yellow-accent);
+  content: '';
+}
+
+.operator-rail-mark::before {
+  top: 50%;
+  right: 12px;
+  left: 12px;
+  height: 1px;
+}
+
+.operator-rail-mark::after {
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 1px;
+}
+
+.operator-rail-mark span {
+  position: relative;
+  z-index: 1;
+  padding: 4px 8px;
+  background: var(--blue-brand);
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 1;
+}
+
+.operator-rail-mark i {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--blue-brand);
+  background: var(--yellow-accent);
+}
+
+.operator-hero-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  grid-template-rows: 1fr auto;
+  gap: 44px clamp(32px, 5.5vw, 88px);
+  min-width: 0;
+  padding: clamp(60px, 8vw, 106px) clamp(30px, 7vw, 96px) 28px;
+}
+
+.operator-hero-copy {
+  align-self: center;
+  min-width: 0;
+}
+
+.operator-hero-copy h1 {
+  max-width: 9ch;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(4.1rem, 7.5vw, 7.25rem);
+  letter-spacing: -0.015em;
+  line-height: 0.82;
+  text-transform: uppercase;
+}
+
+.operator-hero-copy h1 span {
+  color: var(--blue-brand);
+}
+
+.operator-hero-copy > p {
+  max-width: 49ch;
+  margin-top: 37px;
+  font-size: clamp(1.05rem, 1.45vw, 1.25rem);
+  line-height: 1.58;
+}
+
+.operator-hero-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 32px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--yellow-accent);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out;
+}
+
+.operator-hero-link:hover {
+  border-color: var(--gold-identity);
+  color: var(--blue-brand);
+  transform: translateX(3px);
+}
+
+.operator-hero-condition {
+  align-self: center;
+  min-width: 0;
+  padding: 27px 26px 30px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--white);
+  box-shadow: var(--operator-lift);
+}
+
+.operator-hero-condition > span,
+.operator-route small,
+.operator-record-index,
+.operator-thesis-index,
+.operator-station-heading > span,
+.operator-station-transfer > span,
+.operator-current-mark span,
+.operator-close-copy > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.operator-hero-condition > span {
+  color: var(--yellow-accent);
+}
+
+.operator-hero-condition strong {
+  display: block;
+  margin-top: 48px;
+  font-family: var(--font-body);
+  font-size: clamp(1.7rem, 2.6vw, 2.65rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.operator-hero-condition p {
+  margin-top: 21px;
+  color: var(--white);
+  font-size: 0.96rem;
+  line-height: 1.52;
+}
+
+.operator-route {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  border-top: 1px solid var(--ink);
+  list-style: none;
+}
+
+.operator-route::before {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 76px;
+  height: 3px;
+  background: var(--yellow-accent);
+  content: '';
+}
+
+.operator-route li {
+  display: grid;
+  grid-template-columns: 37px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 7px 13px;
+  min-width: 0;
+  padding: 19px 20px 11px 0;
+}
+
+.operator-route li + li {
+  padding-left: 20px;
+  border-left: 1px solid var(--operator-rule-dark);
+}
+
+.operator-route-index {
+  display: inline-grid;
+  grid-row: 1 / -1;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.operator-route li.is-current .operator-route-index {
+  border-color: var(--ink);
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.operator-route li.is-current strong {
+  color: var(--blue-brand);
+}
+
+.operator-route strong {
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.operator-route small {
+  min-width: 0;
+  color: var(--blue-brand);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   Thesis: one quiet white plane gives the reader a human pause before the
+   dense field record begins.
+   -------------------------------------------------------------------------- */
+
+.operator-thesis {
+  border-bottom: 2px solid var(--ink);
+  background: var(--white);
+}
+
+.operator-thesis-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  min-width: 0;
+  padding-block: clamp(82px, 11vw, 142px);
+}
+
+.operator-thesis-index {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 5px 24px 0 0;
+  border-right: 1px solid var(--ink);
+  color: var(--blue-brand);
+}
+
+.operator-thesis-copy {
+  min-width: 0;
+  padding-left: clamp(36px, 7vw, 96px);
+}
+
+.operator-thesis-copy h2 {
+  max-width: 15ch;
+  font-size: clamp(3rem, 6vw, 5.75rem);
+  line-height: 0.92;
+}
+
+.operator-thesis-statement {
+  max-width: 27ch;
+  margin-top: 52px;
+  color: var(--blue-brand);
+  font-size: clamp(1.65rem, 3vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.3;
+}
+
+.operator-thesis-close {
+  max-width: 52ch;
+  margin-top: 31px;
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Career record: three materially different fields share one continuous map.
+   The transfer panel is the output of each career, not a generic feature card.
+   -------------------------------------------------------------------------- */
+
+.operator-career-record {
+  border-bottom: 2px solid var(--ink);
+  background: var(--silver-base);
+}
+
+.operator-record-head {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  min-width: 0;
+  padding-block: clamp(76px, 10vw, 126px) 0;
+}
+
+.operator-record-index {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 5px 24px 0 0;
+  border-right: 1px solid var(--ink);
+  color: var(--blue-brand);
+}
+
+.operator-record-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(220px, 0.95fr);
+  align-items: end;
+  gap: 42px clamp(34px, 7vw, 96px);
+  min-width: 0;
+  padding: 0 0 clamp(48px, 6vw, 74px) clamp(36px, 7vw, 96px);
+}
+
+.operator-record-intro h2 {
+  max-width: 15ch;
+  font-size: clamp(2.8rem, 5vw, 5rem);
+  line-height: 0.92;
+}
+
+.operator-record-intro p {
+  max-width: 38ch;
+  font-size: 1.05rem;
+  line-height: 1.62;
+}
+
+.operator-map {
+  position: relative;
+  min-width: 0;
+  border-top: 2px solid var(--ink);
+}
+
+.operator-map::after {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  left: var(--operator-scan-x, -2px);
+  width: 1px;
+  background: var(--yellow-accent);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms linear;
+}
+
+.operator-map[data-inspecting='true']::after {
+  opacity: 0.88;
+}
+
+.operator-map-spine {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: 31px;
+  width: 1px;
+  background: var(--operator-rule-dark);
+  pointer-events: none;
+}
+
+.operator-map-spine span {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  background: var(--yellow-accent);
+}
+
+.operator-station {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(230px, 290px);
+  gap: clamp(20px, 3vw, 44px);
+  min-width: 0;
+  padding: clamp(54px, 7vw, 88px) 32px clamp(58px, 7vw, 92px) 0;
+  border-bottom: 1px solid currentColor;
+}
+
+.operator-station:last-child {
+  border-bottom: 0;
+}
+
+.operator-station-index {
+  position: relative;
+  z-index: 4;
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  margin-top: 3px;
+  border: 1px solid currentColor;
+  background: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.operator-station.is-current .operator-station-index {
+  border-color: var(--ink);
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.operator-station-core {
+  min-width: 0;
+}
+
+.operator-station-heading {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 13px;
+  min-width: 0;
+  padding-bottom: 19px;
+  border-bottom: 1px solid currentColor;
+}
+
+.operator-station-heading > span {
+  color: var(--blue-brand);
+}
+
+/* The technology station sits on blue, so its heading label takes the yellow.
+   This rule is separate from the h3 sizing below on purpose: the two were once
+   grouped, and editing the group left this selector attached to the wrong
+   declarations, which cost the label both its colour and its size. */
+.operator-station--technology .operator-station-heading > span {
+  color: var(--yellow-accent);
+}
+
+.operator-station-heading h3 {
+  max-width: 14ch;
+  font-size: clamp(2.5rem, 4.6vw, 4.75rem);
+  line-height: 0.92;
+}
+
+.operator-station-core > p {
+  max-width: 61ch;
+  margin-top: 28px;
+  font-size: 1.04rem;
+  line-height: 1.65;
+}
+
+.operator-facts {
+  margin-top: 38px;
+  border-top: 1px solid currentColor;
+}
+
+.operator-facts > div {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.3fr) minmax(0, 0.7fr);
+  gap: 20px;
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid currentColor;
+}
+
+.operator-facts dt {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.065em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.operator-facts dd {
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.46;
+  overflow-wrap: anywhere;
+}
+
+.operator-station-transfer {
+  --transfer-eyebrow: var(--yellow-accent);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 240px;
+  padding: 28px;
+  border: 1px solid currentColor;
+  background: var(--ink);
+  color: var(--white);
+  box-shadow: var(--operator-lift-ink);
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out, background-color 120ms ease-out;
+}
+
+.operator-station.is-current .operator-station-transfer {
+  transform: translate3d(-4px, -4px, 0);
+  box-shadow: 10px 10px 0 rgba(34, 34, 34, 0.42);
+}
+
+.operator-station-transfer > span {
+  /* Declared on the card, not here, so a variant that flips the surface changes
+     the eyebrow with it. This label was previously restated per variant and one
+     restatement fell out of step, leaving yellow text on the yellow card. */
+  color: var(--transfer-eyebrow);
+}
+
+.operator-station-transfer strong {
+  display: block;
+  margin-top: 46px;
+  font-family: var(--font-body);
+  font-size: clamp(1.7rem, 3vw, 3.15rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.94;
+  text-transform: uppercase;
+}
+
+.operator-station-transfer p {
+  margin-top: 22px;
+  color: var(--white);
+  font-size: 0.94rem;
+  line-height: 1.48;
+}
+
+.operator-station--technology {
+  background: var(--blue-brand);
+  color: var(--white);
+}
+
+.operator-station--technology .operator-station-transfer {
+  --transfer-eyebrow: var(--ink);
+  background: var(--yellow-accent);
+  color: var(--ink);
+  box-shadow: var(--operator-lift-ink);
+}
+
+.operator-station--technology .operator-station-transfer p {
+  color: var(--ink);
+}
+
+.operator-station--technology .operator-facts dt {
+  color: var(--yellow-accent);
+}
+
+.operator-station--construction {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.operator-station--construction .operator-station-transfer {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.operator-station--insurance {
+  background: var(--yellow-accent);
+  color: var(--ink);
+}
+
+.operator-station--insurance .operator-station-transfer {
+  background: var(--blue-brand);
+  color: var(--white);
+  box-shadow: var(--operator-lift-ink);
+}
+
+.operator-station--insurance .operator-station-transfer p {
+  color: var(--white);
+}
+
+.operator-evidence {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  min-width: 0;
+  margin-top: 42px;
+  border-top: 1px solid currentColor;
+}
+
+.operator-evidence > div {
+  min-width: 0;
+  padding: 17px 0 15px;
+  border-bottom: 1px solid currentColor;
+}
+
+.operator-evidence strong {
+  display: block;
+  font-family: var(--font-body);
+  font-size: clamp(1.8rem, 3vw, 2.85rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.operator-evidence span {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+/* --------------------------------------------------------------------------
+   Current state and close: the reader leaves the map with the person and a
+   direct action, not with another institutional claim.
+   -------------------------------------------------------------------------- */
+
+.operator-current {
+  border-bottom: 2px solid var(--ink);
+  background: var(--white);
+}
+
+.operator-current-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) minmax(240px, 300px);
+  gap: clamp(32px, 5vw, 74px);
+  min-width: 0;
+  padding-block: clamp(80px, 11vw, 140px);
+}
+
+.operator-current-mark {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 194px;
+  padding: 5px 24px 0 0;
+  border-right: 1px solid var(--ink);
+  color: var(--blue-brand);
+}
+
+.operator-current-mark span {
+  color: var(--blue-brand);
+}
+
+.operator-current-mark strong {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.operator-current-copy {
+  min-width: 0;
+}
+
+.operator-current-copy h2 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 5.6vw, 5.5rem);
+  line-height: 0.92;
+}
+
+.operator-current-copy p {
+  max-width: 54ch;
+  margin-top: 34px;
+  font-size: 1.07rem;
+  line-height: 1.65;
+}
+
+.operator-current-quote {
+  align-self: end;
+  min-width: 0;
+  margin: 0;
+  padding: 29px 25px 31px;
+  border: 1px solid var(--ink);
+  background: var(--blue-brand);
+  color: var(--white);
+  box-shadow: var(--operator-lift);
+  font-size: clamp(1.55rem, 2.4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.3;
+}
+
+.operator-close {
+  border-bottom: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.operator-close-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+  gap: 50px clamp(40px, 8vw, 126px);
+  min-width: 0;
+  padding-block: clamp(92px, 13vw, 164px);
+}
+
+.operator-close-copy {
+  min-width: 0;
+}
+
+.operator-close-copy > span {
+  color: var(--yellow-accent);
+}
+
+.operator-close-copy h2 {
+  max-width: 14ch;
+  margin-top: 37px;
+  font-size: clamp(3.25rem, 6.3vw, 6rem);
+  line-height: 0.86;
+}
+
+.operator-close-action {
+  align-self: end;
+  min-width: 0;
+}
+
+.operator-close-action p {
+  max-width: 24ch;
+  color: var(--white);
+  font-size: 1.08rem;
+  line-height: 1.52;
+}
+
+.operator-close-action .action {
+  width: 100%;
+  min-width: 0;
+  margin-top: 29px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive composition
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .operator-hero-main {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 0.72fr);
+    gap: 34px;
+    padding-inline: clamp(28px, 5vw, 58px);
+  }
+
+  .operator-station {
+    grid-template-columns: 54px minmax(0, 1fr) minmax(205px, 0.52fr);
+    gap: 24px;
+  }
+
+  .operator-station-transfer {
+    padding: 23px;
+  }
+
+  .operator-current-grid {
+    grid-template-columns: 150px minmax(0, 1fr) minmax(210px, 0.72fr);
+    gap: 30px;
+  }
+
+  .operator-current-mark {
+    padding-right: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .operator-hero-grid {
+    grid-template-columns: 148px minmax(0, 1fr);
+  }
+
+  .operator-hero-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 45px;
+    padding-block: 62px 26px;
+  }
+
+  .operator-hero-copy {
+    align-self: start;
+  }
+
+  .operator-hero-condition {
+    max-width: 420px;
+  }
+
+  .operator-record-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+
+  .operator-station {
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding-right: 20px;
+  }
+
+  .operator-station-transfer {
+    grid-column: 2;
+    min-height: 190px;
+  }
+
+  .operator-current-grid {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+
+  .operator-current-quote {
+    grid-column: 2;
+    max-width: 440px;
+  }
+
+  .operator-close-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.65fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .operator-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .operator-hero-rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    min-height: 96px;
+    padding: 17px 16px 15px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .operator-rail-top {
+    grid-column: 1;
+    grid-row: 1;
+    gap: 4px;
+  }
+
+  .operator-rail-mark {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    width: 58px;
+    height: 58px;
+  }
+
+  .operator-rail-mark::before {
+    right: 7px;
+    left: 7px;
+  }
+
+  .operator-rail-mark::after {
+    top: 7px;
+    bottom: 7px;
+  }
+
+  .operator-rail-mark span {
+    padding: 2px 4px;
+    font-size: 20px;
+  }
+
+  .operator-rail-mark i {
+    right: 7px;
+    bottom: 7px;
+    width: 5px;
+    height: 5px;
+  }
+
+  .operator-rail-bottom {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 13px;
+    font-size: 11px;
+  }
+
+  .operator-hero-main {
+    gap: 42px;
+    padding: 55px 0 22px;
+  }
+
+  .operator-hero-copy h1 {
+    max-width: 8ch;
+    font-size: clamp(3.55rem, 14vw, 5.4rem);
+  }
+
+  .operator-hero-copy > p {
+    margin-top: 29px;
+    font-size: 1.05rem;
+  }
+
+  .operator-hero-condition {
+    max-width: none;
+    padding: 23px 21px 25px;
+    box-shadow: 5px 5px 0 rgba(0, 51, 160, 0.3);
+  }
+
+  .operator-hero-condition strong {
+    margin-top: 30px;
+  }
+
+  .operator-route {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-route li,
+  .operator-route li + li {
+    grid-template-columns: 37px minmax(0, 1fr);
+    padding: 15px 0 14px;
+    border-left: 0;
+  }
+
+  .operator-route li + li {
+    border-top: 1px solid var(--operator-rule-dark);
+  }
+
+  .operator-route small {
+    font-size: 12px;
+  }
+
+  .operator-thesis-grid,
+  .operator-record-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-thesis-grid {
+    padding-block: 77px 88px;
+  }
+
+  .operator-thesis-index,
+  .operator-record-index {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px 16px;
+    padding: 0 0 15px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .operator-thesis-copy,
+  .operator-record-intro {
+    padding-left: 0;
+  }
+
+  .operator-thesis-copy {
+    padding-top: 47px;
+  }
+
+  .operator-thesis-copy h2,
+  .operator-record-intro h2 {
+    max-width: 13ch;
+    font-size: clamp(2.85rem, 11vw, 4.5rem);
+  }
+
+  .operator-thesis-statement {
+    margin-top: 37px;
+    font-size: clamp(1.55rem, 6.2vw, 2.35rem);
+  }
+
+  .operator-record-head {
+    padding-top: 72px;
+  }
+
+  .operator-record-intro {
+    padding-top: 45px;
+    padding-bottom: 52px;
+  }
+
+  .operator-record-intro p {
+    font-size: 1rem;
+  }
+
+  .operator-map-spine {
+    left: 22px;
+  }
+
+  .operator-station {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 13px;
+    padding: 47px 0 52px;
+  }
+
+  .operator-station-index {
+    width: 26px;
+    height: 26px;
+  }
+
+  .operator-station-heading {
+    gap: 11px;
+    padding-bottom: 16px;
+  }
+
+  .operator-station-heading h3 {
+    max-width: 12ch;
+    font-size: clamp(1.75rem, 7.2vw, 3.4rem);
+  }
+
+  .operator-station--insurance .operator-station-heading h3 {
+    max-width: none;
+    font-size: clamp(1.45rem, 6.5vw, 3.4rem);
+  }
+
+  .operator-station-core > p {
+    margin-top: 24px;
+    font-size: 1rem;
+    line-height: 1.62;
+  }
+
+  .operator-facts > div {
+    grid-template-columns: minmax(104px, 0.34fr) minmax(0, 0.66fr);
+    gap: 14px;
+  }
+
+  .operator-station-transfer {
+    grid-column: 2;
+    min-height: 175px;
+    padding: 22px 20px 24px;
+  }
+
+  .operator-station-transfer strong {
+    margin-top: 31px;
+    font-size: clamp(1.65rem, 8vw, 2.7rem);
+  }
+
+  .operator-evidence {
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-evidence > div {
+    display: grid;
+    grid-template-columns: minmax(86px, 0.32fr) minmax(0, 0.68fr);
+    align-items: baseline;
+    gap: 13px;
+  }
+
+  .operator-evidence span {
+    margin-top: 0;
+  }
+
+  .operator-current-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    padding-block: 78px 90px;
+  }
+
+  .operator-current-mark {
+    flex-direction: row;
+    align-items: center;
+    min-height: 0;
+    padding: 0 0 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .operator-current-mark strong {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+  }
+
+  .operator-current-copy h2 {
+    max-width: 11ch;
+    font-size: clamp(2.8rem, 11vw, 4.5rem);
+  }
+
+  .operator-current-copy p {
+    margin-top: 27px;
+    font-size: 1rem;
+  }
+
+  .operator-current-quote {
+    grid-column: 1;
+    max-width: none;
+    font-size: clamp(1.5rem, 6.8vw, 2.15rem);
+  }
+
+  .operator-close-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+    padding-block: 90px 102px;
+  }
+
+  .operator-close-copy h2 {
+    max-width: 12ch;
+    margin-top: 30px;
+    font-size: clamp(2.95rem, 11.5vw, 5rem);
+  }
+
+  .operator-close-action {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 360px) {
+  .operator-hero-copy h1 {
+    font-size: 3.2rem;
+  }
+
+  .operator-hero-main {
+    padding-top: 47px;
+  }
+
+  .operator-station {
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .operator-map-spine {
+    left: 17px;
+  }
+
+  .operator-facts > div,
+  .operator-evidence > div {
+    grid-template-columns: minmax(90px, 0.4fr) minmax(0, 0.6fr);
+    gap: 10px;
+  }
+
+  .operator-station-transfer {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operator-map::after {
+    transition: none;
+  }
+
+  .operator-station-transfer {
+    transition: none;
+  }
+}

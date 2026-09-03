@@ -2,95 +2,209 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import '../styles/pages/services.css';
 ---
 
 <Layout title="The Operation: Secure Prospective" description="Insurance producer infrastructure is SecureProspective's revenue-producing operating foundation.">
   <Nav />
-  <main transition:name="page-card">
-    <section class="record-hero">
-      <div class="record-hero-grid shell">
-        <div class="record-hero-index"><span>FILE // OPERATION</span><span>STATUS // ACTIVE</span></div>
-        <div class="record-hero-copy">
-          <h1>The operation is not a footnote.</h1>
-          <p>
-            SecureProspective serves producers now. The IMO is the revenue engine, the field environment,
-            and the source of every constraint the prospective system must answer.
-          </p>
-        </div>
-      </div>
-    </section>
 
-    <section id="operating-record" class="record-section record-section--blue">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>01</strong><span>Operating record</span></aside>
-        <div class="record-body">
-          <h2>Insurance producer infrastructure.</h2>
-          <p>
-            Independent financial professionals and small IMOs need more than product access. They need
-            case intelligence, suitability discipline, carrier positioning, and an operating structure that
-            can carry responsibility from first conversation through issue.
-          </p>
-          <table class="fact-table">
-            <tbody>
-              <tr><th scope="row">Active producers</th><td>Approximately 8</td></tr>
-              <tr><th scope="row">Annual annuity volume assisted</th><td>Approximately $18M current</td></tr>
-              <tr><th scope="row">Production assisted</th><td>Approximately $110M across six years</td></tr>
-              <tr><th scope="row">Operating posture</th><td>Active, revenue-producing, accountable to real cases</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-section record-section--white">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>02</strong><span>What we do now</span></aside>
-        <div class="record-body">
-          <h2>The work producers can use today.</h2>
-          <div class="offer-grid">
-            <article class="offer-item"><span>CASE // 01</span><strong>Advanced case design</strong><p>Structure complex client situations before a product is allowed to become the answer.</p></article>
-            <article class="offer-item"><span>POSITION // 02</span><strong>Carrier and product positioning</strong><p>Fit the solution to the full client picture, not to a shelf or a sales target.</p></article>
-            <article class="offer-item"><span>FEDERAL // 03</span><strong>Federal benefits specialty</strong><p>FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations.</p></article>
-            <article class="offer-item"><span>CONTROL // 04</span><strong>Suitability and best interest</strong><p>Annuity suitability workflows and NY Regulation 187 discipline built into the case process.</p></article>
-            <article class="offer-item"><span>FIELD // 05</span><strong>Producer development</strong><p>Training and operating support for agents who intend to build durable production.</p></article>
-            <article class="offer-item"><span>SYSTEM // 06</span><strong>IMO infrastructure</strong><p>The connective operating work between producer, client, carrier, case, and obligation.</p></article>
+  <main id="main" class="operation-page" transition:name="page-card">
+    <section class="operation-hero" aria-labelledby="operation-title" data-operation-hero>
+      <div class="operation-hero-grid shell">
+        <aside class="operation-rail" aria-label="Operation page index">
+          <div class="operation-rail-top">
+            <span class="operation-rail-mark" aria-hidden="true"></span>
+            <span>FILE // 001</span>
           </div>
-          <a class="action action--dark" href="mailto:secureprospective@gmail.com?subject=Producer%20infrastructure%20conversation">Start a producer conversation <span>→</span></a>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-section record-section--silver">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>03</strong><span>Why it matters</span></aside>
-        <div class="record-body">
-          <h2>This operation gives SP+ consequences.</h2>
-          <p>
-            SP+ answers a problem visible inside the operation: advisors handling client PII, annuities, and
-            retirement assets on general-purpose home computers. The first deliverable is an immutable Fedora
-            workstation with full-disk encryption, practical application containment, and the Pi AI harness
-            integrated into the daily desktop.
-          </p>
-          <div class="status-strip">
-            <div><span>Foundation</span><strong>Immutable Fedora</strong></div>
-            <div><span>Protection</span><strong>Encrypted and contained</strong></div>
-            <div><span>Workflow</span><strong>Human-held AI</strong></div>
+          <p class="operation-rail-name">THE OPERATION</p>
+          <div class="operation-rail-status">
+            <span>STATUS</span>
+            <strong>ACTIVE</strong>
           </div>
-          <a class="text-link" href="/the-work#sp-plus">See what is being built from it →</a>
+          <nav class="operation-index" aria-label="On this page">
+            <a href="#operating-record" aria-current="location"><span>01</span><span>Record</span></a>
+            <a href="#producer-work"><span>02</span><span>Work now</span></a>
+            <a href="#sp-plus-consequence"><span>03</span><span>Consequence</span></a>
+            <a href="#conversation"><span>04</span><span>Conversation</span></a>
+          </nav>
+        </aside>
+
+        <div class="operation-hero-body">
+          <div class="operation-heading">
+            <h1 id="operation-title">The operation is not a footnote.</h1>
+            <p>
+              SecureProspective serves producers now. The IMO is the revenue engine, the field environment,
+              and the source of every constraint the prospective system must answer.
+            </p>
+          </div>
+
+          <div class="operation-evidence" aria-labelledby="evidence-title">
+            <div class="operation-evidence-head">
+              <span id="evidence-title">Operating figures</span>
+              <span>Approximate / current record</span>
+            </div>
+            <table class="operation-facts">
+              <caption class="visually-hidden">SecureProspective operating figures</caption>
+              <tbody>
+                <tr data-proof-row>
+                  <th scope="row">Active producers</th>
+                  <td>Approximately <strong>8</strong></td>
+                </tr>
+                <tr data-proof-row>
+                  <th scope="row">Annual annuity volume assisted</th>
+                  <td>Approximately <strong>$18M</strong> current</td>
+                </tr>
+                <tr data-proof-row>
+                  <th scope="row">Production assisted</th>
+                  <td>Approximately <strong>$110M</strong> across six years</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="operation-evidence-note">
+              <span>Operating posture</span>
+              <strong>Active, revenue-producing, accountable to real cases.</strong>
+            </div>
+          </div>
+
+          <a class="operation-hero-link" href="#operating-record">
+            Read the operating record <span aria-hidden="true">↓</span>
+          </a>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--ink">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>04</strong><span>Current invitation</span></aside>
-        <div class="record-body">
-          <h2>If the work is insurance, start here.</h2>
+    <section id="operating-record" class="operation-panel operation-panel--blue" data-deal aria-labelledby="record-title">
+      <div class="operation-panel-grid shell">
+        <aside class="operation-panel-marker">
+          <strong>01</strong>
+          <span>Operating record</span>
+        </aside>
+        <div class="operation-panel-body">
+          <div class="operation-intro">
+            <h2 id="record-title">Insurance producer infrastructure.</h2>
+            <p>
+              Independent financial professionals and small IMOs need more than product access. They need
+              case intelligence, suitability discipline, carrier positioning, and an operating structure that
+              can carry responsibility from first conversation through issue.
+            </p>
+          </div>
+          <div class="operation-test">
+            <span>Operational test</span>
+            <strong>Can the structure carry responsibility from first conversation through issue?</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="producer-work" class="operation-panel operation-panel--white" data-deal aria-labelledby="work-title">
+      <div class="operation-panel-grid shell">
+        <aside class="operation-panel-marker">
+          <strong>02</strong>
+          <span>What we do now</span>
+        </aside>
+        <div class="operation-panel-body">
+          <h2 id="work-title">The work producers can use today.</h2>
+          <ol class="operation-worklist">
+            <li>
+              <span class="operation-work-label">CASE // 01</span>
+              <strong>Advanced case design</strong>
+              <p>Structure complex client situations before a product is allowed to become the answer.</p>
+            </li>
+            <li>
+              <span class="operation-work-label">POSITION // 02</span>
+              <strong>Carrier and product positioning</strong>
+              <p>Fit the solution to the full client picture, not to a shelf or a sales target.</p>
+            </li>
+            <li>
+              <span class="operation-work-label">FEDERAL // 03</span>
+              <strong>Federal benefits specialty</strong>
+              <p>FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations.</p>
+            </li>
+            <li>
+              <span class="operation-work-label">CONTROL // 04</span>
+              <strong>Suitability and best interest</strong>
+              <p>Annuity suitability workflows and NY Regulation 187 discipline built into the case process.</p>
+            </li>
+            <li>
+              <span class="operation-work-label">FIELD // 05</span>
+              <strong>Producer development</strong>
+              <p>Training and operating support for agents who intend to build durable production.</p>
+            </li>
+            <li>
+              <span class="operation-work-label">SYSTEM // 06</span>
+              <strong>IMO infrastructure</strong>
+              <p>The connective operating work between producer, client, carrier, case, and obligation.</p>
+            </li>
+          </ol>
+          <a class="operation-inline-action" href="mailto:secureprospective@gmail.com?subject=Producer%20infrastructure%20conversation">
+            Start a producer conversation <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="sp-plus-consequence" class="operation-panel operation-panel--silver" data-deal aria-labelledby="consequence-title">
+      <div class="operation-panel-grid shell">
+        <aside class="operation-panel-marker">
+          <strong>03</strong>
+          <span>Why it matters</span>
+        </aside>
+        <div class="operation-panel-body">
+          <div class="operation-intro operation-intro--single">
+            <h2 id="consequence-title">This operation gives SP+ consequences.</h2>
+            <p>
+              SP+ answers a problem visible inside the operation: advisors handling client PII, annuities, and
+              retirement assets on general-purpose home computers. The first deliverable is an immutable Fedora
+              workstation with full-disk encryption, practical application containment, and the Pi AI harness
+              integrated into the daily desktop.
+            </p>
+          </div>
+
+          <div class="operation-bridge" aria-label="The operating foundation leads to the first deliverable">
+            <span>Current operation</span>
+            <i aria-hidden="true"></i>
+            <strong>SP+</strong>
+            <span>First deliverable</span>
+          </div>
+
+          <dl class="operation-state-table">
+            <div>
+              <dt>Foundation</dt>
+              <dd>Immutable Fedora</dd>
+            </div>
+            <div>
+              <dt>Protection</dt>
+              <dd>Encrypted and contained</dd>
+            </div>
+            <div>
+              <dt>Workflow</dt>
+              <dd>Human-held AI</dd>
+            </div>
+          </dl>
+          <a class="operation-text-link" href="/the-work#sp-plus">See what is being built from it <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section id="conversation" class="operation-panel operation-panel--ink" data-deal aria-labelledby="conversation-title">
+      <div class="operation-panel-grid shell">
+        <aside class="operation-panel-marker">
+          <strong>04</strong>
+          <span>Current invitation</span>
+        </aside>
+        <div class="operation-panel-body operation-invitation">
+          <h2 id="conversation-title">If the work is insurance, start here.</h2>
           <p>Bring the case, the producer constraint, or the infrastructure problem. The first move is a direct conversation about what is actually happening.</p>
-          <a class="action action--signal" href="/contact">Choose the conversation <span>→</span></a>
+          <a class="operation-cta" href="/contact">Choose the conversation <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>
   </main>
+
   <Footer />
 </Layout>
+
+<script>
+  import '../scripts/motion.js';
+  import '../scripts/pages/services.js';
+</script>

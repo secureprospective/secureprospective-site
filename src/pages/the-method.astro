@@ -2,103 +2,257 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import '../styles/pages/the-method.css';
 ---
 
 <Layout title="The Method: Secure Prospective" description="Diagnose, Position, Shape, Transform, and Re-diagnose inside the operating business first.">
   <Nav />
-  <main transition:name="page-card">
-    <section class="record-hero">
-      <div class="record-hero-grid shell">
-        <div class="record-hero-index"><span>FILE // METHOD</span><span>CYCLE // OPEN</span></div>
-        <div class="record-hero-copy">
-          <h1>The method goes to work here first.</h1>
-          <p>
-            Diagnose, Position, Shape, and Transform are not four boxes on a consulting slide. They are
-            controls applied to the business that already has to perform.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-section record-section--white">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>01</strong><span>Diagnose</span></aside>
-        <div class="record-body">
-          <h2>Find the constraint before the tool.</h2>
-          <p>
-            The IMO is metered as an operating system: people, cases, decisions, handoffs, data, delay, and
-            responsibility. Symptoms do not receive software. The root constraint receives a diagnosis.
-          </p>
-          <div class="quote-field">A wrong diagnosis makes every correct build irrelevant.</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-section record-section--silver">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>02</strong><span>Position</span></aside>
-        <div class="record-body">
-          <h2>Put capability where consequences are understood.</h2>
-          <p>
-            AI placed without context creates confidence in the wrong output. Positioning defines where a
-            tool belongs, what information it may use, where a human must intervene, and what cannot be delegated.
-          </p>
-          <ul class="assurance-list">
-            <li><span>A</span><strong>Environment</strong><p>Understand the people, process, data, and obligations surrounding the tool.</p></li>
-            <li><span>B</span><strong>Boundary</strong><p>Name what the system may decide, assist, surface, or never touch.</p></li>
-            <li><span>C</span><strong>Owner</strong><p>Keep a responsible person attached to every consequential output.</p></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-section record-section--blue">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>03</strong><span>Shape</span></aside>
-        <div class="record-body">
-          <h2>Structure output so the operation can hold it.</h2>
-          <p>
-            Output no one understands is output no one owns. SP+ must make work inspectable, correctable,
-            and transferable. The system serves the operator. It does not become an unchallengeable black box.
-          </p>
-          <div class="status-strip">
-            <div><span>Output</span><strong>Legible</strong></div>
-            <div><span>Decision</span><strong>Traceable</strong></div>
-            <div><span>Ownership</span><strong>Human-held</strong></div>
+  <main id="main" class="method-page" transition:name="page-card">
+    <section class="method-hero" aria-labelledby="method-title">
+      <div class="method-hero-grid shell">
+        <div class="method-hero-index">
+          <span>FILE // METHOD</span>
+          <span>CYCLE // OPEN</span>
+          <div class="method-index-note" aria-hidden="true">
+            <span class="method-index-mark"></span>
+            <span>APPLIED<br />IN ORDER</span>
           </div>
         </div>
-      </div>
-    </section>
 
-    <section class="record-section record-section--ink">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>04</strong><span>Transform</span></aside>
-        <div class="record-body">
-          <h2>Change the operation, not the vocabulary.</h2>
-          <p>
-            AI-powered means a feature was added. AI-native means the architecture of the work changed.
-            Transformation is not declared when SP+ runs. It is demonstrated when the operation works differently
-            because SP+ is part of it.
-          </p>
-          <div class="quote-field">The deliverable must survive contact with the business.</div>
+        <div class="method-hero-main">
+          <div class="method-hero-copy">
+            <h1 id="method-title">The method goes to work here first.</h1>
+            <p>
+              Diagnose, Position, Shape, and Transform are not four boxes on a consulting slide. They are
+              controls applied to the business that already has to perform.
+            </p>
+          </div>
+
+          <nav class="method-loop" aria-label="Method sequence">
+            <div class="method-loop-header">
+              <span>CONTROL LOOP</span>
+              <span data-cycle-status>01 // DIAGNOSE</span>
+            </div>
+            <ol class="method-loop-list">
+              <li class="is-current">
+                <a class="method-loop-link" href="#diagnose" data-cycle-link="0" aria-current="step">
+                  <span class="method-loop-number">01</span>
+                  <span class="method-loop-name"><strong>Diagnose</strong><small>Constraint first</small></span>
+                  <span class="method-loop-state">INPUT</span>
+                </a>
+              </li>
+              <li>
+                <a class="method-loop-link" href="#position" data-cycle-link="1">
+                  <span class="method-loop-number">02</span>
+                  <span class="method-loop-name"><strong>Position</strong><small>Place capability</small></span>
+                  <span class="method-loop-state">BOUNDARY</span>
+                </a>
+              </li>
+              <li>
+                <a class="method-loop-link" href="#shape" data-cycle-link="2">
+                  <span class="method-loop-number">03</span>
+                  <span class="method-loop-name"><strong>Shape</strong><small>Make output ownable</small></span>
+                  <span class="method-loop-state">OUTPUT</span>
+                </a>
+              </li>
+              <li>
+                <a class="method-loop-link" href="#transform" data-cycle-link="3">
+                  <span class="method-loop-number">04</span>
+                  <span class="method-loop-name"><strong>Transform</strong><small>Change the operation</small></span>
+                  <span class="method-loop-state">EVIDENCE</span>
+                </a>
+              </li>
+              <li>
+                <a class="method-loop-link" href="#re-diagnose" data-cycle-link="4">
+                  <span class="method-loop-number">05</span>
+                  <span class="method-loop-name"><strong>Re-diagnose</strong><small>Secure the next state</small></span>
+                  <span class="method-loop-state">RETURN</span>
+                </a>
+              </li>
+            </ol>
+            <div class="method-loop-return" aria-hidden="true">
+              <span class="method-loop-return-line"></span>
+              <strong>05 RETURNS TO 01</strong>
+            </div>
+          </nav>
         </div>
       </div>
     </section>
 
-    <section class="record-section record-section--yellow">
-      <div class="record-section-grid shell">
-        <aside class="record-margin"><strong>↺</strong><span>Re-diagnose</span></aside>
-        <div class="record-body">
-          <h2>Secure the next state.</h2>
+    <section class="method-cycle-heading" aria-labelledby="cycle-title">
+      <div class="method-cycle-heading-grid shell">
+        <div class="method-cycle-heading-index">
+          <span>METHOD // APPLIED</span>
+          <span>READ // IN ORDER</span>
+        </div>
+        <div class="method-cycle-heading-copy">
+          <h2 id="cycle-title">Not four boxes. A working cycle.</h2>
           <p>
-            Every prospective system eventually becomes part of the operating foundation. Once it does, the
-            work is measured again. New constraints surface. The next cycle begins without pretending the future
-            has stopped moving.
+            The controls are applied to the business that already has to perform. Each movement changes the
+            conditions for the next.
           </p>
-          <a class="action action--dark" href="/the-work#sp-plus">See the active application <span>→</span></a>
         </div>
       </div>
     </section>
+
+    <ol class="method-stations" aria-label="Five movements of the operating method">
+      <li id="diagnose" class="method-station method-station--diagnose is-current" data-cycle-station="0" data-cycle-name="DIAGNOSE">
+        <article class="method-station-grid shell" aria-labelledby="diagnose-title">
+          <div class="method-station-rail">
+            <span class="method-station-code">CONTROL 01</span>
+            <span class="method-station-number">01</span>
+            <strong>Diagnose</strong>
+            <span class="method-station-state">CONSTRAINT FIRST</span>
+            <span class="method-station-marker" aria-hidden="true"></span>
+          </div>
+          <div class="method-station-body">
+            <h3 id="diagnose-title">Find the constraint before the tool.</h3>
+            <p class="method-station-copy">
+              The IMO is metered as an operating system: people, cases, decisions, handoffs, data, delay, and
+              responsibility. Symptoms do not receive software. The root constraint receives a diagnosis.
+            </p>
+            <figure class="quote-field method-quote method-quote--yellow">
+              <figcaption>FAILURE CONDITION // DIAGNOSE</figcaption>
+              <blockquote>A wrong diagnosis makes every correct build irrelevant.</blockquote>
+            </figure>
+          </div>
+        </article>
+      </li>
+
+      <li id="position" class="method-station method-station--position" data-cycle-station="1" data-cycle-name="POSITION">
+        <article class="method-station-grid shell" aria-labelledby="position-title">
+          <div class="method-station-rail">
+            <span class="method-station-code">CONTROL 02</span>
+            <span class="method-station-number">02</span>
+            <strong>Position</strong>
+            <span class="method-station-state">BOUNDARY FIRST</span>
+            <span class="method-station-marker" aria-hidden="true"></span>
+          </div>
+          <div class="method-station-body">
+            <h3 id="position-title">Put capability where consequences are understood.</h3>
+            <p class="method-station-copy">
+              AI placed without context creates confidence in the wrong output. Positioning defines where a
+              tool belongs, what information it may use, where a human must intervene, and what cannot be delegated.
+            </p>
+            <ul class="method-controls" aria-label="Positioning controls">
+              <li>
+                <span class="method-control-letter">A</span>
+                <strong>Environment</strong>
+                <p>Understand the people, process, data, and obligations surrounding the tool.</p>
+              </li>
+              <li>
+                <span class="method-control-letter">B</span>
+                <strong>Boundary</strong>
+                <p>Name what the system may decide, assist, surface, or never touch.</p>
+              </li>
+              <li>
+                <span class="method-control-letter">C</span>
+                <strong>Owner</strong>
+                <p>Keep a responsible person attached to every consequential output.</p>
+              </li>
+            </ul>
+          </div>
+        </article>
+      </li>
+
+      <li id="shape" class="method-station method-station--shape" data-cycle-station="2" data-cycle-name="SHAPE">
+        <article class="method-station-grid shell" aria-labelledby="shape-title">
+          <div class="method-station-rail">
+            <span class="method-station-code">CONTROL 03</span>
+            <span class="method-station-number">03</span>
+            <strong>Shape</strong>
+            <span class="method-station-state">OUTPUT FIRST</span>
+            <span class="method-station-marker" aria-hidden="true"></span>
+          </div>
+          <div class="method-station-body">
+            <h3 id="shape-title">Structure output so the operation can hold it.</h3>
+            <p class="method-station-copy">
+              Output no one understands is output no one owns. SP+ must make work inspectable, correctable,
+              and transferable. The system serves the operator. It does not become an unchallengeable black box.
+            </p>
+            <dl class="method-output-register" aria-label="Shape output requirements">
+              <div>
+                <dt>Output</dt>
+                <dd>Legible</dd>
+              </div>
+              <div>
+                <dt>Decision</dt>
+                <dd>Traceable</dd>
+              </div>
+              <div>
+                <dt>Ownership</dt>
+                <dd>Human-held</dd>
+              </div>
+            </dl>
+          </div>
+        </article>
+      </li>
+
+      <li id="transform" class="method-station method-station--transform" data-cycle-station="3" data-cycle-name="TRANSFORM">
+        <article class="method-station-grid shell" aria-labelledby="transform-title">
+          <div class="method-station-rail">
+            <span class="method-station-code">CONTROL 04</span>
+            <span class="method-station-number">04</span>
+            <strong>Transform</strong>
+            <span class="method-station-state">EVIDENCE FIRST</span>
+            <span class="method-station-marker" aria-hidden="true"></span>
+          </div>
+          <div class="method-station-body">
+            <h3 id="transform-title">Change the operation, not the vocabulary.</h3>
+            <p class="method-station-copy">
+              AI-powered means a feature was added. AI-native means the architecture of the work changed.
+              Transformation is not declared when SP+ runs. It is demonstrated when the operation works differently
+              because SP+ is part of it.
+            </p>
+            <figure class="quote-field method-quote method-quote--blue">
+              <figcaption>FIELD TEST // TRANSFORM</figcaption>
+              <blockquote>The deliverable must survive contact with the business.</blockquote>
+            </figure>
+          </div>
+        </article>
+      </li>
+
+      <li id="re-diagnose" class="method-station method-station--rediagnose" data-cycle-station="4" data-cycle-name="RE-DIAGNOSE">
+        <article class="method-station-grid shell" aria-labelledby="re-diagnose-title">
+          <div class="method-station-rail">
+            <span class="method-station-code">CONTROL 05</span>
+            <span class="method-station-number">↺</span>
+            <strong>Re-diagnose</strong>
+            <span class="method-station-state">NEXT STATE</span>
+            <span class="method-station-marker" aria-hidden="true"></span>
+          </div>
+          <div class="method-station-body">
+            <h3 id="re-diagnose-title">Secure the next state.</h3>
+            <p class="method-station-copy">
+              Every prospective system eventually becomes part of the operating foundation. Once it does, the
+              work is measured again. New constraints surface. The next cycle begins without pretending the future
+              has stopped moving.
+            </p>
+            <div class="method-return-register" aria-label="Cycle return">
+              <div class="method-return-register-head">
+                <span>RETURN PATH</span>
+                <span>05 / 01</span>
+              </div>
+              <div class="method-return-track" aria-hidden="true">
+                <span class="method-return-track-point"></span>
+                <span class="method-return-track-rule"></span>
+                <span class="method-return-track-point"></span>
+              </div>
+              <div class="method-return-register-foot">
+                <span>RE-DIAGNOSE</span>
+                <span>DIAGNOSE</span>
+              </div>
+            </div>
+            <a class="action action--dark" href="/the-work#sp-plus">See the active application <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </li>
+    </ol>
   </main>
   <Footer />
 </Layout>
+
+<script>
+  import '../scripts/motion.js';
+  import '../scripts/pages/the-method.js';
+</script>

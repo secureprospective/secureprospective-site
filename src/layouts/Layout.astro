@@ -3,6 +3,7 @@ import '../styles/tokens.css';
 import '../styles/fonts.css';
 import '../styles/transitions.css';
 import '../styles/site.css';
+import '../styles/immersive.css';
 import { ViewTransitions } from 'astro:transitions';
 import ChatWidget from '../components/ChatWidget.astro';
 
@@ -29,13 +30,13 @@ const {
   </head>
   <body>
     <!--
-    THESIS: A real operating business leads; SP+ makes the forward claim concrete; consulting follows delivered evidence.
-    OWN-WORLD: The established Property Card System remains intact with platinum stock, compliance blue, signal yellow, ledger ink, sharp edges, stamped Primal titles, and hard card-lift depth.
-    STORY: Visitors meet the name, see the operating IMO, follow SP+ as the first deliverable, understand the method, and choose the relevant conversation.
-    FIRST VIEWPORT: Secure Prospective stands alone at the center in Primal with its pronunciation directly beneath in IBM Plex Sans.
-    FORM: Established SecureProspective visual system, reorganized around the corrected business hierarchy; seed 6fe53f20 superseded by the user's explicit instruction to preserve the incumbent world.
-    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+    Secure Prospective. The Property Card System: platinum stock, compliance
+    blue, signal yellow, ledger ink, square corners, stamped Primal titles, and
+    a hard zero-blur Card-Lift shadow. Cards are dealt onto the table as you
+    scroll, they carry real depth, and they answer the pointer.
     -->
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"><span data-scroll-progress></span></div>
     <slot />
     <ChatWidget />
   </body>

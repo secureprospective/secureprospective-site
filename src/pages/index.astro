@@ -2,18 +2,17 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import HeroTicker from '../components/HeroTicker.astro';
 ---
 
 <Layout title="Secure Prospective" description="A revenue-producing IMO building its prospective form through SP+, the first AI-native deliverable.">
   <Nav />
 
-  <main transition:name="page-card">
+  <main id="main" transition:name="page-card">
     <section class="identity-hero" aria-labelledby="identity-title">
-      <div class="identity-hero-fx" aria-hidden="true">
-        <canvas id="hero-fx-canvas" data-hero-fx></canvas>
-      </div>
+      <HeroTicker />
       <div class="identity-lockup">
-        <h1 id="identity-title">Secure Prospective</h1>
+        <h1 id="identity-title" data-stamp>Secure Prospective</h1>
         <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
         <a class="hero-sp-plus" href="/the-work">
           <span>SP+ // ACTIVE BUILD</span>
@@ -25,7 +24,8 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <section class="dual-state" aria-label="Secure and prospective operating states">
-      <article class="state-field state-field--secure">
+      <article class="state-field state-field--secure" data-deal data-tilt>
+        <span class="inspection-marker" aria-hidden="true"></span>
         <div class="state-field-head">
           <span>STATE // OPERATING</span>
           <span>REVENUE ACTIVE</span>
@@ -37,15 +37,24 @@ import Footer from '../components/Footer.astro';
             producer development, case design, suitability, and infrastructure for active agents.
           </p>
           <div class="evidence-ledger" aria-label="IMO operating evidence">
-            <div><strong>8</strong><span>Active producers</span></div>
-            <div><strong>~$18M</strong><span>Current annual annuity volume assisted</span></div>
-            <div><strong>~$110M</strong><span>Total annuity production assisted over six years</span></div>
+            <div style="--ledger-index: 0">
+              <strong data-count-to="8">8</strong><span>Active producers</span>
+            </div>
+            <div style="--ledger-index: 1">
+              <strong data-count-to="18" data-count-prefix="~$" data-count-suffix="M">~$18M</strong>
+              <span>Current annual annuity volume assisted</span>
+            </div>
+            <div style="--ledger-index: 2">
+              <strong data-count-to="110" data-count-prefix="~$" data-count-suffix="M">~$110M</strong>
+              <span>Total annuity production assisted over six years</span>
+            </div>
           </div>
           <a href="/services" class="action action--light">Enter the operation <span>→</span></a>
         </div>
       </article>
 
-      <article class="state-field state-field--prospective">
+      <article class="state-field state-field--prospective" data-deal data-tilt style="--deal-delay: 120ms">
+        <span class="inspection-marker" aria-hidden="true"></span>
         <div class="state-field-head">
           <span>STATE // IN BUILD</span>
           <span>DELIVERABLE 001</span>
@@ -65,7 +74,7 @@ import Footer from '../components/Footer.astro';
       </article>
     </section>
 
-    <section class="method-spine shell">
+    <section class="method-spine shell" data-deal>
       <div class="spine-copy">
         <h2>One operation.<br />Five movements.</h2>
         <p>
@@ -85,30 +94,29 @@ import Footer from '../components/Footer.astro';
 
     <section class="proof-register">
       <div class="shell proof-register-grid">
-        <div class="proof-register-title">
-          <span>PROOF REGISTER</span>
-          <h2>Claim only<br />what the record holds.</h2>
+        <div class="proof-register-title" data-deal>
+          <h2>The register claims only<br />what the record holds.</h2>
         </div>
         <div class="proof-lines">
-          <a href="/services#operating-record" class="proof-line">
+          <a href="/services#operating-record" class="proof-line" data-deal>
             <span class="proof-status proof-status--proven">Proven</span>
             <strong>The IMO operating record</strong>
             <small>Revenue, producers, production, responsibility.</small>
             <span>01</span>
           </a>
-          <a href="/the-work#sp-plus" class="proof-line">
+          <a href="/the-work#sp-plus" class="proof-line" data-deal style="--deal-delay: 90ms">
             <span class="proof-status proof-status--active">Active</span>
             <strong>SP+ first deliverable</strong>
             <small>The encrypted, immutable, AI-first advisor workstation.</small>
             <span>02</span>
           </a>
-          <a href="/the-work#access" class="proof-line">
+          <a href="/the-work#access" class="proof-line" data-deal style="--deal-delay: 180ms">
             <span class="proof-status proof-status--active">Available</span>
             <strong>SP+ partnership access</strong>
             <small>No software fee. No subscription. Qualify through five production contracts.</small>
             <span>03</span>
           </a>
-          <div class="proof-line proof-line--future">
+          <div class="proof-line proof-line--future" data-deal style="--deal-delay: 270ms">
             <span class="proof-status">Prospective</span>
             <strong>AI-native transformation</strong>
             <small>An external offer earned through the record above.</small>
@@ -118,10 +126,9 @@ import Footer from '../components/Footer.astro';
       </div>
     </section>
 
-    <section class="closing-field">
+    <section class="closing-field" data-deal>
       <div class="shell closing-field-grid">
-        <p>SP+ partnership access</p>
-        <h2>No software fee. No subscription. Qualify through five contracts and build the opportunity together.</h2>
+        <h2>SP+ partnership access: no software fee, no subscription. Qualify through five contracts and build the opportunity together.</h2>
         <div class="closing-actions">
           <a href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review" class="action action--signal">Start an SP+ fit review <span>→</span></a>
           <a href="/the-work#access" class="text-link text-link--light">See the access model →</a>
@@ -134,132 +141,5 @@ import Footer from '../components/Footer.astro';
 </Layout>
 
 <script>
-  // Production homepage motif: ticker rows moving in alternating directions
-  // with a traveling yellow pulse. Preserved here inside the new identity hero.
-  (function () {
-    var raf = null;
-    var running = false;
-    var t = 0;
-    var io = null;
-    var canvas = null;
-    var onResize = null;
-    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function resize() {
-      if (!canvas || !canvas.parentElement) return;
-      var rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.round(rect.width * devicePixelRatio));
-      canvas.height = Math.max(1, Math.round(rect.height * devicePixelRatio));
-    }
-
-    var blue = '0, 51, 160';
-    var yellow = '255, 215, 0';
-
-    function draw(ctx) {
-      var w = ctx.canvas.width;
-      var h = ctx.canvas.height;
-      if (!w || !h) return;
-      ctx.clearRect(0, 0, w, h);
-      var rowH = 28 * devicePixelRatio;
-      var rows = Math.ceil(h / rowH) + 1;
-      var dashW = 10 * devicePixelRatio;
-      var gap = 8 * devicePixelRatio;
-      var unit = dashW + gap;
-
-      for (var row = 0; row <= rows; row++) {
-        var y = row * rowH + rowH / 2;
-        var dir = row % 2 === 0 ? 1 : -1;
-        var offset = ((t * 40 * devicePixelRatio * dir) % unit + unit) % unit;
-        var rowPhase = (row * 0.37) % (Math.PI * 2);
-        for (var x = -unit; x < w + unit; x += unit) {
-          var dx = x - offset;
-          var wave = Math.sin((dx / w) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
-          var isArc = wave > 0.88;
-          var brightness = 0.1 + wave * 0.3;
-          ctx.fillStyle = isArc
-            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
-            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
-          ctx.fillRect(dx, y - 1 * devicePixelRatio, dashW, 2 * devicePixelRatio);
-        }
-      }
-      t += 0.012;
-    }
-
-    function loop() {
-      if (!running) return;
-      var local = document.getElementById('hero-fx-canvas');
-      var ctx = local && local.getContext('2d');
-      if (!ctx) {
-        running = false;
-        return;
-      }
-      draw(ctx);
-      raf = requestAnimationFrame(loop);
-    }
-
-    function stop() {
-      running = false;
-      if (raf) {
-        cancelAnimationFrame(raf);
-        raf = null;
-      }
-    }
-
-    function teardown() {
-      stop();
-      if (io) {
-        io.disconnect();
-        io = null;
-      }
-      if (onResize) {
-        window.removeEventListener('resize', onResize);
-        onResize = null;
-      }
-      canvas = null;
-    }
-
-    function boot() {
-      var node = document.getElementById('hero-fx-canvas');
-      if (!node || node.dataset.fxBooted === 'true') return;
-
-      canvas = node;
-      node.dataset.fxBooted = 'true';
-      var ctx = canvas.getContext('2d');
-      if (!ctx) {
-        canvas = null;
-        return;
-      }
-
-      function start() {
-        if (running) return;
-        resize();
-        running = true;
-        if (reduceMotion) {
-          draw(ctx);
-          running = false;
-          return;
-        }
-        loop();
-      }
-
-      io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting && canvas && canvas.offsetWidth > 0) start();
-          else stop();
-        });
-      }, { threshold: 0.05 });
-      io.observe(canvas);
-
-      onResize = function () {
-        if (canvas && canvas.offsetWidth > 0) resize();
-      };
-      window.addEventListener('resize', onResize);
-
-      if (canvas.offsetWidth > 0) start();
-    }
-
-    document.addEventListener('astro:page-load', boot);
-    document.addEventListener('astro:before-swap', teardown);
-    boot();
-  })();
+  import '../scripts/motion.js';
 </script>
