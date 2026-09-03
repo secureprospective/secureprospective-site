@@ -981,6 +981,26 @@ grep -qF 'COPY config/ssh/45-sp-plus.conf /etc/ssh/sshd_config.d/45-sp-plus.conf
   && ok "D-1 no SSH key ships in the image or the release kickstart, and sshd is key-only" \
   || bad "D-1 SSH key gate failed" "a shipped key over a listening sshd is the worst defect this product can have"
 
+# P-26  D-2/C-1. Brave is pinned to an exact NEVRA against a VENDORED repo file.
+P26_OK=1
+[ -f "$C/brave/brave-browser.repo" ] \
+  || { P26_OK=0; echo "       config/brave/brave-browser.repo is not vendored"; }
+grep -qE '^gpgkey=file:///' "$C/brave/brave-browser.repo" 2>/dev/null \
+  || { P26_OK=0; echo "       the vendored Brave repo does not use the vendored GPG key"; }
+[ -s "$C/brave/brave-core.asc" ] \
+  || { P26_OK=0; echo "       the Brave signing key is not vendored"; }
+grep -qE '^ARG BRAVE_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$CF" \
+  || { P26_OK=0; echo "       BRAVE_VERSION is not an exact three-part literal"; }
+grep -qF 'brave-browser-${BRAVE_VERSION}-${BRAVE_RELEASE}' "$CF" \
+  || { P26_OK=0; echo "       Brave is not installed at the pinned NEVRA"; }
+grep -qF 'rm -f /etc/yum.repos.d/brave-browser.repo' "$CF" \
+  || { P26_OK=0; echo "       the Brave repo file is not removed in the same RUN (D-6)"; }
+grep -qF 'curl -fsSLo /etc/yum.repos.d/brave-browser.repo' "$CF" \
+  && { P26_OK=0; echo "       Brave's repo is curled at build time again instead of vendored"; }
+[ "$P26_OK" -eq 1 ] \
+  && ok "D-2/C-1/D-6 Brave is pinned, its repo is vendored, and the repo file does not ship" \
+  || bad "D-2 Brave pin gate failed" "an unpinned browser means two ISOs from one source contain different software"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }

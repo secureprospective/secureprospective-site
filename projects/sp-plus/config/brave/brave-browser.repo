@@ -1,0 +1,32 @@
+# Brave's rpm-md repository, VENDORED (D-2/C-1, 2026-09-03).
+#
+# WHY THIS FILE IS COMMITTED. It used to be curled from
+# https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo at build time,
+# seconds before `dnf install -y brave-browser` resolved a bare package name
+# against it. Both the repo DEFINITION and the package VERSION were therefore
+# whatever Brave was serving that minute: two ISOs built from identical source on
+# different days contained different browsers, and there was no record anywhere in
+# the tree of which Brave shipped in which image. That is the same reasoning that
+# already vendors config/flatpak/flathub.flatpakrepo -- committed rather than
+# curled so the trust root we ship is auditable in git history and the build does
+# not depend on a third party's uptime.
+#
+# The GPG key is vendored alongside as brave-core.asc and installed into
+# /etc/pki/rpm-gpg/, so `gpgkey=` is a file:// URL: nothing about the trust root is
+# fetched over the network at build time.
+#
+# This file and the key are BOTH removed inside the same RUN that installs Brave.
+# They must not ship (D-6): /etc is machine state on bootc and is three-way merged
+# on every upgrade, so a live third-party rpm-md repo left in /etc/yum.repos.d is
+# permanently sticky on installed machines and is a standing invitation to
+# `rpm-ostree install`, which is what makes a machine silently stop upgrading.
+#
+# TO BUMP BRAVE: change ARG BRAVE_VERSION / ARG BRAVE_RELEASE in
+# images/kde/Containerfile. Only re-fetch this file or the key if Brave changes
+# its repository layout or rotates its signing key.
+[brave-browser]
+name=Brave Browser
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-brave-browser
+baseurl=https://brave-browser-rpm-release.s3.brave.com/$basearch

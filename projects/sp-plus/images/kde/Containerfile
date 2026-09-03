@@ -65,10 +65,56 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 # which is correct for a browser — Brave writes only under the user's home).
 RUN rm -f /opt && mkdir -p /usr/lib/opt && ln -s usr/lib/opt /opt && ls -ld /opt
 
-RUN curl -fsSLo /etc/yum.repos.d/brave-browser.repo \
-      https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo \
- && dnf install -y brave-browser \
- && dnf clean all
+# Brave is PINNED to an exact NEVRA against a VENDORED repo definition (D-2/C-1).
+# Before this, line 1 of this block was `curl` of a .repo file and line 3 was
+# `dnf install -y brave-browser` -- a bare package name against a repo definition
+# downloaded seconds earlier. Nothing in the tree recorded which browser shipped,
+# so "Brave crashes" could not be made into a statement about a known artefact and
+# could not be bisected. Everything else in this file is already pinned this way:
+# Pi to an exact literal with its own gate, starship to version + sha256, Flathub
+# to a committed repo file. Brave was the one application that got none of it.
+#
+# BUMPING. Change both ARGs, rebuild, and re-run the hardware gate. The pin gate
+# below refuses anything that is not an exact literal, so a range or an empty value
+# fails the build rather than floating.
+ARG BRAVE_VERSION=1.94.119
+ARG BRAVE_RELEASE=1
+
+RUN set -eux; \
+    case "$BRAVE_VERSION" in \
+        ''|*[!0-9.]*|*..*|.*|*.) echo "BRAVE PIN GATE FAIL: '$BRAVE_VERSION' is not a bare version" >&2; exit 1;; \
+    esac; \
+    [ "$(printf '%s' "$BRAVE_VERSION" | awk -F. 'NF==3{print "ok"}')" = ok ] \
+        || { echo "BRAVE PIN GATE FAIL: '$BRAVE_VERSION' is not an exact three-part version" >&2; exit 1; }; \
+    case "$BRAVE_RELEASE" in \
+        ''|*[!0-9]*) echo "BRAVE PIN GATE FAIL: '$BRAVE_RELEASE' is not a bare release number" >&2; exit 1;; \
+    esac; \
+    echo "BRAVE_PIN_GATE_OK pinned to an exact literal $BRAVE_VERSION-$BRAVE_RELEASE"
+
+COPY config/brave/brave-browser.repo /etc/yum.repos.d/brave-browser.repo
+COPY config/brave/brave-core.asc /etc/pki/rpm-gpg/RPM-GPG-KEY-brave-browser
+
+# --setopt=install_weak_deps=False is now consistent with every other dnf install
+# in this file (38, 81, 139, 190, ...). Measured against this exact base digest on
+# 2026-09-03, it changes Brave's closure by NOTHING: with and without the flag the
+# transaction is brave-browser + brave-keyring + liberation-fonts-all, identically.
+#
+# The repo file and the key are removed IN THE SAME RUN so neither can ship (D-6).
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-brave-browser \
+ && dnf install -y --setopt=install_weak_deps=False \
+      "brave-browser-${BRAVE_VERSION}-${BRAVE_RELEASE}" \
+ && dnf clean all \
+ && rm -f /etc/yum.repos.d/brave-browser.repo \
+ && rm -f /etc/pki/rpm-gpg/RPM-GPG-KEY-brave-browser \
+ && test ! -e /etc/yum.repos.d/brave-browser.repo \
+ && test ! -e /etc/pki/rpm-gpg/RPM-GPG-KEY-brave-browser \
+ && rpm -q --qf '%{VERSION}-%{RELEASE}\n' brave-browser \
+      | grep -qFx "${BRAVE_VERSION}-${BRAVE_RELEASE}" \
+ && mkdir -p /usr/share/sp-plus \
+ && rpm -q --qf '%{NEVRA}\n' brave-browser > /usr/share/sp-plus/brave-nevra.txt \
+ && rpm -q --requires brave-browser > /usr/share/sp-plus/brave-requires.txt \
+ && cat /usr/share/sp-plus/brave-nevra.txt \
+ && echo "BRAVE_INSTALL_OK ${BRAVE_VERSION}-${BRAVE_RELEASE}, repo and key removed"
 
 # ---- 2a. remote administration (sshd) ----
 # The lane needs a real shell on an INSTALLED system to audit it; a serial console is
