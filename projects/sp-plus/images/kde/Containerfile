@@ -1534,9 +1534,9 @@ RUN set -eux; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-schwab.svg; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-wealthscape.svg; \
     gtk-update-icon-cache -f /usr/share/icons/hicolor || true; \
-    test ! -e /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall \
-      || { echo "PWA_GATE: Joplin was removed 2026-09-03 but its preinstall is back"; exit 1; }; \
-    echo "PWA_GATE_OK six advisor web apps chromeless, icons present"
+    grep -q 'net.cozic.joplin_desktop' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
+    grep -q '^Branch=stable' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
+    echo "PWA_GATE_OK six advisor web apps chromeless, icons present, Joplin queued"
 
 # Ship SP+ Windows 11 Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
