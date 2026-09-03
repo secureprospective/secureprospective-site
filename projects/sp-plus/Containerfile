@@ -36,7 +36,15 @@ COPY runtime/ /usr/libexec/sp-plus/
 COPY knowledge/ /usr/libexec/sp-plus/knowledge/
 COPY playbooks/ /usr/libexec/sp-plus/playbooks/
 COPY config/sp-plus.service /usr/lib/systemd/system/sp-plus.service
-COPY config/brave-policies.json /etc/brave/policies/managed/sp-plus.json
+# config/brave-policies.json was DELETED (D-8, 2026-09-03). It had drifted from the
+# live policy -- it still carried an ExtensionSettings block the real one does not --
+# while being inert: the shipping image (images/kde/Containerfile) writes its Brave
+# policy from a RUN block and never copied this file, and tests/config-preflight.sh
+# fails the build if a COPY of it comes back there. Two files named like the source
+# of truth, one of them wrong, is how the next person to "fix Brave policy" edits the
+# one that changes nothing. This proof-of-concept was its only remaining consumer and
+# is itself superseded by images/kde/Containerfile (see DN-18 at the top of that
+# file); it is not the release lane and it does not need a managed policy.
 
 RUN chmod 0755 /usr/libexec/sp-plus/spplus_rpc.py \
     && sha256sum /usr/libexec/sp-plus/playbooks/printer-reconnect.json \
