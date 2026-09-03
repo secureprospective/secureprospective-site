@@ -1461,6 +1461,83 @@ RUN dnf install -y --setopt=install_weak_deps=False \
  && fc-list : family | grep -qi 'JetBrains Mono' \
  && echo "CALM_DEPS_OK $(rpm -q paper-icon-theme jetbrains-mono-fonts | tr '\n' ' ')"
 
+# ---- Advisor toolkit: media, archives, fonts, CLI, virtualization ------------
+# Requested by Christopher 2026-09-03 for the first release.
+#
+# PACKAGE NAMES: the obvious name is WRONG for three of these on Fedora 44.
+# Verified against this image's own repos before writing, not guessed:
+#   wget              -> wget2-wget  (shim package; it is what provides /usr/bin/wget)
+#   p7zip             -> 7zip        (26.02; the p7zip name is retired)
+#   liberation-fonts  -> liberation-{sans,serif,mono}-fonts (there is no metapackage)
+#
+# VLC is in Fedora proper on 44, so NO RPM Fusion repo is needed. That matters:
+# a third-party repo would have to be vendored and pinned the way Brave is (D-2),
+# which is a lot of standing maintenance to carry for one media player.
+#
+# ALREADY IN THE IMAGE, deliberately not repeated: curl, jq, unzip,
+# google-noto-* , google-carlito-fonts, google-crosextra-caladea-fonts.
+#
+# KVM/libvirt is real attack surface on a machine holding client PII, and it is
+# here because Christopher asked for it. libvirtd is socket-activated, so it
+# costs nothing at idle until something opens the socket. Nothing is enabled
+# here: an advisor who never opens virt-manager never starts a hypervisor.
+RUN dnf install -y --setopt=install_weak_deps=False \
+      vlc \
+      7zip \
+      wget2-wget \
+      git \
+      liberation-sans-fonts liberation-serif-fonts liberation-mono-fonts \
+      qemu-kvm libvirt-daemon-kvm virt-manager \
+ && dnf clean all \
+ && command -v vlc \
+ && command -v wget \
+ && command -v git \
+ && command -v virt-manager \
+ && rpm -q 7zip \
+ && fc-list : family | grep -qi 'Liberation Sans' \
+ && echo "ADVISOR_TOOLKIT_OK $(rpm -q vlc 7zip git virt-manager | tr '\n' ' ')"
+
+# ---- PWA launchers (Christopher 2026-09-03) ---------------------------------
+# Six sites the advisor uses daily, as chromeless Brave windows, using the same
+# --app= pattern already proven by the SP+ Help entry.
+#
+# VERIFIED IN A REAL BROWSER on the RC1c VM, because curl lies about all three of
+# the interesting ones:
+#   * Schwab returns 403 to curl (Akamai bot protection) but loads its Log In
+#     page in Brave -- with NO tab strip and NO address bar, i.e. correct app mode.
+#   * Teams redirects curl to /v2/unsupported-browser#isLinux=true, but in Brave
+#     it reaches the normal Microsoft sign-in page. Microsoft gates on user-agent
+#     and JavaScript; a real browser passes. A cross-origin OAuth redirect shows
+#     browser chrome briefly -- Chromium behaviour, not a fault in the entry.
+#   * Google Photos sends a signed-out client to its marketing page; a signed-in
+#     advisor lands in the app.
+#
+# ICONS: Papirus (already installed) carries the Google and Teams marks. It has
+# nothing for Schwab or Fidelity, so SP+ ships NEUTRAL LETTERMARKS for those two.
+# They are deliberately NOT the custodians' logos: SP+ ships no third-party brand
+# asset it does not hold rights to. Swap in real artwork if it is ever licensed.
+COPY config/pwa/org.secureprospective.spplus.messages.desktop    /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.photos.desktop      /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.maps.desktop        /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.teams.desktop       /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.schwab.desktop      /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.wealthscape.desktop /usr/share/applications/
+COPY config/pwa/icons/ /usr/share/icons/hicolor/scalable/apps/
+
+RUN set -eux; \
+    for d in messages photos maps teams schwab wealthscape; do \
+        f=/usr/share/applications/org.secureprospective.spplus.$d.desktop; \
+        test -f "$f"; \
+        desktop-file-validate "$f"; \
+        grep -q '^Exec=brave-browser --app=https://' "$f"; \
+    done; \
+    test -s /usr/share/icons/hicolor/scalable/apps/spplus-schwab.svg; \
+    test -s /usr/share/icons/hicolor/scalable/apps/spplus-wealthscape.svg; \
+    gtk-update-icon-cache -f /usr/share/icons/hicolor || true; \
+    grep -q 'net.cozic.joplin_desktop' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
+    grep -q '^Branch=stable' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
+    echo "PWA_GATE_OK six advisor web apps chromeless, icons present, Joplin queued"
+
 # Ship SP+ Windows 11 Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
 # DN-28). It leads the SP+ Welcome theme picker because it is closest to what

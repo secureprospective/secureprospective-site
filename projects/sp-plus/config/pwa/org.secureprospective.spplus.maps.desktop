@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Google Maps
+Comment=Maps and directions
+# --app= gives a window with no address bar and no tab strip, so the site looks
+# like an application rather than a page the advisor can navigate away from.
+# Verified 2026-09-03 on RC1c: Schwab Advisor Services opened chromeless this way.
+# A cross-origin sign-in redirect (Microsoft OAuth) temporarily shows browser
+# chrome; that is Chromium behaviour, not a fault in this entry.
+Exec=brave-browser --app=https://maps.google.com --class=spplus-maps
+StartupWMClass=spplus-maps
+Icon=google-maps
+Terminal=false
+Categories=Network;Utility;Maps;
+Keywords=map;directions;travel;address;
