@@ -13,7 +13,15 @@ Description=Install the SP+ base Flatpak applications shortly after boot (DN-26)
 # shut at 5pm. Persistent= applies ONLY to calendar timers, so an OnUnitActiveSec
 # schedule here would silently never re-converge: systemd showed NEXT as empty
 # with that spelling on the cycle36 guest.
+# D-3. Two OnBootSec triggers, not one. 90s catches the ordinary first boot. The
+# 10min retry catches the machine that simply was not on the network yet at 90s --
+# wifi still associating, a captive portal not yet accepted, a laptop booted on the
+# bench. Now that the preinstall unit fails loudly (SuccessExitStatus=0), a single
+# 90s attempt would turn every slow-network first boot into a failed unit; the
+# retry is what makes failing loudly the right trade rather than a noisy one.
+# systemd accepts repeated OnBootSec= and schedules an elapse for each.
 OnBootSec=90s
+OnBootSec=10min
 OnCalendar=daily
 Persistent=true
 RandomizedDelaySec=15m

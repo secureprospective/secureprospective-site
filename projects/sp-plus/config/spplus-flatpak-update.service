@@ -3,7 +3,12 @@ Description=Update the SP+ Flatpak applications (DN-34)
 Documentation=man:flatpak-update(1)
 After=network-online.target
 Wants=network-online.target
-ConditionPathIsDirectory=/var/lib/flatpak
+# D-3. This was ConditionPathIsDirectory=/var/lib/flatpak, which made the updater
+# depend on the very state a failed first preinstall never creates: no directory,
+# no update run, forever, silently. Condition on the TOOL being present instead --
+# that is image content and is always true -- so the updater runs and can create
+# and converge the installation itself.
+ConditionPathExists=/usr/bin/flatpak
 
 [Service]
 Type=oneshot
@@ -32,6 +37,22 @@ ExecStart=/usr/bin/flatpak update --system --noninteractive -y
 # edge case. The Dell test machine reads at ~46 MiB/s off a 5400-rpm HDD.
 TimeoutStartSec=3600
 
-# An advisor must never be shown a failed unit because their hotel wifi was down.
-# The next daily run re-converges. Matches spplus-flatpak-preinstall.service.
+# D-3, and this one is KEPT AT `0 1` on purpose -- it is not the same judgement as
+# the preinstall unit, and the difference is the point.
+#
+# The preinstall unit answers "does this machine have its applications at all?"
+# A no there is a broken install: the advisor has no Zoom, and nothing else will
+# ever tell anyone. That must fail loudly.
+#
+# This unit answers "are the applications already installed now newer?" A no here
+# is a machine that is merely not-yet-updated. It still has working applications,
+# the next daily run re-converges, and Persistent=true catches the laptop that was
+# shut at 5pm. Failing loudly on it would put a red unit in front of an advisor
+# every time a hotel wifi dropped, which trains people to ignore red units -- and
+# the one red unit that matters is the preinstall one above.
+#
+# What makes this safe rather than the same swallowing defect: absence of updates
+# is observable elsewhere (the installed refs and their commit dates), whereas
+# absence of the applications themselves was not observable anywhere at all until
+# tests/field-inspect.sh was taught to look.
 SuccessExitStatus=0 1

@@ -341,6 +341,41 @@ fi
 _pre_timer=$(systemctl is-active spplus-flatpak-preinstall.timer 2>/dev/null || echo unknown)
 [ "$_pre_timer" = active ] && r flatpak_preinstall_timer active OK \
   || { r flatpak_preinstall_timer "$_pre_timer" PROBLEM; PRODUCT_FAIL=1; }
+# D-3. Report the preinstall RESULT itself, not only its downstream effect.
+# Until 2026-09-03 spplus-flatpak-preinstall.service carried SuccessExitStatus=0 1,
+# so an offline first boot recorded Result=success while installing nothing, and
+# this report had no row that could contradict it. It now fails loudly, which only
+# helps if something actually looks -- so look, here, on every machine.
+_pre_active=$(systemctl is-active spplus-flatpak-preinstall.service 2>/dev/null || echo unknown)
+_pre_res=$(systemctl show -p Result --value spplus-flatpak-preinstall.service 2>/dev/null)
+_pre_code=$(systemctl show -p ExecMainStatus --value spplus-flatpak-preinstall.service 2>/dev/null)
+r flatpak_preinstall_state "${_pre_active:-unknown}" ""
+case "${_pre_res:-never-run}" in
+  success)  r flatpak_preinstall_result "success (exit ${_pre_code:-?})" OK ;;
+  ''|never-run) r flatpak_preinstall_result never-run UNKNOWN ;;
+  *)        r flatpak_preinstall_result "${_pre_res} (exit ${_pre_code:-?})" PROBLEM; PRODUCT_FAIL=1 ;;
+esac
+# Are the applications the image DECLARES actually present? A declaration the
+# machine never acted on is the exact silent failure D-3 is about, so compare the
+# two lists rather than trusting either one alone.
+_declared=$(cat /usr/share/flatpak/preinstall.d/*.preinstall 2>/dev/null \
+            | sed -n 's/^\[Flatpak Preinstall \(.*\)\]$/\1/p' | sort -u)
+if [ -n "$_declared" ]; then
+  _missing=""
+  for _ref in $_declared; do
+    flatpak info "$_ref" >/dev/null 2>&1 || _missing="${_missing}${_ref} "
+  done
+  r flatpak_declared_refs "$(echo $_declared | tr ' ' ',')" ""
+  if [ -z "$_missing" ]; then
+    r flatpak_declared_present all OK
+  elif [ "${_pre_res:-never-run}" = success ]; then
+    r flatpak_declared_present "MISSING: ${_missing% }" PROBLEM; PRODUCT_FAIL=1
+  else
+    r flatpak_declared_present "missing, preinstall not yet successful: ${_missing% }" UNKNOWN
+  fi
+else
+  r flatpak_declared_refs none PROBLEM; PRODUCT_FAIL=1
+fi
 if flatpak info us.zoom.Zoom >/dev/null 2>&1; then
   r zoom_installed "$(flatpak info --show-ref us.zoom.Zoom 2>/dev/null)" OK
   if [ -e /var/lib/flatpak/exports/share/applications/us.zoom.Zoom.desktop ]; then
