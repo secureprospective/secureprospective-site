@@ -77,7 +77,14 @@ const sample = () => {
   // keeps the check from failing on scroll position while still noticing that a
   // whole mechanism never engaged.
   const state = new Set();
-  for (const el of Array.from(document.querySelectorAll('body *'))) {
+  // Script, style and link elements are skipped: visible page state never lives
+  // on them, and third-party tags do. Cloudflare's analytics beacon injects a
+  // data-cf-beacon attribute on the initial document and does not re-inject it
+  // after a client-side swap, which reported all six live pages as broken.
+  const scan = Array.from(document.querySelectorAll('body *')).filter(
+    (el) => !/^(script|style|link|noscript|template)$/i.test(el.tagName)
+  );
+  for (const el of scan) {
     for (const c of el.classList) {
       if (/^(is-|has-|active|current)/.test(c) || /--active|--current/.test(c)) state.add(`class:${c}`);
     }
