@@ -8,9 +8,23 @@
 # way a person does: every category, every article, checking each one renders
 # real text and reports a page count.
 set -uo pipefail
-APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}/app/index.html"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SPPLUS="$(dirname "$HERE")"
+# The source of truth is the repo, not a staging copy. This used to default to
+# $HOME/sp-plus-welcome-src, a directory from an old workflow that no longer
+# exists on either machine -- so the walker was handed a path with no file at
+# it, wrote nothing, and the gate reported "walker produced nothing" on a clean
+# tree. A gate whose only failure mode is its own plumbing teaches people to
+# ignore it.
+SRC="${SPPLUS_WELCOME_SRC:-$SPPLUS/welcome}"
+APP="$SRC/app/index.html"
 MIN_CHARS="${MIN_CHARS:-200}"
-WALKER=/tmp/help-corpus-walker.py
+[ -f "$APP" ] || { echo "  FAIL app missing: $APP"; echo "HELP CORPUS GATE: FAIL"; exit 2; }
+[ -f "$SRC/app/help-data.json" ] || { echo "  FAIL corpus missing: $SRC/app/help-data.json"; echo "HELP CORPUS GATE: FAIL"; exit 2; }
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+WALKER="$WORK/help-corpus-walker.py"
+WALK_JSON="$WORK/help-walk.json"
 cat > "$WALKER" <<'PYWALK'
 import sys, json
 from PySide6.QtCore import QUrl, QTimer
@@ -124,11 +138,44 @@ def await_cats(tries):
 v.loadFinished.connect(lambda ok: start(0) if ok else finish())
 QTimer.singleShot(220000, finish); sys.exit(app.exec())
 PYWALK
-QT_QPA_PLATFORM=offscreen timeout 280 python3 "$WALKER" "$APP" > /tmp/help-walk.json 2>/dev/null
-[ -s /tmp/help-walk.json ] || { echo "walker produced nothing"; echo "HELP CORPUS GATE: FAIL"; exit 1; }
-MIN_CHARS="$MIN_CHARS" APP_PATH="$APP" python3 - <<'PY'
+# QtWebEngine is not installed outside the image, so the walker runs wherever
+# it can actually import: this host if PySide6 is here, otherwise inside the SP+
+# image itself, which is the more faithful place to run it anyway.
+if python3 -c 'import PySide6.QtWebEngineWidgets' >/dev/null 2>&1; then
+  echo "  running the walker on this host"
+  QT_QPA_PLATFORM=offscreen timeout 280 python3 "$WALKER" "$APP" > "$WALK_JSON" 2>"$WORK/walker.err"
+elif command -v podman >/dev/null 2>&1; then
+  IMAGE="${SPPLUS_IMAGE:-$(sudo -n podman images --format '{{.Repository}}:{{.Tag}} {{.CreatedAt}}' 2>/dev/null \
+          | grep '^localhost/sp-plus-kde:' | sort -k2 -r | head -1 | awk '{print $1}')}"
+  if [ -z "$IMAGE" ]; then
+    echo "  SKIP no PySide6 here and no localhost/sp-plus-kde image; the corpus was NOT walked"; exit 0
+  fi
+  # podman runs this as root and Chromium refuses to start its zygote sandbox as
+  # root. The container has no network at all, so dropping the sandbox here costs
+  # nothing; without the flag the walker dies before the first paint and the only
+  # symptom is an empty result file.
+  echo "  running the walker inside $IMAGE"
+  # The timeout is applied on this side of podman. Passing "timeout" as the
+  # container command exits 125 with no output at all -- it is /usr/sbin/timeout
+  # and that is not on the PATH podman starts the process with.
+  timeout 300 sudo -n podman run --rm --network=none \
+      -v "$SRC:/welcome:ro,z" -v "$WORK:/work:z" \
+      -e QT_QPA_PLATFORM=offscreen \
+      -e QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox \
+      "$IMAGE" \
+      python3 /work/help-corpus-walker.py /welcome/app/index.html \
+      > "$WALK_JSON" 2>"$WORK/walker.err"
+else
+  echo "  SKIP no PySide6 and no podman; the corpus was NOT walked"; exit 0
+fi
+if [ ! -s "$WALK_JSON" ]; then
+  echo "  walker produced nothing -- its own error output follows:"
+  sed -n '1,40p' "$WORK/walker.err" | sed 's/^/    /'
+  echo "HELP CORPUS GATE: FAIL"; exit 1
+fi
+MIN_CHARS="$MIN_CHARS" APP_PATH="$APP" WALK_JSON="$WALK_JSON" python3 - <<'PY'
 import json, os, re, sys
-data = json.load(open('/tmp/help-walk.json'))
+data = json.load(open(os.environ['WALK_JSON']))
 floor = int(os.environ['MIN_CHARS'])
 fail = 0
 total = 0
