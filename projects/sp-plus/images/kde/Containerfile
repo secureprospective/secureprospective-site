@@ -856,7 +856,7 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-workspace' /usr/libexec/sp-plus/fin \
  && grep -q 'sends an email' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
- && echo "FIN_GUARDRAILS_OK 2 extensions loaded by path; sudo deliberately NOT gated" \
+ && echo "FIN_GUARDRAILS_OK 3 extensions loaded by path; sudo deliberately NOT gated" \
  && grep -q 'image-mode' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \
@@ -1425,7 +1425,16 @@ COPY config/flatpak/flathub.flatpakrepo /usr/share/flatpak/remotes.d/flathub.fla
 # first run pulls roughly a gigabyte of freedesktop runtime, and a target waits
 # for the units wanted by it. Wiring this into multi-user.target would hold the
 # advisor at a black screen on first boot.
-# ---- 5a. Flatpak preinstall: RETIRED 2026-09-04 -----------------------------
+# ---- 5a. Flatpak preinstall: RETIRED 2026-09-04
+#
+# The GATES for this retirement asserted `! test -d /usr/share/flatpak/
+# preinstall.d`, and that failed the first build it ever ran in, at step
+# 116/193. The directory is owned by flatpak-1.18.1 itself and ships EMPTY --
+# the assertion demanded that SP+ delete a directory belonging to a package,
+# which is not ours to remove and would come back on any flatpak update. What
+# SP+ controls is whether anything is IN it, so that is what is now asserted.
+# Source gates could not have caught this: they read the repo, where the
+# directory correctly no longer exists. Only the image knows. -----------------------------
 # The SP+ ISO no longer preinstalls any Flatpak. Christopher retired Thunderbird
 # and Joplin outright and moved Zoom to the Optional Tools screen in Welcome,
 # which left /usr/share/flatpak/preinstall.d empty -- so the unit, the timer and
@@ -1479,7 +1488,7 @@ RUN systemctl enable spplus-flatpak-update.timer \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-update.timer \
  && ! test -e /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
  && ! test -e /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
- && ! test -d /usr/share/flatpak/preinstall.d \
+ && test -z "$(ls -A /usr/share/flatpak/preinstall.d 2>/dev/null)" \
  && echo "DN34_FLATPAK_UPDATE_OK daily and persistent; preinstall retired"
 
 # ---- 5c. Wi-Fi power saving OFF (DN-36) -------------------------------------
@@ -2789,7 +2798,7 @@ RUN set -eux; \
     test -d /usr/share/wallpapers/Next; \
     grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
          /usr/lib/udev/rules.d/50-udev-default.rules; \
-    test ! -e /usr/share/flatpak/preinstall.d; \
+    test -z "$(ls -A /usr/share/flatpak/preinstall.d 2>/dev/null)"; \
     test ! -e /usr/lib/systemd/system/spplus-flatpak-preinstall.service; \
     rpm -q bluedevil bluez >/dev/null \
       || { echo "FINAL TRIM FAIL: KDE's Bluetooth stack (bluedevil/bluez) is missing" >&2; exit 1; }; \
