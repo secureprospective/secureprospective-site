@@ -1406,23 +1406,37 @@ COPY config/flatpak/flathub.flatpakrepo /usr/share/flatpak/remotes.d/flathub.fla
 # first run pulls roughly a gigabyte of freedesktop runtime, and a target waits
 # for the units wanted by it. Wiring this into multi-user.target would hold the
 # advisor at a black screen on first boot.
-COPY config/flatpak/preinstall.d/ /usr/share/flatpak/preinstall.d/
-COPY config/spplus-flatpak-preinstall.service /usr/lib/systemd/system/spplus-flatpak-preinstall.service
-COPY config/spplus-flatpak-preinstall.timer   /usr/lib/systemd/system/spplus-flatpak-preinstall.timer
-
-RUN systemctl enable spplus-flatpak-preinstall.timer \
- && test -L /etc/systemd/system/timers.target.wants/spplus-flatpak-preinstall.timer \
- && test -s /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
- && grep -q '^\[Flatpak Preinstall us.zoom.Zoom\]$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
- && grep -q '^Branch=stable$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
- && test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
- && grep -q '^\[Flatpak Preinstall org.mozilla.Thunderbird\]$' /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
- && grep -q '^Branch=stable$' /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
- && ! rpm -q thunderbird \
- && test -x /usr/bin/flatpak \
- && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
- && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
- && echo "FLATPAK_PREINSTALL_OK zoom + thunderbird declared, timer enabled"
+# ---- 5a. Flatpak preinstall: RETIRED 2026-09-04 -----------------------------
+# The SP+ ISO no longer preinstalls any Flatpak. Christopher retired Thunderbird
+# and Joplin outright and moved Zoom to the Optional Tools screen in Welcome,
+# which left /usr/share/flatpak/preinstall.d empty -- so the unit, the timer and
+# their gates went with it rather than being kept as a scheduled job that exists
+# to do nothing.
+#
+# WHAT THIS SUBSYSTEM ACTUALLY DID ON A SHIPPED MACHINE, measured on the
+# 20260904e guest 2026-09-04:
+#
+#   Info: org.mozilla.Thunderbird is end-of-life, in favor of
+#         app/net.thunderbird.Thunderbird/x86_64/stable
+#   Updating to rebased version
+#   error: Cannot autolaunch D-Bus without X11 $DISPLAY
+#
+# Flathub retired the Thunderbird app and published a successor ref that does
+# not resolve (`flatpak remote-info flathub net.thunderbird.Thunderbird` ->
+# "Can't find ref"). Following the rebase wants a session bus, which a system
+# service at OnBootSec=90s does not have. The transaction exited 1, and because
+# `flatpak preinstall` takes no ref argument and installs the set as ONE
+# operation, Zoom and Joplin died with it. Three applications missing from a
+# machine that reported itself healthy, with no advisor-visible symptom.
+#
+# The lesson worth keeping: an all-or-nothing installer whose contents are
+# maintained by other people will eventually be taken down by the least stable
+# thing in it. Optional Tools installs one app per click and reports each one.
+#
+# The DAILY FLATPAK UPDATE timer (5b, DN-34) stays. It is what keeps an
+# advisor's Zoom above the minimum version Zoom will accept, and that argument
+# is now MORE important, not less: Zoom arrives from Optional Tools and nothing
+# else would ever advance it.
 
 # ---- 5b. Flatpak UPDATES (DN-34) --------------------------------------------
 # preinstall DEPLOYS refs; it never advances one that is already installed. So
@@ -1444,10 +1458,10 @@ RUN systemctl enable spplus-flatpak-update.timer \
  && grep -q '^Persistent=true$' /usr/lib/systemd/system/spplus-flatpak-update.timer \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-update.service \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-update.timer \
- && u_pre=$(grep '^OnBootSec=' /usr/lib/systemd/system/spplus-flatpak-preinstall.timer) \
- && u_upd=$(grep '^OnBootSec=' /usr/lib/systemd/system/spplus-flatpak-update.timer) \
- && [ "$u_pre" != "$u_upd" ] \
- && echo "DN34_FLATPAK_UPDATE_OK daily, persistent, staggered off preinstall"
+ && ! test -e /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
+ && ! test -e /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
+ && ! test -d /usr/share/flatpak/preinstall.d \
+ && echo "DN34_FLATPAK_UPDATE_OK daily and persistent; preinstall retired"
 
 # ---- 5c. Wi-Fi power saving OFF (DN-36) -------------------------------------
 # See the header of the conf file for the measured numbers. Short version: the
@@ -1682,9 +1696,7 @@ RUN set -eux; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-schwab.svg; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-wealthscape.svg; \
     gtk-update-icon-cache -f /usr/share/icons/hicolor || true; \
-    grep -q 'net.cozic.joplin_desktop' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
-    grep -q '^Branch=stable' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
-    echo "PWA_GATE_OK six advisor web apps chromeless, icons present, Joplin queued"
+    echo "PWA_GATE_OK six advisor web apps chromeless, icons present"
 
 # Ship Modern Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
@@ -2171,7 +2183,7 @@ RUN printf '%s\n' \
 #                  (theme internals -- it can break the SP+ look), kcharselect,
 #                  emojier
 #
-# Deliberately LEFT VISIBLE and not up for quiet removal: Brave, Thunderbird,
+# Deliberately LEFT VISIBLE and not up for quiet removal: Brave,
 # LibreOffice Writer/Calc, Okular, Gwenview, Dolphin, KCalc, KeePassXC, Fin,
 # kitty, System Settings, System Monitor, Firewall, Discover, Print Settings,
 # Spectacle, Flameshot, KWrite, micro, Ark, Help Center.
@@ -2262,6 +2274,50 @@ RUN printf '%s\n' \
 # inside the Plasma session and /etc/xdg/mimeapps.list covers everything else.
 # Both are written, with identical content, so neither path can fall through to
 # the broken lists. The vendor files in /usr/share are left untouched.
+# ---- mailto: goes to the advisor's webmail (2026-09-04) ---------------------
+# SP+ ships no desktop mail client. mailto: used to be mapped to
+# org.mozilla.Thunderbird.desktop, a file that exists only if the Thunderbird
+# Flatpak installed -- which on shipped machines it did not, because the
+# preinstall unit was failing. So EVERY email link on the desktop went nowhere,
+# including the "report a problem" link in the crash reporter. The one message
+# most worth receiving was the one most reliably lost.
+#
+# The handler asks once whether the advisor uses Gmail or Outlook, remembers
+# the answer per user, and opens a compose window with the fields already
+# filled in. Both providers are the same two SP+ Welcome offers under "Connect
+# this computer to your office", so nobody is asked to pick between two
+# different names for the same two companies.
+COPY config/spplus-mailto /usr/libexec/sp-plus/spplus-mailto
+COPY config/org.secureprospective.spplus.mailto.desktop \
+     /usr/share/applications/org.secureprospective.spplus.mailto.desktop
+
+RUN chmod 0755 /usr/libexec/sp-plus/spplus-mailto \
+ && chmod 0644 /usr/share/applications/org.secureprospective.spplus.mailto.desktop \
+ && desktop-file-validate /usr/share/applications/org.secureprospective.spplus.mailto.desktop \
+ && grep -q '^MimeType=x-scheme-handler/mailto;message/rfc822;$' \
+      /usr/share/applications/org.secureprospective.spplus.mailto.desktop \
+ && python3 -c "import ast,io; ast.parse(io.open('/usr/libexec/sp-plus/spplus-mailto').read())" \
+ && test -x /usr/bin/kdialog \
+ && test -x /usr/bin/brave-browser \
+ && SPPLUS_KDIALOG=/bin/false XDG_CONFIG_HOME=/tmp/mailto-gate \
+    /usr/libexec/sp-plus/spplus-mailto 'mailto:x@y.z?subject=s' \
+ && mkdir -p /tmp/mailto-gate/sp-plus \
+ && printf 'google\n' > /tmp/mailto-gate/sp-plus/mailto-provider \
+ && out=$(SPPLUS_MAILTO_DRY_RUN=1 XDG_CONFIG_HOME=/tmp/mailto-gate \
+          /usr/libexec/sp-plus/spplus-mailto \
+          'mailto:info@secureprospective.com?subject=SP%2b%20problem%20report&body=hello') \
+ && echo "$out" | grep -q 'mail.google.com/mail/?view=cm' \
+ && echo "$out" | grep -q 'to=info%40secureprospective.com' \
+ && echo "$out" | grep -q 'su=SP%2B%20problem%20report' \
+ && printf 'microsoft\n' > /tmp/mailto-gate/sp-plus/mailto-provider \
+ && out=$(SPPLUS_MAILTO_DRY_RUN=1 XDG_CONFIG_HOME=/tmp/mailto-gate \
+          /usr/libexec/sp-plus/spplus-mailto \
+          'mailto:info@secureprospective.com?subject=SP%2b%20problem%20report&body=hello') \
+ && echo "$out" | grep -q 'outlook.office.com/mail/deeplink/compose' \
+ && echo "$out" | grep -q 'subject=SP%2B%20problem%20report' \
+ && rm -rf /tmp/mailto-gate \
+ && echo "MAILTO_OK gmail and outlook compose URLs built from a mailto link"
+
 RUN printf '%s\n' \
       '[Default Applications]' \
       'x-scheme-handler/http=brave-browser.desktop' \
@@ -2270,8 +2326,8 @@ RUN printf '%s\n' \
       'x-scheme-handler/unknown=brave-browser.desktop' \
       'text/html=brave-browser.desktop' \
       'application/xhtml+xml=brave-browser.desktop' \
-      'x-scheme-handler/mailto=org.mozilla.Thunderbird.desktop' \
-      'message/rfc822=org.mozilla.Thunderbird.desktop' \
+      'x-scheme-handler/mailto=org.secureprospective.spplus.mailto.desktop' \
+      'message/rfc822=org.secureprospective.spplus.mailto.desktop' \
       'text/plain=org.kde.kwrite.desktop' \
       'inode/directory=org.kde.dolphin.desktop' \
       'application/pdf=okularApplication_pdf.desktop' \
@@ -2286,12 +2342,13 @@ RUN printf '%s\n' \
       grep -q '^x-scheme-handler/https=brave-browser.desktop$' "$f" \
         || { echo "MIME FAILED: https not mapped in $f"; exit 1; }; \
     done \
- && for d in brave-browser org.kde.kwrite \
+ && for d in brave-browser org.kde.kwrite org.secureprospective.spplus.mailto \
              org.kde.dolphin okularApplication_pdf org.kde.gwenview; do \
       test -e "/usr/share/applications/$d.desktop" \
         || { echo "MIME FAILED: handler $d does not exist"; exit 1; }; \
     done \
- && grep -q '^x-scheme-handler/mailto=org.mozilla.Thunderbird.desktop$' /etc/xdg/mimeapps.list \
+ && grep -q '^x-scheme-handler/mailto=org.secureprospective.spplus.mailto.desktop$' \
+      /etc/xdg/mimeapps.list \
  && grep -q '^TerminalApplication=kitty$' /etc/xdg/kdeglobals \
  && test -x /usr/bin/kitty \
  && echo "MIME_OK defaults point at applications that exist"
@@ -2662,7 +2719,8 @@ RUN set -eux; \
     test -d /usr/share/wallpapers/Next; \
     grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
          /usr/lib/udev/rules.d/50-udev-default.rules; \
-    test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall; \
+    test ! -e /usr/share/flatpak/preinstall.d; \
+    test ! -e /usr/lib/systemd/system/spplus-flatpak-preinstall.service; \
     rpm -q bluedevil bluez >/dev/null \
       || { echo "FINAL TRIM FAIL: KDE's Bluetooth stack (bluedevil/bluez) is missing" >&2; exit 1; }; \
     test ! -e /etc/xdg/autostart/blueman.desktop; \

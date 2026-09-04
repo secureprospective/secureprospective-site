@@ -83,14 +83,12 @@ if not launchers or not favorites:
     raise SystemExit('layout launchers/favourites declarations are missing')
 expected_taskbar = [
     'applications:brave-browser.desktop',
-    'applications:org.mozilla.Thunderbird.desktop',
     'applications:org.kde.dolphin.desktop',
     'applications:libreoffice-writer.desktop',
     'applications:org.kde.okular.desktop',
 ]
 expected_favorites = [
     'applications:brave-browser.desktop',
-    'applications:org.mozilla.Thunderbird.desktop',
     'applications:fin.desktop',
     'applications:org.kde.dolphin.desktop',
     'applications:libreoffice-writer.desktop',

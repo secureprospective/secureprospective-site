@@ -8,14 +8,12 @@
 // Plasma 6.7: keep widget IDs native and guard the version-sensitive show-desktop ID.
 var spplusTaskbarLaunchers = [
     "applications:brave-browser.desktop",
-    "applications:org.mozilla.Thunderbird.desktop",
     "applications:org.kde.dolphin.desktop",
     "applications:libreoffice-writer.desktop",
     "applications:org.kde.okular.desktop"
 ];
 var spplusMenuFavorites = [
     "applications:brave-browser.desktop",
-    "applications:org.mozilla.Thunderbird.desktop",
     "applications:fin.desktop",
     "applications:org.kde.dolphin.desktop",
     "applications:libreoffice-writer.desktop",

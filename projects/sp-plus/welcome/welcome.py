@@ -104,6 +104,11 @@ SERVICE_CONNECT_TIMEOUT = 10
 SERVICE_TOTAL_TIMEOUT = 15
 SERVICE_MAX_BODY = 1024 * 1024
 FLATPAK_APP_NAMES = {
+    # Zoom moved here from the ISO's Flatpak preinstall on 2026-09-04. It is
+    # first because it is not only meeting software: it is the practical way
+    # an advisor lets someone they trust see the screen and fix a problem,
+    # which is the difference between a stuck advisor and a solved one.
+    'us.zoom.Zoom': 'Zoom',
     'com.bitwarden.desktop': 'Bitwarden',
     'org.signal.Signal': 'Signal',
     # DN-26, 2026-09-04. Boxes is how an advisor runs the one Windows-only
