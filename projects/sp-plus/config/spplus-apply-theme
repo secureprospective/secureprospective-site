@@ -726,7 +726,7 @@ def find_wallpaper_overrides(root: Path) -> Optional[Path]:
     return None
 
 
-def parse_wallpaper_overrides(path: Path) -> dict[str, str]:
+def parse_wallpaper_overrides(path: Path) -> dict[str, dict[str, str]]:
     """Read the SP+ theme-id to wallpaper-package table.
 
     SP+ owns the wallpaper for every theme it offers, including the stock
@@ -740,12 +740,17 @@ def parse_wallpaper_overrides(path: Path) -> dict[str, str]:
 
         [org.kde.breezedark.desktop]
         Image=SPPlus-Still-Water
+
+    Two keys are understood. Image names a wallpaper package. PlasmaTheme
+    names a Plasma desktop theme, and exists because a stock package can
+    declare a light colour scheme while leaving the panel on the dark
+    "default" desktop theme, which is what org.kde.breeze.desktop does.
     """
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise ValidationFailure(f"cannot read wallpaper overrides {path}: {exc}") from exc
-    overrides: dict[str, str] = {}
+    overrides: dict[str, dict[str, str]] = {}
     theme_id: Optional[str] = None
     for line_number, original in enumerate(text.splitlines(), start=1):
         line = original.strip()
@@ -758,6 +763,7 @@ def parse_wallpaper_overrides(path: Path) -> dict[str, str]:
                 raise ValidationFailure(
                     f"wallpaper overrides name {theme_id!r} more than once: {path}:{line_number}"
                 )
+            overrides[theme_id] = {}
             continue
         if theme_id is None:
             raise ValidationFailure(
@@ -770,16 +776,72 @@ def parse_wallpaper_overrides(path: Path) -> dict[str, str]:
             )
         key = key.strip()
         value = value.strip()
-        if key != "Image":
+        if key not in ("Image", "PlasmaTheme"):
             raise ValidationFailure(
-                f"wallpaper overrides accept only Image, not {key!r}: {path}:{line_number}"
+                f"wallpaper overrides accept only Image and PlasmaTheme, "
+                f"not {key!r}: {path}:{line_number}"
             )
-        if not value or Path(value).name != value:
+        if key in overrides[theme_id]:
             raise ValidationFailure(
-                f"unsafe wallpaper package name {value!r}: {path}:{line_number}"
+                f"{theme_id!r} names {key} more than once: {path}:{line_number}"
             )
-        overrides[theme_id] = value
+        if not value or Path(value).name != value or value in (".", ".."):
+            raise ValidationFailure(
+                f"unsafe override value {value!r} for {key}: {path}:{line_number}"
+            )
+        overrides[theme_id][key] = value
     return overrides
+
+
+def override_plasma_theme(
+    log: EventLog,
+    settings: list[Setting],
+    theme_id: str,
+    replacement: Optional[str],
+    path: Path,
+) -> list[Setting]:
+    """Replace a theme's declared Plasma desktop theme with the SP+ choice.
+
+    org.kde.breeze.desktop declares the BreezeLight colour scheme but leaves
+    plasmarc on "default", so the panel and its popups stay dark under a light
+    theme. The package belongs to plasma-workspace, so fixing it in place would
+    be undone by the next RPM update without failing a gate; this is the same
+    SP+-owned layer the wallpaper uses, for the same reason.
+    """
+    if replacement is None:
+        return settings
+    declared = next(
+        (
+            item.value
+            for item in settings
+            if item.file == "plasmarc" and item.group == "Theme" and item.key == "name"
+        ),
+        None,
+    )
+    safe_emit(
+        log,
+        "plasma_theme_override",
+        "validate",
+        theme=theme_id,
+        declared=declared,
+        applied=replacement,
+        source=str(path),
+    )
+    result = [
+        item
+        for item in settings
+        if not (item.file == "plasmarc" and item.group == "Theme" and item.key == "name")
+    ]
+    result.append(
+        Setting(
+            file="plasmarc",
+            group="Theme",
+            key="name",
+            value=replacement,
+            source=f"{path}:[{theme_id}]",
+        )
+    )
+    return result
 
 
 def override_wallpaper(
@@ -804,7 +866,11 @@ def override_wallpaper(
     if path is None:
         return settings
     overrides = parse_wallpaper_overrides(path)
-    replacement = overrides.get(theme_id)
+    entry = overrides.get(theme_id)
+    if not entry:
+        return settings
+    settings = override_plasma_theme(log, settings, theme_id, entry.get("PlasmaTheme"), path)
+    replacement = entry.get("Image")
     if replacement is None:
         return settings
     declared = next(

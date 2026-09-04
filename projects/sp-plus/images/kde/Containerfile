@@ -1600,6 +1600,8 @@ RUN printf '%s\n' \
  && grep -q '^Image=SPPlus-Winter-River$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
  && grep -q '^\[org.kde.breezedark.desktop\]$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
  && grep -q '^\[org.kde.breeze.desktop\]$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && grep -q '^PlasmaTheme=breeze-light$' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
+ && test -f /usr/share/plasma/desktoptheme/breeze-light/metadata.json \
  && ! grep -q 'Image=Next' /usr/share/sp-plus/theme/wallpaper-overrides.conf \
  && test -x /usr/libexec/spplus-apply-theme \
  && ! grep -qF 'check=False' /usr/libexec/spplus-apply-theme \
@@ -1780,7 +1782,7 @@ assert c <= known, 'help category the Welcome screen has no blurb for: %s' % (c-
     done \
  && echo "WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact" \
  && test -s /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md \
- && for preview in windows-light.png windows-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \
+ && for preview in modern-light.png modern-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \
       test -s "/usr/libexec/sp-plus/welcome/app/assets/theme-previews/$preview"; \
     done \
  && test -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
