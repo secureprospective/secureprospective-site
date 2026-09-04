@@ -129,9 +129,22 @@
     const retry = document.querySelector(`[data-service-retry="${service}"]`);
     if (state) { state.dataset.kind = 'pending'; state.removeAttribute('data-http-status'); }
     if (title) title.textContent = service === 'files' ? 'CHECKING FILE PORTAL...' : 'CHECKING SOCIAL...';
-    if (detail) detail.textContent = service === 'files'
+    const baseDetail = service === 'files'
       ? 'Welcome is checking that the portal is ready. No files are opened.'
       : 'Welcome is checking that Social is ready. No accounts are changed.';
+    if (detail) {
+      // A message that never changes reads as a frozen window. The elapsed
+      // count is the cheapest honest signal that this is still working, and it
+      // stops at the same ten-second ceiling the check itself has.
+      detail.textContent = baseDetail;
+      if (serviceTimers[service]) clearInterval(serviceTimers[service]);
+      const started = Date.now();
+      serviceTimers[service] = setInterval(() => {
+        if (!servicePending[service]) { clearInterval(serviceTimers[service]); serviceTimers[service] = null; return; }
+        const secs = Math.round((Date.now() - started) / 1000);
+        if (secs >= 2) detail.textContent = `${baseDetail} Still checking, ${secs} seconds so far.`;
+      }, 1000);
+    }
     if (retry) { retry.disabled = false; retry.textContent = 'RETRY'; }
     setReadyOnlyControls(service, false, 'pending');
     if (service === 'social') renderSocialPlatforms([], 'pending');
@@ -170,6 +183,7 @@
     setReadyOnlyControls(service, serviceReady[service], stateName);
     if (service === 'social') renderSocialPlatforms(serviceReady[service] ? payload.platforms : [], stateName);
   }
+  const serviceTimers = { files: null, social: null };
   function requestServiceCapability(service, force = false) {
     if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
     if (!force && serviceCache[service]) {
@@ -185,6 +199,7 @@
     const service = payload && payload.service;
     if (!Object.prototype.hasOwnProperty.call(serviceScreens, service)) return;
     servicePending[service] = false;
+    if (serviceTimers[service]) { clearInterval(serviceTimers[service]); serviceTimers[service] = null; }
     serviceCache[service] = payload;
     renderServiceResult(service, payload);
   }
@@ -192,6 +207,17 @@
     files: 'https://cloud.secureprospective.com',
     social: 'https://social.secureprospective.com'
   };
+  // Start both checks the first time the advisor moves at all, so the network
+  // wait happens behind the screens they are already reading instead of in
+  // front of the one they just opened. Results are cached, so arriving on the
+  // screen then costs nothing.
+  let serviceWarmed = false;
+  function warmServiceChecks() {
+    if (serviceWarmed) return;
+    serviceWarmed = true;
+    requestServiceCapability('files');
+    requestServiceCapability('social');
+  }
   const servicePanel = document.getElementById('service-panel');
   const servicePanelClose = document.getElementById('service-panel-close');
   const servicePanelBackdrop = document.getElementById('service-panel-backdrop');
@@ -366,6 +392,7 @@
     if (current === 0) window.spHero?.start(); else window.spHero?.stop();
     if (current === serviceScreens.files) requestServiceCapability('files');
     if (current === serviceScreens.social) requestServiceCapability('social');
+    warmServiceChecks();
     announce(current === lastScreen ? 'SETUP HANDOFF IS READY.' : 'READY WHEN YOU ARE.');
   }
   routes.forEach(route => route.addEventListener('click', () => go(Number(route.dataset.go))));
@@ -696,12 +723,39 @@
     updateOfficeSummary();
     announce((result && result.message) || 'EMAIL COULD NOT BE OPENED THIS TIME.', result && result.ok ? '' : 'stub');
   }
+  const emailOtherBox = document.getElementById('email-other');
+  const emailOtherUrl = document.getElementById('email-other-url');
+  function syncEmailOther() {
+    const picked = document.querySelector('input[name="email"]:checked')?.value;
+    if (emailOtherBox) emailOtherBox.hidden = picked !== 'other';
+  }
+  document.querySelectorAll('input[name="email"]').forEach((radio) => {
+    radio.addEventListener('change', syncEmailOther);
+  });
+  syncEmailOther();
   emailButton.addEventListener('click', () => {
     const provider = document.querySelector('input[name="email"]:checked')?.value || 'other';
+    let address = '';
+    if (provider === 'other') {
+      address = (emailOtherUrl?.value || '').trim();
+      if (!address) {
+        if (emailResult) emailResult.textContent = 'Type the web address your practice uses for email, then try again.';
+        announce('TYPE THE WEB ADDRESS YOUR PRACTICE USES FOR EMAIL.', 'stub');
+        emailOtherUrl?.focus();
+        return;
+      }
+      if (!/^https:\/\//i.test(address)) {
+        if (emailResult) emailResult.textContent = 'The address has to start with https so the connection is encrypted.';
+        announce('THE ADDRESS HAS TO START WITH HTTPS.', 'stub');
+        emailOtherUrl?.focus();
+        return;
+      }
+    }
     emailButton.disabled = true;
     if (emailResult) emailResult.textContent = 'Opening your provider page. SP+ will not ask for your email password.';
     announce('OPENING THE PROVIDER SIGN-IN PAGE. SP+ NEVER HANDLES YOUR EMAIL PASSWORD.');
-    send('spplus:connect-email?provider=' + encodeURIComponent(provider));
+    send('spplus:connect-email?provider=' + encodeURIComponent(provider)
+         + '&address=' + encodeURIComponent(address));
   });
   const shareButton = document.getElementById('share-check');
   const shareResult = document.getElementById('share-result');

@@ -100,8 +100,13 @@ SERVICE_ENDPOINT_ENV = {
     'files': 'SPPLUS_CAPABILITY_FILES_URL',
     'social': 'SPPLUS_CAPABILITY_SOCIAL_URL',
 }
-SERVICE_CONNECT_TIMEOUT = 10
-SERVICE_TOTAL_TIMEOUT = 15
+# Tightened from 10/15 on 2026-09-04. The endpoints answer in under half a
+# second; the only slow part measured was a cold DNS stall, and fifteen
+# seconds of it is indistinguishable from a hung window. If the name cannot
+# be resolved and the page fetched inside ten seconds, saying so and
+# offering RETRY is more use to an advisor than waiting longer.
+SERVICE_CONNECT_TIMEOUT = 6
+SERVICE_TOTAL_TIMEOUT = 10
 SERVICE_MAX_BODY = 1024 * 1024
 FLATPAK_APP_NAMES = {
     # Zoom moved here from the ISO's Flatpak preinstall on 2026-09-04. It is
@@ -822,6 +827,42 @@ class ComputerCheckWorker(QThread):
 
         return issues
 
+    @staticmethod
+    def _update_state():
+        """Ask the update guard what it thinks, without touching the network.
+
+        `status` reads local state only. `check` is the one that talks to the
+        registry, and this is not the place to spend a network round trip: the
+        button already ran a 300 second tuner and the advisor is waiting.
+        """
+        helper = Path(UPDATE_CONTROL)
+        if not helper.is_file():
+            return 'Could not be read on this computer.'
+        try:
+            done = subprocess.run([SUDO, '-n', str(helper), 'status'],
+                                  capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            return 'Could not be read on this computer.'
+        raw = (done.stdout or '').strip()
+        if not raw:
+            return 'Could not be read on this computer.'
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            return 'Could not be read on this computer.'
+        state = str(data.get('state', '')).strip() or 'unknown'
+        message = str(data.get('message', '')).strip()
+        return ('state=%s%s' % (state, (' -- ' + message) if message else ''))
+
+    @staticmethod
+    def _machine_record():
+        """The whole THIS-MACHINE.md, capped so one brief cannot run away."""
+        try:
+            text = Path(MACHINE_DOC).read_text(errors='replace').strip()
+        except OSError:
+            return ''
+        return text[:6000]
+
     def _fin_verdict(self, all_clear, issues, summary):
         """Have Fin write the verdict. Returns (text, fin_was_actually_used).
 
@@ -844,13 +885,37 @@ class ComputerCheckWorker(QThread):
             facts.append('- ' + str(line))
         for issue in issues:
             facts.append('- PROBLEM: ' + str(issue))
+
+        # The update guard's own answer, read locally. This is the single fact
+        # the advisor most wants out of this button ("is there anything I
+        # should install?") and the old brief did not contain it at all, which
+        # is most of why the answer always sounded the same.
+        facts.append('')
+        facts.append('UPDATE STATUS, from the update guard on this machine:')
+        facts.append(self._update_state())
+
+        # The full record, not six harvested fields. Fin can read a table.
+        record = self._machine_record()
+        if record:
+            facts.append('')
+            facts.append('THE MACHINE RECORD (THIS-MACHINE.md), in full:')
+            facts.append(record)
+
         brief = (
             '\n'.join(facts) + '\n\n'
-            'Write 2 to 3 short sentences for a financial advisor who is not '
-            'technical, telling them what this means. Do not invent findings '
-            'that are not listed. Do not suggest commands. Say plainly that '
-            'nothing on the computer was changed. Reply with the sentences '
-            'only, no preamble and no markdown.')
+            'You are Fin, reporting to a financial advisor who is not '
+            'technical and who just pressed a button called "check this '
+            'computer". Tell them what you found.\n\n'
+            'Cover, in plain English and in this order:\n'
+            '1. Whether anything needs updating, and if so what it is.\n'
+            '2. Whether anything is wrong or worth their attention.\n'
+            '3. What, if anything, they should do next.\n\n'
+            'Rules. Use only the evidence above; if it does not say something, '
+            'say you could not tell rather than guessing. Never state that the '
+            'computer is up to date unless the update status above says so. Do '
+            'not give commands, file paths, unit names, error codes or version '
+            'numbers. Say plainly that nothing on the computer was changed. Six '
+            'sentences at most, no preamble, no markdown, no bullet characters.')
 
         try:
             done = subprocess.run([FIN, '--ask', brief],
@@ -862,7 +927,11 @@ class ComputerCheckWorker(QThread):
         if done.returncode != 0 or not answer:
             return fallback, False
         # A runaway answer is a formatting failure, not a verdict.
-        if len(answer) > 900:
+        # Raised from 900 with the brief. A ceiling below the length of a
+        # correct answer silently discards every correct answer and shows the
+        # canned fallback instead, which is indistinguishable from Fin being
+        # broken.
+        if len(answer) > 1600:
             return fallback, False
         return answer, True
 
@@ -960,12 +1029,60 @@ class EmailLaunchWorker(QThread):
                       'spplus-email-microsoft.desktop'),
     }
 
-    def __init__(self, provider):
+    # An advisor whose practice is on neither Google nor Microsoft used to be
+    # told to go ask someone. They can now give their own webmail address and
+    # get the same launcher the other two get.
+    #
+    # WHAT IS REFUSED, AND WHY EACH ONE MATTERS:
+    #   * anything but https  -- a webmail sign-in over http puts the password
+    #                            on the wire in clear text
+    #   * user:pass@host      -- credentials in a URL end up in the launcher
+    #                            file, the process list and shell history
+    #   * control characters  -- a newline in the address would close the Exec=
+    #                            line and let the rest of the string become its
+    #                            own key in the .desktop file, which is a real
+    #                            way to make a launcher run something else
+    #   * over 500 characters -- no legitimate sign-in page needs it
+    MAX_ADDRESS = 500
+
+    @classmethod
+    def _custom(cls, address):
+        """Return (name, url, desktop_name) for a typed address, or a refusal."""
+        address = (address or '').strip()
+        if not address:
+            return None, 'Type the web address your practice uses for email.'
+        if len(address) > cls.MAX_ADDRESS:
+            return None, 'That address is too long to be a sign-in page.'
+        if any(ch in address for ch in '\r\n\t\x00') or any(ord(c) < 32 for c in address):
+            return None, 'That address contains characters an address cannot have.'
+        try:
+            parsed = urlparse(address)
+        except ValueError:
+            return None, 'That does not look like a web address.'
+        if parsed.scheme.lower() != 'https':
+            return None, ('The address has to start with https so your sign-in '
+                          'is encrypted. SP+ did not open anything.')
+        if not parsed.hostname or '.' not in parsed.hostname:
+            return None, 'That does not look like a web address.'
+        if parsed.username or parsed.password:
+            return None, ('Leave the username and password out of the address. '
+                          'Your provider will ask for them on their own page.')
+        host = parsed.hostname.lower()
+        safe = ''.join(c if (c.isalnum() or c == '-') else '-' for c in host)
+        return (host, address, 'spplus-email-%s.desktop' % safe[:60]), None
+
+    def __init__(self, provider, address=''):
         super().__init__()
         self.provider = provider
+        self.address = address
 
     def run(self):
         details = self.PROVIDERS.get(self.provider)
+        if not details and self.provider == 'other':
+            details, refusal = self._custom(self.address)
+            if not details:
+                self.result_ready.emit(self, {'ok': False, 'message': refusal})
+                return
         if not details:
             self.result_ready.emit(self, {
                 'ok': False,
@@ -1530,7 +1647,8 @@ class WelcomeBridge(QObject):
             self.launch_fin()
         elif parsed.path == 'connect-email':
             provider = (params.get('provider') or [''])[0].strip().lower()
-            self.connect_email(provider)
+            address = (params.get('address') or [''])[0].strip()
+            self.connect_email(provider, address)
         elif parsed.path == 'check-share':
             server = (params.get('server') or [''])[0].strip()
             folder = (params.get('folder') or [''])[0].strip()
@@ -1628,8 +1746,8 @@ class WelcomeBridge(QObject):
         """Run one update verb. The page decides what to show, never what is true."""
         self._dispatch(UpdateWorker(action), 'updateResult')
 
-    def connect_email(self, provider):
-        self._dispatch(EmailLaunchWorker(provider), 'emailResult')
+    def connect_email(self, provider, address=''):
+        self._dispatch(EmailLaunchWorker(provider, address), 'emailResult')
 
     def check_share(self, server, folder, username, password, save_securely):
         if not server or not folder or not username or not password:
