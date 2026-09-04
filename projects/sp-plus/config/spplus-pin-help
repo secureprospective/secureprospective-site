@@ -18,11 +18,10 @@
 set -uo pipefail
 
 ENTRY="applications:org.secureprospective.spplus.help.desktop"
-CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
+QDBUS="${SPPLUS_QDBUS:-qdbus-qt6}"
 
 fail() { echo "$1" >&2; exit 1; }
 
-command -v kwriteconfig6 >/dev/null 2>&1 || fail "This desktop does not provide kwriteconfig6."
 [ -f /usr/share/applications/org.secureprospective.spplus.help.desktop ] \
   || fail "The Help application is not installed on this computer."
 
@@ -37,69 +36,94 @@ done
 curl -fsS --max-time 2 http://127.0.0.1:8766/ >/dev/null 2>&1 \
   || fail "Help started but did not answer on this computer."
 
-# 2. The launcher list. Find the Task Manager applet rather than assuming a
-# group number: the panel layout differs between the themes SP+ ships, and a
-# hardcoded group would silently write into the wrong applet.
-[ -f "$CONFIG" ] || fail "This desktop has no panel configuration to pin to."
+# 2. THE PIN ITSELF, WRITTEN THROUGH PLASMASHELL.
+#
+# This used to write plasma-org.kde.plasma.desktop-appletsrc directly and tell
+# the advisor the icon would appear at the next sign-in. Measured on the RC1e
+# guest 2026-09-03, that is not merely slow, it is WRONG IN BOTH DIRECTIONS:
+#
+#   file  : ...okular.desktop,applications:org.secureprospective.spplus.help.desktop
+#   shell : ...okular.desktop                       <- no help entry
+#
+# plasmashell holds the applet config in memory for the life of the session, so
+# the file write is invisible to the running shell AND is liable to be
+# overwritten when the shell next serialises its own view. The advisor pressed
+# the button, was told it worked, and could end up with nothing at all.
+#
+# evaluateScript is the supported way to change a running shell's applets. It is
+# NOT refreshCurrentShell, which is the call this script rightly stopped making:
+# that one killed the panel 3 times out of 3 while returning exit 0. This one was
+# tested on the guest -- found=1 added=1, plasmashell still alive, and the
+# launcher list read back THROUGH the shell contained the entry.
+#
+# The widget on SP+ is org.kde.plasma.icontasks, not taskmanager. Both are
+# accepted here because the panel differs between the themes SP+ ships and a
+# future layout may use either.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
 
-group=$(awk -F'[][]' '
-  /^\[Containments\]\[[0-9]+\]\[Applets\]\[[0-9]+\]\]?$/ { path=$0 }
-  /^plugin=org\.kde\.plasma\.(taskmanager|icontasks)$/ && path { print path; exit }
-' "$CONFIG")
-[ -n "$group" ] || fail "No task bar was found on this desktop."
+command -v "$QDBUS" >/dev/null 2>&1 \
+  || fail "This desktop does not provide $QDBUS, so the task bar cannot be changed."
 
-# Group path like [Containments][2][Applets][7] -> the arguments kwriteconfig6
-# wants, plus the General subgroup the launcher list lives in.
-mapfile -t parts < <(printf '%s\n' "$group" | grep -oE '[0-9]+|Containments|Applets')
-args=()
-for p in "${parts[@]}"; do args+=(--group "$p"); done
-args+=(--group Configuration --group General)
+# Fedora ships the Qt6 tool as qdbus-qt6. An earlier version of this script
+# called `qdbus6`, which does not exist here: every call failed with exit 127,
+# the refresh never once ran, and nothing looked broken. Assert the tool rather
+# than discovering its absence as silence.
 
-current=$(kreadconfig6 --file "$CONFIG" "${args[@]}" --key launchers 2>/dev/null || true)
+read -r -d '' PIN_SCRIPT <<JS
+var entry = "$ENTRY";
+var found = 0, added = 0;
+var ps = panels();
+for (var i = 0; i < ps.length; i++) {
+    var ws = ps[i].widgets();
+    for (var j = 0; j < ws.length; j++) {
+        var w = ws[j];
+        if (w.type === "org.kde.plasma.taskmanager" || w.type === "org.kde.plasma.icontasks") {
+            found++;
+            w.currentConfigGroup = ["General"];
+            var cur = w.readConfig("launchers", "");
+            if (cur.indexOf(entry) === -1) {
+                w.writeConfig("launchers", cur.length ? cur + "," + entry : entry);
+                w.reloadConfig();
+                added++;
+            }
+        }
+    }
+}
+print("found=" + found + " added=" + added);
+JS
 
-case ",$current," in
-  *",$ENTRY,"*) echo "Help is already on your task bar." ; exit 0 ;;
+result="$("$QDBUS" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$PIN_SCRIPT" 2>&1)" \
+  || fail "The task bar did not accept the change."
+
+case "$result" in
+  *"found=0"*) fail "No task bar was found on this desktop." ;;
 esac
 
-if [ -n "$current" ]; then updated="$current,$ENTRY"; else updated="$ENTRY"; fi
-kwriteconfig6 --file "$CONFIG" "${args[@]}" --key launchers "$updated" \
-  || fail "The task bar could not be changed."
+# 3. READ IT BACK THROUGH THE SHELL, not off disk. Reading the file would prove
+# only what this script wrote; the whole defect was that the file and the
+# running shell disagree. The shell's own answer is the evidence.
+read -r -d '' VERIFY_SCRIPT <<'JS'
+var ps = panels();
+for (var i = 0; i < ps.length; i++) {
+    var ws = ps[i].widgets();
+    for (var j = 0; j < ws.length; j++) {
+        var w = ws[j];
+        if (w.type === "org.kde.plasma.taskmanager" || w.type === "org.kde.plasma.icontasks") {
+            w.currentConfigGroup = ["General"];
+            print(w.readConfig("launchers", ""));
+        }
+    }
+}
+JS
 
-# Read it back. A write that did not take must not be reported as a pin.
-verify=$(kreadconfig6 --file "$CONFIG" "${args[@]}" --key launchers 2>/dev/null || true)
+verify="$("$QDBUS" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$VERIFY_SCRIPT" 2>&1 || true)"
 case ",$verify," in
-  *",$ENTRY,"*) ;;
+  *",$ENTRY,"*|*",$ENTRY"*) ;;
   *) fail "The task bar did not keep the change." ;;
 esac
 
-# 3. plasmashell holds this config in memory and would write over the change,
-# so the pin has to survive that. What this must NOT do is ask plasmashell to
-# reload the running shell.
-#
-# History, measured on the test VM 2026-09-01, the first time this helper was
-# ever executed on any machine:
-#
-#   * It called `qdbus6`, which is not on the SP+ image -- Fedora ships the
-#     Qt6 tool as qdbus-qt6 -- so the call failed with exit 127 every time and
-#     the refresh never once happened. Nothing looked broken: the pin was
-#     written and read back correctly, and the icon simply did not appear
-#     until the next sign-in.
-#
-#   * Repairing the tool name made it far worse. With the call actually
-#     reaching plasmashell, org.kde.PlasmaShell.refreshCurrentShell killed the
-#     shell 3 times out of 3 -- the panel disappeared entirely -- and returned
-#     exit 0 each time, so the caller was told it had succeeded. That is not
-#     the intermittent churn segfault in DEFECT-plasmashell-segv-theme-churn;
-#     it was deterministic.
-#
-# Losing the whole task bar is far worse for an advisor than an icon that
-# arrives at the next sign-in, so this no longer asks for a live reload. The
-# pin is on disk, verified by readback above, and the message says plainly
-# when it will be visible rather than claiming an icon that is not there yet.
-#
-# Making it appear immediately is possible through plasmashell's own
-# evaluateScript API, which does not restart the shell -- but it must write
-# through plasmashell rather than the file, because the two disagree while the
-# shell is running. That is a design change, not a bug fix, and is not
-# attempted here.
-echo "Help is pinned. It will appear on your task bar after your next sign-in."
+case "$result" in
+  *"added=0"*) echo "Help is already on your task bar." ;;
+  *)           echo "Help is pinned to your task bar." ;;
+esac
