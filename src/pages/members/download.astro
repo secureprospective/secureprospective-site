@@ -13,6 +13,54 @@ import Layout from '../../layouts/Layout.astro';
       </p>
     </header>
 
+    <!--
+      The alpha warning is a gate, not a banner. A notice nobody has to
+      touch is a notice nobody reads, and the specific thing being warned
+      about here -- SP+ erases the disk it installs on -- is not recoverable
+      once it has happened.
+    -->
+    <section class="property-card property-card--warn">
+      <div class="property-card__band property-card__band--warn">
+        <span class="property-card__title">Read this before you download</span>
+      </div>
+      <div class="property-card__body">
+        <p><strong>This is an alpha build. It is unfinished software.</strong></p>
+        <ul class="dl-warn-list">
+          <li>
+            <strong>Installing SP+ erases the entire disk.</strong> Everything on that machine is
+            gone — files, photos, other operating systems. There is no undo and no partial install.
+          </li>
+          <li>
+            <strong>Do not install it on the computer you run your practice on.</strong> Use a
+            spare machine, or one you have fully backed up and are prepared to lose.
+          </li>
+          <li>
+            <strong>Do not put client data on it.</strong> Not yet. Treat this build as a machine
+            you are trying out, not one you are working from.
+          </li>
+          <li>
+            <strong>Expect things to break.</strong> Features will change, and a future build may
+            require a clean reinstall rather than an update.
+          </li>
+          <li>
+            <strong>It comes with no warranty of any kind.</strong> You are installing it at your
+            own risk, and SecureProspective is not liable for data loss or downtime.
+          </li>
+        </ul>
+        <p class="dl-note">
+          Found something broken? That is the point of an alpha — tell us at
+          <a href="mailto:info@secureprospective.com">info@secureprospective.com</a>.
+        </p>
+        <label class="dl-ack">
+          <input type="checkbox" id="dl-ack" />
+          <span>
+            I understand this is unfinished software, that installing it will erase the machine
+            I put it on, and that I am using a machine I can afford to lose.
+          </span>
+        </label>
+      </div>
+    </section>
+
     <div id="dl-list"></div>
 
     <!--
@@ -63,6 +111,21 @@ import Layout from '../../layouts/Layout.astro';
     return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
   }
 
+  const downloadLinks: HTMLAnchorElement[] = [];
+
+  function acknowledged(): boolean {
+    const ack = document.getElementById('dl-ack') as HTMLInputElement | null;
+    return Boolean(ack?.checked);
+  }
+
+  function syncLocks() {
+    const ok = acknowledged();
+    for (const link of downloadLinks) {
+      link.classList.toggle('is-locked', !ok);
+      link.setAttribute('aria-disabled', String(!ok));
+    }
+  }
+
   function releaseCard(r: any): HTMLElement {
     const card = document.createElement('section');
     card.className = 'property-card';
@@ -87,7 +150,20 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     const link = document.createElement('a');
-    link.className = 'btn';
+    link.className = 'btn is-locked';
+    // aria-disabled, not the disabled attribute: this is an anchor, and
+    // `disabled` does nothing on one. The click handler is what actually
+    // holds the door -- the attribute is there so a screen reader says so.
+    link.setAttribute('aria-disabled', 'true');
+    link.addEventListener('click', event => {
+      if (!acknowledged()) {
+        event.preventDefault();
+        const ack = document.getElementById('dl-ack');
+        ack?.focus();
+        ack?.closest('.property-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    downloadLinks.push(link);
     // A plain link, not fetch(). The browser's own download manager handles
     // a 5.7 GB transfer -- it survives a tab close, shows real progress and
     // can resume, none of which a fetch() into memory can do at this size.
@@ -129,6 +205,7 @@ import Layout from '../../layouts/Layout.astro';
       if (list) {
         for (const r of releases) list.appendChild(releaseCard(r));
       }
+      syncLocks();
       if (empty) empty.hidden = releases.length > 0;
       if (shell) shell.hidden = false;
     } catch {
@@ -143,6 +220,8 @@ import Layout from '../../layouts/Layout.astro';
       if (shell) shell.hidden = false;
     }
   }
+
+  document.getElementById('dl-ack')?.addEventListener('change', syncLocks);
 
   load();
 </script>
@@ -231,6 +310,45 @@ import Layout from '../../layouts/Layout.astro';
   .dl-note {
     color: var(--fineprint-gray);
     font-size: 14px;
+  }
+
+  .property-card--warn {
+    border-color: var(--ink);
+  }
+
+  .property-card__band--warn {
+    background: var(--ink);
+  }
+
+  .dl-warn-list {
+    padding-left: var(--space-4);
+  }
+
+  .dl-warn-list li + li {
+    margin-top: var(--space-3);
+  }
+
+  .dl-ack {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    border-top: 1px solid var(--fineprint-gray);
+    padding-top: var(--space-4);
+    cursor: pointer;
+  }
+
+  .dl-ack input {
+    margin-top: 4px;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+
+  /* Locked, not hidden. The advisor should be able to see what he is being
+     offered and what is standing between him and it. */
+  .btn.is-locked {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .dl-actions {
