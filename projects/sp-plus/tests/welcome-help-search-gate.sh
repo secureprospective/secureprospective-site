@@ -11,8 +11,14 @@
 # It also requires the opposite: nonsense must return nothing AND offer Fin,
 # because a search that invents matches is worse than one that admits a gap.
 set -uo pipefail
-APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}/app/index.html"
-PROBE=/tmp/help-search-probe.py
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/lib/webengine.sh"
+we_init; rc=$?
+[ $rc -eq 3 ] && exit 0
+[ $rc -eq 0 ] || { echo "HELP SEARCH GATE: FAIL"; exit 2; }
+trap we_cleanup EXIT
+we_where
+PROBE="$WE_WORK/help-search-probe.py"
 cat > "$PROBE" <<'PY'
 import sys, json
 from PySide6.QtCore import QUrl, QTimer
@@ -44,8 +50,8 @@ PY
 QUERIES='["printr wont wrk","no internet","passwrd","excel","sound","recovry key","screen went black","zzzqqq nonsense"]'
 EXPECT='{"printr wont wrk":"Printing","no internet":"Wi-Fi won'"'"'t connect","passwrd":"Browser and passwords","excel":"LibreOffice: your Word and Excel","sound":"No sound","recovry key":"Your encryption and recovery key","screen went black":"Second monitor problems"}'
 
-out=$(QT_QPA_PLATFORM=offscreen timeout 150 python3 "$PROBE" "$APP" "$QUERIES" 2>/dev/null | tail -1)
-[ -z "$out" ] && { echo "probe produced nothing"; echo "HELP SEARCH GATE: FAIL"; exit 1; }
+out=$(we_run 150 "$PROBE" "$WE_APP" "$QUERIES" | tail -1)
+[ -z "$out" ] && { echo "  probe produced nothing"; we_err; echo "HELP SEARCH GATE: FAIL"; exit 1; }
 
 printf '%s' "$out" | EXPECT="$EXPECT" python3 -c '
 import json, os, sys

@@ -6,8 +6,14 @@
 # see. This drives the real button in the real application -- not a copy of
 # the page in a probe -- and passes only if the app is on its way out.
 set -uo pipefail
-SRC="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}"
-DRIVER=/tmp/welcome-finish-driver.py
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/lib/webengine.sh"
+we_init; rc=$?
+[ $rc -eq 3 ] && exit 0
+[ $rc -eq 0 ] || { echo "WELCOME FINISH HANDOFF: FAIL"; exit 2; }
+trap we_cleanup EXIT
+we_where
+DRIVER="$WE_WORK/welcome-finish-driver.py"
 cat > "$DRIVER" <<PY
 import sys, os
 sys.path.insert(0, os.environ['SPPLUS_WELCOME_DIR'])
@@ -49,8 +55,10 @@ w.view.loadFinished.connect(lambda ok: QTimer.singleShot(2500, click))
 QTimer.singleShot(40000, app.quit)
 app.exec()
 PY
-out=$(SPPLUS_WELCOME_DIR="$SRC" timeout 90 python3 "$DRIVER" 2>/dev/null)
+WE_ENV=( "SPPLUS_WELCOME_DIR=$WE_SRC_CTX" )
+out=$(we_run 90 "$DRIVER")
 printf '%s\n' "$out"
+[ -n "$out" ] || we_err
 if printf '%s' "$out" | grep -q FINISH_HANDOFF_OK; then
   echo "WELCOME FINISH HANDOFF: PASS"; exit 0
 fi

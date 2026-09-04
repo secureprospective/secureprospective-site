@@ -10,14 +10,20 @@
 # It runs offscreen so it cannot collide with a Welcome instance already on the
 # VM's display, and it stubs xdg-open with a recorder so no browser is launched.
 set -uo pipefail
-cd "$(dirname "$0")"
-APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$HERE"
+. "$HERE/lib/webengine.sh"
+we_init; rc=$?
+[ $rc -eq 3 ] && exit 0
+[ $rc -eq 0 ] || { echo "SERVICE LINK GATE: FAIL"; exit 2; }
+trap we_cleanup EXIT
+we_where
 fail=0
 say(){ printf '%-62s %s\n' "$1" "$2"; }
 chk(){ if [ "$2" = "$3" ]; then say "$1" "PASS"; else say "$1" "FAIL (want=$2 got=$3)"; fail=1; fi; }
 
 # --- Half 1: the page emits the correct bridge title on a real click ---------
-cat > /tmp/page-half.py <<'PY'
+cat > "$WE_WORK/page-half.py" <<'PY'
 import sys, json
 from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtWidgets import QApplication
@@ -37,16 +43,24 @@ def ready_payload(svc):
     return {'ok':True,'valid':True,'service':svc,'status':'ready',
             'platforms':plats,'http_status':200,'failure':''}
 
-def step3(t):
-    out['title'] = t
+# The bridge title is observed the way the shell observes it: through Qt's
+# titleChanged signal. Reading document.title after the click can never work --
+# send() sets the title and resets it in the same statement, so by the time any
+# JavaScript we write can look, it always says "SP+ Welcome". That is what this
+# half of the gate had been asserting against, and it could not have passed.
+titles = []
+view.page().titleChanged.connect(titles.append)
+
+def step3(_):
+    seen = [t for t in titles if t != 'SP+ Welcome']
+    out['title'] = seen[-1] if seen else 'NO_BRIDGE_TITLE'
     print(json.dumps(out)); app.quit()
 
 def step2(_):
-    # real click on the panel's OPEN button, then read the bridge title
     view.page().runJavaScript(
         "document.getElementById('service-panel').hidden === false ? "
-        "(document.getElementById('service-panel-link').click(), document.title) : 'PANEL_DID_NOT_OPEN'",
-        step3)
+        "(document.getElementById('service-panel-link').click(), 'clicked') : 'PANEL_DID_NOT_OPEN'",
+        lambda r: QTimer.singleShot(400, lambda: step3(r)))
 
 def step1(_):
     view.page().runJavaScript(
@@ -68,7 +82,8 @@ sys.exit(app.exec())
 PY
 
 for svc in files social; do
-  r=$(QT_QPA_PLATFORM=offscreen timeout 40 python3 /tmp/page-half.py "$APP/app/index.html" "$svc" 2>>/tmp/page-half.err | tail -1)
+  r=$(we_run 40 "$WE_WORK/page-half.py" "$WE_APP" "$svc" | tail -1)
+  [ -n "$r" ] || we_err
   got=$(printf '%s' "$r" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("title","NO_OUTPUT"))' 2>/dev/null || echo NO_OUTPUT)
   dis=$(printf '%s' "$r" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("disabled_after_ready","?"))' 2>/dev/null || echo '?')
   chk "page: $svc card enabled once service reports ready" "False" "$dis"
@@ -76,17 +91,17 @@ for svc in files social; do
 done
 
 # --- Half 2: the host turns that same title into xdg-open <url> --------------
-cat > /tmp/xdg-recorder.sh <<'REC'
+cat > "$WE_WORK/xdg-recorder.sh" <<REC
 #!/bin/sh
-echo "$1" >> /tmp/xdg-calls.txt
+echo "\$1" >> $WE_WORK_CTX/xdg-calls.txt
 REC
-chmod +x /tmp/xdg-recorder.sh
-: > /tmp/xdg-calls.txt
+chmod +x "$WE_WORK/xdg-recorder.sh"
+: > "$WE_WORK/xdg-calls.txt"
 
-cat > /tmp/host-half.py <<'PY'
+cat > "$WE_WORK/host-half.py" <<'PY'
 import sys, os
 sys.path.insert(0, os.environ['APPDIR'])
-os.environ['SPPLUS_XDG_OPEN'] = '/tmp/xdg-recorder.sh'
+os.environ['SPPLUS_XDG_OPEN'] = os.environ['RECORDER']
 import importlib.util
 spec = importlib.util.spec_from_file_location('w', os.path.join(os.environ['APPDIR'],'welcome.py'))
 w = importlib.util.module_from_spec(spec)
@@ -103,6 +118,12 @@ class FakeView:
 # between, which is the point of the gate.
 inst = w.WelcomeBridge.__new__(w.WelcomeBridge)
 inst.view = FakeView()
+# __init__ is bypassed on purpose -- it would build a whole application. Any
+# state the real __init__ sets that the handlers touch has to be mirrored here,
+# and an AttributeError below means exactly that: the bridge grew a field and
+# this fixture has not been told about it. _draining arrived with the shutdown
+# drain and went unnoticed for as long as this gate was failing to launch at all.
+inst._draining = False
 for t in ['spplus:open-service?service=files&action=browser',
           'spplus:open-service?service=social&action=browser',
           'spplus:open-service?service=evil&action=browser',
@@ -110,9 +131,12 @@ for t in ['spplus:open-service?service=files&action=browser',
     inst.on_title(t)
 PY
 
-APPDIR="$APP" python3 /tmp/host-half.py 2>/dev/null
-sleep 1
-calls=$(tr '\n' ' ' < /tmp/xdg-calls.txt | sed 's/ *$//')
+WE_ENV=( "APPDIR=$WE_SRC_CTX" "RECORDER=$WE_WORK_CTX/xdg-recorder.sh" )
+we_run 60 "$WE_WORK/host-half.py" >/dev/null || we_err
+# Sorted: the two launches are separate processes and the recorder sees them in
+# whichever order they land. What matters is the SET -- both real URLs, and
+# neither the unknown service nor the exec action.
+calls=$(sort "$WE_WORK/xdg-calls.txt" | tr '\n' ' ' | sed 's/ *$//')
 chk "host: bridge title launches exactly the two real URLs" \
     "https://cloud.secureprospective.com https://social.secureprospective.com" "$calls"
 

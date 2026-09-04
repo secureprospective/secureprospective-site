@@ -10,8 +10,14 @@
 # .sr-only is excluded deliberately: clipping to a 1px box is exactly how
 # visually-hidden text for screen readers is supposed to work.
 set -uo pipefail
-APP="${SPPLUS_WELCOME_SRC:-$HOME/sp-plus-welcome-src/welcome}/app/index.html"
-PROBE=/tmp/welcome-layout-probe.py
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/lib/webengine.sh"
+we_init; rc=$?
+[ $rc -eq 3 ] && exit 0
+[ $rc -eq 0 ] || { echo "WELCOME LAYOUT GATE: FAIL"; exit 2; }
+trap we_cleanup EXIT
+we_where
+PROBE="$WE_WORK/welcome-layout-probe.py"
 cat > "$PROBE" <<'PY'
 import sys, json
 from PySide6.QtCore import QUrl, QTimer
@@ -85,7 +91,8 @@ fail=0
 for size in "1280 800" "1024 768"; do
   set -- $size
   echo "--- ${1}x${2} ---"
-  res=$(QT_QPA_PLATFORM=offscreen timeout 200 python3 "$PROBE" "$APP" "$1" "$2" 2>/dev/null)
+  res=$(we_run 200 "$PROBE" "$WE_APP" "$1" "$2")
+  [ -n "$res" ] || we_err
   [ -z "$res" ] && { echo "  probe produced nothing"; fail=1; continue; }
   n=$(printf '%s\n' "$res" | grep -c '^{')
   [ "$n" -eq 12 ] || { echo "  expected 8 screens, 2 search states and 2 help depths, got $n"; fail=1; }
