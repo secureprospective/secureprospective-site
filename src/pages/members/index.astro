@@ -1,14 +1,29 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import HeroTicker from '../../components/HeroTicker.astro';
 ---
 
 <Layout title="Back Office — SecureProspective">
   <main class="gate-shell" id="gate-shell" hidden>
+    <!--
+      The home page's ticker, reused rather than reinvented. It sits behind
+      the card as a field, not an entrance -- same component, same pause
+      behaviour when the tab is hidden or the user asks for reduced motion.
+    -->
+    <HeroTicker />
     <div class="gate-card">
-      <p class="eyebrow">Signed in as <span id="user-email"></span></p>
-      <h1>Back office</h1>
+      <p class="eyebrow">Back Office</p>
+      <!--
+        "SecureProspective" is one unbreakable 17-character word. At h1 size
+        it runs past the edge of a 480px card, and there is no space in it
+        for the browser to wrap on. Splitting it into two block spans is the
+        fix: the break is deliberate and identical at every width, rather
+        than something that happens to hold at one screen size.
+      -->
+      <h1 class="gate-title"><span>Secure</span><span>Prospective</span></h1>
       <p class="gate-copy">
-        Everything we have released is here. Right now that means SP+.
+        Signed in as <strong id="user-email"></strong>. Everything we have released is
+        here — right now that means SP+.
       </p>
       <div class="gate-actions">
         <a href="/members/download" class="btn btn--wide">Download SP+</a>
@@ -69,14 +84,27 @@ import Layout from '../../layouts/Layout.astro';
 
 <style>
   .gate-shell {
+    position: relative;
+    overflow: hidden;
     min-height: calc(100vh - 200px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--space-6) var(--space-4);
+    background: var(--silver-base);
+  }
+
+  /* The ticker canvas measures its parent, so the shell has to be the
+     positioned box and the card has to be lifted above it. Both rules earn
+     their place -- without the first the canvas collapses to zero height,
+     without the second the field draws over the card. */
+  .gate-shell :global(.identity-hero-fx) {
+    z-index: 0;
   }
 
   .gate-card {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 480px;
     text-align: center;
@@ -89,9 +117,16 @@ import Layout from '../../layouts/Layout.astro';
     margin-bottom: var(--space-2);
   }
 
-  .gate-card h1 {
-    font-size: var(--text-h1);
+  .gate-title {
+    /* Clamped rather than fixed: "Prospective" is the long line, and this
+       keeps it inside the card from a narrow phone up to the full width. */
+    font-size: clamp(30px, 8vw, 46px);
+    line-height: 1.02;
     margin-bottom: var(--space-3);
+  }
+
+  .gate-title span {
+    display: block;
   }
 
   .gate-copy {
