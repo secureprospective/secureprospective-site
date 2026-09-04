@@ -1264,6 +1264,7 @@ COPY theme/wallpaper/Modern/ /usr/share/wallpapers/Modern/
 COPY theme/wallpaper/SPPlus-Night-Ridge/  /usr/share/wallpapers/SPPlus-Night-Ridge/
 COPY theme/wallpaper/SPPlus-Blue-Horizon/ /usr/share/wallpapers/SPPlus-Blue-Horizon/
 COPY theme/wallpaper/SPPlus-Paint-Tide/    /usr/share/wallpapers/SPPlus-Paint-Tide/
+COPY theme/wallpaper/SPPlus-Quiet-Coast/  /usr/share/wallpapers/SPPlus-Quiet-Coast/
 COPY theme/wallpaper/SPPlus-Moonrise-Range/ /usr/share/wallpapers/SPPlus-Moonrise-Range/
 COPY theme/wallpaper/SPPlus-Still-Water/   /usr/share/wallpapers/SPPlus-Still-Water/
 COPY theme/wallpaper/SPPlus-Winter-River/  /usr/share/wallpapers/SPPlus-Winter-River/
@@ -1589,7 +1590,8 @@ RUN printf '%s\n' \
  && grep -q '^Image=SPPlus-Night-Ridge$' /usr/share/plasma/look-and-feel/Catppuccin-Mocha/contents/defaults \
  && grep -q '^Image=SPPlus-Blue-Horizon$' /usr/share/plasma/look-and-feel/Catppuccin-Latte/contents/defaults \
  && test -s /usr/share/wallpapers/SPPlus-Paint-Tide/contents/images/2560x1440.jpg \
- && grep -q '^Image=SPPlus-Paint-Tide$' /usr/share/plasma/look-and-feel/com.github.vinceliuice.Orchis/contents/defaults \
+ && test -s /usr/share/wallpapers/SPPlus-Quiet-Coast/contents/images/2560x1440.jpg \
+ && grep -q '^Image=SPPlus-Quiet-Coast$' /usr/share/plasma/look-and-feel/com.github.vinceliuice.Orchis/contents/defaults \
  && test -s /usr/share/wallpapers/SPPlus-Moonrise-Range/contents/images/3840x2160.jpg \
  && grep -q '^Image=SPPlus-Moonrise-Range$' /usr/share/plasma/look-and-feel/Nordic/contents/defaults \
  && test -s /usr/share/wallpapers/SPPlus-Still-Water/contents/images/3840x2160.jpg \

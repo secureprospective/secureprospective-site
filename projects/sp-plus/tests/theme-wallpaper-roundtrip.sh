@@ -41,7 +41,7 @@ THEMES=(
   "Nordic|SPPlus-Moonrise-Range"
   "Catppuccin-Mocha|SPPlus-Night-Ridge"
   "Catppuccin-Latte|SPPlus-Blue-Horizon"
-  "com.github.vinceliuice.Orchis|SPPlus-Paint-Tide"
+  "com.github.vinceliuice.Orchis|SPPlus-Quiet-Coast"
 )
 
 ok(){ PASS=$((PASS+1)); printf '  PASS %s\n' "$1"; }
