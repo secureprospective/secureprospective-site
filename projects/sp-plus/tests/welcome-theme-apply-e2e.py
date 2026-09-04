@@ -14,7 +14,14 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
-sys.path.insert(0, str(Path.home() / "welcome-test"))
+for _candidate in (os.environ.get("SPPLUS_WELCOME_DIR"),
+                  "/usr/libexec/sp-plus/welcome",
+                  str(Path.home() / "welcome-test")):
+    if _candidate and Path(_candidate, "welcome.py").exists():
+        sys.path.insert(0, _candidate)
+        break
+else:
+    raise SystemExit("cannot find welcome.py; set SPPLUS_WELCOME_DIR")
 import welcome
 
 TARGET = os.environ.get("SPPLUS_THEME_E2E_TARGET", sys.argv[1] if len(sys.argv) > 1 else
@@ -50,20 +57,32 @@ def inspect_preview(_value=None):
       (() => {
         const card = [...document.querySelectorAll('.theme-card')]
           .find(item => item.dataset.lnf === %s);
-        if (!card) return {error: 'theme card not found'};
+        if (!card) return JSON.stringify({error: 'theme card not found'});
         if (!document.querySelector('#theme-preview:not([hidden])')) card.click();
         const image = document.getElementById('preview-image');
         const button = document.getElementById('preview-apply');
-        return {
+        return JSON.stringify({
           capture: Boolean(image && image.naturalWidth > 0),
           disabled: Boolean(!button || button.disabled),
           result: document.getElementById('preview-result')?.textContent || ''
-        };
+        });
       })()
     """ % json.dumps(TARGET)
 
     def received(value):
         global elapsed, apply_clicked
+        # The bridge hands back a string; anything else means the page did
+        # not run our script at all, and silently treating that as "keep
+        # polling" is what produced the original timeout-instead-of-error.
+        if isinstance(value, str):
+            if not value:
+                value = None
+            else:
+                try:
+                    value = json.loads(value)
+                except ValueError:
+                    finish('FAIL unreadable probe result: %r' % value[:120], 1)
+                    return
         if value and value.get('error'):
             finish('FAIL ' + value['error'], 1)
             return
