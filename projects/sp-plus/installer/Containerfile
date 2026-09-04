@@ -58,6 +58,24 @@ RUN mkdir -p /boot/efi \
 RUN mkdir -p /usr/lib/image-builder/bootc
 COPY installer/iso.yaml /usr/lib/image-builder/bootc/iso.yaml
 COPY installer/interactive-defaults.ks /usr/share/anaconda/interactive-defaults.ks
+COPY installer/payload-ref.txt /usr/share/sp-plus/payload-ref.txt
+
+# DN-51 GATE. The kickstart installs the OS by name:
+# `bootc --source-imgref containers-storage:<ref>`. That ref must be the exact
+# ref image-builder embeds in the ISO. On 2026-09-04 it was not: the payload was
+# retagged to :alpha1 for the Alpha while the kickstart still said :spike, and
+# every install died in Anaconda with
+#   PayloadInstallationError: bootc installation failed
+#   ... failed to invoke method OpenImage: reference ... does not resolve to an
+#   image ID
+# after the ISO had already been built, copied and handed over. Nothing before
+# this point compared the two strings. payload-ref.txt is now the single source
+# of truth: this gate checks the kickstart against it, config-preflight P-28
+# checks it again repo-side, and the ISO build reads the ref from the same file.
+RUN REF="$(tr -d [:space:] < /usr/share/sp-plus/payload-ref.txt)" \
+ && test -n "$REF" \
+ && grep -qF "containers-storage:$REF" /usr/share/anaconda/interactive-defaults.ks \
+ && echo "DN51_PAYLOAD_REF_OK kickstart installs from $REF"
 
 # DN-27 GATE. A random `rootpw` in the kickstart trips pyanaconda's
 # check_admin_user_exists(), which makes the User Creation spoke optional, which

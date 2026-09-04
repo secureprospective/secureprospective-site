@@ -1065,6 +1065,34 @@ else
   )"
 fi
 
+# P-28  The install itself is by name. The kickstart runs
+# `bootc --source-imgref containers-storage:<ref>`, and <ref> must be exactly the
+# ref image-builder embeds in the ISO. On 2026-09-04 the payload was retagged to
+# :alpha1 while the kickstart still said :spike; the ISO built clean, passed every
+# gate, was checksummed and handed over, and then every install died in Anaconda
+# with "does not resolve to an image ID". Two strings that must match, and nothing
+# compared them. installer/payload-ref.txt is the single source of truth.
+P28_OK=1
+P28_REF_FILE="$REPO/projects/sp-plus/installer/payload-ref.txt"
+P28_KS="$REPO/projects/sp-plus/installer/interactive-defaults.ks"
+if [ ! -s "$P28_REF_FILE" ]; then
+  P28_OK=0; echo "       installer/payload-ref.txt is missing or empty"
+else
+  P28_REF=$(tr -d "[:space:]" < "$P28_REF_FILE")
+  grep -qF "containers-storage:$P28_REF" "$P28_KS" \
+    || { P28_OK=0; echo "       the kickstart does not install from $P28_REF"; \
+         echo "       it says: $(grep -oE "containers-storage:[^ ]+" "$P28_KS" | head -1)"; }
+  grep -qF "$P28_REF" "$REPO/projects/sp-plus/installer/Containerfile" 2>/dev/null \
+    || true
+  if command -v podman >/dev/null 2>&1; then
+    sudo -n podman image exists "$P28_REF" 2>/dev/null \
+      || { P28_OK=0; echo "       $P28_REF does not exist in the rootful podman store; the ISO would embed nothing to install from"; }
+  fi
+fi
+[ "$P28_OK" -eq 1 ] \
+  && ok "the kickstart installs from the exact payload ref the ISO embeds" \
+  || bad "payload ref mismatch" "the ISO will build clean and then fail in Anaconda with \"does not resolve to an image ID\""
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
