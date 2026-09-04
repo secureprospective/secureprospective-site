@@ -69,10 +69,27 @@ class Probe:
             if data["rootCards"] != len(data["categories"]):
                 fail("the opening screen drew %d topic cards for %d topics"
                      % (data["rootCards"], len(data["categories"])))
+            # The opening screen is the index of the manual: every guide is
+            # named there and opens in one click. Before 2026-09-04 it showed
+            # seven topic cards and nothing else, so an advisor could not tell
+            # whether the answer existed without clicking into a topic first.
+            # Checking the count is not enough -- a list of the right length
+            # with the wrong names would pass -- so this compares the sets.
+            checks += 1
+            missing = sorted(set(data["articles"]) - set(data["rootLinks"]))
+            if missing:
+                fail("%d guides are not listed on the opening screen: %s"
+                     % (len(missing), ", ".join(missing[:4])))
+            checks += 1
+            stray = sorted(set(data["rootLinks"]) - set(data["articles"]))
+            if stray:
+                fail("the opening screen lists guides that do not exist: %s"
+                     % ", ".join(stray[:4]))
             self.titles = data["articles"]
             self.walk()
         self.js("JSON.stringify({articles: window.spHelp.articles(),"
                 " categories: window.spHelp.categories(),"
+                " rootLinks: window.spHelp.rootLinks(),"
                 " rootCards: window.spHelp.results().length})", got)
 
     # ---- every guide opens and renders ---------------------------------

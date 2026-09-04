@@ -104,12 +104,34 @@
     if (view.kind === 'root') {
       helpHeading.textContent = 'PICK A STARTING POINT.';
       helpLede.textContent = 'Choose a topic, follow it at your own pace, then come back when you are ready.';
-      helpContent.innerHTML = '<div class="trail-grid">' +
+      helpLede.textContent = 'Every guide in the manual is listed here. '
+        + 'Open one directly, or pick a topic to read it on its own.';
+      var rootIndex = [];
+      helpContent.innerHTML = '<div class="trail-index">' +
         Object.keys(categories).map(function (name) {
-          return '<button class="trail-card" data-category="' + esc(name) + '"><b>' +
-            esc(name) + '</b><small>' + esc(categories[name]) + '</small></button>';
+          var inTopic = articles.filter(function (a) { return a.category === name; });
+          var links = inTopic.map(function (a) {
+            var at = rootIndex.length;
+            rootIndex.push(a);
+            return '<li><button class="trail-link" data-root-article="' + at + '">' +
+              esc(a.title) + '</button></li>';
+          }).join('');
+          return '<section class="trail-group">' +
+            '<button class="trail-card" data-category="' + esc(name) + '"><b>' +
+            esc(name) + '</b><small>' + esc(categories[name]) + '</small></button>' +
+            (links ? '<ul class="trail-links">' + links + '</ul>' : '') +
+            '</section>';
         }).join('') + '</div>';
       wireCategories();
+      Array.prototype.forEach.call(
+        helpContent.querySelectorAll('[data-root-article]'), function (b) {
+          b.addEventListener('click', function () {
+            var a = rootIndex[Number(b.getAttribute('data-root-article'))];
+            if (!a) return;
+            view = {kind: 'article', category: a.category, article: a};
+            render();
+          });
+        });
       return;
     }
 
@@ -304,6 +326,11 @@
     },
     state: function () { return {kind: view.kind, title: view.article ? view.article.title : null}; },
     categories: function () { return Object.keys(categories); },
+    rootLinks: function () {
+      return Array.prototype.map.call(
+        helpContent.querySelectorAll('.trail-link'),
+        function (n) { return n.textContent; });
+    },
     articles: function () { return articles.map(function (a) { return a.title; }); },
     prompts: function () { return Array.prototype.map.call(
       promptList.querySelectorAll('.prompt-text'), function (n) { return n.textContent; }); }
