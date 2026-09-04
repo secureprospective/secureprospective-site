@@ -2713,10 +2713,38 @@ LABEL org.opencontainers.image.title="SP+" \
 # /usr/share/doc is a legitimate candidate; /usr/share/licenses is not, and they
 # are easy to confuse when scanning `du` output.
 #
+# 2026-09-04, THIRD SIZE PASS, for the Alpha release. Even after the locale and
+# LibreOffice cuts the Alpha shipped at 5,448,759,296 bytes -- still 76.3 MiB
+# over the R2 ceiling. Two more cuts, both ruled by Christopher:
+#
+#   /usr/share/doc.  MEASURED 163,623,290 raw -> 60,342,383 compressed. Package
+#     README and changelog files. The licenses that must travel with the binaries
+#     are in /usr/share/licenses and are gated separately, above.
+#
+#   The CJK input engines and their data -- ibus-libpinyin, ibus-typing-booster,
+#     ibus-anthy, libhangul and the libpinyin/anthy/unicode-ucd/cldr-emoji
+#     data packages. 253 MB raw. SP+ is already an English-only product, so
+#     this follows the locale ruling rather than extending it. THE IBUS
+#     FRAMEWORK ITSELF STAYS and so does google-noto-color-emoji-fonts: emoji
+#     still RENDER, and Western input is untouched. What is gone is typing
+#     Chinese, Japanese or Korean, and searching emoji by name. A gate below
+#     asserts both survivors, because a dnf remove that took ibus with it would
+#     leave the advisor unable to type at all.
+#
+# WHAT WAS RULED OUT, so nobody re-measures it: /usr/lib/jvm looks like 237 MB
+# of orphan and `rpm -q --whatrequires java-headless` says nothing needs it.
+# That query does not follow virtual provides. `dnf remove --assumeno` shows the
+# truth -- it takes libreoffice-writer, -calc, -impress and -draw with it. The
+# JVM stays.
+#
 # This is also the single place that re-asserts the whole 2026-09-04 cut set
 # against the FINISHED filesystem, rather than trusting that what was removed at
 # step 18 was never pulled back as a dependency of something installed later.
 RUN set -eux; \
+    dnf remove -y ibus-libpinyin ibus-typing-booster ibus-anthy libhangul \
+                  libpinyin-data anthy-unicode unicode-ucd \
+                  cldr-emoji-annotation-dtd; \
+    rm -rf /usr/share/doc; \
     find /usr/share/locale -mindepth 1 -maxdepth 1 -type d \
          ! -name en ! -name en_US ! -name en_GB -exec rm -rf {} +; \
     test -s /usr/share/locale/locale.alias; \
@@ -2729,6 +2757,8 @@ RUN set -eux; \
       || { echo "FINAL TRIM FAIL: $lc locale dirs, expected 3" >&2; exit 1; }; \
     for p in libreoffice-base libreoffice-math firebird firebird-utils \
              blueman \
+             ibus-libpinyin ibus-typing-booster ibus-anthy libhangul \
+             libpinyin-data anthy-unicode unicode-ucd \
              qemu-kvm virt-manager libvirt-daemon-kvm qemu-system-x86-core \
              plasma-workspace-wallpapers \
              python3-boto3 python3-botocore python3-s3transfer \
@@ -2741,6 +2771,9 @@ RUN set -eux; \
            libreoffice-draw libreoffice-impress podman bootc flatpak >/dev/null \
       || { echo "FINAL TRIM FAIL: a kept package is missing" >&2; exit 1; }; \
     test -s /usr/lib64/libreoffice/share/registry/impress.xcd; \
+    test ! -e /usr/share/doc; \
+    rpm -q ibus google-noto-color-emoji-fonts >/dev/null \
+      || { echo "FINAL TRIM FAIL: the input framework or the emoji font went with the CJK cut" >&2; exit 1; }; \
     test -d /usr/share/wallpapers/Next; \
     grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
          /usr/lib/udev/rules.d/50-udev-default.rules; \
