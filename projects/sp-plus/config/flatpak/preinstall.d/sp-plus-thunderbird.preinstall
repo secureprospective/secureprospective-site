@@ -1,0 +1,21 @@
+# Thunderbird -- mail, as a Flatpak (DN-26 pattern, same as Zoom and Joplin).
+#
+# Moved out of the image on 2026-09-04. The RPM is 381 MB on disk and, measured
+# with zstd -19 on the RC1f guest, 131 MB of finished ISO. The release has to
+# fit under R2's 5 GiB single-upload ceiling and most advisors use webmail, so
+# a mail client that installs itself after first boot is the better trade.
+#
+# THE APP ID IS NOT THE SAME AS THE RPM'S. Fedora's package ships
+# net.thunderbird.Thunderbird.desktop; Flathub publishes org.mozilla.Thunderbird.
+# Verified against the Flathub API on 2026-09-04: org.mozilla.Thunderbird
+# returns "Thunderbird", and net.thunderbird.Thunderbird returns nothing at all.
+# Every reference that used to name the RPM's id -- the mailto handler, the
+# taskbar pin, the menu favourite -- was repointed at this one.
+#
+# Branch is NOT optional. Omit it and flatpak defaults to the "master" branch,
+# which does not exist for this app, and preinstall silently reports
+# "Nothing to do" -- the trap already recorded for Zoom.
+[Flatpak Preinstall org.mozilla.Thunderbird]
+Branch=stable
+IsRuntime=false
+Install=true

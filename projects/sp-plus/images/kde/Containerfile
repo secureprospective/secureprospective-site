@@ -52,7 +52,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         google-carlito-fonts google-crosextra-caladea-fonts google-tinos-fonts \
         libreoffice-draw libreoffice-base libreoffice-math \
         okular dolphin ark gwenview spectacle kate kcalc \
-        keepassxc thunderbird system-config-printer \
+        keepassxc system-config-printer \
         micro flameshot kitty \
         plasma-systemsettings plasma-workspace \
  && dnf clean all
@@ -1318,10 +1318,14 @@ RUN systemctl enable spplus-flatpak-preinstall.timer \
  && test -s /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
  && grep -q '^\[Flatpak Preinstall us.zoom.Zoom\]$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
  && grep -q '^Branch=stable$' /usr/share/flatpak/preinstall.d/sp-plus-zoom.preinstall \
+ && test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
+ && grep -q '^\[Flatpak Preinstall org.mozilla.Thunderbird\]$' /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
+ && grep -q '^Branch=stable$' /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall \
+ && ! rpm -q thunderbird \
  && test -x /usr/bin/flatpak \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.service \
  && systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-preinstall.timer \
- && echo "FLATPAK_PREINSTALL_OK zoom declared, timer enabled"
+ && echo "FLATPAK_PREINSTALL_OK zoom + thunderbird declared, timer enabled"
 
 # ---- 5b. Flatpak UPDATES (DN-34) --------------------------------------------
 # preinstall DEPLOYS refs; it never advances one that is already installed. So
@@ -2053,7 +2057,7 @@ RUN for d in org.kde.partitionmanager \
       grep -q '^NoDisplay=true' "/usr/share/applications/$d.desktop" \
         || { echo "MENU FAILED: $d still visible"; exit 1; }; \
     done; \
-    for d in brave-browser net.thunderbird.Thunderbird libreoffice-writer \
+    for d in brave-browser libreoffice-writer \
              libreoffice-calc libreoffice-impress libreoffice-draw \
              libreoffice-base libreoffice-math \
              org.kde.dolphin org.kde.okular org.kde.kcalc \
@@ -2131,8 +2135,8 @@ RUN printf '%s\n' \
       'x-scheme-handler/unknown=brave-browser.desktop' \
       'text/html=brave-browser.desktop' \
       'application/xhtml+xml=brave-browser.desktop' \
-      'x-scheme-handler/mailto=net.thunderbird.Thunderbird.desktop' \
-      'message/rfc822=net.thunderbird.Thunderbird.desktop' \
+      'x-scheme-handler/mailto=org.mozilla.Thunderbird.desktop' \
+      'message/rfc822=org.mozilla.Thunderbird.desktop' \
       'text/plain=org.kde.kwrite.desktop' \
       'inode/directory=org.kde.dolphin.desktop' \
       'application/pdf=okularApplication_pdf.desktop' \
@@ -2147,11 +2151,12 @@ RUN printf '%s\n' \
       grep -q '^x-scheme-handler/https=brave-browser.desktop$' "$f" \
         || { echo "MIME FAILED: https not mapped in $f"; exit 1; }; \
     done \
- && for d in brave-browser net.thunderbird.Thunderbird org.kde.kwrite \
+ && for d in brave-browser org.kde.kwrite \
              org.kde.dolphin okularApplication_pdf org.kde.gwenview; do \
       test -e "/usr/share/applications/$d.desktop" \
         || { echo "MIME FAILED: handler $d does not exist"; exit 1; }; \
     done \
+ && grep -q '^x-scheme-handler/mailto=org.mozilla.Thunderbird.desktop$' /etc/xdg/mimeapps.list \
  && grep -q '^TerminalApplication=kitty$' /etc/xdg/kdeglobals \
  && test -x /usr/bin/kitty \
  && echo "MIME_OK defaults point at applications that exist"
