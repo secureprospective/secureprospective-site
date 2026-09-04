@@ -976,13 +976,31 @@ class ShareCheckWorker(QThread):
     PROBE_TIMEOUT = float(os.environ.get('SPPLUS_SHARE_PROBE_TIMEOUT', '4'))
     MOUNT_TIMEOUT = int(os.environ.get('SPPLUS_SHARE_MOUNT_TIMEOUT', '25'))
 
-    def _reachable(self, host, port=445):
-        """Is the SMB port actually answering? A measurement, not a guess."""
+    PROBE_PORT = int(os.environ.get('SPPLUS_SHARE_PROBE_PORT', '445'))
+
+    def _reachable(self, host, port=None):
+        """Classify the SMB port. A measurement, not a guess.
+
+        Returns 'open', 'refused' or 'unreachable'. These are three different
+        problems with three different things for an advisor to do, and the old
+        boolean collapsed the first two into "could not be reached on the
+        network", which sent someone whose file server is switched on and
+        simply not sharing to go and check their network cable.
+
+        A refused connection means the machine answered: it is on the network,
+        at the name given, and nothing is listening on the file-sharing port.
+        A timeout means nothing answered at all.
+        """
         try:
-            with socket.create_connection((host, port), timeout=self.PROBE_TIMEOUT):
-                return True
+            with socket.create_connection((host, port or self.PROBE_PORT),
+                                          timeout=self.PROBE_TIMEOUT):
+                return 'open'
+        except (socket.timeout, TimeoutError):
+            return 'unreachable'
+        except ConnectionRefusedError:
+            return 'refused'
         except OSError:
-            return False
+            return 'unreachable' 
 
     def _await_async(self, start, finish):
         """Run one async GIO call to completion and return its error, or None.
@@ -1091,7 +1109,15 @@ class ShareCheckWorker(QThread):
 
         # Decide reachability BEFORE any GIO error-string classification, so
         # "cannot reach the server" is a measurement and not a guess at wording.
-        if not self._reachable(self.server):
+        reach = self._reachable(self.server)
+        if reach == 'refused':
+            self.result_ready.emit(self, {
+                'ok': False,
+                'message': f'{self.server} answered, but it is not sharing files. '
+                           'Turn on file sharing on that computer, or check that '
+                           'this is the right name for it.'})
+            return
+        if reach != 'open':
             self.result_ready.emit(self, {
                 'ok': False,
                 'message': f'{self.server} could not be reached on the network. '
@@ -1779,34 +1805,57 @@ class SelfTest(QObject):
 
     # Verbs whose result is computable without spawning a window or changing
     # the running desktop.
-    SAFE = ('check-computer', 'check-share-reachable', 'check-share-unreachable',
-            'print-test')
+    SAFE = ('check-computer', 'check-share-refused', 'check-share-unreachable',
+            'print-test', 'update-status', 'update-check',
+            'service-capabilities-files', 'service-capabilities-social')
 
     # What a CORRECT machine reports. An error path is SUPPOSED to return
     # ok:false -- calling that a failed test would make the report lie.
     # None means "no expectation; print it and let a human judge".
-    EXPECT = {'check-computer': True, 'check-share-reachable': False,
+    EXPECT = {'check-computer': True, 'check-share-refused': False,
               'check-share-unreachable': False, 'print-test': None,
-              'ask': True}
+              'ask': True,
+              # `status` is a local query and must work on a healthy machine.
+              'update-status': True,
+              # `check` and the two capability reads depend on a network and on
+              # someone else's service being up. Reported, never failed: a gate
+              # that goes red because a remote host is having a bad morning
+              # teaches everyone to ignore it.
+              'update-check': None,
+              'service-capabilities-files': None,
+              'service-capabilities-social': None}
 
-    # DN-41. check-share-reachable deliberately supplies a fake password, so it
-    # can NEVER return ok:true -- the old expectation of True was unsatisfiable
-    # and the test could only ever fail. What it actually proves is that a
-    # REACHABLE server produces a credentials verdict rather than a network
-    # one. Both cases return ok:false, so ok alone cannot tell them apart; the
-    # message is the only thing that distinguishes a working path from the
-    # timeout bug this test was written to catch.
+    # 2026-09-04. This case used to be called "check-share-reachable" and
+    # expected a CREDENTIALS verdict from 127.0.0.1 -- but nothing listens on
+    # port 445 there, so the probe refused, the message was a network one, and
+    # the test FAILED on every run of a correctly working build. It was the
+    # unreachable path tested twice under a name claiming otherwise.
+    #
+    # Renamed to what it actually proves: a host that ANSWERS and is not
+    # sharing files must be reported differently from one that cannot be
+    # reached at all. Both return ok:false, so the message is the only thing
+    # that separates them.
+    #
+    # The genuine "reachable SMB server, wrong password" path needs a real
+    # server and is listed under REQUIRES_HUMAN rather than faked here. A test
+    # that cannot tell a working path from a broken one is worse than no test.
     EXPECT_MESSAGE = {
-        'check-share-reachable': ('was not accepted', 'was not found'),
+        'check-share-refused': ('is not sharing files',),
         'check-share-unreachable': ('could not be reached',),
     }
     # Real verbs, deliberately not automated. Named so the report is honest.
     REQUIRES_HUMAN = {
+        'check-share-credentials': 'needs a real SMB server to reject a real login',
         'apply-theme': 'changes the live desktop appearance',
         'launch-fin': 'opens the Fin window',
         'browse-store': 'opens Discover',
         'connect-email': 'opens a browser window',
         'install': 'installs software system-wide',
+        'open-service': 'opens a browser window',
+        'display-settings': 'opens System Settings',
+        'update-stage': 'downloads a whole OS image',
+        'update-apply': 'reboots into a new deployment',
+        'finish': 'closes Welcome and writes the do-not-show setting',
     }
 
     def __init__(self, window, include_ask=False, timeout_ms=300000):
@@ -1897,15 +1946,23 @@ class SelfTest(QObject):
                 w.check_computer()
             elif verb == 'print-test':
                 w.print_test()
-            elif verb == 'check-share-reachable':
-                # Placeholder password, never a real one: this tests whether a
-                # reachable host is correctly reported as a CREDENTIAL problem
-                # rather than a network one. See EXPECT_MESSAGE.
+            elif verb == 'check-share-refused':
+                # 127.0.0.1 answers and refuses: nothing serves SMB there. This
+                # proves "answered but not sharing" is not reported as a
+                # network failure. Placeholder password, never a real one.
                 w.check_share(SELFTEST_SHARE_UP, 'Shared', 'tester',
                               'selftest-not-a-real-password', False)
             elif verb == 'check-share-unreachable':
                 w.check_share(SELFTEST_SHARE_DOWN, 'Shared', 'tester',
                               'selftest-not-a-real-password', False)
+            elif verb == 'update-status':
+                w.update_action('status')
+            elif verb == 'update-check':
+                w.update_action('check')
+            elif verb == 'service-capabilities-files':
+                w.request_service_capability('files', retry=True)
+            elif verb == 'service-capabilities-social':
+                w.request_service_capability('social', retry=True)
             elif verb == 'ask':
                 w.ask('what is 1847 + 2965')
         except Exception as exc:                     # noqa: BLE001 - report, never crash the run
