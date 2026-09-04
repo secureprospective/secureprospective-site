@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Application
+Name=Canva
+Comment=Make a flyer, handout or social post
+# --app= gives a window with no address bar and no tab strip, so the site looks
+# like an application rather than a page the advisor can navigate away from.
+# Same pattern as the six entries shipped 2026-09-03.
+#
+# ICON: a neutral lettermark, deliberately NOT Canva's logo. SP+ ships no
+# third-party brand asset it does not hold rights to -- the same rule that gave
+# Schwab and Wealthscape lettermarks. Swap in real artwork if it is ever
+# licensed.
+#
+# Anything the advisor makes here is marketing for a regulated practice. Fin's
+# `marketing` skill carries the rule that matters: it is a draft until their
+# compliance officer approves it.
+Exec=brave-browser --app=https://www.canva.com --class=spplus-canva
+StartupWMClass=spplus-canva
+Icon=spplus-canva
+Terminal=false
+Categories=Graphics;Publishing;
+Keywords=design;flyer;poster;brochure;handout;social;marketing;graphic;

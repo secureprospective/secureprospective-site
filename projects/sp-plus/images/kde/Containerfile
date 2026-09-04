@@ -1679,8 +1679,12 @@ RUN dnf install -y --setopt=install_weak_deps=False \
  && echo "ADVISOR_TOOLKIT_OK $(rpm -q vlc 7zip git | tr '\n' ' ')no-virt /dev/kvm=0666"
 
 # ---- PWA launchers (Christopher 2026-09-03) ---------------------------------
-# Six sites the advisor uses daily, as chromeless Brave windows, using the same
-# --app= pattern already proven by the SP+ Help entry.
+# Seven sites the advisor uses, as chromeless Brave windows, using the same
+# --app= pattern already proven by the SP+ Help entry. Canva was added
+# 2026-09-04 for the marketing side: an advisor making a flyer or a social post
+# should not have to leave SP+ to do it, and the browser-based design tools are
+# the ones they already know. Fin's `marketing` skill covers what SP+ can build
+# without any site at all, and carries the compliance rule for both routes.
 #
 # VERIFIED IN A REAL BROWSER on the RC1c VM, because curl lies about all three of
 # the interesting ones:
@@ -1703,10 +1707,11 @@ COPY config/pwa/org.secureprospective.spplus.maps.desktop        /usr/share/appl
 COPY config/pwa/org.secureprospective.spplus.teams.desktop       /usr/share/applications/
 COPY config/pwa/org.secureprospective.spplus.schwab.desktop      /usr/share/applications/
 COPY config/pwa/org.secureprospective.spplus.wealthscape.desktop /usr/share/applications/
+COPY config/pwa/org.secureprospective.spplus.canva.desktop      /usr/share/applications/
 COPY config/pwa/icons/ /usr/share/icons/hicolor/scalable/apps/
 
 RUN set -eux; \
-    for d in messages photos maps teams schwab wealthscape; do \
+    for d in messages photos maps teams schwab wealthscape canva; do \
         f=/usr/share/applications/org.secureprospective.spplus.$d.desktop; \
         test -f "$f"; \
         desktop-file-validate "$f"; \
@@ -1714,8 +1719,9 @@ RUN set -eux; \
     done; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-schwab.svg; \
     test -s /usr/share/icons/hicolor/scalable/apps/spplus-wealthscape.svg; \
+    test -s /usr/share/icons/hicolor/scalable/apps/spplus-canva.svg; \
     gtk-update-icon-cache -f /usr/share/icons/hicolor || true; \
-    echo "PWA_GATE_OK six advisor web apps chromeless, icons present"
+    echo "PWA_GATE_OK seven advisor web apps chromeless, icons present"
 
 # Ship Modern Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
