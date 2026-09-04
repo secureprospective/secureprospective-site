@@ -228,8 +228,21 @@ RUN systemctl enable wsdd.service \
 # one is needed, the Noto CJK faces are 116 MB of fonts this product never renders (a dry run
 # confirmed they take only their three default-fonts-cjk-* metapackages with them),
 # and mariadb-server is a database no SP+ component uses. Christopher explicitly
-# ruled KEEP on plasma-workspace-wallpapers, java-25-openjdk-headless and ibus +
-# cldr-emoji-annotation -- do not add them here.
+# ruled KEEP on java-25-openjdk-headless and ibus + cldr-emoji-annotation --
+# do not add them here. ibus in particular looks like a 294 MiB win and is not:
+# measured with zstd -19 it is 154 MB on disk and 16 MB compressed, because it
+# is mostly text. Package size is a bad predictor of ISO size.
+#
+# plasma-workspace-wallpapers was on that KEEP list until 2026-09-04. It is the
+# best cut in the image precisely because wallpapers do NOT compress -- measured
+# at 1.00x, so its 255 MiB comes off the ISO very nearly one for one, more than
+# Thunderbird and boto3 together. It has no dependents, and SP+ declares its own
+# wallpaper for all eight offered themes, so nothing an advisor sees changes.
+#
+# Next is deliberately NOT cut. It is the stock Plasma fallback any code path
+# lands on when no wallpaper is set, and it belongs to plasma-breeze-common,
+# which stays. Trading a possible black desktop on a first boot for 40 MiB is a
+# bad trade.
 #
 # python3-boto3 was on that KEEP list until 2026-09-04, when the release had to
 # fit under R2's 5 GiB single-upload ceiling and Christopher reversed it. It is
@@ -256,6 +269,7 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
       google-noto-serif-cjk-vf-fonts \
       nvidia-gpu-firmware \
       python3-boto3 python3-botocore python3-s3transfer \
+      plasma-workspace-wallpapers \
       plasma-welcome plasma-welcome-fedora; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
@@ -263,10 +277,13 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
     rpm -q glibc-langpack-en || exit 1; \
     for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware \
              python3-boto3 python3-botocore python3-s3transfer \
+             plasma-workspace-wallpapers \
              plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
-    rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
+    rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; };
+    test -d /usr/share/wallpapers/Next \
+      || { echo "TRIM FAILED: the Next fallback wallpaper was cut"; exit 1; }; \
     echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l)"
 
 # ---- 3. the SP+ service account ----
