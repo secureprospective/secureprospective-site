@@ -8,6 +8,7 @@ import datetime as dt
 import http.client
 import json
 import os
+import shutil
 import re
 import socket
 import ssl
@@ -714,6 +715,117 @@ class ComputerCheckWorker(QThread):
 
     result_ready = Signal(object, object)
 
+    # Fin gets its own budget. The tuner already had 300s; a model call on top
+    # of that must not make the button feel hung, and the deterministic verdict
+    # below is always available, so waiting longer buys nothing.
+    FIN_VERDICT_TIMEOUT = float(os.environ.get('SPPLUS_CHECK_FIN_TIMEOUT', '60'))
+
+    @staticmethod
+    def _sweep():
+        """Read-only checks for things that are visibly wrong. No privilege.
+
+        Deliberately small and specific. Each entry is a sentence an advisor can
+        act on or read to support -- never a raw unit name or an error code on
+        its own.
+        """
+        issues = []
+        seen_volumes = set()
+
+        def ask(cmd, timeout=15):
+            try:
+                done = subprocess.run(cmd, capture_output=True, text=True,
+                                      timeout=timeout)
+                return done.returncode, (done.stdout or '').strip()
+            except (OSError, subprocess.SubprocessError):
+                return None, ''
+
+        # systemd's own opinion of the boot.
+        rc, state = ask(['systemctl', 'is-system-running'])
+        if state and state not in ('running', 'starting'):
+            rc2, failed = ask(['systemctl', '--failed', '--no-legend',
+                               '--plain', '--no-pager'])
+            names = [ln.split()[0] for ln in failed.splitlines() if ln.split()]
+            if names:
+                issues.append('%d background service%s did not start: %s.'
+                              % (len(names), '' if len(names) == 1 else 's',
+                                 ', '.join(names[:4])))
+            elif state == 'degraded':
+                issues.append('Something in the background did not start correctly.')
+
+        # A full disk breaks saving, printing and updates, and looks like
+        # nothing at all from the desktop until it does.
+        #
+        # NEVER CHECK "/". On an image-mode host / is a composefs mount of the
+        # deployment -- 47 MB and 100% used on this build, permanently and
+        # correctly, because it is read-only. Checking it reported "storage is
+        # nearly full (0% free)" on a machine with 2.7 GB free, which is the
+        # kind of false alarm that teaches an advisor to ignore the check.
+        # Caught on the 20260904e guest 2026-09-04 by running this sweep.
+        # /var is the writable filesystem and /var/home is the advisor's files;
+        # on this build both resolve to the same LVM volume, and disk_usage on
+        # a missing path is skipped rather than guessed at.
+        for path, label in (('/var', 'the computer'), ('/var/home', 'your files')):
+            try:
+                usage = shutil.disk_usage(path)
+            except OSError:
+                continue
+            free_pct = (usage.free / usage.total) * 100 if usage.total else 100
+            if free_pct < 10:
+                warning = ('Storage for %s is nearly full (%.0f%% free).'
+                           % (label, free_pct))
+                # /var and /var/home are one volume on this build. Reporting it
+                # twice reads as two faults.
+                if (usage.total, usage.free) in seen_volumes:
+                    continue
+                seen_volumes.add((usage.total, usage.free))
+                issues.append(warning)
+
+        return issues
+
+    def _fin_verdict(self, all_clear, issues, summary):
+        """Have Fin write the verdict. Returns (text, fin_was_actually_used).
+
+        The brief is facts only -- Fin is asked to phrase a verdict, never to
+        determine one, so a model that is having a bad day cannot invent a
+        problem or wave one away. If Fin cannot answer, the deterministic
+        sentence is used and the caller is told Fin was not involved, because
+        a box that says "Fin" when Fin never ran is the exact defect this
+        replaced.
+        """
+        fallback = ('This computer is up to date and nothing looks wrong. '
+                    'Nothing was changed.') if all_clear else (
+                   'Some things need attention: ' + ' '.join(issues) +
+                   ' Nothing was changed.')
+
+        facts = ['Findings from an automated check of an SP+ computer.',
+                 'Overall: ' + ('everything passed' if all_clear
+                                else 'problems were found')]
+        for line in summary:
+            facts.append('- ' + str(line))
+        for issue in issues:
+            facts.append('- PROBLEM: ' + str(issue))
+        brief = (
+            '\n'.join(facts) + '\n\n'
+            'Write 2 to 3 short sentences for a financial advisor who is not '
+            'technical, telling them what this means. Do not invent findings '
+            'that are not listed. Do not suggest commands. Say plainly that '
+            'nothing on the computer was changed. Reply with the sentences '
+            'only, no preamble and no markdown.')
+
+        try:
+            done = subprocess.run([FIN, '--ask', brief],
+                                  capture_output=True, text=True,
+                                  timeout=self.FIN_VERDICT_TIMEOUT)
+        except (OSError, subprocess.SubprocessError):
+            return fallback, False
+        answer = (done.stdout or '').strip()
+        if done.returncode != 0 or not answer:
+            return fallback, False
+        # A runaway answer is a formatting failure, not a verdict.
+        if len(answer) > 900:
+            return fallback, False
+        return answer, True
+
     def run(self):
         try:
             if not Path(TUNE).is_file():
@@ -738,16 +850,25 @@ class ComputerCheckWorker(QThread):
             except OSError:
                 summary = []
 
+            # A CLEAN SWEEP, not just the tuner's exit code. The tuner answers
+            # one question -- can this machine still update -- and a computer
+            # can be badly wrong while answering that question with a 0. These
+            # are read-only and need no privilege.
+            issues = self._sweep()
             if broken:
-                payload = {'ok': True, 'healthy': False,
-                           'message': 'This computer can no longer receive updates. '
-                                      'Nothing was changed. Please show this to support.',
-                           'summary': summary}
-            else:
-                payload = {'ok': True, 'healthy': True,
-                           'message': 'Fin checked this computer and it is up to date. '
-                                      'Nothing was changed.',
-                           'summary': summary}
+                issues.insert(0, 'This computer can no longer receive updates.')
+
+            # THE VERDICT COMES FROM FIN. Until 2026-09-04 this button said
+            # "Fin checked this computer and it is up to date" as a hardcoded
+            # string; Fin was never called. The button carries Fin's name, so
+            # Fin does the work or the box says plainly that it did not.
+            verdict, used_fin = self._fin_verdict(healthy and not issues,
+                                                  issues, summary)
+            payload = {'ok': True, 'healthy': healthy and not issues,
+                       'exit_code': proc.returncode,
+                       'issues': issues, 'fin_used': used_fin,
+                       'verdict_source': 'fin' if used_fin else 'built-in',
+                       'message': verdict, 'summary': summary}
         except subprocess.TimeoutExpired:
             payload = {'ok': False,
                        'message': 'The check took too long and was stopped. Nothing was changed.'}

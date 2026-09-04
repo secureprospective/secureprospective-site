@@ -539,3 +539,43 @@ body.service-panel-open{overflow:hidden}
 .update-lane #update-note{margin:8px 0 0}
 .update-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .update-lane .lane-result:empty{display:none}
+
+/* Fin's answer, 2026-09-04.
+ *
+ * The ask box was built for one short status line: 100px tall, the copy
+ * clamped to 76px, and white-space:pre-wrap. That is right for
+ * "FIN IS THINKING" and wrong for an answer from a model, which arrives as
+ * markdown and is usually several lines. An advisor got literal asterisks in a
+ * 76px slot with a scrollbar -- which reads as a broken stub rather than as an
+ * assistant, and is a large part of why the feature looked like it was not
+ * calling Fin at all.
+ *
+ * Only the answer state grows. Pending and error stay the compact status line
+ * they were, so nothing else on the help screen moves.
+ */
+.ask-feedback[data-kind=answer]{max-height:none}
+.ask-feedback[data-kind=answer] .ask-feedback-copy{max-height:300px;white-space:normal}
+.ask-feedback[data-kind=answer] .ask-feedback-copy>*:first-child{margin-top:0}
+.ask-feedback[data-kind=answer] .ask-feedback-copy>*:last-child{margin-bottom:0}
+.ask-feedback[data-kind=answer] .ask-feedback-copy p{margin:7px 0}
+.ask-feedback[data-kind=answer] .ask-feedback-copy ul{margin:7px 0;padding-left:18px}
+.ask-feedback[data-kind=answer] .ask-feedback-copy li{margin:4px 0}
+.ask-feedback[data-kind=answer] .ask-feedback-copy h1,
+.ask-feedback[data-kind=answer] .ask-feedback-copy h2,
+.ask-feedback[data-kind=answer] .ask-feedback-copy h3{margin:9px 0 4px;font-size:14px;text-transform:none}
+.ask-feedback[data-kind=answer] .ask-feedback-copy code{padding:1px 3px;background:var(--yellow);word-break:break-word}
+.ask-feedback[data-kind=answer] .ask-feedback-copy strong{font-weight:800}
+
+/* Who wrote the verdict, 2026-09-04.
+ *
+ * "LET FIN CHECK THIS COMPUTER" used to print a fixed sentence beginning
+ * "Fin checked this computer" without ever calling Fin. Fin writes it now, but
+ * Fin can be offline, and the advisor is told which answer they are reading
+ * rather than being left to assume. Small and quiet: this is a provenance
+ * note, not a second headline.
+ */
+.verdict-source[hidden]{display:none}
+.verdict-source{margin-top:5px;color:var(--fine);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+#check-result[data-source=fin]+.verdict-source{color:var(--blue)}
+/* A problem is not one more neutral fact in the specification list. */
+.check-summary li[data-kind=problem]{font-weight:800;color:var(--ink);background:var(--yellow);padding:3px 5px;margin:3px 0}

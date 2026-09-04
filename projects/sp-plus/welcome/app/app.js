@@ -286,10 +286,44 @@
   function showAskFeedback(message, kind) {
     askFeedback.hidden = false;
     askFeedback.dataset.kind = kind || '';
-    askFeedbackCopy.textContent = message;
+    // Fin answers in markdown -- "**4812**", bullet lists, `commands`. This box
+    // used to set textContent, so an advisor read the asterisks and backticks
+    // raw. Nothing else in SP+ shows unrendered markdown, so it did not look
+    // like a slow answer, it looked like a broken stub that was not really
+    // talking to Fin. H.markdown is the same renderer the manual uses and it
+    // escapes & < > BEFORE substituting, emitting no attributes and no href,
+    // so model output cannot inject markup. Only Fin's own answer is rendered;
+    // every other message stays plain text.
+    if (kind === 'answer') {
+      askFeedbackCopy.innerHTML = H.markdown(message);
+    } else {
+      askFeedbackCopy.textContent = message;
+    }
   }
+  // Fin answers in about 6 seconds, but it is a model call and the ceiling is
+  // two minutes. A frozen "FIN IS THINKING" for that long is indistinguishable
+  // from a hung application, so the wait counts up and says so once it is
+  // longer than usual. This is display only: it never cancels the request.
+  let askTick = null;
+  let askStarted = 0;
+  function stopAskTick() {
+    if (askTick) { clearInterval(askTick); askTick = null; }
+  }
+  function startAskTick() {
+    stopAskTick();
+    askStarted = Date.now();
+    askTick = setInterval(() => {
+      const seconds = Math.round((Date.now() - askStarted) / 1000);
+      const note = seconds >= 20
+        ? ' THIS ONE IS TAKING LONGER THAN USUAL. FIN IS STILL WORKING.'
+        : '';
+      showAskFeedback(`FIN IS THINKING. ${seconds}s.${note}`, 'pending');
+    }, 1000);
+  }
+
   function resetAskFeedback() {
     if (askTimer) { clearTimeout(askTimer); askTimer = null; }
+    stopAskTick();
     askFeedback.hidden = true;
     askFeedback.dataset.kind = '';
     askFeedbackCopy.textContent = '';
@@ -299,6 +333,7 @@
   }
   function finishAsk(result) {
     if (askTimer) { clearTimeout(askTimer); askTimer = null; }
+    stopAskTick();
     askInput.disabled = false;
     askSubmit.disabled = false;
     askForm.setAttribute('aria-busy', 'false');
@@ -590,16 +625,42 @@
   });
   const checkButton = document.getElementById('fin-check');
   const checkResultEl = document.getElementById('check-result');
+  const attributionEl = document.getElementById('check-attribution');
   const checkSummaryEl = document.getElementById('check-summary');
   function finishCheck(result){
     if (checkButton) checkButton.disabled = false;
     const msg = (result && result.message) || 'The check could not run this time.';
-    if (checkResultEl) checkResultEl.textContent = msg;
+    if (checkResultEl) {
+      checkResultEl.textContent = msg;
+      // TRUTH IN ATTRIBUTION. This button carries Fin's name, and until
+      // 2026-09-04 the box said "Fin checked this computer" as a fixed string
+      // while Fin was never called at all. Fin writes the verdict now, but it
+      // can be offline or slow, and in that case the built-in sentence is used
+      // -- so the box says which one the advisor is reading. An advisor who is
+      // told Fin spoke when it did not cannot trust anything else here.
+      checkResultEl.dataset.source = (result && result.verdict_source) || '';
+      if (attributionEl) {
+        attributionEl.textContent = (result && result.fin_used)
+          ? 'FIN WROTE THIS'
+          : 'FIN COULD NOT BE REACHED. THIS IS THE BUILT-IN ANSWER.';
+        attributionEl.hidden = !(result && result.message);
+      }
+    }
     if (checkSummaryEl) {
       checkSummaryEl.textContent = '';
+      // Problems first and marked as problems: the facts below are the
+      // machine's specification, and a full disk must not read as one more
+      // neutral row among them.
+      const problems = (result && result.issues) || [];
+      problems.forEach(row => {
+        const li = document.createElement('li');
+        li.textContent = row;
+        li.dataset.kind = 'problem';
+        checkSummaryEl.append(li);
+      });
       const rows = (result && result.summary) || [];
       rows.forEach(row => { const li = document.createElement('li'); li.textContent = row; checkSummaryEl.append(li); });
-      checkSummaryEl.hidden = rows.length === 0;
+      checkSummaryEl.hidden = (rows.length + problems.length) === 0;
     }
     // A machine that cannot update looks completely normal from the desktop,
     // so an unhealthy result must READ as a problem, not as a quiet success.
@@ -607,7 +668,8 @@
   }
   if (checkButton) checkButton.addEventListener('click', () => {
     checkButton.disabled = true;
-    if (checkResultEl) checkResultEl.textContent = 'Fin is checking this computer. Nothing will be changed.';
+    if (checkResultEl) checkResultEl.textContent = 'Checking this computer, then asking Fin to explain the result. Nothing will be changed.';
+    if (attributionEl) attributionEl.hidden = true;
     announce('FIN IS CHECKING THIS COMPUTER. NOTHING WILL BE CHANGED.');
     send('spplus:check-computer');
   });
@@ -695,6 +757,7 @@
     askForm.setAttribute('aria-busy', 'true');
     showAskFeedback('FIN IS THINKING. YOUR QUESTION IS WITH FIN.', 'pending');
     announce('FIN IS THINKING. YOUR QUESTION IS WITH FIN.');
+    startAskTick();
     send('spplus:ask?q=' + encodeURIComponent(question));
     askTimer = setTimeout(() => finishAsk({ok:false, reason:'Fin did not respond.'}), 125000);
   });
