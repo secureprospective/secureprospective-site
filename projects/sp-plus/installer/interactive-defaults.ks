@@ -64,7 +64,7 @@ EOF
 # ("manifest unknown", "docker://...") to the advisor as a fatal dialog. The tag
 # ghcr.io/secureprospective/sp-plus-kde:edge was never published and returned
 # HTTP 404; the published tags are latest and the dated/build-numbered ones.
-bootc --source-imgref containers-storage:localhost/sp-plus-kde:alpha1 --target-imgref ghcr.io/secureprospective/sp-plus-kde:latest
+bootc --source-imgref containers-storage:localhost/sp-plus-kde:alpha2 --target-imgref ghcr.io/secureprospective/sp-plus-kde:latest
 
 # No account is declared here, deliberately. SP+ ships no human account at all:
 # the person installing creates their own user in the installer's user spoke, the

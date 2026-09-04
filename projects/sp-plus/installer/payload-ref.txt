@@ -1,1 +1,1 @@
-localhost/sp-plus-kde:alpha1
+localhost/sp-plus-kde:alpha2
