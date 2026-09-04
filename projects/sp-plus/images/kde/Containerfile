@@ -263,6 +263,55 @@ RUN systemctl enable wsdd.service \
 # were to fall back to software rendering the demo is over, and 169 MB is not worth
 # that risk. Only nvidia-gpu-firmware is removed, and only because the target
 # hardware has no nvidia GPU.
+#
+# 2026-09-04, SECOND SIZE PASS. The Alpha built at 5,535,299,584 bytes -- 158.9 MiB
+# over R2's 5,368,709,120 single-PUT ceiling -- even with the wallpaper, Thunderbird
+# and boto3 cuts in it. Two more cuts were ruled by Christopher.
+#
+#   /usr/share/locale -> en, en_US, en_GB only.  MEASURED 620,354,363 raw ->
+#     125,174,620 compressed, so ~119 MiB of ISO. This is the largest cut available
+#     that carries no hardware risk. glibc-all-langpacks is already gone; what is
+#     left here is KDE and LibreOffice UI translation. SP+ IS NOW AN ENGLISH-ONLY
+#     PRODUCT -- that is a product decision, not a reversible packaging detail.
+#     locale.alias is a FILE, not a directory, and the -type d find leaves it; a
+#     gate asserts it survived because removing it breaks locale fallback.
+#
+#   libreoffice-base + -math (IMPRESS IS KEPT, see below).  MEASURED 66,244,714
+#     raw -> 16,579,051
+#     compressed, so only ~15.8 MiB of ISO. Nearly all of the mass is Base's
+#     database stack (firebird 35.7 MiB, firebird-utils 15.5 MiB, libfbclient2,
+#     postgresql-jdbc and the pentaho report jars). Impress is 791 KiB and Math is
+#     12 KiB -- Math was cut on PRODUCT grounds, not size grounds; do not re-add
+#     it expecting a size win.
+#     IMPRESS WAS ORDERED CUT ON 2026-09-04 AND IS DELIBERATELY STILL HERE.
+#     impress.xcd is owned by libreoffice-impress, and
+#     config/libreoffice/spplus-office-parity.xcd declares
+#     <dependency file="impress"/>. LibreOffice skips an .xcd whose declared
+#     dependency is absent, so removing the package would SILENTLY disable the
+#     entire DN-48 parity layer -- the ribbon, the Office keybindings and the
+#     .docx default save filter. Impress is 791 KiB; the parity layer is a shipped
+#     feature. Cutting it properly means editing the dependency list, the
+#     tests/libreoffice-xcd-check.py gate and the Impress cases in
+#     tests/libreoffice-parity-probe.py, then re-verifying parity on real hardware.
+#     A build gate above asserts impress.xcd is still present.
+#     THIS REMOVAL DELIBERATELY OMITS --noautoremove. With it, only the 5.3 MiB of
+#     Base itself goes and firebird stays behind -- 59 of the 65 MiB missed. That is
+#     why it is a separate dnf call and not another entry in the loop below.
+#
+# JAVA STAYS AND CANNOT BE CUT. /usr/lib/jvm is 247 MiB and is required by
+# libreoffice-CORE, not by Base; removing it takes all of LibreOffice. This was
+# hypothesised twice and refuted twice. Do not test it a third time.
+#
+# FIRMWARE IS NOT A CANDIDATE. /usr/lib/firmware is 326,365,615 raw -> 321,683,347
+# compressed (1.01x, like the wallpapers) and is the single biggest uncompressed
+# block left, but 127 MiB of it is intel/ -- wifi, bluetooth and GPU -- and most of
+# the rest is other wifi (mediatek, ath11k/12k, brcm, rtw89) or amdgpu. Cutting it
+# ships advisors a laptop with no network and no display. The genuinely safe subset
+# (cxgb4, bnx2x -- datacenter NICs) totals ~5 MiB and is not worth a build.
+#
+# COMPRESSED SIZE IS THE ONLY VALID MEASURE. Installed size overstated the win by
+# 4x on the LibreOffice cut and 20x on ibus. Measure with
+# `tar cf - <path> | zstd -19 -T0 -c | wc -c` before proposing any further cut.
 RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
  && for p in firefox firefox-langpacks glibc-all-langpacks mariadb-server \
       google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
@@ -284,7 +333,33 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
     rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
     test -d /usr/share/wallpapers/Next \
       || { echo "TRIM FAILED: the Next fallback wallpaper was cut"; exit 1; }; \
-    echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l)"
+    dnf remove -y libreoffice-base libreoffice-math; \
+    dnf clean all; \
+    for p in libreoffice-base libreoffice-math \
+             firebird firebird-utils libfbclient2 postgresql-jdbc; do \
+      rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
+    done; \
+    rpm -q libreoffice-core libreoffice-writer libreoffice-calc libreoffice-draw \
+             libreoffice-impress \
+      || { echo "TRIM FAILED: the kept LibreOffice apps went with Base"; exit 1; }; \
+    test -x /usr/bin/libreoffice \
+      || { echo "TRIM FAILED: the libreoffice launcher is gone"; exit 1; }; \
+    test -s /usr/lib64/libreoffice/share/registry/impress.xcd \
+      || { echo "TRIM FAILED: impress.xcd is gone; spplus-office-parity.xcd \
+declares <dependency file=\"impress\"/> and LibreOffice will SILENTLY skip the \
+whole parity layer -- ribbon, Office keys and the .docx default save"; exit 1; }; \
+    find /usr/share/locale -mindepth 1 -maxdepth 1 -type d \
+         ! -name en ! -name en_US ! -name en_GB -exec rm -rf {} +; \
+    test -s /usr/share/locale/locale.alias \
+      || { echo "TRIM FAILED: locale.alias was cut"; exit 1; }; \
+    for l in en en_US en_GB; do \
+      test -d "/usr/share/locale/$l" \
+        || { echo "TRIM FAILED: the $l locale was cut"; exit 1; }; \
+    done; \
+    lc=$(find /usr/share/locale -mindepth 1 -maxdepth 1 -type d | wc -l); \
+    test "$lc" -le 3 \
+      || { echo "TRIM FAILED: $lc locale dirs survived, expected 3"; exit 1; }; \
+    echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l) locales=$lc"
 
 # ---- 3. the SP+ service account ----
 # SP+ ships NO human account. The person installing creates their own user in the
@@ -2076,7 +2151,6 @@ RUN for d in org.kde.partitionmanager \
     done; \
     for d in brave-browser libreoffice-writer \
              libreoffice-calc libreoffice-impress libreoffice-draw \
-             libreoffice-base libreoffice-math \
              org.kde.dolphin org.kde.okular org.kde.kcalc \
              org.keepassxc.KeePassXC fin kitty systemsettings \
              org.kde.plasma-systemmonitor org.kde.discover; do \
