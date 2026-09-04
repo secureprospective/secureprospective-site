@@ -810,46 +810,6 @@
     helpContent.innerHTML=`<div class="article-reader">${markdown(pages[page])}</div><div class="help-pager"><span>PAGE ${page+1} OF ${pages.length}</span>${page>0?'<button class="text-button" data-page="prev">PREVIOUS</button>':''}${page<pages.length-1?'<button class="text-button" data-page="next">NEXT PAGE</button>':''}</div>`;
     helpContent.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>{helpView={kind:'article',category:helpView.category,article:a,page:button.dataset.page==='next'?page+1:page-1};renderHelp();}));
   }
-  // Pin your help. The Help app is a real installed application with its own
-  // window and its own entry, not a browser tab pointed at a file, so pinning
-  // it is a task-bar operation the shell has to do. Welcome only asks.
-  const pinHelp=document.getElementById('pin-help');
-  const pinHelpResult=document.getElementById('pin-help-result');
-  let pinning=false;
-  if(pinHelp){
-    pinHelp.addEventListener('click',()=>{
-      if(pinning) return;
-      pinning=true;
-      pinHelp.disabled=true;
-      pinHelp.setAttribute('aria-busy','true');
-      pinHelp.textContent='PINNING...';
-      if(pinHelpResult) pinHelpResult.textContent='Putting Help on your task bar.';
-      send('spplus:pin-help');
-    });
-  }
-  function finishPinHelp(result){
-    pinning=false;
-    if(!pinHelp) return;
-    pinHelp.setAttribute('aria-busy','false');
-    const ok=result&&result.ok;
-    pinHelp.textContent=ok?'PINNED':'PIN YOUR HELP';
-    pinHelp.disabled=!!ok;
-    if(pinHelpResult){
-      // Report what the helper actually said. It distinguishes three real
-      // outcomes -- pinned and live, already pinned, and pinned but only
-      // visible after the next sign-in -- and this used to discard all of
-      // them for one hardcoded sentence claiming the icon was on the task
-      // bar. On an image where the live refresh could not run, that sentence
-      // was simply false, and the advisor was told to look for something
-      // that was not there.
-      pinHelpResult.textContent = ok
-        ? ((result && result.reason) || 'Help is on your task bar.')
-        : 'Help could not be pinned just now: ' +
-          ((result&&result.reason)||'no detail was reported') +
-          ' You can still open Help from Applications.';
-    }
-  }
-
   // ---- System updates ----------------------------------------------------
   // The advisor's manual lane. SP+ still updates on its own and applies it at
   // shutdown; this is for someone who wants to look now, or to finish one
@@ -1053,7 +1013,6 @@
     printerResult: finishPrinter,
     serviceResult: finishServiceCapability,
     serviceOpenResult: finishServiceOpen,
-    pinHelpResult: finishPinHelp,
     updateResult: finishUpdate,
     // Named on purpose. The help screen has moved once already, and a test
     // that hardcodes its index silently tests the wrong screen afterwards.

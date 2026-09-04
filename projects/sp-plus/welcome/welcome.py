@@ -110,6 +110,16 @@ FLATPAK_APP_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$')
 
 
 class PinHelpWorker(QThread):
+    # NOT reachable from the UI since 2026-09-04: the PIN YOUR HELP button was
+    # removed because Help is opened from Brave, so pinning it to the task bar
+    # was a second path to the same place -- and the launcher it produced errored
+    # with "Unknown application folder" when clicked.
+    #
+    # The class stays because welcome-lifecycle-gate.sh uses it as its slow-worker
+    # fixture, driven by SPPLUS_PIN_HELP, to prove that closing Welcome waits for
+    # a running worker rather than destroying a live QThread mid-flight. That is a
+    # real regression test for a real crash; removing this would remove the
+    # fixture, not merely dead code.
     """Pin the Help application to the task bar, off Qt's UI thread.
 
     The helper does the desktop work and is the one place that knows how a
@@ -1328,8 +1338,6 @@ class WelcomeBridge(QObject):
                                                   password or '', save_securely))
         elif parsed.path == 'print-test':
             self.print_test()
-        elif parsed.path == 'pin-help':
-            self.pin_help()
         elif parsed.path == 'update-status':
             self.update_action('status')
         elif parsed.path == 'update-check':
@@ -1411,9 +1419,6 @@ class WelcomeBridge(QObject):
         window = self.view.window()
         if window is not None:
             window.close()
-
-    def pin_help(self):
-        self._dispatch(PinHelpWorker(), 'pinHelpResult')
 
     def update_action(self, action):
         """Run one update verb. The page decides what to show, never what is true."""

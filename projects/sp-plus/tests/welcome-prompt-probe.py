@@ -1,10 +1,14 @@
 #!/usr/bin/python3
-"""The two new controls on Welcome's help screen, driven for real.
+"""Welcome's suggested-prompt panel, driven for real.
 
-Covers what the Help app's own gate cannot: Welcome draws the suggested-prompt
-panel with its own code, and the PIN YOUR HELP button only means anything if
-pressing it reaches the shell. Both are checked by pressing them, not by
-reading the markup.
+Covers what the Help app's own gate cannot: Welcome draws this panel with its
+own code, so it is checked by searching, opening a guide and reading what the
+page actually rendered -- not by grepping the markup.
+
+The PIN YOUR HELP half of this probe was removed 2026-09-04 with the button
+itself. Help is opened from Brave, so pinning it to the task bar was a second
+path to the same place, and the launcher it produced errored with "Unknown
+application folder" when clicked.
 """
 import json
 import os
@@ -41,7 +45,7 @@ class Probe:
             QTimer.singleShot(500, lambda: self.start(tries + 1))
         self.js("(function(){try{if(!window.spWelcome||!window.spWelcome.goHelp)"
                 "return 'wait';window.spWelcome.goHelp();"
-                "return document.getElementById('pin-help')?'ready':'wait';}"
+                "return document.getElementById('ask-fin')?'ready':'wait';}"
                 "catch(e){return 'wait';}}())", got)
 
     def open_article(self, tries=0):
@@ -70,7 +74,7 @@ class Probe:
             checks += 1
             if data["dupInBody"]:
                 fails.append("a prompt appears both in the panel and in the article body")
-            self.press_pin()
+            self.finish()
 
         self.js(
             "(function(){try{"
@@ -91,52 +95,14 @@ class Probe:
             "dupInBody:texts.some(function(t){return body.indexOf(t)!==-1;})});"
             "}catch(e){return JSON.stringify({ready:false});}}())", got)
 
-    def press_pin(self):
-        # The button must actually reach the shell. Welcome talks to its Qt
-        # host by setting document.title, so a press that never sets it is a
-        # button that does nothing.
-        def got(raw):
-            global checks
-            data = json.loads(raw)
-            checks += 1
-            if data["title"] != "spplus:pin-help":
-                fails.append("pressing PIN YOUR HELP did not ask the shell to pin "
-                             "(document.title was %r)" % data["title"])
-            checks += 1
-            if not data["disabled"]:
-                fails.append("PIN YOUR HELP stayed pressable while pinning, so it can be double-fired")
-            self.report_result()
-        self.js("(function(){var b=document.getElementById('pin-help');b.click();"
-                "return JSON.stringify({title:document.title,disabled:b.disabled});}())", got)
-
-    def report_result(self):
-        # A failure has to reach the advisor as a sentence, not a dead button.
-        def got(raw):
-            global checks
-            data = json.loads(raw)
-            checks += 1
-            if "could not be pinned" not in data["text"]:
-                fails.append("a failed pin did not explain itself: %r" % data["text"])
-            checks += 1
-            if data["label"] != "PIN YOUR HELP":
-                fails.append("a failed pin left the button reading %r" % data["label"])
-            checks += 1
-            if data["disabled"]:
-                fails.append("a failed pin left the button unpressable, so the advisor cannot retry")
-            self.finish()
-        self.js("(function(){window.spWelcome.pinHelpResult({ok:false,reason:'test double refused.'});"
-                "var b=document.getElementById('pin-help');"
-                "return JSON.stringify({text:document.getElementById('pin-help-result').textContent,"
-                "label:b.textContent,disabled:b.disabled});}())", got)
-
     def finish(self):
         if fails:
-            print("WELCOME_PROMPT_PIN FAILED (%d)" % len(fails))
+            print("WELCOME_PROMPT FAILED (%d)" % len(fails))
             for f in fails:
                 print("  - " + f)
             self.app.exit(1)
             return
-        print("WELCOME_PROMPT_PIN_OK %d checks passed" % checks)
+        print("WELCOME_PROMPT_OK %d checks passed" % checks)
         self.app.exit(0)
 
 

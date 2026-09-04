@@ -844,13 +844,17 @@ grep -q 'goHelp' "$W/app/app.js" \
 grep -q 'goHelp' "$REPO/projects/sp-plus/tests/welcome-help-corpus-gate.sh" \
   || { P16_OK=0; echo "       the corpus gate still hardcodes a help screen index"; }
 
-# Pin your help.
+# Pin your help was REMOVED 2026-09-04 (Christopher): Help is opened from Brave,
+# so pinning it to the task bar was a second path to the same place, and the
+# launcher it produced errored with "Unknown application folder" on click. These
+# assertions are inverted rather than deleted so the feature cannot quietly
+# return with the same defect.
 grep -q 'id="pin-help"' "$W/app/index.html" \
-  || { P16_OK=0; echo "       the PIN YOUR HELP button is missing from the help screen"; }
+  && { P16_OK=0; echo "       the removed PIN YOUR HELP button is back in the help screen"; }
 grep -q "spplus:pin-help" "$W/app/app.js" \
-  || { P16_OK=0; echo "       the pin button does not reach the shell"; }
+  && { P16_OK=0; echo "       the removed pin bridge verb is back in app.js"; }
 grep -q "parsed.path == 'pin-help'" "$W/welcome.py" \
-  || { P16_OK=0; echo "       the Welcome shell does not handle the pin request"; }
+  && { P16_OK=0; echo "       the removed pin request handler is back in welcome.py"; }
 [ -x "$REPO/projects/sp-plus/config/spplus-pin-help" ] \
   || { P16_OK=0; echo "       the pin helper is missing or not executable"; }
 bash -n "$REPO/projects/sp-plus/config/spplus-pin-help" 2>/dev/null \
