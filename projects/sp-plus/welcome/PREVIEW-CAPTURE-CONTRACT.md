@@ -2,8 +2,8 @@
 
 The image in each theme confirmation card is a verification receipt, not an illustration. The eight files below must be captured from the same freshly booted Plasma session used for the theme round-trip test:
 
-- `app/assets/theme-previews/windows-light.png`
-- `app/assets/theme-previews/windows-dark.png`
+- `app/assets/theme-previews/modern-light.png`
+- `app/assets/theme-previews/modern-dark.png`
 - `app/assets/theme-previews/breeze-light.png`
 - `app/assets/theme-previews/breeze-dark.png`
 - `app/assets/theme-previews/nordic-dark.png`

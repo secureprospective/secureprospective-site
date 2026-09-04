@@ -283,8 +283,8 @@ capture() {
 }
 
 failures=0
-capture org.secureprospective.spplus.modern.dark  windows-dark      --layout || failures=$((failures + 1))
-capture org.secureprospective.spplus.modern.light windows-light     --layout || failures=$((failures + 1))
+capture org.secureprospective.spplus.modern.dark  modern-dark      --layout || failures=$((failures + 1))
+capture org.secureprospective.spplus.modern.light modern-light     --layout || failures=$((failures + 1))
 capture org.kde.breezedark.desktop                   breeze-dark       --layout || failures=$((failures + 1))
 capture org.kde.breeze.desktop                       breeze-light      --layout || failures=$((failures + 1))
 capture Nordic                                       nordic-dark       --layout || failures=$((failures + 1))

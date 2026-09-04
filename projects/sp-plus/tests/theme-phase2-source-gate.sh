@@ -118,7 +118,7 @@ PY
 # all eight verified-session receipts before the image is buildable.
 preview_root="$ROOT/welcome/app/assets/theme-previews"
 for preview in \
-  windows-light.png windows-dark.png breeze-light.png breeze-dark.png \
+  modern-light.png modern-dark.png breeze-light.png breeze-dark.png \
   nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do
   [ -s "$preview_root/$preview" ] || fail "missing applied-session preview receipt: $preview"
 done
