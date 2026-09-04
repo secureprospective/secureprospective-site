@@ -524,6 +524,41 @@ class ThemeApplyWorker(QThread):
         self.result_ready.emit(self, payload)
 
 
+class ToolStatusWorker(QThread):
+    """Which optional tools are already on this computer.
+
+    Welcome asked the machine about pending updates at start-up but never about
+    the optional tools, so a tool the advisor had already added still offered
+    "ADD GNOME BOXES" the next time Welcome opened. Nothing broke -- the
+    install worker recognises an existing app and says so -- but the page was
+    stating something untrue about the machine, and an advisor who adds Boxes
+    and is offered it again has no way to tell whether the first attempt
+    worked.
+
+    ONE `flatpak list` rather than one `flatpak info` per app: three
+    subprocesses at start-up is three chances to be slow on a cold cache, and
+    this runs while the advisor is still reading the first screen.
+    """
+
+    result_ready = Signal(object, object)
+
+    def run(self):
+        installed = []
+        try:
+            done = subprocess.run(
+                [FLATPAK, 'list', '--system', '--columns=application'],
+                capture_output=True, text=True, timeout=30)
+            if done.returncode == 0:
+                present = {line.strip() for line in (done.stdout or '').splitlines()}
+                installed = [app for app in FLATPAK_APP_NAMES if app in present]
+        except (OSError, subprocess.SubprocessError):
+            # An unreadable list is not a claim that nothing is installed; the
+            # page simply leaves every row as it found it.
+            self.result_ready.emit(self, {'ok': False, 'installed': []})
+            return
+        self.result_ready.emit(self, {'ok': True, 'installed': installed})
+
+
 class FlatpakInstallWorker(QThread):
     """Install one Flatpak and verify it exists before reporting success."""
 
@@ -1478,6 +1513,8 @@ class WelcomeBridge(QObject):
             app_id = (params.get('app') or [''])[0].strip()
             if FLATPAK_APP_ID.fullmatch(app_id):
                 self.install_tool(app_id)
+        elif parsed.path == 'tool-status':
+            self.tool_status()
         elif parsed.path == 'browse-store':
             self.browse_store()
         elif parsed.path == 'display-settings':
@@ -1604,6 +1641,9 @@ class WelcomeBridge(QObject):
 
     def install_tool(self, app_id):
         self._dispatch(FlatpakInstallWorker(app_id), 'toolResult')
+
+    def tool_status(self):
+        self._dispatch(ToolStatusWorker(), 'toolStatusResult')
 
     def open_display_settings(self):
         """Open KDE's own Display Configuration.
@@ -1807,7 +1847,8 @@ class SelfTest(QObject):
     # the running desktop.
     SAFE = ('check-computer', 'check-share-refused', 'check-share-unreachable',
             'print-test', 'update-status', 'update-check',
-            'service-capabilities-files', 'service-capabilities-social')
+            'service-capabilities-files', 'service-capabilities-social',
+            'tool-status')
 
     # What a CORRECT machine reports. An error path is SUPPOSED to return
     # ok:false -- calling that a failed test would make the report lie.
@@ -1823,7 +1864,9 @@ class SelfTest(QObject):
               # teaches everyone to ignore it.
               'update-check': None,
               'service-capabilities-files': None,
-              'service-capabilities-social': None}
+              'service-capabilities-social': None,
+              # Local read of the flatpak database; must work.
+              'tool-status': True}
 
     # 2026-09-04. This case used to be called "check-share-reachable" and
     # expected a CREDENTIALS verdict from 127.0.0.1 -- but nothing listens on
@@ -1963,6 +2006,8 @@ class SelfTest(QObject):
                 w.request_service_capability('files', retry=True)
             elif verb == 'service-capabilities-social':
                 w.request_service_capability('social', retry=True)
+            elif verb == 'tool-status':
+                w.tool_status()
             elif verb == 'ask':
                 w.ask('what is 1847 + 2965')
         except Exception as exc:                     # noqa: BLE001 - report, never crash the run

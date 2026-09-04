@@ -547,6 +547,20 @@
     setToolState(button, button.dataset.state || 'idle');
     button.addEventListener('click', () => startToolInstall(button));
   });
+  // Ask the machine which optional tools are already installed, so the rows
+  // are truthful before the advisor ever reaches them. Welcome already did
+  // this for pending updates and did not for tools, so a tool that had been
+  // added still offered to add it again -- which gives an advisor no way to
+  // tell whether their first attempt worked.
+  function finishToolStatus(result) {
+    if (!result || !result.ok) return;      // unreadable list changes nothing
+    const installed = result.installed || [];
+    toolActions.forEach(button => {
+      if (installed.includes(button.dataset.appId)) setToolState(button, 'installed');
+    });
+    updateFinalTools();
+  }
+
   function finishTool(result) {
     const button = toolActions.find(item => item.dataset.appId === (result && result.app));
     const name = (result && result.name) || (button && toolLabel(button)) || 'That application';
@@ -984,6 +998,7 @@
     });
   }
 
+  send('spplus:tool-status');
   // Ask once at start-up so the section is already truthful when the advisor
   // reaches it. `status` is local only -- it reads what the machine already
   // knows and touches no network.
@@ -1070,6 +1085,7 @@
     storeResult: finishStore,
     displayResult: finishDisplay,
     checkResult: finishCheck,
+    toolStatusResult: finishToolStatus,
     finResult: finishFin,
     emailResult: finishEmail,
     shareResult: finishShare,
