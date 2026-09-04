@@ -35,12 +35,22 @@ ARG SPPLUS_RELEASE=1
 ARG SPPLUS_BUILD=dev
 
 # ---- 1. platform + advisor application suite (spb-manifest, spb-appmanifest) ----
+#
+# bluez, NOT blueman. Kinoite already ships bluedevil, which is KDE's Bluetooth
+# stack: its applet lives inside plasmashell at no extra process cost and it owns
+# the tray icon and the System Settings page. blueman is the GTK/GNOME applet and
+# duplicates all of that -- installing both gave an advisor two Bluetooth UIs that
+# do not agree with each other, plus a blueman-applet autostart holding 63 MiB.
+# Measured on the 20260904e guest 2026-09-04, on a VM with no Bluetooth adapter at
+# all. Nothing requires blueman (`rpm -q --whatrequires blueman` is empty), so it
+# was a leaf we were paying for. bluez stays -- it is the daemon both applets sit
+# on, and advisor laptops do have Bluetooth.
 RUN dnf install -y --setopt=install_weak_deps=False \
         sddm \
         cups cups-filters cups-pk-helper nss-mdns \
         firewalld \
         NetworkManager-wifi \
-        bluez blueman \
+        bluez \
         pipewire wireplumber \
         xdg-desktop-portal-kde \
         udisks2 \
@@ -1004,7 +1014,10 @@ RUN dnf install -y --setopt=install_weak_deps=False gnome-disk-utility \
  && test -x /usr/bin/udisksctl \
  && test -x /usr/sbin/cryptsetup \
  && cryptsetup --version \
- && echo "USB_ENCRYPTION_GATE_OK gnome-disks formats LUKS sticks; udisks unlocks them on insert"
+ && rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.DiskUtilityNotify.desktop \
+ && test ! -e /etc/xdg/autostart/org.gnome.SettingsDaemon.DiskUtilityNotify.desktop \
+ && test -x /usr/bin/gnome-disks \
+ && echo "USB_ENCRYPTION_GATE_OK gnome-disks formats LUKS sticks; udisks unlocks them on insert; GNOME disk notifier autostart removed"
 
 RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
  && dnf clean all \
@@ -1305,7 +1318,10 @@ RUN for u in vboxservice.service vgauthd.service vmtoolsd.service \
 # 22 XDG autostart entries fired for every session. baloo_file is the expensive one:
 # a filesystem indexer on a spinning SATA disk is felt continuously. The rest are for
 # phones, screen readers, geolocation and other vendors' virtual machines. KEPT:
-# plasmashell, kwin, powerdevil, the polkit agent, kwallet, blueman and xdg-user-dirs.
+# plasmashell, kwin, powerdevil, the polkit agent, kwallet and xdg-user-dirs.
+# blueman was on that kept list until 2026-09-04; the package is gone now (KDE's
+# bluedevil owns Bluetooth), so its autostart goes with it and nothing here has
+# to remove the file by name.
 # SP+ adds one autostart of its own (the flameshot daemon, which Print Screen
 # needs under Wayland). The removal list below is by name so it survives today;
 # the test at the end asserts that, because a future addition to that list which
@@ -2630,6 +2646,7 @@ RUN set -eux; \
     test "$lc" -eq 3 \
       || { echo "FINAL TRIM FAIL: $lc locale dirs, expected 3" >&2; exit 1; }; \
     for p in libreoffice-base libreoffice-math firebird firebird-utils \
+             blueman \
              qemu-kvm virt-manager libvirt-daemon-kvm qemu-system-x86-core \
              plasma-workspace-wallpapers \
              python3-boto3 python3-botocore python3-s3transfer \
@@ -2646,6 +2663,11 @@ RUN set -eux; \
     grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
          /usr/lib/udev/rules.d/50-udev-default.rules; \
     test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall; \
+    rpm -q bluedevil bluez >/dev/null \
+      || { echo "FINAL TRIM FAIL: KDE's Bluetooth stack (bluedevil/bluez) is missing" >&2; exit 1; }; \
+    test ! -e /etc/xdg/autostart/blueman.desktop; \
+    test ! -e /etc/xdg/autostart/org.gnome.SettingsDaemon.DiskUtilityNotify.desktop; \
+    test -x /usr/bin/gnome-disks; \
     lic=$(ls /usr/share/licenses | wc -l); \
     test "$lic" -gt 1000 \
       || { echo "FINAL TRIM FAIL: only $lic dirs in /usr/share/licenses" >&2; exit 1; }; \

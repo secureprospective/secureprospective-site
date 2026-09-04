@@ -1,5 +1,6 @@
 # SP+ SOFTWARE MANIFEST — what an advisor's machine must actually contain.
-# Source of truth: projects/sp-plus/Containerfile (the intended product).
+# Source of truth: projects/sp-plus/images/kde/Containerfile (the sanctioned build).
+# NOT projects/sp-plus/Containerfile -- that is the 64-line legacy PoC, unused.
 # Format: TYPE|NAME|WHY
 # TYPE: rpm | path | unit | user
 rpm|plasma-workspace|the desktop itself
@@ -11,7 +12,7 @@ rpm|cups-pk-helper|lets a non-root advisor add a printer
 rpm|firewalld|host firewall, a compliance talking point
 rpm|NetworkManager-wifi|wifi on a laptop
 rpm|bluez|bluetooth
-rpm|blueman|bluetooth GUI an advisor can actually use
+rpm|bluedevil|bluetooth GUI an advisor can actually use (KDE's own; blueman was the GTK duplicate, dropped 2026-09-04)
 rpm|pipewire|audio, for client video calls
 rpm|wireplumber|audio session manager
 rpm|xdg-desktop-portal-kde|file pickers and screen share in Plasma
