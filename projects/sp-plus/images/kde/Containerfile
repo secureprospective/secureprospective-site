@@ -811,7 +811,7 @@ assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72
 # and leave the assertion checking the old number, and the gate would then be
 # verifying nothing. The ARG is the pin; the gate below proves it is an exact
 # literal before anything uses it.
-ARG PI_VERSION=0.84.4
+ARG PI_VERSION=0.85.0
 
 RUN set -eux; \
     case "$PI_VERSION" in \
