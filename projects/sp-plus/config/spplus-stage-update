@@ -50,20 +50,39 @@ fi
 # value, and os-release carries VERSION_ID=1 for every build in the SP+ 1 line,
 # so keying on the version would announce the first update and silently swallow
 # every one after it. The image digest is distinct for every build.
-eval "$(printf '%s' "$answer" | python3 -c '
+# NEVER `eval` THIS. Until 2026-09-04 the three values below were emitted as
+# shell assignments and run through `eval`, which was a root command injection:
+# `note` carries `bootc`'s own stderr verbatim (see spplus-update-control's
+# `err=$(bootc upgrade 2>&1)`), so its content originates at the REGISTRY.
+# `json.dumps` escapes `"` and `\` but NOT `$` or backticks, and the result was
+# placed inside double quotes, so a registry error string containing `$(...)`
+# executed as root -- this unit declares no `User=` and runs on a timer.
+# Demonstrated with a live payload during the 2026-09-03 security audit.
+#
+# The values are now NUL-delimited and read directly into variables. NUL is the
+# one byte that cannot appear in the JSON strings, so no escaping question
+# exists and no shell ever parses this data.
+state='' digest='' note=''
+{
+    IFS= read -r -d '' state || :
+    IFS= read -r -d '' digest || :
+    IFS= read -r -d '' note || :
+} < <(printf '%s' "$answer" | python3 -c '
 import json, sys
 
 try:
     d = json.load(sys.stdin)
 except Exception:
-    print("state=unreadable; digest=; note=")
+    sys.stdout.write("unreadable\0\0\0")
     raise SystemExit(0)
 
 staged = (d.get("staged") or {}).get("digest") or ""
-print("state=%s" % json.dumps(d.get("state", "")))
-print("digest=%s" % json.dumps(staged))
-print("note=%s" % json.dumps(d.get("note") or d.get("reason") or ""))
-')"
+sys.stdout.write("%s\0%s\0%s\0" % (
+    d.get("state", ""),
+    staged,
+    d.get("note") or d.get("reason") or "",
+))
+')
 
 case "$state" in
 staged)

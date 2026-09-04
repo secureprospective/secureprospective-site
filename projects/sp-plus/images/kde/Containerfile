@@ -2278,6 +2278,66 @@ RUN set -eux; \
       || { echo "BRAVE_DEFAULT_GATE: Brave is not the https handler ($xdg_default)"; exit 1; }; \
     echo "BRAVE_DEFAULT_GATE_OK brave owns http(s), first-run default check suppressed"
 
+# ---- SECURITY POSTURE (2026-09-04, from the pre-release audit) ---------------
+#
+# Three defects found by measuring the RUNNING system, not by reading this file.
+# Each is paired with an assertion that measures EFFECT rather than source text,
+# because the audit's most important finding was that a gate which greps a
+# config file passes while the control it represents fails.
+#
+# Every comment stays OUT of the RUN body. Full-line comments inside a
+# backslash-continued RUN are parser-dependent, and a mis-parse silently
+# comments out the rest of the command -- precisely the class of silent failure
+# this block exists to fix.
+#
+# (1) FIREWALL ZONE. Fedora's default is FedoraWorkstation, which accepts
+#     inbound tcp AND udp 1025-65535. Measured on the RC1e guest:
+#         ports: 1025-65535/udp 1025-65535/tcp
+#         nft:   tcp dport 1025-65535 accept
+#     Defensible for a desktop on a home LAN; wrong for a laptop that lives on
+#     hotel, airport and client-office Wi-Fi. It is also the amplifier that made
+#     the Samba and KDE Connect findings reachable. `public` still permits
+#     outbound and established traffic; it stops answering strangers.
+#
+# (2) SAMBA SERVER. SP+ is an SMB client, never a server. The wsdd drop-in tries
+#     to break the RPM's `BindsTo=smb.service` with an empty assignment. On the
+#     installed machine that DID NOT TAKE: smb.service read `disabled` and ran
+#     anyway, smbd on 0.0.0.0:139 and :445, serving a read-write [homes] share of
+#     every user's home directory. Masking survives BindsTo where disabling does
+#     not, which is the entire reason to prefer it here.
+#
+# (3) KDE CONNECT. The autostart .desktop is removed further up and a comment
+#     there claims the daemon is off. It was not -- kdeconnectd was running and
+#     LAN-reachable on the guest, because D-Bus activation starts it with no
+#     autostart file involved. Removing the D-Bus service definition closes it.
+#
+# Placed late on purpose: every package these touch is installed above, and the
+# final store gate still sits below, so this stays inside its coverage.
+RUN set -eux; \
+    test -f /etc/firewalld/firewalld.conf; \
+    sed -i 's/^DefaultZone=.*/DefaultZone=public/' /etc/firewalld/firewalld.conf; \
+    grep -q '^DefaultZone=public$' /etc/firewalld/firewalld.conf; \
+    zone="$(firewall-offline-cmd --get-default-zone)"; \
+    test "$zone" = "public" \
+      || { echo "POSTURE_GATE: default zone is $zone, expected public"; exit 1; }; \
+    if firewall-offline-cmd --zone=public --list-ports | grep -q '1025-65535'; then \
+      echo "POSTURE_GATE: the high-port range followed us into public"; exit 1; \
+    fi; \
+    systemctl mask smb.service nmb.service; \
+    for u in smb nmb; do \
+      st="$(systemctl is-enabled "$u.service" 2>&1 || :)"; \
+      test "$st" = "masked" \
+        || { echo "POSTURE_GATE: $u.service is '$st', expected masked"; exit 1; }; \
+    done; \
+    test -L /etc/systemd/system/smb.service; \
+    test "$(readlink /etc/systemd/system/smb.service)" = "/dev/null"; \
+    rm -f /usr/share/dbus-1/services/org.kde.kdeconnect.service \
+          /usr/share/dbus-1/services/org.kde.kdeconnect.daemon.service; \
+    if ls /usr/share/dbus-1/services/ 2>/dev/null | grep -qi kdeconnect; then \
+      echo "POSTURE_GATE: a kdeconnect D-Bus activation file survived"; exit 1; \
+    fi; \
+    echo "POSTURE_GATE_OK zone=public smb+nmb=masked kdeconnect-dbus=removed"
+
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1
 ENV SPPLUS_LISTEN_ADDRESS=127.0.0.1
