@@ -10,11 +10,13 @@ After it opens the page, Welcome creates a local launcher for that provider in A
 
 If your practice uses another email provider, Welcome does not guess which site to open. Ask your practice for the correct webmail address rather than trying a personal account or a search result.
 
-## Why Thunderbird may open instead
+## What happens when you click an email address
 
-**Thunderbird** is installed on SP+, but the verified starting setup has no email account connected to it. It is an option for a practice that deliberately chooses to set up a desktop email app, not a sign that your work mailbox should already be there.
+SP+ does not include a desktop email program. Email-address links open your browser instead, because webmail is the approved way to send practice email.
 
-Email-address links can open Thunderbird by default. If that happens while you use webmail, it does not mean anything is broken. Copy the address into a new webmail message, or ask Fin whether Thunderbird is approved before adding an account.
+The first time you click one, SP+ asks whether your practice uses Gmail or Outlook. It remembers your answer and opens a new message there from then on, already filled in. If you picked the wrong one, ask Fin to change it.
+
+If your practice deliberately wants a desktop email app, that is a decision to make with whoever manages your practice's email, not something to add on your own. Ask Fin before installing one.
 
 ## Check before you attach or send
 
@@ -30,7 +32,7 @@ Useful prompts include:
 
 - **"Fin, my Google Workspace sign-in page will not open. Check the computer-side problem before I change anything."**
 - **"Fin, help me make a short email template about [non-sensitive topic]. Do not send it."**
-- **"Fin, Thunderbird opened when I clicked an email address. Explain the approved next step without setting up an account yet."**
+- **"Fin, I clicked an email address and my browser opened. Show me the approved way to send this from my practice webmail."**
 
 ## If you cannot sign in
 
