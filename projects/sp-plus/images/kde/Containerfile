@@ -871,6 +871,15 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q 'second copy of Fin' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
  && grep -q -- '--version|-V' /usr/libexec/sp-plus/fin \
  && echo "FIN_UPDATE_LANE_OK Fin updates with the image; the npm route is gated" \
+# Organizing an advisor's folders is the one job where Fin touches client files
+# in bulk. The promise -- names only, nothing opened -- is carried by an
+# extension rather than by prose, because prose lost three runs out of three.
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-organize.ts \
+ && grep -q 'spplus-organize' /usr/libexec/sp-plus/fin \
+ && grep -q 'will not open or read any of your files' /usr/share/sp-plus/fin/extensions/spplus-organize.ts \
+ && test -f /usr/share/sp-plus/fin/skills/marketing/SKILL.md \
+ && grep -q 'FINRA Rule 2210' /usr/share/sp-plus/fin/skills/marketing/SKILL.md \
+ && echo "FIN_ORGANIZE_OK names-only promise is mechanical; marketing skill carries the review rule" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \

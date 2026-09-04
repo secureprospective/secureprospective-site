@@ -44,6 +44,13 @@ interface Rule {
 	/** Plain-English, advisor-readable. It is shown to a non-technical person. */
 	label: string;
 	pattern: RegExp;
+	/**
+	 * What to do INSTEAD, addressed to the model, not the advisor. A block with
+	 * no way forward makes an assistant hunt for another route -- which is both
+	 * the expensive path and the dangerous one. Naming the safe form turns a
+	 * refusal into a correction it can act on in one step.
+	 */
+	fix?: string;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -55,6 +62,30 @@ export default function (pi: ExtensionAPI) {
 		{ label: "deletes files it finds while searching", pattern: /\bfind\b[^\n]*(-delete\b|-exec\s+rm\b)/i },
 		{ label: "erases a whole disk or partition", pattern: /\b(mkfs(\.\w+)?|wipefs|sgdisk|parted|fdisk)\b/i },
 		{ label: "writes directly over a disk", pattern: /\bdd\b[^\n]*\bof=\s*\/dev\//i },
+
+		// --- 1b. The MUNDANE ways a helpful assistant destroys a document ---
+		// Everything in section 1 is dramatic: mkfs, dd, shred. A sweep on
+		// 2026-09-04 ran 10 realistic accidents -- the shapes an assistant reaches
+		// for while tidying up, not while being malicious -- and 9 of 10 went
+		// straight through. `cp` and `mv` overwrite silently by DEFAULT, which is
+		// the whole problem: the advisor asks Fin to organize a folder and a
+		// statement lands on top of a client file with no error and no undo.
+		//
+		// These do not forbid organizing. They forbid organizing DESTRUCTIVELY:
+		// the reason text names `-n` so the model retries correctly on the first
+		// attempt instead of hunting for another way in.
+		{ label: "could overwrite a file in the advisor's own folders", pattern: /\b(cp|mv)\b(?![^\n]*(\s-\w*n\b|--no-clobber|--update))[^\n]*(~|\$HOME|\/(?:var\/)?home\/[^\/\s]+)\/(Documents|Desktop|Downloads|Pictures)\/(?!Fin\/)/i, fix: "Use `mv -n` or `cp -n` so an existing file is never replaced, then tell the advisor which files were already there." },
+		{ label: "moves one of the advisor's main folders somewhere else", pattern: /\bmv\b\s+(-\S+\s+)*(~|\$HOME|\/(?:var\/)?home\/[^\/\s]+)\/(Documents|Desktop|Downloads|Pictures)\/?(\s|$)/i, fix: "Move the files inside the folder, not the folder itself." },
+		{ label: "overwrites a file in the advisor's own folders", pattern: /(>{1,2}|\btee\b)[^\n]*(~|\$HOME|\/(?:var\/)?home\/[^\/\s]+)\/(Documents|Desktop|Downloads|Pictures)\/(?!Fin\/)/i, fix: "Write new files to Documents/Fin instead. Never write over something the advisor made." },
+		{ label: "mirrors one folder over another, deleting whatever does not match", pattern: /\brsync\b[^\n]*--delete/i, fix: "Copy without --delete. Nothing an advisor asks for needs files removed from the destination." },
+		{ label: "deletes work that was never saved to the project's history", pattern: /\bgit\s+clean\b[^\n]*\s-\w*[dx]/i },
+		{ label: "removes every scheduled task at once", pattern: /\bcrontab\b[^\n]*\s-r\b/i },
+
+		// Christopher's original rule, 2026-08-28: the advisor must be safe from
+		// "a 1 off application written into a .env directory or something crazy".
+		// spplus-workspace.ts holds that for the write and edit TOOLS -- but bash
+		// redirection walks straight around it, which the same sweep proved.
+		{ label: "changes the advisor's own hidden settings files", pattern: /(>{1,2}|\btee\b)[^\n]*(~|\$HOME|\/(?:var\/)?home\/[^\/\s]+)\/\.[A-Za-z]/i, fix: "Fin writes in Documents/Fin. Ask the advisor before changing how their account is set up." },
 
 		// --- 2. The machine's own protection ---
 		// SELinux and the firewall are not tuning knobs. Turning either off to
@@ -114,9 +145,10 @@ export default function (pi: ExtensionAPI) {
 		// authorise something they did not type and may not recognise, so the
 		// question says what it does in their language and shows the command.
 		const reason = `This step ${matched.label}`;
+		const guidance = matched.fix ? ` ${matched.fix}` : "";
 
 		if (!ctx.hasUI) {
-			return { block: true, reason: `${reason}. Blocked: nobody is here to approve it.` };
+			return { block: true, reason: `${reason}. Blocked: nobody is here to approve it.${guidance}` };
 		}
 
 		const choice = await ctx.ui.select(
@@ -125,7 +157,7 @@ export default function (pi: ExtensionAPI) {
 		);
 
 		if (choice !== "Yes") {
-			return { block: true, reason: `${reason}; the advisor declined.` };
+			return { block: true, reason: `${reason}; the advisor declined.${guidance}` };
 		}
 
 		return undefined;

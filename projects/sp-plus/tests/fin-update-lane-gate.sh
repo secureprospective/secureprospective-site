@@ -60,11 +60,21 @@ node - "$GUARD" <<'NODE'
 const fs = require('fs');
 const src = fs.readFileSync(process.argv[2], 'utf8');
 // { label: "...", pattern: /.../flags }
-const re = /\{\s*label:\s*"((?:[^"\\]|\\.)*)"\s*,\s*pattern:\s*\/((?:[^/\\\n]|\\.)+)\/([a-z]*)\s*\}/g;
+// `[^}]*` after the flags matters: rules carry a trailing `fix:` field and
+// some are written multi-line, and a stricter tail silently skips them. The count
+// assertion below is what makes that impossible to miss again -- a gate that
+// tests a subset of the rules reports a verdict it has not earned.
+const re = /\{\s*label:\s*"((?:[^"\\]|\\.)*)"\s*,\s*pattern:\s*\/((?:[^/\\\n]|\\.)+)\/([a-z]*)[^}]*\}/g;
 const rules = [];
 let m;
 while ((m = re.exec(src)) !== null) rules.push({label: m[1], pattern: new RegExp(m[2], m[3])});
-if (rules.length < 10) { console.log(`  FAIL only ${rules.length} rules parsed out of the extension`); process.exit(1); }
+// Count only `label:` followed by a string literal -- the Rule INTERFACE also
+// declares `label: string`, and counting that made the assertion off by one.
+const declared = (src.match(/label:\s*"/g) || []).length;
+if (rules.length !== declared) {
+  console.log(`  FAIL parsed ${rules.length} rules but the extension declares ${declared}; the gate would be testing a subset`);
+  process.exit(1);
+}
 const hit = (cmd) => rules.find(r => r.pattern.test(cmd));
 let bad = 0;
 // The two commands the VM actually ran, verbatim from the journal.

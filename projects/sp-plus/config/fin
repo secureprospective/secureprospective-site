@@ -46,6 +46,7 @@ if [ "${1:-}" = "--ask" ]; then
         --prompt-template "$PROMPTS" \
         --extension "$EXTENSIONS/spplus-guardrails.ts" \
         --extension "$EXTENSIONS/spplus-workspace.ts" \
+        --extension "$EXTENSIONS/spplus-organize.ts" \
         --approve \
         "$1"
 fi
@@ -141,5 +142,6 @@ exec /usr/bin/pi \
     --prompt-template "$PROMPTS" \
     --extension "$EXTENSIONS/spplus-guardrails.ts" \
     --extension "$EXTENSIONS/spplus-workspace.ts" \
+    --extension "$EXTENSIONS/spplus-organize.ts" \
     --approve \
     "$@"

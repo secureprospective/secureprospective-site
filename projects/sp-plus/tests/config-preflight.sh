@@ -950,6 +950,18 @@ else
   bad "DN-43/44/45 theme source gate failed" "do not build until the apply path and every preview receipt are present"
 fi
 
+# P-24d Fin holds unprompted root, so the guardrails have to fail in BOTH
+# directions: an assistant that cannot fix a printer is the failure this product
+# exists to remove, and one that quietly overwrites a client file is worse than
+# no assistant. A sweep on 2026-09-04 found the catalogue covered the dramatic
+# cases and missed 9 of 10 ordinary accidents -- cp and mv overwrite silently by
+# default, and bash redirection walked around the workspace confinement.
+if "$REPO/projects/sp-plus/tests/fin-permissions-gate.sh" >/dev/null 2>&1; then
+  ok "Fin can do its job and cannot quietly destroy the advisor's work"
+else
+  bad "Fin permissions gate failed" "either Fin lost the ability to repair things, or it regained the ability to overwrite client files"
+fi
+
 # P-24c Fin updates ARE OS image updates. On 2026-09-04 one went in through npm
 # instead: it failed against read-only /usr, retried against /usr/local nine
 # seconds later, and succeeded -- shadowing the pinned agent on PATH while `fin`
