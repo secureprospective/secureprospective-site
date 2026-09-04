@@ -319,7 +319,6 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
       nvidia-gpu-firmware \
       python3-boto3 python3-botocore python3-s3transfer \
       plasma-workspace-wallpapers \
-      qemu-user-static-aarch64 \
       plasma-welcome plasma-welcome-fedora; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
@@ -328,7 +327,6 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
     for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware \
              python3-boto3 python3-botocore python3-s3transfer \
              plasma-workspace-wallpapers \
-             qemu-user-static-aarch64 \
              plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
@@ -350,18 +348,7 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
       || { echo "TRIM FAILED: impress.xcd is gone; spplus-office-parity.xcd \
 declares <dependency file=\"impress\"/> and LibreOffice will SILENTLY skip the \
 whole parity layer -- ribbon, Office keys and the .docx default save"; exit 1; }; \
-    find /usr/share/locale -mindepth 1 -maxdepth 1 -type d \
-         ! -name en ! -name en_US ! -name en_GB -exec rm -rf {} +; \
-    test -s /usr/share/locale/locale.alias \
-      || { echo "TRIM FAILED: locale.alias was cut"; exit 1; }; \
-    for l in en en_US en_GB; do \
-      test -d "/usr/share/locale/$l" \
-        || { echo "TRIM FAILED: the $l locale was cut"; exit 1; }; \
-    done; \
-    lc=$(find /usr/share/locale -mindepth 1 -maxdepth 1 -type d | wc -l); \
-    test "$lc" -le 3 \
-      || { echo "TRIM FAILED: $lc locale dirs survived, expected 3"; exit 1; }; \
-    echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l) locales=$lc"
+    echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l)"
 
 # ---- 3. the SP+ service account ----
 # SP+ ships NO human account. The person installing creates their own user in the
@@ -1607,6 +1594,16 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 # stay. If that rule ever moves into a qemu subpackage, Boxes silently falls
 # back to TCG emulation and Windows becomes unusable rather than failing loudly.
 #
+# qemu-user-static-aarch64 (15.2 MiB installed, ~4 MiB compressed) is KEPT ON
+# PURPOSE. It is ARM emulation nothing here uses, and a dnf dry run removes it
+# cleanly because containers-common-extra needs it only through the rich
+# conditional `(qemu-user-static-aarch64 if fedora-release-identity-server)`,
+# and that identity package is not in a workstation image. It is left installed
+# anyway: it belongs to the containers stack that carries bootc, the saving is a
+# rounding error against the ~33 MiB of headroom the other cuts bought, and the
+# assertion would sit near the end of a 2662-line build, so a resurrection would
+# fail a release build 25 minutes in for 4 MiB. Do not "finish the job" here.
+#
 # Verified not to disturb the image-mode path: podman, bootc, rpm-ostree,
 # flatpak, skopeo, crun, containers-common, ostree, systemd, kernel and
 # plasma-workspace are all outside the removal set.
@@ -2594,6 +2591,53 @@ LABEL org.opencontainers.image.title="SP+" \
       org.opencontainers.image.description="SP+ Advisor OS — KDE image-mode payload" \
       org.opencontainers.image.version="${SPPLUS_RELEASE}" \
       com.secureprospective.build="${SPPLUS_BUILD}"
+
+# ---- FINAL TRIM (2026-09-04). Downstream of every dnf install in this file. ---
+#
+# The locale purge lived in the step-18 trim for exactly one build before this
+# comment was written, and it was in the wrong place for the same reason the
+# store gate below was: `dnf install` runs SIX more times after step 18 (nodejs,
+# gnome-disk-utility, btop, gvfs, kvantum/fonts, and the advisor toolkit), and
+# every one of those can lay fresh translation files back into
+# /usr/share/locale. The step-18 gate would have printed locales=3 and the
+# shipped image would have carried dozens, with ~119 MiB of the saving silently
+# undone and nothing failing.
+#
+# Same rule the store gate encodes: A GATE MUST BE DOWNSTREAM OF EVERY OPERATION
+# THAT CAN VIOLATE IT. Put new dnf work ABOVE this block.
+#
+# This is also the single place that re-asserts the whole 2026-09-04 cut set
+# against the FINISHED filesystem, rather than trusting that what was removed at
+# step 18 was never pulled back as a dependency of something installed later.
+RUN set -eux; \
+    find /usr/share/locale -mindepth 1 -maxdepth 1 -type d \
+         ! -name en ! -name en_US ! -name en_GB -exec rm -rf {} +; \
+    test -s /usr/share/locale/locale.alias; \
+    for l in en en_US en_GB; do \
+      test -d "/usr/share/locale/$l" \
+        || { echo "FINAL TRIM FAIL: the $l locale is missing" >&2; exit 1; }; \
+    done; \
+    lc=$(find /usr/share/locale -mindepth 1 -maxdepth 1 -type d | wc -l); \
+    test "$lc" -eq 3 \
+      || { echo "FINAL TRIM FAIL: $lc locale dirs, expected 3" >&2; exit 1; }; \
+    for p in libreoffice-base libreoffice-math firebird firebird-utils \
+             qemu-kvm virt-manager libvirt-daemon-kvm qemu-system-x86-core \
+             plasma-workspace-wallpapers \
+             python3-boto3 python3-botocore python3-s3transfer \
+             thunderbird firefox mariadb-server; do \
+      if rpm -q "$p" >/dev/null 2>&1; then \
+        echo "FINAL TRIM FAIL: $p came back as a later dependency" >&2; exit 1; \
+      fi; \
+    done; \
+    rpm -q libreoffice-core libreoffice-writer libreoffice-calc \
+           libreoffice-draw libreoffice-impress podman bootc flatpak >/dev/null \
+      || { echo "FINAL TRIM FAIL: a kept package is missing" >&2; exit 1; }; \
+    test -s /usr/lib64/libreoffice/share/registry/impress.xcd; \
+    test -d /usr/share/wallpapers/Next; \
+    grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
+         /usr/lib/udev/rules.d/50-udev-default.rules; \
+    test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall; \
+    echo "FINAL_TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l) locales=$lc"
 
 # ---- FINAL STORE GATE (D-4). Deliberately the LAST thing before the lint. ------
 #
