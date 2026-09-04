@@ -1,0 +1,143 @@
+#!/usr/bin/python3
+"""Open a mailto: link in the advisor's webmail, as a PWA window.
+
+SP+ ships no desktop mail client. Until 2026-09-04 mailto: was mapped to
+org.mozilla.Thunderbird.desktop -- a file that only exists if the Thunderbird
+Flatpak installed, which on shipped machines it did not. So every email link on
+the desktop, INCLUDING the "report a problem" link in the crash reporter, went
+nowhere at all. The bug report was the thing most likely to be lost.
+
+Advisors use webmail. This asks once which one, remembers the answer, and from
+then on an email link opens a compose window already filled in.
+
+The choice is stored per advisor, not baked into the image, because two people
+using the same SP+ build will not use the same mail provider.
+"""
+import os
+import subprocess
+import sys
+import urllib.parse
+from pathlib import Path
+
+BRAVE = os.environ.get('SPPLUS_BRAVE', '/usr/bin/brave-browser')
+KDIALOG = os.environ.get('SPPLUS_KDIALOG', '/usr/bin/kdialog')
+
+CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) \
+    / 'sp-plus' / 'mailto-provider'
+
+# Compose endpoints. Both match the providers SP+ Welcome already offers under
+# "Connect this computer to your office", so an advisor is never asked to pick
+# between two different vocabularies for the same two companies.
+PROVIDERS = {
+    'google': ('Gmail', 'https://mail.google.com/mail/?view=cm&fs=1',
+               {'to': 'to', 'cc': 'cc', 'bcc': 'bcc',
+                'subject': 'su', 'body': 'body'}),
+    'microsoft': ('Outlook', 'https://outlook.office.com/mail/deeplink/compose?',
+                  {'to': 'to', 'cc': 'cc', 'bcc': 'bcc',
+                   'subject': 'subject', 'body': 'body'}),
+}
+
+
+def parse_mailto(raw):
+    """mailto:a@b?subject=x&body=y -> {'to': 'a@b', 'subject': 'x', ...}"""
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme != 'mailto':
+        return None
+    fields = {}
+    # urlparse puts everything after "mailto:" in .path when there is no //.
+    target = urllib.parse.unquote(parsed.path or '')
+    if target:
+        fields['to'] = target
+    for key, values in urllib.parse.parse_qs(parsed.query, keep_blank_values=False).items():
+        if values and values[0]:
+            fields[key.lower()] = values[0]
+    return fields
+
+
+def remembered():
+    try:
+        choice = CONFIG.read_text(encoding='utf-8').strip()
+    except OSError:
+        return ''
+    return choice if choice in PROVIDERS else ''
+
+
+def remember(choice):
+    try:
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(choice + '\n', encoding='utf-8')
+    except OSError:
+        # Not being able to remember is not a reason to fail to send mail.
+        pass
+
+
+def ask():
+    """One question, two answers, in the advisor's own words."""
+    try:
+        done = subprocess.run(
+            [KDIALOG, '--title', 'SP+ email',
+             '--radiolist', 'Which email do you use for work?',
+             'google', 'Gmail / Google Workspace', 'on',
+             'microsoft', 'Outlook / Microsoft 365', 'off'],
+            capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.SubprocessError):
+        return ''
+    choice = (done.stdout or '').strip()
+    return choice if choice in PROVIDERS else ''
+
+
+def compose_url(provider, fields):
+    _label, base, mapping = PROVIDERS[provider]
+    query = {}
+    for source, target in mapping.items():
+        if fields.get(source):
+            query[target] = fields[source]
+    joiner = '' if base.endswith(('?', '&')) else '&'
+    return base + joiner + urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
+
+
+def main(argv):
+    if len(argv) < 2 or not argv[1].startswith('mailto:'):
+        print('usage: spplus-mailto mailto:someone@example.com?subject=...',
+              file=sys.stderr)
+        return 2
+    fields = parse_mailto(argv[1])
+    if fields is None:
+        print('not a mailto: link', file=sys.stderr)
+        return 2
+
+    provider = remembered() or ask()
+    if not provider:
+        # Cancelled. Say nothing and change nothing: an advisor who closed the
+        # question does not want a browser window either.
+        return 0
+    remember(provider)
+
+    url = compose_url(provider, fields)
+
+    # A seam for the build gate. The launch below sends the child's stdout to
+    # DEVNULL -- correct for a browser, and it also means nothing outside this
+    # process can ever see the URL that was built. Without this the gate could
+    # only prove the script exits 0, which it does just as happily when it
+    # builds a wrong URL. Printing instead of launching is the only way to
+    # assert the Gmail and Outlook links are actually right.
+    if os.environ.get('SPPLUS_MAILTO_DRY_RUN'):
+        print(url)
+        return 0
+
+    # --app gives a PWA window rather than a tab in whatever they were reading,
+    # so a bug report does not land behind fifteen other tabs.
+    try:
+        subprocess.Popen([BRAVE, '--app=' + url],
+                         stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        print('could not open the browser', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main(sys.argv))

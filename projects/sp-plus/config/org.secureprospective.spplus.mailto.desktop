@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SP+ Email
+Comment=Opens email links in your webmail
+Exec=/usr/libexec/sp-plus/spplus-mailto %u
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/mailto;message/rfc822;
