@@ -5,13 +5,13 @@ import Layout from '../../layouts/Layout.astro';
 <Layout title="Back Office — SecureProspective">
   <main class="gate-shell" id="gate-shell" hidden>
     <div class="gate-card">
-      <p class="eyebrow">Back Office</p>
-      <h1>SecureProspective</h1>
+      <p class="eyebrow">Signed in as <span id="user-email"></span></p>
+      <h1>Back office</h1>
       <p class="gate-copy">
-        You're signed in as <strong id="user-email"></strong>.
+        Everything we have released is here. Right now that means SP+.
       </p>
       <div class="gate-actions">
-        <a href="/members/download" class="btn">Download SP+</a>
+        <a href="/members/download" class="btn btn--wide">Download SP+</a>
       </div>
       <div class="gate-actions gate-actions--secondary">
         <a href="/members/admin" class="btn" id="admin-link" hidden>Admin console</a>
@@ -85,14 +85,26 @@ import Layout from '../../layouts/Layout.astro';
     padding: var(--space-7) var(--space-6);
   }
 
+  .gate-card .eyebrow {
+    margin-bottom: var(--space-2);
+  }
+
   .gate-card h1 {
     font-size: var(--text-h1);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
   }
 
   .gate-copy {
     color: var(--fineprint-gray);
     margin-bottom: var(--space-5);
+  }
+
+  /* One primary action on this card. A default-width button floating in the
+     middle of a 480px card reads as unfinished; a full-width one reads as
+     the point of the page, which it is. */
+  .btn--wide {
+    display: block;
+    width: 100%;
   }
 
   .gate-actions {
