@@ -319,6 +319,7 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
       nvidia-gpu-firmware \
       python3-boto3 python3-botocore python3-s3transfer \
       plasma-workspace-wallpapers \
+      qemu-user-static-aarch64 \
       plasma-welcome plasma-welcome-fedora; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
@@ -327,6 +328,7 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
     for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware \
              python3-boto3 python3-botocore python3-s3transfer \
              plasma-workspace-wallpapers \
+             qemu-user-static-aarch64 \
              plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
@@ -1581,25 +1583,54 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 # ALREADY IN THE IMAGE, deliberately not repeated: curl, jq, unzip,
 # google-noto-* , google-carlito-fonts, google-crosextra-caladea-fonts.
 #
-# KVM/libvirt is real attack surface on a machine holding client PII, and it is
-# here because Christopher asked for it. libvirtd is socket-activated, so it
-# costs nothing at idle until something opens the socket. Nothing is enabled
-# here: an advisor who never opens virt-manager never starts a hypervisor.
+# KVM/libvirt WAS here from 2026-08 and was REMOVED on 2026-09-04. It is not
+# installed and then trimmed -- it is simply never installed, which is both
+# smaller and faster to build.
+#
+# Why: the stack measured 213,723,721 bytes raw / 54,329,115 compressed across
+# 126 packages, and cutting it is what brought SP+ 1 Alpha under R2's
+# 5,368,709,120-byte upload ceiling. It was also real attack surface on a machine
+# holding client PII.
+#
+# The capability is NOT gone. GNOME Boxes is offered from Welcome's Optional
+# Tools screen as org.gnome.Boxes, which bundles its own QEMU and session
+# libvirt, so an advisor who needs one Windows-only program still gets it -- and
+# it updates on Flathub's schedule instead of being frozen in a read-only /usr.
+# A Flatpak is the ONLY way to offer this back: /usr is read-only and
+# 49-sp-plus-updates.rules deliberately refuses rpm-ostree
+# install-uninstall-packages because layering breaks bootc upgrade.
+#
+# HARDWARE ACCELERATION SURVIVES THIS CUT, and it is the thing to re-check if
+# Boxes is ever reported as unusably slow: /dev/kvm is created MODE="0666" by
+# systemd-udev's own 50-udev-default.rules (line 116), NOT by any qemu package,
+# so no group membership is needed. systemd-udev, setup and qemu-common all
+# stay. If that rule ever moves into a qemu subpackage, Boxes silently falls
+# back to TCG emulation and Windows becomes unusable rather than failing loudly.
+#
+# Verified not to disturb the image-mode path: podman, bootc, rpm-ostree,
+# flatpak, skopeo, crun, containers-common, ostree, systemd, kernel and
+# plasma-workspace are all outside the removal set.
 RUN dnf install -y --setopt=install_weak_deps=False \
       vlc \
       7zip \
       wget2-wget \
       git \
       liberation-sans-fonts liberation-serif-fonts liberation-mono-fonts \
-      qemu-kvm libvirt-daemon-kvm virt-manager \
  && dnf clean all \
  && command -v vlc \
  && command -v wget \
  && command -v git \
- && command -v virt-manager \
  && rpm -q 7zip \
  && fc-list : family | grep -qi 'Liberation Sans' \
- && echo "ADVISOR_TOOLKIT_OK $(rpm -q vlc 7zip git virt-manager | tr '\n' ' ')"
+ && ! rpm -q qemu-kvm \
+ && ! rpm -q virt-manager \
+ && ! rpm -q libvirt-daemon-kvm \
+ && ! rpm -q qemu-system-x86-core \
+ && ! command -v virt-manager \
+ && rpm -q podman bootc flatpak \
+ && grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
+      /usr/lib/udev/rules.d/50-udev-default.rules \
+ && echo "ADVISOR_TOOLKIT_OK $(rpm -q vlc 7zip git | tr '\n' ' ')no-virt /dev/kvm=0666"
 
 # ---- PWA launchers (Christopher 2026-09-03) ---------------------------------
 # Six sites the advisor uses daily, as chromeless Brave windows, using the same

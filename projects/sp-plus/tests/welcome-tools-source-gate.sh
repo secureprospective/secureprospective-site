@@ -53,6 +53,18 @@ grep -qF 'data-app-id="com.bitwarden.desktop"' "$HTML" \
   || fail 'Bitwarden action is missing'
 grep -qF 'data-app-id="org.signal.Signal"' "$HTML" \
   || fail 'Signal action is missing'
+grep -qF 'data-app-id="org.gnome.Boxes"' "$HTML" \
+  || fail 'GNOME Boxes action is missing'
+# The bridge refuses any app id absent from FLATPAK_APP_NAMES, so a row in the
+# HTML without its entry here is a button that fails on click.
+grep -qF "'org.gnome.Boxes': 'GNOME Boxes'," "$PY" \
+  || fail 'GNOME Boxes is not in the welcome.py bridge allowlist'
+# Every row in the register must be answerable by the bridge. Counting both ends
+# catches a fourth tool added to one side only.
+rows=$(grep -o 'data-tool-name="' "$HTML" | wc -l)
+names=$(sed -n '/^FLATPAK_APP_NAMES = {/,/^}/p' "$PY" | grep -c "^    '")
+[ "$rows" -eq "$names" ] \
+  || fail "$rows tool buttons but $names allowlisted app ids; they must match"
 grep -qF 'data-store-action' "$HTML" \
   || fail 'Discover action is missing'
 [ "$(grep -c 'data-stub="Bitwarden install"' "$HTML")" -eq 0 ] \

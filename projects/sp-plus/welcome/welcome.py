@@ -105,6 +105,21 @@ SERVICE_MAX_BODY = 1024 * 1024
 FLATPAK_APP_NAMES = {
     'com.bitwarden.desktop': 'Bitwarden',
     'org.signal.Signal': 'Signal',
+    # DN-26, 2026-09-04. Boxes is how an advisor runs the one Windows-only
+    # program their practice still depends on. It is NOT the same shape as the
+    # other two: the app is ~500 MB plus a GNOME runtime, and the advisor then
+    # supplies a Windows licence and installer SP+ does not ship.
+    #
+    # It is offered here rather than layered into the image because the
+    # QEMU/libvirt stack was cut from the ISO on 2026-09-04 (54,329,115 bytes
+    # compressed) to fit R2's upload ceiling, and /usr is read-only so it cannot
+    # be layered back with rpm-ostree -- 49-sp-plus-updates.rules deliberately
+    # refuses install-uninstall-packages because layering breaks bootc upgrade.
+    #
+    # Hardware acceleration does not need a group: /dev/kvm is MODE="0666" from
+    # systemd-udev's 50-udev-default.rules, which survives the virt cut. If that
+    # ever changes, Boxes silently falls back to emulation and Windows crawls.
+    'org.gnome.Boxes': 'GNOME Boxes',
 }
 FLATPAK_APP_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$')
 
