@@ -527,6 +527,12 @@
       announce((result && result.message) || `${name} could not be added. Your computer was left unchanged.`, 'stub');
     }
   }
+  function finishDisplay(result) {
+    const button = document.querySelector('[data-display-action]');
+    if (button) button.disabled = false;
+    if (result && result.ok) announce(result.message || 'Display settings are open. Welcome is still here.');
+    else announce((result && result.message) || 'Display settings could not be opened. Your screen was left unchanged.', 'stub');
+  }
   function finishStore(result) {
     const button = document.querySelector('[data-store-action]');
     if (button) button.disabled = false;
@@ -659,6 +665,13 @@
     if (printerResult) printerResult.textContent = 'Checking the print service and the configured printer before sending one page.';
     announce('CHECKING THE PRINT SERVICE FIRST. EXACTLY ONE PAGE WILL BE SENT IF A PRINTER IS READY.');
     send('spplus:print-test');
+  });
+  document.querySelector('[data-display-action]').addEventListener('click', event => {
+    const button = event.currentTarget;
+    if (button.disabled) return;
+    button.disabled = true;
+    announce('OPENING DISPLAY SETTINGS. WELCOME STAYS WHERE IT IS.');
+    send('spplus:display-settings');
   });
   document.querySelector('[data-store-action]').addEventListener('click', event => {
     const button = event.currentTarget;
@@ -1032,6 +1045,7 @@
     answered: finishAsk,
     toolResult: finishTool,
     storeResult: finishStore,
+    displayResult: finishDisplay,
     checkResult: finishCheck,
     finResult: finishFin,
     emailResult: finishEmail,

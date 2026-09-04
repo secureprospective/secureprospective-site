@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Report a problem to SP+
+GenericName=Problem report
+Comment=Open an email to SP+ with this computer's details filled in
+Exec=/usr/libexec/sp-plus/spplus-crash-report
+Icon=dialog-warning
+Terminal=false
+Categories=Utility;
+Keywords=crash;bug;support;help;report;
+StartupNotify=false

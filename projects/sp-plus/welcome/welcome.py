@@ -73,6 +73,12 @@ CUPS_TEST_PAGE = os.environ.get('SPPLUS_CUPS_TEST_PAGE', '/usr/share/cups/data/t
 FLATPAK = os.environ.get('SPPLUS_FLATPAK', '/usr/bin/flatpak')
 SUDO = os.environ.get('SPPLUS_SUDO', '/usr/bin/sudo')
 DISCOVER = os.environ.get('SPPLUS_DISCOVER', '/usr/bin/plasma-discover')
+# Display settings. `systemsettings kcm_kscreen` is what the shipped
+# kcm_kscreen.desktop runs -- read from that file rather than guessed, because
+# `kcmshell6 kcm_kscreen` is the older invocation and the module list is not
+# queryable without a display (asking for it crashes kcmshell6 under Qt).
+SYSTEMSETTINGS = os.environ.get('SPPLUS_SYSTEMSETTINGS', '/usr/bin/systemsettings')
+DISPLAY_KCM = os.environ.get('SPPLUS_DISPLAY_KCM', 'kcm_kscreen')
 TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
 UPDATE_CONTROL = os.environ.get('SPPLUS_UPDATE_CONTROL',
                                '/usr/libexec/spplus-update-control')
@@ -1302,6 +1308,8 @@ class WelcomeBridge(QObject):
                 self.install_tool(app_id)
         elif parsed.path == 'browse-store':
             self.browse_store()
+        elif parsed.path == 'display-settings':
+            self.open_display_settings()
         elif parsed.path == 'check-computer':
             self.check_computer()
         elif parsed.path == 'launch-fin':
@@ -1429,6 +1437,27 @@ class WelcomeBridge(QObject):
 
     def install_tool(self, app_id):
         self._dispatch(FlatpakInstallWorker(app_id), 'toolResult')
+
+    def open_display_settings(self):
+        """Open KDE's own Display Configuration.
+
+        Screen resolution is the first thing an advisor should be able to fix,
+        and it is the one setting that makes every later screen readable. This
+        deliberately opens the stock KDE module rather than reimplementing it:
+        SP+ has no business owning display configuration, and the KDE page is
+        the one they will find again later in System Settings.
+        """
+        try:
+            subprocess.Popen([SYSTEMSETTINGS, DISPLAY_KCM], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+            payload = {'ok': True,
+                       'message': 'Display settings are open. Welcome is still here behind it.'}
+        except (OSError, subprocess.SubprocessError):
+            payload = {'ok': False,
+                       'message': 'Display settings could not be opened. You can also find them '
+                                  'in System Settings under Display and Monitor.'}
+        self._send('displayResult', payload)
 
     def browse_store(self):
         self._dispatch(FlathubCheckWorker(), 'storeResult', self._open_discover)

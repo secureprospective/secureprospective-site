@@ -2193,7 +2193,10 @@ RUN install -d -m 0755 /etc/brave/policies/managed \
       '  "MetricsReportingEnabled": false,' \
       '  "PromotionalTabsEnabled": false,' \
       '  "DefaultBrowserSettingEnabled": false,' \
-      '  "PasswordManagerEnabled": false,' \
+      '  "PasswordManagerEnabled": true,' \
+      '  "SafeBrowsingProtectionLevel": 1,' \
+      '  "DnsOverHttpsMode": "automatic",' \
+      '  "PasswordLeakDetectionEnabled": true,' \
       '  "AutofillCreditCardEnabled": false,' \
       '  "BookmarkBarEnabled": true' \
       '}' \
@@ -2202,7 +2205,11 @@ RUN install -d -m 0755 /etc/brave/policies/managed \
 assert d['BraveRewardsDisabled'] and d['PromotionalTabsEnabled'] is False, 'promotional surfaces are not suppressed'; \
 assert d['HomepageLocation'] == 'http://127.0.0.1:8766/', 'the home button does not go to Help'; \
 assert d['RestoreOnStartup'] == 4 and d['RestoreOnStartupURLs'] == ['http://127.0.0.1:8766/'], 'Brave does not open on Help'; \
-assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help'" \
+assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help'; \
+assert d['PasswordManagerEnabled'] is True, 'the password manager is off (D-2026-09-04)'; \
+assert d['SafeBrowsingProtectionLevel'] >= 1, 'phishing protection is not enabled'; \
+assert d['DnsOverHttpsMode'] == 'automatic', 'DoH must be automatic, never secure -- secure fails closed on captive portals'; \
+assert d['AutofillCreditCardEnabled'] is False, 'card autofill should stay off'" \
  && test -d /etc/brave/policies/managed \
  && echo "BRAVE_POLICY_OK $(python3 -c "import json; print(len(json.load(open('/etc/brave/policies/managed/sp-plus.json'))))") policies, valid JSON"
 
@@ -2247,7 +2254,7 @@ assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help
 RUN set -eux; \
     for f in /usr/share/applications/brave-browser.desktop; do \
       test -f "$f" || { echo "brave desktop file missing at $f"; exit 1; }; \
-      sed -i 's|^Exec=/usr/bin/brave-browser-stable|Exec=/usr/bin/brave-browser-stable --no-default-browser-check|' "$f"; \
+      sed -i 's|^Exec=/usr/bin/brave-browser-stable|Exec=/usr/bin/brave-browser-stable --no-default-browser-check --password-store=kwallet6|' "$f"; \
     done; \
     printf '%s\n' \
       '{' \
@@ -2267,7 +2274,7 @@ RUN set -eux; \
       > /opt/brave.com/brave/initial_preferences; \
     chmod 0644 /opt/brave.com/brave/initial_preferences; \
     python3 -c "import json; json.load(open('/opt/brave.com/brave/initial_preferences'))"; \
-    grep -q '^Exec=/usr/bin/brave-browser-stable --no-default-browser-check %U$' \
+    grep -q '^Exec=/usr/bin/brave-browser-stable --no-default-browser-check --password-store=kwallet6 %U$' \
       /usr/share/applications/brave-browser.desktop \
       || { echo "BRAVE_DEFAULT_GATE: the primary Exec line was not flagged"; exit 1; }; \
     ! grep -E '^Exec=/usr/bin/brave-browser-stable( %U)?$' \
@@ -2337,6 +2344,110 @@ RUN set -eux; \
       echo "POSTURE_GATE: a kdeconnect D-Bus activation file survived"; exit 1; \
     fi; \
     echo "POSTURE_GATE_OK zone=public smb+nmb=masked kdeconnect-dbus=removed"
+
+# ---- KEYRING: unlock the wallet with the login password (2026-09-04) ---------
+#
+# The Brave password manager is ON as of 2026-09-04 (Christopher). Turning that
+# flag on ALONE would have been a false win, so this block ships with it.
+#
+# Brave stores credentials through a system keyring. On this image that means
+# kwalletd6 via the pinned `--password-store=kwallet6`. Without the pin, Chromium
+# falls back to its `basic` store when detection fails -- and `basic` "encrypts"
+# with a HARDCODED key, which is plaintext with extra steps.
+#
+# But a wallet that is never unlocked is just as bad: the advisor gets a KWallet
+# password prompt they did not ask for, at first save and at every login, and the
+# predictable outcome is that they stop using the password manager.
+#
+# WHAT WAS ACTUALLY WRONG, measured on the RC1e guest rather than assumed:
+#   - pam_kwallet lines exist ONLY in /etc/pam.d/sddm
+#   - sddm.service is DISABLED; display-manager.service -> plasmalogin.service
+#   - plasma-login-manager authenticates through /etc/pam.d/kde
+#   - /etc/pam.d/kde contained ZERO kwallet lines
+# So the auto-unlock everyone assumes is there has never run on SP+.
+#
+# pam_kwallet5.so is the correct module despite the name: it is shipped by
+# pam-kwallet-6.7.4 (a Plasma 6 package) and execs /usr/bin/ksecretd, which
+# kf6-kwallet provides. Both verified present in the image.
+#
+# `optional` on purpose: if the wallet cannot start, the advisor must still be
+# able to log in. A keyring is not worth locking someone out of their computer.
+RUN set -eux; \
+    test -f /etc/pam.d/kde; \
+    test -f /usr/lib64/security/pam_kwallet5.so; \
+    test -x /usr/bin/ksecretd; \
+    grep -q 'pam_kwallet' /etc/pam.d/kde \
+      || { \
+        printf '%s\n' '-auth       optional      pam_kwallet5.so' \
+          >> /etc/pam.d/kde; \
+        printf '%s\n' '-session    optional      pam_kwallet5.so auto_start' \
+          >> /etc/pam.d/kde; \
+      }; \
+    grep -q '^-auth .*pam_kwallet5.so$' /etc/pam.d/kde \
+      || { echo "KEYRING_GATE: the auth line did not land in /etc/pam.d/kde"; exit 1; }; \
+    grep -q '^-session .*pam_kwallet5.so auto_start$' /etc/pam.d/kde \
+      || { echo "KEYRING_GATE: the session line did not land in /etc/pam.d/kde"; exit 1; }; \
+    test "$(readlink -f /etc/systemd/system/display-manager.service)" = "/usr/lib/systemd/system/plasmalogin.service" \
+      || { echo "KEYRING_GATE: the display manager changed; re-check which pam stack it uses"; exit 1; }; \
+    echo "KEYRING_GATE_OK pam_kwallet wired into /etc/pam.d/kde for plasmalogin"
+
+# ---- CRASH REPORTING GOES TO SP+, NOT TO KDE (2026-09-04) -------------------
+#
+# Christopher, 2026-09-04: the crash report must open the advisor's own email,
+# addressed to info@secureprospective.com.
+#
+# WHAT WAS ACTUALLY HAPPENING. The button reading "Report to SP+" is not ours --
+# it is KDE's `i18nc("@action %1 is the name of a distribution", "Report to %1")`
+# with the distro name substituted, so it renders as SP+ on any SP+ machine.
+# DrKonqi files to KDE: /usr/libexec/drkonqi carries kdeBugzillaURL() and
+# submit@bugs.kde.org, and contains NO reference to BUG_REPORT_URL or
+# os-release. So that button would send an advisor's backtrace and system
+# details to bugs.kde.org. Setting BUG_REPORT_URL=/contact in os-release (done
+# earlier today) does not change this; it only fixes the URL other tools display.
+#
+# It also does not work: on the RC1e guest a real Brave crash produced
+#   drkonqi-coredump-launcher: "Nothing handled the dump :O"
+# so the KDE path was already failing on the one crash we have seen in testing.
+#
+# HOW THIS IS REPLACED. The KDE unit keeps its socket activation, sandboxing and
+# per-coredump lifecycle; only ExecStart is redirected, via a drop-in. That is
+# smaller and less brittle than masking the unit and rebuilding the plumbing.
+#
+# The advisor is shown one notification with one button. Nothing is transmitted
+# by the machine itself -- the button opens a prefilled email and the advisor
+# presses send. A computer holding client files must not post diagnostics
+# anywhere on its own, and that also means no Sentry: drkonqi-sentry-postman
+# uploads crash telemetry to KDE's Sentry on a path unit and a timer, and is
+# masked below.
+COPY config/spplus-crash-report   /usr/libexec/sp-plus/spplus-crash-report
+COPY config/spplus-crash-notify   /usr/libexec/sp-plus/spplus-crash-notify
+COPY config/org.secureprospective.spplus.crashreport.desktop /usr/share/applications/
+COPY config/drkonqi-coredump-launcher.service.d/ /usr/lib/systemd/user/drkonqi-coredump-launcher@.service.d/
+
+RUN set -eux; \
+    chmod 0755 /usr/libexec/sp-plus/spplus-crash-report \
+               /usr/libexec/sp-plus/spplus-crash-notify; \
+    bash -n /usr/libexec/sp-plus/spplus-crash-report; \
+    bash -n /usr/libexec/sp-plus/spplus-crash-notify; \
+    grep -q 'info@secureprospective.com' /usr/libexec/sp-plus/spplus-crash-report; \
+    desktop-file-validate /usr/share/applications/org.secureprospective.spplus.crashreport.desktop; \
+    test -f /usr/lib/systemd/user/drkonqi-coredump-launcher@.service.d/sp-plus.conf; \
+    grep -q '^ExecStart=$' /usr/lib/systemd/user/drkonqi-coredump-launcher@.service.d/sp-plus.conf; \
+    grep -q '^ExecStart=/usr/libexec/sp-plus/spplus-crash-notify$' \
+      /usr/lib/systemd/user/drkonqi-coredump-launcher@.service.d/sp-plus.conf; \
+    systemctl --global mask drkonqi-sentry-postman.service \
+                            drkonqi-sentry-postman.timer \
+                            drkonqi-sentry-postman.path; \
+    for u in drkonqi-sentry-postman.service drkonqi-sentry-postman.timer drkonqi-sentry-postman.path; do \
+      test -L "/etc/systemd/user/$u"; \
+      test "$(readlink "/etc/systemd/user/$u")" = "/dev/null" \
+        || { echo "CRASH_GATE: $u is not masked"; exit 1; }; \
+    done; \
+    SPPLUS_XDG_OPEN=/bin/echo SPPLUS_COREDUMPCTL=/bin/false \
+      /usr/libexec/sp-plus/spplus-crash-report \
+      | grep -q '^mailto:info@secureprospective.com?subject=' \
+      || { echo "CRASH_GATE: the report does not build a mailto to SP+"; exit 1; }; \
+    echo "CRASH_GATE_OK reports open the advisor's mail client to info@secureprospective.com; sentry masked"
 
 ENV SPPLUS_ROOT=/usr/libexec/sp-plus
 ENV SPPLUS_PRINTER_FIXTURE=1

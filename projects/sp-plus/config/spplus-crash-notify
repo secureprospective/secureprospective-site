@@ -1,0 +1,30 @@
+#!/usr/bin/bash
+# SP+ — the crash notification the advisor actually sees.
+#
+# Socket-activated once per coredump, in place of drkonqi-coredump-launcher.
+# See spplus-crash-report for why DrKonqi's own reporting is not used.
+#
+# Deliberately quiet: one notification, one button, no dialog stack and no
+# backtrace shown to someone who cannot act on it. If they press the button we
+# open their email; if they ignore it, nothing happens and nothing is sent.
+set -uo pipefail
+
+REPORT="${SPPLUS_CRASH_REPORT:-/usr/libexec/sp-plus/spplus-crash-report}"
+NOTIFY="${SPPLUS_NOTIFY_SEND:-/usr/bin/notify-send}"
+
+# notify-send -A implies --wait, so this process lives until the advisor answers
+# or the notification expires. That is the intended shape for a socket-activated
+# one-shot.
+answer="$("$NOTIFY" \
+    --app-name="SP+" \
+    --icon=dialog-warning \
+    --urgency=normal \
+    -A report="Send to SP+" \
+    "A program closed unexpectedly" \
+    "Your work is not affected. You can send the details to SP+ so it can be looked at." \
+    2>/dev/null || true)"
+
+if [ "$answer" = "report" ]; then
+    exec "$REPORT"
+fi
+exit 0

@@ -1,0 +1,55 @@
+#!/usr/bin/bash
+# SP+ — hand a crash report to the advisor's own email client, addressed to SP+.
+#
+# WHY THIS EXISTS. DrKonqi's dialog offers "Report to SP+" -- that string is
+# KDE's own `"Report to %1"` with the DISTRIBUTION NAME substituted, and it is
+# misleading here. DrKonqi has no hook for a custom destination: the binary
+# carries kdeBugzillaURL() and submit@bugs.kde.org and contains no reference to
+# BUG_REPORT_URL or os-release. A button reading "Report to SP+" would file an
+# advisor's backtrace and system details at bugs.kde.org. Setting BUG_REPORT_URL
+# in os-release does NOT redirect it; that only fixes the URL other tools show.
+#
+# So SP+ raises its own report instead, and this script is what "Send to SP+"
+# actually does: open the advisor's mail client with the details already filled
+# in, addressed to info@secureprospective.com. Nothing is transmitted until the
+# advisor presses send in their own email client. That is deliberate -- a
+# machine holding client files must never post diagnostics anywhere on its own.
+set -uo pipefail
+
+TO="info@secureprospective.com"
+XDG_OPEN="${SPPLUS_XDG_OPEN:-/usr/bin/xdg-open}"
+COREDUMPCTL="${SPPLUS_COREDUMPCTL:-/usr/bin/coredumpctl}"
+
+build="$(. /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-SP+} ${BUILD_ID:-unknown}")"
+host="$(uname -n 2>/dev/null || echo unknown)"
+kernel="$(uname -r 2>/dev/null || echo unknown)"
+when="$(date -u +%FT%TZ)"
+
+# The most recent crash for THIS user. Never another account's -- a support
+# email must not carry a second person's process list.
+detail="$("$COREDUMPCTL" list --no-pager --no-legend --reverse 2>/dev/null \
+          | head -1 || true)"
+[ -n "$detail" ] || detail="(no coredump was recorded; the advisor is reporting this by hand)"
+
+body="$(printf '%s\n' \
+  "Describe what you were doing when this happened:" \
+  "" \
+  "" \
+  "" \
+  "--- please leave the details below in place ---" \
+  "build:   $build" \
+  "kernel:  $kernel" \
+  "host:    $host" \
+  "sent:    $when" \
+  "crash:   $detail")"
+
+url="$(SPPLUS_TO="$TO" SPPLUS_BODY="$body" python3 -c '
+import os, urllib.parse
+q = urllib.parse.urlencode({
+    "subject": "SP+ problem report",
+    "body": os.environ["SPPLUS_BODY"],
+}, quote_via=urllib.parse.quote)
+print("mailto:%s?%s" % (os.environ["SPPLUS_TO"], q))
+')"
+
+exec "$XDG_OPEN" "$url"
