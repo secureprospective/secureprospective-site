@@ -950,6 +950,17 @@ else
   bad "DN-43/44/45 theme source gate failed" "do not build until the apply path and every preview receipt are present"
 fi
 
+# P-24b A dropped line continuation ends a RUN early and hands the step the exit
+# status of whatever ran last. On 2026-09-04 an assertion was inserted after the
+# CJK check without its trailing backslash; the RUN then ended on `grep -q`,
+# which exits 1 precisely when it correctly finds nothing, and the build failed
+# 18 steps in. Preflight passed 33/33 and the loss was not noticed for hours.
+if python3 "$REPO/projects/sp-plus/tests/containerfile-continuation-gate.py"; then
+  ok "Containerfile line continuations are intact"
+else
+  bad "a Containerfile line continuation is broken" "the RUN ends early and the step takes the wrong exit status"
+fi
+
 # P-25  D-1. NO SSH KEY SHIPS, ANYWHERE, and sshd is key-only.
 # The image side is gated in the Containerfile (an inverse gate on /etc/skel/.ssh
 # plus an `sshd -T` read-back). This is the SOURCE side: the release ISO's own

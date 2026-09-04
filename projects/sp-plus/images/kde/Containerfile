@@ -281,7 +281,7 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
              plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
-    rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; };
+    rpm -qa | grep -q "google-noto.*cjk" && { echo "TRIM FAILED: CJK fonts still installed"; exit 1; }; \
     test -d /usr/share/wallpapers/Next \
       || { echo "TRIM FAILED: the Next fallback wallpaper was cut"; exit 1; }; \
     echo "TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l)"
