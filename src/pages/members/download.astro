@@ -1,0 +1,239 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Download SP+ — SecureProspective">
+  <main class="dl-shell" id="dl-shell" hidden>
+    <header class="dl-head">
+      <p class="eyebrow">Back Office</p>
+      <h1>Download SP+</h1>
+      <p class="dl-copy">
+        SP+ installs over everything on the machine you put it on. Use a spare computer, or one
+        you have already backed up and are ready to erase.
+      </p>
+    </header>
+
+    <div id="dl-list"></div>
+
+    <!--
+      Empty state is a first-class case, not an accident. Between cutting a
+      build and publishing it there is a real window where a member signs in
+      and finds nothing, and "no releases yet" is a better answer than a
+      blank page that reads as broken.
+    -->
+    <p class="dl-empty" id="dl-empty" hidden>
+      There is no published build yet. You will get an email when the first one is ready.
+    </p>
+
+    <section class="property-card">
+      <div class="property-card__band property-card__band--static">
+        <span class="property-card__title">Check what you downloaded</span>
+      </div>
+      <div class="property-card__body">
+        <p>
+          Every build has a fingerprint. Run this and compare it to the one shown above — if they
+          match, the file arrived intact. If they do not, delete it and download it again.
+        </p>
+        <p class="dl-label">Windows (PowerShell)</p>
+        <pre class="dl-code"><code>Get-FileHash .\FILENAME -Algorithm SHA256</code></pre>
+        <p class="dl-label">Mac or Linux</p>
+        <pre class="dl-code"><code>shasum -a 256 FILENAME</code></pre>
+        <p class="dl-note">
+          Replace FILENAME with the file you saved. This is worth doing: it is the whole point of
+          publishing the fingerprint.
+        </p>
+      </div>
+    </section>
+
+    <div class="dl-actions">
+      <a href="/members" class="btn btn--ink">← Back office</a>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const shell = document.getElementById('dl-shell') as HTMLElement | null;
+  const list = document.getElementById('dl-list') as HTMLElement | null;
+  const empty = document.getElementById('dl-empty') as HTMLElement | null;
+
+  function humanSize(bytes: number): string {
+    if (!bytes) return '';
+    const gb = bytes / 1024 / 1024 / 1024;
+    if (gb >= 1) return `${gb.toFixed(2)} GB`;
+    return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+  }
+
+  function releaseCard(r: any): HTMLElement {
+    const card = document.createElement('section');
+    card.className = 'property-card';
+
+    const band = document.createElement('div');
+    band.className = 'property-card__band property-card__band--static';
+    const title = document.createElement('span');
+    title.className = 'property-card__title';
+    title.textContent = r.label;
+    const meta = document.createElement('span');
+    meta.className = 'property-card__meta';
+    meta.textContent = [humanSize(r.size), r.released].filter(Boolean).join(' · ');
+    band.append(title, meta);
+
+    const body = document.createElement('div');
+    body.className = 'property-card__body';
+
+    if (r.note) {
+      const note = document.createElement('p');
+      note.textContent = r.note;
+      body.appendChild(note);
+    }
+
+    const link = document.createElement('a');
+    link.className = 'btn';
+    // A plain link, not fetch(). The browser's own download manager handles
+    // a 5.7 GB transfer -- it survives a tab close, shows real progress and
+    // can resume, none of which a fetch() into memory can do at this size.
+    link.href = `/api/download/iso?v=${encodeURIComponent(r.id)}`;
+    link.textContent = 'Download';
+    body.appendChild(link);
+
+    if (r.sha256) {
+      const label = document.createElement('p');
+      label.className = 'dl-label';
+      label.textContent = 'SHA256';
+      const hash = document.createElement('pre');
+      hash.className = 'dl-code dl-code--hash';
+      const code = document.createElement('code');
+      code.textContent = r.sha256;
+      hash.appendChild(code);
+      body.append(label, hash);
+    }
+
+    const fn = document.createElement('p');
+    fn.className = 'dl-note';
+    fn.textContent = `Saves as ${r.filename}`;
+    body.appendChild(fn);
+
+    card.append(band, body);
+    return card;
+  }
+
+  async function load() {
+    try {
+      const res = await fetch('/api/download/list');
+      if (res.status === 401) {
+        window.location.href = '/members/login';
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      const body = await res.json();
+      const releases = body.releases ?? [];
+      if (list) {
+        for (const r of releases) list.appendChild(releaseCard(r));
+      }
+      if (empty) empty.hidden = releases.length > 0;
+      if (shell) shell.hidden = false;
+    } catch {
+      // Failing open to the login page would be wrong here -- the session
+      // was fine, the list call was not. Show the page with the honest
+      // message instead of bouncing him somewhere he did not ask to go.
+      if (empty) {
+        empty.textContent =
+          'The download list could not be loaded. Refresh the page, and tell us if it keeps happening.';
+        empty.hidden = false;
+      }
+      if (shell) shell.hidden = false;
+    }
+  }
+
+  load();
+</script>
+
+<style>
+  .dl-shell {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) var(--space-7);
+  }
+
+  .dl-head {
+    margin-bottom: var(--space-5);
+  }
+
+  .dl-head h1 {
+    font-size: var(--text-h1);
+    margin-bottom: var(--space-3);
+  }
+
+  .dl-copy {
+    color: var(--fineprint-gray);
+  }
+
+  .dl-empty {
+    color: var(--fineprint-gray);
+    border: 2px solid var(--ink);
+    background: var(--white);
+    padding: var(--space-4);
+  }
+
+  .property-card {
+    border: 2px solid var(--ink);
+    background: var(--white);
+    margin-bottom: var(--space-5);
+  }
+
+  .property-card__band--static {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--blue-brand);
+    color: var(--white);
+  }
+
+  .property-card__title {
+    font-weight: 600;
+  }
+
+  .property-card__meta {
+    font-size: 14px;
+    opacity: 0.85;
+  }
+
+  .property-card__body {
+    padding: var(--space-4);
+  }
+
+  .property-card__body > * + * {
+    margin-top: var(--space-3);
+  }
+
+  .dl-label {
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+
+  .dl-code {
+    background: var(--ink);
+    color: var(--white);
+    padding: var(--space-3);
+    overflow-x: auto;
+    font-size: 13px;
+  }
+
+  /* A sha256 is 64 characters with no break opportunity, so it would push
+     the card wider than the page on a phone. Wrap it instead of scrolling
+     it -- this one is read and compared, not copied as a command. */
+  .dl-code--hash code {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .dl-note {
+    color: var(--fineprint-gray);
+    font-size: 14px;
+  }
+
+  .dl-actions {
+    margin-top: var(--space-5);
+  }
+</style>
