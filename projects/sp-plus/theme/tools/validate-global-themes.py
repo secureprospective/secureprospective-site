@@ -32,8 +32,8 @@ REQUIRED = {
 STOCK = {"org.kde.breeze.desktop", "org.kde.breezedark.desktop"}
 
 SHIPPED = [
-    "org.secureprospective.spplus.windows11.light",
-    "org.secureprospective.spplus.windows11.dark",
+    "org.secureprospective.spplus.modern.light",
+    "org.secureprospective.spplus.modern.dark",
     "org.kde.breezedark.desktop",
     "Nordic",
     "Catppuccin-Mocha",

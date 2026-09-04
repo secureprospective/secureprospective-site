@@ -151,8 +151,8 @@ echo "=== 10a. SP+ GLOBAL THEMES (DN-28: stock + vendored set, Calm withdrawn) =
 # The build gates prove the FILES are installed. Only a booted machine can prove
 # a look was APPLIED, which is the DN-24 distinction: naming a look-and-feel in
 # kdeglobals is not applying it. Read the user's own config, not /etc.
-SHIPPED_THEMES="org.secureprospective.spplus.windows11.light
-org.secureprospective.spplus.windows11.dark
+SHIPPED_THEMES="org.secureprospective.spplus.modern.light
+org.secureprospective.spplus.modern.dark
 org.kde.breezedark.desktop
 Nordic
 Catppuccin-Mocha

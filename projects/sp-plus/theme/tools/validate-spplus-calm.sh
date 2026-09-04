@@ -69,7 +69,7 @@ for p in root.rglob('*.json'):
     try: json.loads(p.read_text())
     except Exception as exc: errors.append(f'invalid JSON {p.relative_to(root)}: {exc}')
 
-for needle in ('WindowsModern', 'Windows 11', 'Jeysef', 'Microsoft artwork'):
+for needle in ('Modern', 'Windows 11', 'Jeysef', 'Microsoft artwork'):
     hits = [str(p.relative_to(root)) for p in root.rglob('*') if p.is_file() and needle in p.read_text(errors='ignore')]
     if hits: errors.append(f'forbidden inherited/product name {needle!r}: {hits}')
 

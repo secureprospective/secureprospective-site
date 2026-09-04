@@ -22,7 +22,7 @@ Keep the accepted “Welcome to your new work computer” and “We’ll make th
 
 ### 2. Choose the look
 
-A proper eight-preview gallery, not names alone. SP+ Light is selected and carries the yellow `RECOMMENDED` badge. The remaining cards show real desktop pictures: SP+ Dark, Breeze, Breeze Dark, Fedora Light, Fedora Dark, Breeze Twilight and Windows Modern. Image-installed versus preview-only status is honest. Applying an in-image ID is asynchronous and verified from Plasma config; the draft never claims success for an absent custom theme.
+A proper eight-preview gallery, not names alone. SP+ Light is selected and carries the yellow `RECOMMENDED` badge. The remaining cards show real desktop pictures: SP+ Dark, Breeze, Breeze Dark, Fedora Light, Fedora Dark, Breeze Twilight and Modern. Image-installed versus preview-only status is honest. Applying an in-image ID is asynchronous and verified from Plasma config; the draft never claims success for an absent custom theme.
 
 ### 3. Know your way around
 

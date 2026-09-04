@@ -75,23 +75,29 @@ fi
 # ------------------------------------------------------------------- smb / nmb
 for u in smb nmb; do
     st="$(remote "systemctl is-enabled $u.service 2>&1")"
-    [ "$st" = masked ] && record PASS "$u.service masked" "$st" \
-                       || record FAIL "$u.service masked" "${st:-<empty>}"
+    if [ "$st" = masked ]; then record PASS "$u.service masked" "$st"
+    else record FAIL "$u.service masked" "${st:-<empty>}"; fi
     act="$(remote "systemctl is-active $u.service 2>&1")"
-    [ "$act" = active ] && record FAIL "$u.service not running" "$act" \
-                        || record PASS "$u.service not running" "$act"
+    if [ "$act" = active ]; then record FAIL "$u.service not running" "$act"
+    else record PASS "$u.service not running" "$act"; fi
 done
 
 # ---------------------------------------------------------------------- wsdd
 # The property that the old text gate believed it was testing.
 binds="$(remote "systemctl show wsdd.service -p BindsTo --value 2>&1")"
-[ -z "$binds" ] && record PASS "wsdd BindsTo cleared" "<empty>" \
-                || record FAIL "wsdd BindsTo cleared" "$binds"
+wact="$(remote "systemctl is-active wsdd.service 2>&1")"
+wport="$(remote "ss -tulnH 2>/dev/null | grep -c ':5357' || true" | tail -1)"
+wport="${wport:-0}"
+if [ "$wact" != active ] && [ "$wport" = 0 ]; then
+    record PASS "no WSD responder" "wsdd $wact, 0 sockets on 5357 (BindsTo=${binds:-<empty>})"
+else
+    record FAIL "no WSD responder" "wsdd $wact, $wport sockets on 5357"
+fi
 
 # ------------------------------------------------------------------- firewall
 zone="$(remote "sudo firewall-cmd --get-default-zone 2>&1")"
-[ "$zone" = public ] && record PASS "firewall default zone" "$zone" \
-                     || record FAIL "firewall default zone" "$zone"
+if [ "$zone" = public ]; then record PASS "firewall default zone" "$zone"
+else record FAIL "firewall default zone" "$zone"; fi
 
 ports="$(remote "sudo firewall-cmd --list-ports 2>&1")"
 if printf '%s' "$ports" | grep -q '1025-65535'; then
@@ -101,18 +107,20 @@ else
 fi
 
 # --------------------------------------------------------------- kde connect
-kdc="$(remote "pgrep -c kdeconnectd 2>/dev/null || echo 0")"
-[ "$kdc" = 0 ] && record PASS "kdeconnectd not running" "0 processes" \
-               || record FAIL "kdeconnectd not running" "$kdc processes"
+kdc="$(remote "pgrep -c kdeconnectd 2>/dev/null || true" | tail -1)"
+kdc="${kdc:-0}"
+if [ "$kdc" = 0 ]; then record PASS "kdeconnectd not running" "0 processes"
+else record FAIL "kdeconnectd not running" "$kdc processes"; fi
 
-dbusfile="$(remote "ls /usr/share/dbus-1/services/ 2>/dev/null | grep -ci kdeconnect || echo 0")"
-[ "$dbusfile" = 0 ] && record PASS "no kdeconnect D-Bus activation" "0 files" \
-                    || record FAIL "no kdeconnect D-Bus activation" "$dbusfile files"
+dbusfile="$(remote "ls /usr/share/dbus-1/services/ 2>/dev/null | grep -ci kdeconnect || true" | tail -1)"
+dbusfile="${dbusfile:-0}"
+if [ "$dbusfile" = 0 ]; then record PASS "no kdeconnect D-Bus activation" "0 files"
+else record FAIL "no kdeconnect D-Bus activation" "$dbusfile files"; fi
 
 # ------------------------------------------------------------------- selinux
 enf="$(remote "getenforce 2>&1")"
-[ "$enf" = Enforcing ] && record PASS "selinux enforcing" "$enf" \
-                       || record FAIL "selinux enforcing" "$enf"
+if [ "$enf" = Enforcing ]; then record PASS "selinux enforcing" "$enf"
+else record FAIL "selinux enforcing" "$enf"; fi
 
 # ---------------------------------------------------------------------- sshd
 # `sshd -T` prints the EFFECTIVE config after every drop-in is merged, which is
@@ -121,9 +129,11 @@ sshd_eff="$(remote "sudo sshd -T 2>/dev/null")"
 for kv in "passwordauthentication no" "permitrootlogin no" "kbdinteractiveauthentication no"; do
     key="${kv%% *}"
     got="$(printf '%s\n' "$sshd_eff" | grep -i "^$key " | head -1)"
-    [ "$(printf '%s' "$got" | tr 'A-Z' 'a-z')" = "$kv" ] \
-        && record PASS "sshd $kv" "$got" \
-        || record FAIL "sshd $kv" "${got:-<not set>}"
+    if [ "$(printf '%s' "$got" | tr 'A-Z' 'a-z')" = "$kv" ]; then
+        record PASS "sshd $kv" "$got"
+    else
+        record FAIL "sshd $kv" "${got:-<not set>}"
+    fi
 done
 
 echo

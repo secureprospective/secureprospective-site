@@ -1,0 +1,44 @@
+# Modern dark. Every component key below is required: a look-and-feel
+# package that omits one leaves that component unchanged when the user switches
+# theme, which is the partial-switch defect. Keep this list complete.
+
+[kdeglobals][General]
+ColorScheme=ModernDark
+font=Noto Sans,10,-1,5,50,0,0,0,0,0
+menuFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+toolBarFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+activeFont=Noto Sans,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=Noto Sans,9,-1,5,50,0,0,0,0,0
+
+[kdeglobals][Icons]
+Theme=modern
+
+[kdeglobals][KDE]
+widgetStyle=kvantum-dark
+
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
+
+[plasmarc][Theme]
+name=Modern-dark
+
+[Wallpaper]
+Image=Modern
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.kwin.aurorae.v2
+theme=__aurorae__svg__modern-dark-aurorae
+ButtonsOnLeft=ML
+ButtonsOnRight=IAX
+
+[kwinrc][DesktopSwitcher]
+LayoutName=org.kde.breeze.desktop
+
+[kwinrc][WindowSwitcher]
+LayoutName=org.kde.breeze.desktop
+
+[Kvantum/kvantum.kvconfig][General]
+theme=Modern
+
+[ksplashrc][KSplash]
+Theme=none

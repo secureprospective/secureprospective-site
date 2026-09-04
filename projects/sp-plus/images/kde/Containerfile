@@ -1239,12 +1239,12 @@ RUN for f in baloo_file org.kde.kdeconnect.daemon \
     test ! -e /etc/xdg/autostart/flameshot-daemon.desktop; \
     echo "AUTOSTART_OK count=$(ls /etc/xdg/autostart/ | wc -l)"
 
-# ---- 6. the SP+ Windows 11 global theme (advisors come from Windows) ----
-# Vendored, audited subset of KDE-Windows-Modern (GPL-3.0-only, upstream author
+# ---- 6. the Modern global theme (advisors come from Windows) ----
+# Vendored, audited subset of KDE-Modern (GPL-3.0-only, upstream author
 # Jeysef; LICENSE and ATTRIBUTION ship alongside it under /usr/share/sp-plus/theme).
 # Deliberately NOT shipped: the upstream C++ System Tray and Icon Tasks applets, the
 # patched login manager and the lock-screen shell overlay — they fork core Plasma and
-# break at every update. The layout uses native Plasma applets instead. Windows Modern
+# break at every update. The layout uses native Plasma applets instead. Modern
 # ships its attributed wallpaper payload separately below; the SP+ Calm wallpaper stays
 # available as the existing fallback asset for the other profiles.
 COPY theme/look-and-feel/  /usr/share/plasma/look-and-feel/
@@ -1253,10 +1253,10 @@ COPY theme/color-schemes/  /usr/share/color-schemes/
 COPY theme/aurorae/        /usr/share/aurorae/themes/
 COPY theme/icons/          /usr/share/icons/
 COPY theme/Kvantum/        /usr/share/Kvantum/
-# Windows Modern owns the icon role. Its index.theme inherits Breeze for the
+# Modern owns the icon role. Its index.theme inherits Breeze for the
 # platform fallbacks, but the selected theme name is not an unrelated Papirus
 # package.
-COPY theme/wallpaper/Windows-modern/ /usr/share/wallpapers/Windows-modern/
+COPY theme/wallpaper/Modern/ /usr/share/wallpapers/Modern/
 # Per-theme wallpapers. Each global theme names its own background in its
 # contents/defaults, so these are not decoration on top of a theme: they are
 # part of what the advisor chooses on the Welcome look screen. Licence status
@@ -1271,7 +1271,7 @@ COPY theme/wallpaper/SPPlus-Winter-River/  /usr/share/wallpapers/SPPlus-Winter-R
 # those packages belong to plasma-workspace and an RPM update would revert the
 # edit silently. This SP+-owned table is what spplus-apply-theme reads instead.
 COPY config/theme/wallpaper-overrides.conf /usr/share/sp-plus/theme/wallpaper-overrides.conf
-COPY theme/LICENSE-Windows-Modern-GPL3 theme/ATTRIBUTION-Windows-Modern.md /usr/share/sp-plus/theme/
+COPY theme/LICENSE-Modern-GPL3 theme/ATTRIBUTION-Modern.md /usr/share/sp-plus/theme/
 
 # ---- 5c. Flathub, shipped rather than added at runtime (DN-26) ---------------
 # DN-26 makes Flathub open. The image already carries flatpak 1.18.1, Discover and
@@ -1451,11 +1451,11 @@ RUN dnf install -y --setopt=install_weak_deps=False \
       jetbrains-mono-fonts \
       ibm-plex-sans-fonts \
  && dnf clean all \
- && gtk-update-icon-cache -f /usr/share/icons/windows-modern || true \
+ && gtk-update-icon-cache -f /usr/share/icons/modern || true \
  && gtk-update-icon-cache -f /usr/share/icons/Paper-Mono-Dark || true \
  && test -d /usr/share/icons/Paper-Mono-Dark \
  && test -d /usr/share/icons/Papirus-Dark \
- && test -d /usr/share/icons/windows-modern \
+ && test -d /usr/share/icons/modern \
  && fc-list : family | grep -qi 'Noto Sans' \
  && fc-list : family | grep -qi 'IBM Plex Sans' \
  && fc-list : family | grep -qi 'JetBrains Mono' \
@@ -1538,7 +1538,7 @@ RUN set -eux; \
     grep -q '^Branch=stable' /usr/share/flatpak/preinstall.d/sp-plus-joplin.preinstall; \
     echo "PWA_GATE_OK six advisor web apps chromeless, icons present, Joplin queued"
 
-# Ship SP+ Windows 11 Dark as the default look, system-wide rather than in
+# Ship Modern Dark as the default look, system-wide rather than in
 # /home, so a fresh advisor account gets it on first login (D25, retargeted by
 # DN-28). It leads the SP+ Welcome theme picker because it is closest to what
 # advisors are arriving from, so the desktop they first see matches the choice
@@ -1546,25 +1546,25 @@ RUN set -eux; \
 # selectable, and Welcome is where the advisor changes it (DN-26).
 RUN printf '%s\n' \
       '[General]' \
-      'ColorScheme=WindowsModernDark' \
+      'ColorScheme=ModernDark' \
       'TerminalApplication=kitty' \
-      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.modern.dark' \
       '' \
       '[Icons]' \
-      'Theme=windows-modern' \
+      'Theme=modern' \
       '' \
       '[KDE]' \
       'widgetStyle=kvantum-dark' \
-      'LookAndFeelPackage=org.secureprospective.spplus.windows11.dark' \
+      'LookAndFeelPackage=org.secureprospective.spplus.modern.dark' \
       > /etc/xdg/kdeglobals \
  && printf '%s\n' \
       '[Theme]' \
-      'name=Windows-modern-dark' \
+      'name=Modern-dark' \
       > /etc/xdg/plasmarc \
  && printf '%s\n' \
       '[org.kde.kdecoration2]' \
       'library=org.kde.kwin.aurorae.v2' \
-      'theme=__aurorae__svg__windows-modern-dark-aurorae' \
+      'theme=__aurorae__svg__modern-dark-aurorae' \
       '' \
       '# SP+ ships on laptops with real keys. kwin otherwise launches' \
       '# plasma-keyboard -- the ONSCREEN keyboard -- because its desktop file' \
@@ -1578,12 +1578,12 @@ RUN printf '%s\n' \
       'VirtualKeyboardEnabled=false' \
       > /etc/xdg/kwinrc \
  && grep -q '^library=org.kde.kwin.aurorae.v2$' /etc/xdg/kwinrc \
- && grep -q '^theme=__aurorae__svg__windows-modern-dark-aurorae$' /etc/xdg/kwinrc \
+ && grep -q '^theme=__aurorae__svg__modern-dark-aurorae$' /etc/xdg/kwinrc \
  && test -d /usr/share/wallpapers/SPPlus-Calm/contents/images \
  && test -f /usr/share/wallpapers/SPPlus-Calm/contents/images/3840x2160.jpg \
- && test -d /usr/share/wallpapers/Windows-modern/contents/images \
- && test -s /usr/share/wallpapers/Windows-modern/contents/images/2560x1440.png \
- && test -s /usr/share/wallpapers/Windows-modern/contents/images_dark/2560x1440.png \
+ && test -d /usr/share/wallpapers/Modern/contents/images \
+ && test -s /usr/share/wallpapers/Modern/contents/images/2560x1440.png \
+ && test -s /usr/share/wallpapers/Modern/contents/images_dark/2560x1440.png \
  && test -s /usr/share/wallpapers/SPPlus-Night-Ridge/contents/images/3840x2160.jpg \
  && test -s /usr/share/wallpapers/SPPlus-Blue-Horizon/contents/images/3840x2160.jpg \
  && grep -q '^Image=SPPlus-Night-Ridge$' /usr/share/plasma/look-and-feel/Catppuccin-Mocha/contents/defaults \
@@ -1642,13 +1642,13 @@ RUN chmod 0755 /usr/libexec/spplus-first-login /usr/libexec/spplus-printscreen \
  && test -s /etc/xdg/kcminputrc \
  && grep -q '^cursorTheme=breeze_cursors$' /etc/xdg/kcminputrc \
  && test -d /usr/share/icons/breeze_cursors \
- && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
- && grep -q '^Image=Windows-modern$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
- && grep -q '^Theme=windows-modern$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
- && grep -q '^ColorScheme=WindowsModernDark$' \
-      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults \
+ && test -f /usr/share/plasma/look-and-feel/org.secureprospective.spplus.modern.dark/contents/layouts/org.kde.plasma.desktop-layout.js \
+ && grep -q '^Image=Modern$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults \
+ && grep -q '^Theme=modern$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults \
+ && grep -q '^ColorScheme=ModernDark$' \
+      /usr/share/plasma/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults \
  && bash -n /usr/libexec/spplus-first-login \
  && echo "DN24_FIRST_LOGIN_OK look-and-feel is applied, not merely named"
 

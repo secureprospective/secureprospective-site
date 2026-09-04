@@ -3,7 +3,7 @@
 ## Scope boundary
 
 This is a theme-only lane. It does **not** edit `images/kde/Containerfile`, invoke an ISO
-build, touch QEMU state, or modify the existing `theme/` Windows Modern bundle. The new
+build, touch QEMU state, or modify the existing `theme/` Modern bundle. The new
 candidate lives under `theme/sp-plus-calm/` so the active ISO development can continue
 without a merge conflict.
 

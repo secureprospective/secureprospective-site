@@ -1,0 +1,19 @@
+{
+  "KPlugin": {
+    "Authors": [
+      {
+        "Email": "jeysef@users.noreply.github.com",
+        "Name": "Jeysef"
+      }
+    ],
+    "Category": "Aurorae Themes",
+    "Dependencies": [],
+    "Description": "Modern Light flat window decoration for KDE Plasma 6. Based on Win11OS-kde by yeyushengfan258.",
+    "EnabledByDefault": true,
+    "Id": "modern-light-aurorae",
+    "License": "GPL-3.0-only",
+    "Name": "Modern Light Aurorae",
+    "Version": "1.0.0",
+    "Website": "https://github.com/Jeysef/KDE-Modern"
+  }
+}

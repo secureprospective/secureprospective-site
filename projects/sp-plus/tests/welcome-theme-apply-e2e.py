@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path.home() / "welcome-test"))
 import welcome
 
 TARGET = os.environ.get("SPPLUS_THEME_E2E_TARGET", sys.argv[1] if len(sys.argv) > 1 else
-                       "org.secureprospective.spplus.windows11.dark")
+                       "org.secureprospective.spplus.modern.dark")
 TIMEOUT_MS = int(os.environ.get("SPPLUS_THEME_E2E_TIMEOUT_MS", "300000"))
 
 

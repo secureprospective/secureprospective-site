@@ -23,5 +23,5 @@ while IFS= read -r -d "" entry; do
   esac
 done < "/proc/$shell_pid/environ"
 
-export SPPLUS_THEMES="${SPPLUS_THEMES:-org.secureprospective.spplus.windows11.light org.secureprospective.spplus.windows11.dark org.kde.breeze.desktop org.kde.breezedark.desktop Nordic Catppuccin-Mocha Catppuccin-Latte com.github.vinceliuice.Orchis}"
+export SPPLUS_THEMES="${SPPLUS_THEMES:-org.secureprospective.spplus.modern.light org.secureprospective.spplus.modern.dark org.kde.breeze.desktop org.kde.breezedark.desktop Nordic Catppuccin-Mocha Catppuccin-Latte com.github.vinceliuice.Orchis}"
 python3 "$(dirname "$0")/theme-fidelity-gate.py"

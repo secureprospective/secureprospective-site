@@ -8,7 +8,7 @@
 # silently drift from the picker path.
 set -u
 
-LNF=org.secureprospective.spplus.windows11.dark
+LNF=org.secureprospective.spplus.modern.dark
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/first-login-theme-applied"
 
 [ -e "$STAMP" ] && { echo "spplus-first-login: already applied, nothing to do"; exit 0; }
@@ -83,4 +83,4 @@ if ! date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP" || [ ! -s "$STAMP" ]; then
     echo "spplus-first-login: could not write completion stamp" >&2
     exit 1
 fi
-echo "spplus-first-login: applied $LNF and the Windows Modern wallpaper"
+echo "spplus-first-login: applied $LNF and the Modern wallpaper"

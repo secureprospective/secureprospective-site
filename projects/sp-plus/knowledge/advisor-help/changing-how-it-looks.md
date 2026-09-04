@@ -6,10 +6,10 @@ SP+ starts with a dark Windows-style desktop. You can change its appearance, but
 
 Open **System Settings**, then **Global Theme**. The checked image includes:
 
-- **SP+ Windows 11 (Dark)**, the current checked default.
-- **SP+ Windows 11 (Light)**, the matching light version.
+- **Modern Dark**, the current checked default.
+- **Modern Light**, the matching light version.
 
-Choose one and follow the confirmation shown. Check a browser and document before deciding. Do not combine theme, display-scale, font, icon, and panel changes. If it feels wrong, return to Global Theme and choose **SP+ Windows 11 (Dark)**.
+Choose one and follow the confirmation shown. Check a browser and document before deciding. Do not combine theme, display-scale, font, icon, and panel changes. If it feels wrong, return to Global Theme and choose **Modern Dark**.
 
 ## What a global theme can change
 
@@ -37,7 +37,7 @@ If the supplied choices do not solve the comfort problem, ask Fin without naming
 
 ## What was checked
 
-The checked virtual machine uses **SP+ Windows 11 (Dark)** with its dark color scheme and supplied cursor. Both SP+ themes and the listed pages are installed. This manual did not interactively apply a theme, test its panel layout, or check physical displays.
+The checked virtual machine uses **Modern Dark** with its dark color scheme and supplied cursor. Both SP+ themes and the listed pages are installed. This manual did not interactively apply a theme, test its panel layout, or check physical displays.
 
 ## Related pages
 

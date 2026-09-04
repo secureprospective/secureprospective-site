@@ -436,7 +436,7 @@
       ]);
       fillPreviewList(previewUnchanged, [
         'Apps already open may keep their current look. Reopen them to see the new one.',
-        card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
+        card.dataset.cursorNote || 'The mouse pointer stays standard for Modern.',
         'The lock screen and on-screen messages stay unchanged.',
         'Start-menu favourites are not removed. Their order is not guaranteed.'
       ]);
@@ -450,7 +450,7 @@
       fillPreviewList(previewUnchanged, [
         'Your panel and pinned apps stay as they are.',
         'Apps already open may keep their current look. Reopen them to see the new one.',
-        card.dataset.cursorNote || 'The mouse pointer stays standard for Windows Modern.',
+        card.dataset.cursorNote || 'The mouse pointer stays standard for Modern.',
         'The lock screen and on-screen messages stay unchanged.',
         'Start-menu favourites are not removed. Their order is not guaranteed.'
       ]);

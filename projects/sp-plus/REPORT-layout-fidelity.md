@@ -40,7 +40,7 @@ The deliberate regression changed the first card's value to `false`. The gate fa
 
 ```text
 $ tests/theme-phase2-source-gate.sh
- theme card does not reset to its declared layout: <button class="theme-card lead" role="radio" aria-checked="false" data-lnf="org.secureprospective.spplus.windows11.light" data-theme="WINDOWS LIGHT" data-preview="assets/theme-previews/windows-light.png" data-layout-reset="false" data-cursor-note="The mouse pointer stays standard for Windows Modern." style="--sw-bg:#f9f9f9;--sw-fg:#1e1e1e;--sw-view:#ffffff;--sw-accent:#0067c0">
+ theme card does not reset to its declared layout: <button class="theme-card lead" role="radio" aria-checked="false" data-lnf="org.secureprospective.spplus.modern.light" data-theme="WINDOWS LIGHT" data-preview="assets/theme-previews/windows-light.png" data-layout-reset="false" data-cursor-note="The mouse pointer stays standard for Modern." style="--sw-bg:#f9f9f9;--sw-fg:#1e1e1e;--sw-view:#ffffff;--sw-accent:#0067c0">
 exit=1
 ```
 
@@ -66,8 +66,8 @@ Host: Dell live Plasma session `sp-plus` (reachable at `192.168.1.124` during ca
 
 | Theme | Live panel applet sequence after apply | LNF readback |
 |---|---|---|
-| `org.secureprospective.spplus.windows11.dark` | `org.kde.plasma.panelspacer -> org.kde.plasma.kickoff -> org.kde.plasma.icontasks -> org.kde.plasma.panelspacer -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.minimizeall` | `org.secureprospective.spplus.windows11.dark` |
-| `org.secureprospective.spplus.windows11.light` | `org.kde.plasma.panelspacer -> org.kde.plasma.kickoff -> org.kde.plasma.icontasks -> org.kde.plasma.panelspacer -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.minimizeall` | `org.secureprospective.spplus.windows11.light` |
+| `org.secureprospective.spplus.modern.dark` | `org.kde.plasma.panelspacer -> org.kde.plasma.kickoff -> org.kde.plasma.icontasks -> org.kde.plasma.panelspacer -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.minimizeall` | `org.secureprospective.spplus.modern.dark` |
+| `org.secureprospective.spplus.modern.light` | `org.kde.plasma.panelspacer -> org.kde.plasma.kickoff -> org.kde.plasma.icontasks -> org.kde.plasma.panelspacer -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.minimizeall` | `org.secureprospective.spplus.modern.light` |
 | `org.kde.breezedark.desktop` | `org.kde.plasma.kickoff -> org.kde.plasma.pager -> org.kde.plasma.icontasks -> org.kde.plasma.marginsseparator -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.showdesktop` | `org.kde.breezedark.desktop` |
 | `org.kde.breeze.desktop` | `org.kde.plasma.kickoff -> org.kde.plasma.pager -> org.kde.plasma.icontasks -> org.kde.plasma.marginsseparator -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.showdesktop` | `org.kde.breeze.desktop` |
 | `Nordic` | `org.kde.plasma.kickoff -> org.kde.plasma.pager -> org.kde.plasma.icontasks -> org.kde.plasma.marginsseparator -> org.kde.plasma.systemtray -> org.kde.plasma.digitalclock -> org.kde.plasma.showdesktop` | `Nordic` |

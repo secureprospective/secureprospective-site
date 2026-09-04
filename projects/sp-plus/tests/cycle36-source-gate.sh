@@ -15,10 +15,10 @@ grep -qF "node-22 -e 'new Intl.Segmenter(\"en\",{granularity:\"grapheme\"}).segm
 pass 'Node full ICU and Intl.Segmenter gate'
 
 # FIX 2: Plasma 6.7 SVG Aurorae is the v2 plugin. Under DN-28 the default is now
-# SP+ Windows 11 Dark; the Plasma 5 plugin name must appear NOWHERE, because that
+# Modern Dark; the Plasma 5 plugin name must appear NOWHERE, because that
 # single line is what made a whole cycle ship a theme that never applied.
 grep -qF 'library=org.kde.kwin.aurorae.v2' "$CF" || fail 'Aurorae v2 library is not shipped'
-grep -qF 'theme=__aurorae__svg__windows-modern-dark-aurorae' "$CF" || fail 'default Aurorae theme ID is not shipped'
+grep -qF 'theme=__aurorae__svg__modern-dark-aurorae' "$CF" || fail 'default Aurorae theme ID is not shipped'
 if grep -rn 'library=org\.kde\.kwin\.aurorae$' "$ROOT/theme" >/dev/null 2>&1; then
   fail 'a look-and-feel package still names the Plasma 5 decoration plugin'
 fi

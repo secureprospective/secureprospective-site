@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 APPLY="$ROOT/config/spplus-apply-theme"
 FIRST="$ROOT/config/spplus-first-login"
-LAYOUT="$ROOT/theme/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/layouts/org.kde.plasma.desktop-layout.js"
+LAYOUT="$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.dark/contents/layouts/org.kde.plasma.desktop-layout.js"
 HTML="$ROOT/welcome/app/index.html"
 CONTAINER="$ROOT/images/kde/Containerfile"
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
@@ -35,28 +35,28 @@ grep -qF -- '--layout' "$FIRST" || fail 'first-login does not make its layout de
 ! grep -qE '\bsleep\b' "$FIRST" || fail 'first-login still has a fixed wait'
 
 for package in \
-  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.windows11.light" \
-  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.windows11.dark"; do
+  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.light" \
+  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.dark"; do
   [ -f "$package/contents/defaults" ] || fail "missing defaults in $package"
-  grep -q '^Theme=windows-modern$' "$package/contents/defaults" || fail "Windows Modern icon declaration missing in $package"
-  grep -q '^Image=Windows-modern$' "$package/contents/defaults" || fail "Windows Modern wallpaper declaration missing in $package"
+  grep -q '^Theme=modern$' "$package/contents/defaults" || fail "Modern icon declaration missing in $package"
+  grep -q '^Image=Modern$' "$package/contents/defaults" || fail "Modern wallpaper declaration missing in $package"
   grep -q '^library=org.kde.kwin.aurorae.v2$' "$package/contents/defaults" || fail "Aurorae v2 declaration missing in $package"
   [ -f "$package/contents/layouts/org.kde.plasma.desktop-layout.js" ] || fail "missing layout in $package"
 done
 for switcher in DesktopSwitcher WindowSwitcher; do
-  grep -q "^\[kwinrc\]\[$switcher\]$" "$ROOT/theme/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults" \
+  grep -q "^\[kwinrc\]\[$switcher\]$" "$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults" \
     || fail "$switcher declaration missing in Windows dark"
 done
 grep -q '^LayoutName=org.kde.breeze.desktop$' \
-  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.windows11.dark/contents/defaults" \
+  "$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults" \
   || fail 'switcher layout declaration missing in Windows dark'
-[ -d "$ROOT/theme/icons/windows-modern" ] || fail 'windows-modern icon tree is missing'
-[ -s "$ROOT/theme/icons/windows-modern/index.theme" ] || fail 'windows-modern index.theme is missing'
-[ -s "$ROOT/theme/wallpaper/Windows-modern/metadata.json" ] || fail 'Windows Modern wallpaper metadata is missing'
-[ -s "$ROOT/theme/wallpaper/Windows-modern/contents/images/2560x1440.png" ] || fail 'Windows Modern light wallpaper is missing'
-[ -s "$ROOT/theme/wallpaper/Windows-modern/contents/images_dark/2560x1440.png" ] || fail 'Windows Modern dark wallpaper is missing'
-grep -qF 'COPY theme/wallpaper/Windows-modern/' "$CONTAINER" || fail 'Windows Modern wallpaper is not copied into the image'
-grep -qF "'Theme=windows-modern'" "$CONTAINER" || fail 'system default still selects an unrelated icon theme'
+[ -d "$ROOT/theme/icons/modern" ] || fail 'modern icon tree is missing'
+[ -s "$ROOT/theme/icons/modern/index.theme" ] || fail 'modern index.theme is missing'
+[ -s "$ROOT/theme/wallpaper/Modern/metadata.json" ] || fail 'Modern wallpaper metadata is missing'
+[ -s "$ROOT/theme/wallpaper/Modern/contents/images/2560x1440.png" ] || fail 'Modern light wallpaper is missing'
+[ -s "$ROOT/theme/wallpaper/Modern/contents/images_dark/2560x1440.png" ] || fail 'Modern dark wallpaper is missing'
+grep -qF 'COPY theme/wallpaper/Modern/' "$CONTAINER" || fail 'Modern wallpaper is not copied into the image'
+grep -qF "'Theme=modern'" "$CONTAINER" || fail 'system default still selects an unrelated icon theme'
 [ -s "$ROOT/theme/vendor/aurorae/CatppuccinMocha-Classic/CatppuccinMocha-Classicrc" ] || fail 'Catppuccin Mocha Aurorae config is missing'
 [ -s "$ROOT/theme/vendor/aurorae/CatppuccinLatte-Classic/CatppuccinLatte-Classicrc" ] || fail 'Catppuccin Latte Aurorae config is missing'
 

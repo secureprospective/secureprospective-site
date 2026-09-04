@@ -34,8 +34,8 @@ echo "session: pid=$shell_pid type=${XDG_SESSION_TYPE:-unknown} display=${WAYLAN
 
 # theme id -> wallpaper package the advisor must end up with
 THEMES=(
-  "org.secureprospective.spplus.windows11.light|Windows-modern"
-  "org.secureprospective.spplus.windows11.dark|Windows-modern"
+  "org.secureprospective.spplus.modern.light|Modern"
+  "org.secureprospective.spplus.modern.dark|Modern"
   "org.kde.breeze.desktop|SPPlus-Winter-River"
   "org.kde.breezedark.desktop|SPPlus-Still-Water"
   "Nordic|SPPlus-Moonrise-Range"
@@ -96,10 +96,10 @@ done
 echo "=== acceptance round trip: Breeze to Windows and back, twice ==="
 for pass in 1 2; do
   check "round $pass Breeze Dark"  org.kde.breezedark.desktop SPPlus-Still-Water
-  check "round $pass Windows Dark" org.secureprospective.spplus.windows11.dark Windows-modern
+  check "round $pass Windows Dark" org.secureprospective.spplus.modern.dark Modern
   check "round $pass back to Breeze Dark" org.kde.breezedark.desktop SPPlus-Still-Water
   check "round $pass Breeze Light" org.kde.breeze.desktop SPPlus-Winter-River
-  check "round $pass Windows Light" org.secureprospective.spplus.windows11.light Windows-modern
+  check "round $pass Windows Light" org.secureprospective.spplus.modern.light Modern
   check "round $pass back to Breeze Light" org.kde.breeze.desktop SPPlus-Winter-River
 done
 

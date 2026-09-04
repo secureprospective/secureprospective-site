@@ -21,7 +21,7 @@ import time
 sys.path.insert(0, "/home/test")
 from cdp import connect  # noqa: E402
 
-WINDOWS = "org.secureprospective.spplus.windows11.dark"
+WINDOWS = "org.secureprospective.spplus.modern.dark"
 BREEZE = "org.kde.breezedark.desktop"
 
 # Breeze -> Windows -> Breeze -> Windows. Starting from Breeze makes the first

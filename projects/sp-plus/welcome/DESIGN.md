@@ -31,5 +31,5 @@ Feedback uses a 160ms ease-out transition. The lone ambient exception is the slo
 ## Assets
 
 - `assets/spplus-calm-dark.png` and `assets/spplus-calm-light.png` are copied from the delivered graphite theme window studies.
-- `assets/windows11-dark.jpg` and `assets/windows11-light.jpg` are the real 1920x1080 `fullscreenpreview.jpg` files read from the running `fedora-test34` guest’s installed look-and-feel packages.
+- `assets/modern-dark.jpg` and `assets/modern-light.jpg` are the real 1920x1080 `fullscreenpreview.jpg` files read from the running `fedora-test34` guest’s installed look-and-feel packages.
 - The older wallpaper contact-sheet assets remain in the payload for provenance but are no longer shown on the global-theme screen.
