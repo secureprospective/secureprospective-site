@@ -42,6 +42,17 @@ for package in \
   grep -q '^Image=Modern$' "$package/contents/defaults" || fail "Modern wallpaper declaration missing in $package"
   grep -q '^library=org.kde.kwin.aurorae.v2$' "$package/contents/defaults" || fail "Aurorae v2 declaration missing in $package"
   [ -f "$package/contents/layouts/org.kde.plasma.desktop-layout.js" ] || fail "missing layout in $package"
+  # The declared Kvantum skin must exist in the build context under the name
+  # the package asks for. The 2026-09-04 rename changed this declaration from
+  # Windows-modern to Modern and left the asset directory behind; preflight
+  # passed 33/33 and the break only surfaced 20 minutes into the image build,
+  # at the in-image theme gate. Reading the declared name rather than a
+  # hardcoded one means the next rename cannot drift the same way.
+  kv=$(sed -n 's/^theme=\(.*\)$/\1/p' "$package/contents/defaults" | tail -1)
+  [ -n "$kv" ] || fail "no Kvantum skin declared in $package"
+  [ -d "$ROOT/theme/Kvantum/$kv" ] || fail "declared Kvantum skin '$kv' has no asset dir in $package"
+  [ -s "$ROOT/theme/Kvantum/$kv/$kv.kvconfig" ] || fail "Kvantum skin '$kv' has no $kv.kvconfig"
+  [ -s "$ROOT/theme/Kvantum/$kv/$kv.svg" ] || fail "Kvantum skin '$kv' has no $kv.svg"
 done
 for switcher in DesktopSwitcher WindowSwitcher; do
   grep -q "^\[kwinrc\]\[$switcher\]$" "$ROOT/theme/look-and-feel/org.secureprospective.spplus.modern.dark/contents/defaults" \

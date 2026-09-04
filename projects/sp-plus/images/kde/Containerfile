@@ -228,8 +228,13 @@ RUN systemctl enable wsdd.service \
 # one is needed, the Noto CJK faces are 116 MB of fonts this product never renders (a dry run
 # confirmed they take only their three default-fonts-cjk-* metapackages with them),
 # and mariadb-server is a database no SP+ component uses. Christopher explicitly
-# ruled KEEP on plasma-workspace-wallpapers, java-25-openjdk-headless, ibus +
-# cldr-emoji-annotation and python3-botocore -- do not add them here.
+# ruled KEEP on plasma-workspace-wallpapers, java-25-openjdk-headless and ibus +
+# cldr-emoji-annotation -- do not add them here.
+#
+# python3-boto3 was on that KEEP list until 2026-09-04, when the release had to
+# fit under R2's 5 GiB single-upload ceiling and Christopher reversed it. It is
+# the AWS SDK; a dnf remove dry run frees 119 MiB and takes only botocore and
+# s3transfer with it, and nothing in SP+ imports any of the three.
 #
 # FOUR CANDIDATES WERE REJECTED after checking properly, and the check that cleared
 # them the first time was WRONG: `dnf repoquery --whatrequires` run on the installed
@@ -250,12 +255,14 @@ RUN dnf install -y --setopt=install_weak_deps=False glibc-langpack-en \
       google-noto-sans-cjk-vf-fonts google-noto-sans-mono-cjk-vf-fonts \
       google-noto-serif-cjk-vf-fonts \
       nvidia-gpu-firmware \
+      python3-boto3 python3-botocore python3-s3transfer \
       plasma-welcome plasma-welcome-fedora; do \
       rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p"; \
     done; \
     dnf clean all; \
     rpm -q glibc-langpack-en || exit 1; \
     for p in firefox glibc-all-langpacks mariadb-server nvidia-gpu-firmware \
+             python3-boto3 python3-botocore python3-s3transfer \
              plasma-welcome; do \
       rpm -q "$p" && { echo "TRIM FAILED: $p still installed"; exit 1; }; \
     done; \
