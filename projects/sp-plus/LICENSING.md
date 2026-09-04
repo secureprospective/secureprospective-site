@@ -54,6 +54,17 @@ is in this repository.
 - **18 firmware packages** are redistributable but may not be modified. Fine to
   ship as-is; they cannot be patched.
 
+## Wallpapers
+
+Every wallpaper SP+ ships is under the **Pexels License**, which permits free
+use, modification and redistribution, commercial included, without attribution.
+Photographers are credited anyway in each package's `ATTRIBUTION.md`.
+
+One clause to remember: Pexels asks that photographs not be redistributed on
+other **stock or wallpaper platforms**. Shipping them as desktop wallpapers
+inside an operating system is not that. Packaging SP+ backgrounds as a
+downloadable wallpaper pack, or offering them as stock imagery, would be.
+
 ## What is confirmed clean
 
 - **No patent-encumbered codecs.** Every media package is Fedora's patent-safe

@@ -1,37 +1,50 @@
 # SP+ Quiet Coast — attribution
 
-> ⚠️ **UNRESOLVED: this image's source and licence are not established.**
-> It must not ship in a public release until they are. See below.
-
-## What is known
-
 | | |
 |---|---|
+| Source | **Pexels** |
+| Licence | **Pexels License** |
 | Supplied by | Christopher, 2026-09-04 |
 | Original filename | `wp12485367-4k-nature-desktop-wallpapers.jpg` |
-| Dimensions | 3840 x 2160, JPEG, 3.2 MB |
-| Subject | A sea stack at blue hour with long-exposure water and a headland to the right |
+| Original dimensions | 3840 x 2160, JPEG |
+| Subject | A sea stack at blue hour, long-exposure water, headland to the right |
 
-## Why this is blocking
+## Licence
 
-The filename is the download pattern of a wallpaper aggregator site. Those
-sites routinely host photographs they have no right to sublicense, so a file
-obtained from one carries no usable licence — and SP+ is about to be
-**publicly redistributed as an ISO**, which is exactly the act a licence has
-to permit.
+The Pexels License permits free use, modification and distribution, for
+commercial and non-commercial purposes, without attribution. Attribution is
+recorded here anyway, as a courtesy and to match the rest of the SP+ wallpaper
+packages.
 
-Every other wallpaper SP+ ships names a photographer and a licence (the
-Pexels License). This one cannot, yet.
+**This clears the image for redistribution inside the SP+ ISO.** Bundling a
+photograph as a desktop wallpaper in an operating system is ordinary use of
+this licence, and it is how the other SP+ wallpapers are already shipped.
 
-## How to resolve — any one of these
+### The one clause worth remembering
 
-1. **Name the origin.** If the photograph came from Pexels, Unsplash,
-   Pixabay or similar, record the URL, the photographer and the licence here,
-   and this stops being a problem.
-2. **Substitute an equivalent.** The subject is a widely photographed
-   coastline, and permissively licensed versions of the same scene are easy
-   to find on Pexels or Unsplash. Swapping the file keeps the look and
-   removes the question.
-3. **Use an image SP+ owns**, or one already licensed for this purpose.
+The Pexels License asks that photographs not be redistributed **on other stock
+or wallpaper platforms**. Shipping this image as one wallpaper inside an
+operating system is not that. But if SP+ ever packages its backgrounds as a
+downloadable wallpaper pack, or offers them as stock imagery in their own
+right, that is a different act and this clause applies to it directly.
 
-Until one of those is done, treat this package as internal-only.
+## Still worth recording
+
+The photographer and the Pexels URL are not known. The licence does not
+require them, so nothing is blocked — but every other SP+ wallpaper names its
+photographer, and this one should too if the source page can be found again.
+
+## Processing
+
+Derived from the 3840 x 2160 original by downscaling only. No crop, no aspect
+change, no colour adjustment.
+
+| File | Purpose |
+|---|---|
+| `contents/images/3840x2160.jpg` | 4K displays |
+| `contents/images/2560x1440.jpg` | 1440p |
+| `contents/images/1920x1080.jpg` | 1080p, the Dell's panel |
+| `contents/screenshot.jpg` | the picker thumbnail |
+
+Encoded at quality 92: a blue-hour sky is a smooth gradient and the one
+subject where JPEG banding shows.
