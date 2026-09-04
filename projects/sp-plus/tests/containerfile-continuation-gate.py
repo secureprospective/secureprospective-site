@@ -1,5 +1,9 @@
 import pathlib, re, sys
-p = pathlib.Path("images/kde/Containerfile")
+# Resolve from this file, not the caller's cwd. Run from the repo root the
+# relative path missed and the gate died with FileNotFoundError, which
+# config-preflight reported as a broken line continuation -- a real-sounding
+# failure that was only ever a path bug.
+p = pathlib.Path(__file__).resolve().parent.parent / "images/kde/Containerfile"
 lines = p.read_text().split("\n")
 bad = []
 for i, line in enumerate(lines[:-1]):

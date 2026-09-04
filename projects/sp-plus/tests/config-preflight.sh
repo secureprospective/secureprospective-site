@@ -1050,6 +1050,21 @@ grep -qF 'curl -fsSLo /etc/yum.repos.d/brave-browser.repo' "$CF" \
   && ok "D-2/C-1/D-6 Brave is pinned, its repo is vendored, and the repo file does not ship" \
   || bad "D-2 Brave pin gate failed" "an unpinned browser means two ISOs from one source contain different software"
 
+# P-27  The em-dash ban is enforced only inside the image, at step 161 of 193 --
+# roughly forty minutes of wall clock to learn that one character of body copy
+# is wrong. On 2026-09-04 that is exactly what happened, and the repo-side check
+# that should have caught it first could not: `grep -P \xe2\x80\x94` in a
+# UTF-8 locale reads \\xe2 as the codepoint U+00E2, not the byte, and silently
+# matches nothing. The container runs under LC_ALL=C, where it matches. Pin the
+# locale, or this check reports PASS on the file that fails the build.
+P27_HITS=$(LC_ALL=C grep -rIlF -- "$(printf '\342\200\224')" "$REPO/projects/sp-plus/welcome/app/" 2>/dev/null || true)
+if [ -z "$P27_HITS" ]; then
+  ok "no em-dash in the Welcome text an advisor reads"
+else
+  bad "em-dash found in the Welcome app" "the build enforces this at step 161; these files fail it: $(echo "$P27_HITS" | tr 
+  )"
+fi
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
