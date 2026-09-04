@@ -2606,6 +2606,15 @@ LABEL org.opencontainers.image.title="SP+" \
 # Same rule the store gate encodes: A GATE MUST BE DOWNSTREAM OF EVERY OPERATION
 # THAT CAN VIOLATE IT. Put new dnf work ABOVE this block.
 #
+# /usr/share/licenses IS NOT A SIZE CANDIDATE, and the gate below exists to stop
+# a future trim treating it as one. SP+ redistributes ~2,000 Fedora binaries,
+# most of them GPL or LGPL, and those licenses require the license text to
+# travel with the binary. It is 15.2 MB across 1,203 directories -- about a
+# quarter of what /usr/share/doc costs -- and deleting it would turn a size
+# saving into a license violation on a product that is about to be published.
+# /usr/share/doc is a legitimate candidate; /usr/share/licenses is not, and they
+# are easy to confuse when scanning `du` output.
+#
 # This is also the single place that re-asserts the whole 2026-09-04 cut set
 # against the FINISHED filesystem, rather than trusting that what was removed at
 # step 18 was never pulled back as a dependency of something installed later.
@@ -2637,6 +2646,9 @@ RUN set -eux; \
     grep -q 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
          /usr/lib/udev/rules.d/50-udev-default.rules; \
     test -s /usr/share/flatpak/preinstall.d/sp-plus-thunderbird.preinstall; \
+    lic=$(ls /usr/share/licenses | wc -l); \
+    test "$lic" -gt 1000 \
+      || { echo "FINAL TRIM FAIL: only $lic dirs in /usr/share/licenses" >&2; exit 1; }; \
     echo "FINAL_TRIM_OK usr_bytes=$(du -sb /usr | cut -f1) packages=$(rpm -qa | wc -l) locales=$lc"
 
 # ---- FINAL STORE GATE (D-4). Deliberately the LAST thing before the lint. ------

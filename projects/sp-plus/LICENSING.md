@@ -26,13 +26,20 @@ not the copyright license. See `TRADEMARK.md`.
 
 ## 2. The composed image — not licensed as a whole
 
-The ISO is an aggregation of about 2,184 packages, each under its own license.
+The ISO is an aggregation of 2,000 software packages, each under its own
+license. (`LICENSES.md` lists 2,007 `rpm -qa` entries; seven of those are
+`gpg-pubkey` repository signing keys, not software.)
 There is no single license that covers it, and any statement that SP+ "is
 licensed under X" as an image would be false.
 
 `LICENSES.md` is the generated inventory: every package in the built image with
 its version and license, produced from the image itself rather than from a
-list someone maintained by hand.
+list someone maintained by hand. Regenerate it with
+`scripts/generate-licenses.sh` after any build that changes package content --
+it reads `rpm -qa` inside the built image, so it cannot drift from what ships.
+It went stale exactly once, on 2026-09-04, when a size trim removed 177
+packages and the committed inventory still listed virt-manager, LibreOffice
+Base and Firebird as shipped.
 
 ## 3. Source availability
 
