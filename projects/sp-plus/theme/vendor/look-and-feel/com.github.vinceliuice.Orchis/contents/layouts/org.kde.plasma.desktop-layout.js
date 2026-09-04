@@ -137,7 +137,7 @@ var layout = {
                         "/Configuration/Appearance": {
                             "fontFamily": "Cantarell Light",
                             "showDate": "false",
-                            "use24hFormat": "2"
+                            "use24hFormat": "1"
                         },
                         "/Configuration/ConfigDialog": {
                             "DialogHeight": "1140",
@@ -152,6 +152,7 @@ var layout = {
                     "formfactor": "2",
                     "immutability": "1",
                     "lastScreen": "0",
+                    "panelOpacity": "1",
                     "wallpaperplugin": "org.kde.image"
                 },
                 "/ConfigDialog": {
