@@ -134,10 +134,13 @@ COPY installer/bootc-wrapper.sh /usr/local/bin/bootc
 # if a patch silently did nothing.
 COPY installer/patch-anaconda-progress.py /usr/libexec/patch-anaconda-progress.py
 COPY installer/patch-anaconda-network.py /usr/libexec/patch-anaconda-network.py
+COPY installer/patch-anaconda-reassurance.py /usr/libexec/patch-anaconda-reassurance.py
 RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
       /usr/libexec/patch-anaconda-network.py \
  && /usr/libexec/patch-anaconda-network.py \
  && /usr/libexec/patch-anaconda-progress.py \
+ && chmod 0755 /usr/libexec/patch-anaconda-reassurance.py \
+ && /usr/libexec/patch-anaconda-reassurance.py \
  && grep -Fq 'def steps(self):' \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
  && grep -Fq 'step_number=step' \
@@ -150,6 +153,12 @@ RUN chmod 0755 /usr/local/bin/bootc /usr/libexec/patch-anaconda-progress.py \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py \
       /usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py \
  && find /usr/lib64/python3.14/site-packages/pyanaconda/modules -type d -name __pycache__ -exec rm -rf {} + \
+ && python3 -c "import xml.etree.ElementTree as E; E.parse('/usr/share/anaconda/ui/spokes/installation_progress.glade')" \
+ && grep -Fq "spplusReassuranceLabel" /usr/share/anaconda/ui/spokes/installation_progress.glade \
+ && grep -Fq "Nothing has failed and nothing is stuck" /usr/share/anaconda/ui/spokes/installation_progress.glade \
+ && grep -Fq "autopart" /usr/share/anaconda/interactive-defaults.ks \
+ && grep -Eq "^autopart .*--encrypted" /usr/share/anaconda/interactive-defaults.ks \
+ && echo "DN52_REASSURANCE_OK the screen only promises encryption because the kickstart delivers it" \
  && echo 'SP+ installer progress patch applied and verified'
 
 # DN-28 GATE. The install bar sat at 8% then sprinted, because progress was

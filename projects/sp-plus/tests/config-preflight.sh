@@ -1093,6 +1093,30 @@ fi
   && ok "the kickstart installs from the exact payload ref the ISO embeds" \
   || bad "payload ref mismatch" "the ISO will build clean and then fail in Anaconda with \"does not resolve to an image ID\""
 
+# P-29  The progress screen tells the advisor their files are being encrypted
+# and that a slow bar is normal. That text is only allowed to exist while the
+# kickstart actually encrypts. DO-NOT.md records an install that silently
+# produced NO encryption and showed no warning; the same words on screen would
+# then be a false assurance to someone in a regulated profession, which is worse
+# than the empty box the screen shipped with. This ties the promise to the
+# mechanism repo-side, and DN-52 ties it again inside the installer container.
+P29_OK=1
+P29_KS="$REPO/projects/sp-plus/installer/interactive-defaults.ks"
+P29_PATCH="$REPO/projects/sp-plus/installer/patch-anaconda-reassurance.py"
+P29_CF="$REPO/projects/sp-plus/installer/Containerfile"
+[ -s "$P29_PATCH" ] || { P29_OK=0; echo "       the reassurance patcher is missing"; }
+grep -Fq "spplusReassuranceLabel" "$P29_PATCH" 2>/dev/null \
+  || { P29_OK=0; echo "       the patcher no longer inserts the label"; }
+grep -Fq "patch-anaconda-reassurance.py" "$P29_CF" 2>/dev/null \
+  || { P29_OK=0; echo "       the installer build does not run the patcher"; }
+if grep -Fq "being encrypted" "$P29_PATCH" 2>/dev/null; then
+  grep -Eq "^autopart .*--encrypted" "$P29_KS" \
+    || { P29_OK=0; echo "       the screen claims encryption but the kickstart does not encrypt"; }
+fi
+[ "$P29_OK" -eq 1 ] \
+  && ok "the install screen explains encryption and pace, and the kickstart backs the claim" \
+  || bad "install-screen reassurance gate failed" "the advisor would be told something the installer does not do"
+
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || { echo "DO NOT BUILD."; exit 1; }
