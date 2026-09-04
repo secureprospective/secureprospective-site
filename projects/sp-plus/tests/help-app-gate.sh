@@ -41,6 +41,7 @@ fi
 cleanup() {
     [ -n "${SERVER_PID:-}" ] && kill "$SERVER_PID" 2>/dev/null
     [ -n "$STUB" ] && rm -rf "$(dirname "$STUB")"
+    command -v we_cleanup >/dev/null 2>&1 && we_cleanup
     return 0
 }
 trap cleanup EXIT
@@ -83,5 +84,18 @@ for path in manifest.webmanifest sw.js icon.svg help-core.js help-data.json; do
 done
 echo "installable assets OK"
 
-QT_QPA_PLATFORM=offscreen SPPLUS_HELP_URL="http://127.0.0.1:${PORT}/" \
-    python3 "$PROBE"
+# QtWebEngine is not installed outside the SP+ image, so the probe runs where it
+# can import: this host if PySide6 is here, otherwise inside the image. The
+# server it drives is the one this gate just started on 127.0.0.1, which is why
+# this is the one place WE_NETWORK is not "none".
+. "$HERE/lib/webengine.sh"
+we_init; werc=$?
+if [ $werc -eq 3 ]; then
+    echo "SKIP the help app itself was NOT driven"; exit 0
+elif [ $werc -ne 0 ]; then
+    echo "FAIL could not set up a browser engine for the probe" >&2; exit 2
+fi
+we_where
+WE_NETWORK=host
+WE_ENV=( "SPPLUS_HELP_URL=http://127.0.0.1:${PORT}/" )
+we_run 180 "$PROBE"

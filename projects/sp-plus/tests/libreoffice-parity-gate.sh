@@ -10,6 +10,28 @@
 # Headless and non-GUI by construction. It never runs on the Beelink.
 set -uo pipefail
 
+# ...and until 2026-09-04 it did run on the Beelink, against a stock
+# LibreOffice with none of the SP+ registry in it, where it reported 7 failing
+# key bindings that were simply not installed. A parity gate has to be run
+# where the parity lives. If the SP+ registry is not on this machine, the gate
+# re-runs itself inside the SP+ image, which is where those .xcd files are.
+SPPLUS_REGISTRY=/usr/lib64/libreoffice/share/registry/spplus-office-parity.xcd
+if [ ! -f "$SPPLUS_REGISTRY" ] && [ -z "${SPPLUS_LO_IN_IMAGE:-}" ]; then
+    HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if ! command -v podman >/dev/null 2>&1; then
+        echo "SKIP not an SP+ system and no podman; Office parity was NOT checked"; exit 0
+    fi
+    IMAGE="${SPPLUS_IMAGE:-$(sudo -n podman images --format '{{.Repository}}:{{.Tag}} {{.CreatedAt}}' 2>/dev/null \
+            | grep '^localhost/sp-plus-kde:' | sort -k2 -r | head -1 | awk '{print $1}')}"
+    if [ -z "$IMAGE" ]; then
+        echo "SKIP no localhost/sp-plus-kde image; Office parity was NOT checked"; exit 0
+    fi
+    echo "checking Office parity inside $IMAGE"
+    exec timeout 900 sudo -n podman run --rm --network=none \
+        -v "$HERE:/t:ro,z" -e SPPLUS_LO_IN_IMAGE=1 "$IMAGE" \
+        bash /t/libreoffice-parity-gate.sh
+fi
+
 PORT="${SPPLUS_LO_PORT:-2083}"
 PROFILE="${SPPLUS_LO_PROFILE:-/tmp/spplus-lo-gate-profile}"
 PROBE="${SPPLUS_LO_PROBE:-$(dirname "$0")/libreoffice-parity-probe.py}"
@@ -28,7 +50,7 @@ trap cleanup EXIT
 pkill -f "port=${PORT};urp" 2>/dev/null
 rm -rf "$PROFILE"
 
-/usr/bin/soffice --headless --norestore --nologo --nodefault --invisible \
+soffice --headless --norestore --nologo --nodefault --invisible \
     --accept="socket,host=127.0.0.1,port=${PORT};urp;" \
     -env:UserInstallation="file://${PROFILE}" >"$LOG" 2>&1 &
 SOFFICE_PID=$!

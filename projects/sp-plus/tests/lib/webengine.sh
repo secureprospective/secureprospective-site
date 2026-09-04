@@ -83,7 +83,10 @@ we_run() {
     # The timeout is applied on this side of podman on purpose. Passing
     # "timeout" as the container command exits 125 with no output at all: it is
     # /usr/sbin/timeout, which is not on the PATH podman starts the process with.
-    timeout $(( secs + 20 )) sudo -n podman run --rm --network=none \
+    # WE_NETWORK stays "none" unless a gate genuinely needs to reach a server
+    # the host is running for it; help-app-gate is the only one, and it talks to
+    # 127.0.0.1 on this machine only.
+    timeout $(( secs + 20 )) sudo -n podman run --rm "--network=${WE_NETWORK:-none}" \
         -v "$WE_SRC:/welcome:ro,z" -v "$WE_WORK:/work:z" \
         -e QT_QPA_PLATFORM=offscreen -e QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox \
         "${envargs[@]}" "$WE_IMAGE" \

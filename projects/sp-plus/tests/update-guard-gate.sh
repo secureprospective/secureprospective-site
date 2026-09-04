@@ -19,7 +19,15 @@
 # against a live registry, so simulating it is the only way to test it at all.
 set -uo pipefail
 
+# The helper is the same file in the repo and in the image, so this runs
+# anywhere. It used to default to the installed path alone, which meant it
+# failed all 15 checks on any machine that is not a booted SP+ -- "unparseable"
+# fifteen times over is what a missing file looks like, and it read like a
+# broken guard rather than a gate pointed at nothing.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPER=${SPPLUS_UPDATE_CONTROL:-/usr/libexec/spplus-update-control}
+[ -x "$HELPER" ] || HELPER="$(dirname "$HERE")/config/spplus-update-control"
+[ -x "$HELPER" ] || { echo "UPDATE_GUARD_GATE_FAIL: no spplus-update-control at either path" >&2; exit 2; }
 fails=0
 
 BOOTED='{"digest":"sha256:aaa","version":"1","timestamp":"2026-09-01T21:31:12Z"}'
