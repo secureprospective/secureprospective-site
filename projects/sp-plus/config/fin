@@ -50,6 +50,26 @@ if [ "${1:-}" = "--ask" ]; then
         "$1"
 fi
 
+# `fin --version` reports the version Fin ACTUALLY runs, not whatever is first on
+# PATH. Those differ the moment anything installs a second copy under /usr/local,
+# and the PATH answer is the one that misleads: it says the update worked while
+# Fin goes on running the pinned build, because every exec below is an absolute
+# path into the read-only image. If a shadow copy exists, say so here rather than
+# let the advisor find out by trusting a version number.
+case "${1:-}" in
+    --version|-V)
+        printf 'Fin %s\n' "$(/usr/bin/pi --version 2>/dev/null | head -1 || echo unknown)"
+        shadow=$(command -v pi 2>/dev/null || true)
+        if [ -n "$shadow" ] \
+           && [ "$(readlink -f "$shadow" 2>/dev/null)" != "$(readlink -f /usr/bin/pi 2>/dev/null)" ]; then
+            printf '\n  %sAnother copy of the assistant is installed at %s (%s).%s\n' \
+                "$BOLD" "$shadow" "$("$shadow" --version 2>/dev/null | head -1 || echo unknown)" "$OFF"
+            printf '  %sFin does not use it. Fin updates with SP+; that copy can be removed.%s\n\n' \
+                "$DIM" "$OFF"
+        fi
+        exit 0 ;;
+esac
+
 TIPS=/usr/libexec/sp-plus/fin-tips
 
 # Coaching tips are the advisor's to control, so the switches come before

@@ -950,6 +950,18 @@ else
   bad "DN-43/44/45 theme source gate failed" "do not build until the apply path and every preview receipt are present"
 fi
 
+# P-24c Fin updates ARE OS image updates. On 2026-09-04 one went in through npm
+# instead: it failed against read-only /usr, retried against /usr/local nine
+# seconds later, and succeeded -- shadowing the pinned agent on PATH while `fin`
+# kept exec'ing /usr/bin/pi. `pi --version` then said 0.85.0 while Fin ran
+# 0.84.4, which is the worst kind of failure: the check that was supposed to
+# catch it reported success. This gate runs the real guardrail regexes.
+if "$REPO/projects/sp-plus/tests/fin-update-lane-gate.sh" >/dev/null 2>&1; then
+  ok "Fin updates with the image and the npm side-door is gated"
+else
+  bad "Fin update lane gate failed" "an advisor could be told Fin was updated while it runs the old build"
+fi
+
 # P-24b A dropped line continuation ends a RUN early and hands the step the exit
 # status of whatever ran last. On 2026-09-04 an assertion was inserted after the
 # CJK check without its trailing backslash; the RUN then ended on `grep -q`,

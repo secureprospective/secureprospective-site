@@ -861,6 +861,16 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \
  && grep -q '^SKILLS=/usr/share/sp-plus/fin/skills$' /usr/libexec/sp-plus/fin \
+# Fin updates ARE OS image updates (update-lane ledger, 2026-09-01). On
+# 2026-09-04 an update instead went in through npm: it failed against read-only
+# /usr, retried nine seconds later against /usr/local, and succeeded -- leaving a
+# second pi ahead of the pinned one on PATH while `fin` kept exec'ing
+# /usr/bin/pi. The advisor's version check said updated; Fin was not. These three
+# assertions are what keep the one lane the only lane.
+ && grep -q 'arrives inside a new version of SP+' /usr/share/sp-plus/fin/system-prompt.md \
+ && grep -q 'second copy of Fin' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && grep -q -- '--version|-V' /usr/libexec/sp-plus/fin \
+ && echo "FIN_UPDATE_LANE_OK Fin updates with the image; the npm route is gated" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \

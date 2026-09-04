@@ -70,6 +70,17 @@ export default function (pi: ExtensionAPI) {
 		{ label: "sends an email", pattern: /(^|[\s;&|(])mail\s+/i },
 		{ label: "sends an email", pattern: /\bthunderbird\b[^\n]*(-compose|--compose)/i },
 
+		// --- 3b. Fin updates with SP+, never from a registry. 2026-09-04 ---
+		// Asked to update itself, the obvious move is `npm install -g`. Here /usr is
+		// read-only so that fails -- and the natural retry, the same install with a
+		// writable prefix, SUCCEEDS and is worse. /usr/local shadows the pinned agent
+		// on PATH while `fin` still execs /usr/bin/pi, so the advisor is told the
+		// update worked while Fin goes on running the old build. That is exactly what
+		// happened on the test VM on 2026-09-04, nine seconds between the two
+		// attempts, leaving 156 MB in /var on a disk that was already 95% full.
+		{ label: "installs a second copy of Fin outside the system update", pattern: /\b(npm|pnpm|yarn)\b[^\n]*\b(install|add|up|update|upgrade|i)\b[^\n]*pi-coding-agent/i },
+		{ label: "installs software into the system folders from the internet", pattern: /\b(npm|pnpm|yarn)\b[^\n]*\b(install|add|i)\b[^\n]*(--prefix[=\s]*\/usr\b|--prefix[=\s]*\/usr\/local\b|(^|\s)-g(\s|$)|--global\b)/i },
+
 		// --- 4. Booting, and getting back into an encrypted disk ---
 		// Losing a LUKS keyslot on a machine whose owner cannot recite the
 		// passphrase is unrecoverable, and the data is client records.
