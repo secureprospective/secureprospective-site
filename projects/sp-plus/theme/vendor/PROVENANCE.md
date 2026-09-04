@@ -79,3 +79,47 @@ Christopher decided on 2026-08-30 to **keep Breeze cursors and disclose it** rat
 source a third-party Windows-style cursor set, which would add a dependency subject to
 the standing rule that anything shipping in SP+ must be actively maintained. The DN-44
 preview change-list must therefore not imply the cursor changes.
+
+## SP+ local patch — Orchis.colors, 2026-09-04
+
+`vendor/color-schemes/Orchis.colors` carries a deliberate SP+ modification and
+is **no longer byte-identical to upstream**. Re-pulling Orchis will silently
+revert it, so re-apply this patch after any vendor refresh.
+
+**What was wrong.** Upstream's `[Colors:Complementary]` group pairs
+`ForegroundNormal=51,51,51` with `BackgroundNormal=33,35,41` — a contrast ratio
+of **1.24:1**, against a WCAG AA minimum of 4.5:1. Plasma paints panel and
+desktop text from that group, so on the Orchis top bar the clock and applet
+text were effectively invisible. Five of its eight foregrounds failed AA:
+
+| Key | Upstream | Ratio | SP+ | Ratio |
+|---|---|---|---|---|
+| ForegroundNormal | `51,51,51` | 1.24:1 | `244,231,211` | **12.88:1** |
+| ForegroundInactive | `120,120,120` | 3.56:1 | `186,171,148` | **6.99:1** |
+| ForegroundNegative | `191,3,3` | 2.42:1 | `255,138,128` | **6.88:1** |
+| ForegroundPositive | `0,110,40` | 2.44:1 | `143,214,143` | **9.11:1** |
+| ForegroundNeutral | `176,128,0` | 4.44:1 | `255,209,122` | **10.96:1** |
+| ForegroundLink | `66,133,244` | 4.41:1 | `130,185,255` | **7.73:1** |
+| ForegroundVisited | `224,64,251` | 4.71:1 | `214,168,255` | **8.16:1** |
+| ForegroundActive | `255,128,224` | 7.04:1 | `255,196,107` | **9.99:1** |
+
+`DecorationFocus` moved to match the new link colour. Backgrounds are untouched.
+
+Ratios are computed against this group's own background (`33,35,41`) with the
+WCAG relative-luminance formula, not estimated by eye.
+
+The replacement is a warm parchment-and-amber set rather than plain white:
+Christopher, 2026-09-04, asked for type that stands out and reads as a
+deliberate warm character rather than a correction.
+
+**Light surfaces, same patch.** `ForegroundNormal` on `Button`, `Header`,
+`Header][Inactive`, `View` and `Window` moved from neutral `51,51,51` to a warm
+espresso `51,37,26`. Be clear about what this is: on those light surfaces
+`51,51,51` already measured **11.6:1**, so this is a CHARACTER change with a
+modest contrast gain to **13.6:1** — not a fix for a failure.
+
+It is also not what makes the Orchis top bar hard to read. Measured on the
+guest 2026-09-04, that panel is translucent over `SPPlus-Paint-Tide`, a very
+high-contrast paint-splash wallpaper, and the type is small. Legibility there
+is a panel-opacity and wallpaper question, and warming the ink does not fix
+it. Recorded here so nobody later reads this patch as having solved it.
