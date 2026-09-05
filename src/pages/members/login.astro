@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Back Office Login — SecureProspective">
+<Layout title="Back Office Login: Secure Prospective">
   <main class="auth-shell">
     <div class="auth-card">
       <p class="eyebrow">Back Office</p>
@@ -78,7 +78,7 @@ import Layout from '../../layouts/Layout.astro';
 
       if (!res.ok) {
         showError(body.error ?? 'Sign in failed.');
-        // @ts-ignore — Turnstile global loaded by the async script above
+        // @ts-ignore. Turnstile global loaded by the async script above
         window.turnstile?.reset();
         return;
       }

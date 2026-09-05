@@ -1,6 +1,12 @@
 # SecureProspective — Design System v1
 
 **Status:** LOCKED (with TBD items flagged)
+
+> **Silver corrected 2026-09-05.** This document previously carried `--silver-base`
+> as `#C0C0C0`, flagged TBD pending a read against the real logo. That read was done:
+> the live token in `src/styles/tokens.css` is `#E5E4E2`, and the 2026-08-27 SP+ brand
+> capture records `#C0C0C0` as superseded. `#C0C0C0` is historical evidence only and is
+> not a live token. `src/styles/tokens.css` is the source of truth for colour.
 **Source:** strategic picture + logo z.ai read + email-signature z.ai read + Christopher's color/motion decisions
 
 ---
@@ -9,7 +15,7 @@
 
 | Token | Hex | Role |
 |---|---|---|
-| `--silver-base` | #C0C0C0 *(refine against actual silver logo PNG before build — TBD)* | Primary surface. The architect-of-protection canvas. |
+| `--silver-base` | #E5E4E2 | Primary surface. The architect-of-protection canvas. |
 | `--blue-brand` | #0033A0 | Brand color block. Secondary surfaces, depth sections, identity moments. |
 | `--gold-identity` | #D4AF37 | Logo / brand identity marker. Used sparingly — the symbol, key brand moments. |
 | `--yellow-accent` | #FFD700 | Call-out accent. CTAs, hover-active states, active toggles. |
