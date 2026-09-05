@@ -6,6 +6,25 @@ and is the part most easily lost.
 
 ---
 
+## 0. Name standard (decided 2026-09-05)
+
+The name is written closed-up, as one word, everywhere a reader sees it:
+**SecureProspective**. The domain stays lowercase, `secureprospective.com`. Code,
+identifiers and the drawn lockup were already closed-up and do not change.
+
+Two forms are wrong and should be corrected on sight: the spaced *Secure Prospective*
+and the sentence-cased *Secureprospective*.
+
+Christopher's ruling, 2026-09-05, when the site was found alternating between the two
+forms. One token, no exceptions, is simpler to hold than a rule about which surface gets
+which form, and it already matches the domain and the lockup.
+
+Documents written before this date, this one included, still carry the spaced form in
+their prose and titles. They are historical records and are not being retro-edited; the
+standard governs the site and everything written from here.
+
+---
+
 ## 1. What Secure Prospective is
 
 Two definitions survived a deliberate winnowing. Both are kept; everything else

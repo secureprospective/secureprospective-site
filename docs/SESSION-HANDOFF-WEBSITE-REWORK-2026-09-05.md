@@ -155,6 +155,20 @@ Code needs no change.
 Logo and lockup assets live in several trees and the Shorts kit has no flat vector. Write
 one manifest naming the current lockup and icon for site, desktop, PDFs and video.
 
+## 4b. Decisions taken 2026-09-05
+
+Christopher ruled on W3-W6 the same day this was written.
+
+| Item | Ruling | State |
+|---|---|---|
+| W3 SP+ claims | **Leave the copy as it stands.** The alpha framing carries the caveat well enough. No capability matrix for now. | Closed, no action |
+| W4 SP+ terms | **Lead with the qualification.** The commitment comes first, the no-fee fact second. | Done |
+| W5 Legal text | **Not counsel-reviewed. Hold it off the site.** Nothing legal is ported from `session/sp-plus-plan` to `main`. SP+ pages carry plain operational description only. | Closed until counsel reads it |
+| W6 Naming | **Closed-up everywhere: SecureProspective.** Spaced `Secure Prospective` and sentence-cased `Secureprospective` are both wrong. Domain stays lowercase. | Done, recorded in `docs/VOICE-AND-DIRECTION.md` section 0 |
+
+W5 is the one live blocker: SP+ copy stays thin until counsel has read the disclaimers,
+warranty limits and AI-data disclosure. Do not publish that text on Christopher's behalf.
+
 ## 5. Voice and visual reference — use this, do not re-research it
 
 **Stance.** The reader is frightened, confused, busy and entitled to an honest explanation,

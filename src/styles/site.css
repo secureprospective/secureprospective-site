@@ -762,7 +762,12 @@ button, input, textarea, select { font: inherit; }
   .site-link { min-height: 52px; padding-inline: 20px; border-top: 1px solid rgba(34,34,34,0.25); font-size: 11px; }
   .identity-hero { min-height: calc(100svh - 66px); }
   .identity-lockup { padding-block: 48px; }
-  .identity-lockup h1 { max-width: none; margin-inline: auto; font-size: clamp(2.35rem, 10vw, 4.6rem); line-height: 0.84; white-space: normal; }
+  /* One closed-up word cannot wrap, so it must scale instead. Primal advance widths
+     measured from public/fonts/Primal.otf: SECUREPROSPECTIVE is 13.683em including
+     0.015em tracking. The shell leaves 100% - 32px here, so the type has to stay at
+     or under (100vw - 32px) / 13.683, which is 6.5vw at 320px and looser above it.
+     6.3vw holds with margin at every width down to 320. */
+  .identity-lockup h1 { max-width: none; margin-inline: auto; font-size: clamp(1.2rem, 6.3vw, 4.6rem); line-height: 0.84; white-space: nowrap; }
   .pronunciation { margin-top: 24px; font-size: 0.9rem; letter-spacing: 0.01em; }
   .hero-sp-plus {
     grid-template-columns: minmax(0, 1fr);
@@ -818,7 +823,7 @@ button, input, textarea, select { font: inherit; }
 }
 
 @media (max-width: 360px) {
-  .identity-lockup h1 { font-size: 1.9rem; }
+  .identity-lockup h1 { font-size: 6.3vw; }
   .state-field h2 { font-size: 2.4rem; }
   .record-hero h1,
   .record-body h2 { font-size: 2rem; }
