@@ -31,10 +31,19 @@ old connection down and the new one never brought up.
    system bridge. Without it, the domain fails to start with a permissions
    error that reads like a libvirt bug.
 
-**The Beelink keeps its current IP.** A Linux bridge inherits the MAC of its
-first port, so `br0` comes up as `e8:ff:1e:d6:ab:d4` — the same MAC `enp5s0`
-has now — and DHCP hands back the same `192.168.1.190`. No router change, no
-reservation to update.
+**The Beelink keeps its current IP — but only because `br0` is pinned to
+`enp5s0`'s MAC.** A bare Linux bridge inherits its first port's MAC, but
+NetworkManager does not rely on that: it assigns the bridge its own generated
+MAC, DHCP sees a new client, and the box moves to a new lease. That happened on
+the first attempt on 2026-09-05 — the Beelink jumped from `.190` to `.185`,
+which breaks every reference to it in the homelab docs, in Tom's and Bee's
+config, and in `rig.env`. `bridge.mac-address e8:ff:1e:d6:ab:d4` is what
+prevents it. Do not drop that property.
+
+**`nmcli` works unprivileged here; the QEMU helper steps do not.** polkit lets
+`chris` reconfigure NetworkManager, so steps 1–5 succeed with no `sudo` and it
+is easy to assume the whole file is unprivileged. Step 6 then fails with
+`chmod: Operation not permitted`. Those lines need `sudo`.
 
 Docker's `docker0` and `br-59c5046205e1` are untouched and do not conflict.
 

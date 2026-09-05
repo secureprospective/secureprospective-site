@@ -1,11 +1,14 @@
-# Run on the BEELINK (192.168.1.190), as root, AT THE PHYSICAL KEYBOARD.
+# Run on the BEELINK (192.168.1.190), AT THE PHYSICAL KEYBOARD.
 # Not over SSH. Step 4 drops every SSH session on this machine.
+# Run as chris -- the nmcli steps go through polkit. Only step 6 needs sudo.
 # Purpose: put SP-Alpha-Rig on the LAN so agents can ssh into it.
 # Rollback if the network does not come back is the last line of this file.
 
-# 1. Create the bridge. It inherits enp5s0's MAC once enslaved, so DHCP
-#    returns the same 192.168.1.190 this box has now.
-nmcli con add type bridge ifname br0 con-name br0 bridge.stp no ipv4.method auto ipv6.method auto connection.autoconnect yes
+# 1. Create the bridge, PINNED to enp5s0's mac so DHCP returns the same
+#    192.168.1.190 this box has now. Do not omit bridge.mac-address:
+#    NetworkManager gives a bridge its OWN generated mac rather than
+#    inheriting the port's, and the box silently lands on a new lease.
+nmcli con add type bridge ifname br0 con-name br0 bridge.stp no ipv4.method auto ipv6.method auto connection.autoconnect yes bridge.mac-address e8:ff:1e:d6:ab:d4
 
 # 2. Enslave the physical NIC to it.
 nmcli con add type ethernet ifname enp5s0 master br0 con-name br0-port-enp5s0 connection.autoconnect yes
@@ -22,14 +25,15 @@ ip -4 addr show br0
 ping -c2 192.168.1.1
 
 # 6. Let session libvirt (running as chris, not root) attach guests to br0.
-chmod u+s /usr/lib/qemu/qemu-bridge-helper
-mkdir -p /etc/qemu
-echo "allow br0" > /etc/qemu/bridge.conf
-chmod 0640 /etc/qemu/bridge.conf
+#    nmcli above works unprivileged via polkit; THESE DO NOT. sudo is required.
+sudo chmod u+s /usr/lib/qemu/qemu-bridge-helper
+sudo mkdir -p /etc/qemu
+echo "allow br0" | sudo tee /etc/qemu/bridge.conf
+sudo chmod 0640 /etc/qemu/bridge.conf
 
-# 7. Confirm step 6 took.
+# 7. Confirm step 6 took. The mode must show an 's' (-rwsr-xr-x).
 ls -l /usr/lib/qemu/qemu-bridge-helper
-cat /etc/qemu/bridge.conf
+sudo cat /etc/qemu/bridge.conf
 
 # ROLLBACK -- only if the LAN does not come back after step 4.
 # nmcli con down br0; nmcli con mod "Wired connection 2" connection.autoconnect yes; nmcli con up "Wired connection 2"
