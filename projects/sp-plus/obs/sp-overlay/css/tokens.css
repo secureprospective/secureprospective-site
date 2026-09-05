@@ -1,13 +1,16 @@
-/* SP+ tokens, taken from the live site's design system rather than restated.
+/* SP+ overlay tokens — Concept B, "The Signal Room".
  *
- * Sources of truth: secureprospective-site/src/styles/tokens.css and
- * src/styles/immersive.css. Colour, lift, easing and duration names below match
- * the site's so the stream and the website stay one system.
+ * Taken from concepts/b-radical/src/styles/tokens.css. The brand primitives are
+ * unchanged: same four brand colours, same typeface, same mark. What changes is
+ * the room they stand in. Production lights the brand from the front -- platinum
+ * stock, ink on light. The Signal Room lights it from behind: the ground goes to
+ * deep ink and compliance blue and signal yellow stop being fills and start
+ * being light sources.
  *
- * Accent roles are NOT interchangeable and the earlier version of this file got
- * them backwards: GOLD is identity only -- the symbol, the lockup, brand
- * moments. YELLOW is the action and signal accent -- verification passes, live
- * rows, active chips. Anything that says "something just happened" is yellow.
+ * That is why this concept suits a stream overlay better than the production
+ * system does. An overlay is always composited onto something dark or moving,
+ * and this palette was designed for exactly that condition -- it does not need
+ * the silver stock the production system assumes.
  */
 
 @font-face {
@@ -27,50 +30,45 @@
 }
 
 :root {
-  /* Colour — the locked multi-hue palette. */
-  --silver-base: #E5E4E2;
+  /* Brand constants. Identical values to production. */
   --blue-brand: #0033A0;
   --gold-identity: #D4AF37;
   --yellow-accent: #FFD700;
+  --silver-base: #E5E4E2;
   --ink: #222222;
   --white: #FFFFFF;
-  --fineprint-gray: #666666;
 
-  /* Lift — hard offset, zero blur. The Card-Lift rule. No soft shadows. */
-  --lift-1: 3px 3px 0 rgba(34, 34, 34, 0.28);
-  --lift-2: 6px 6px 0 rgba(34, 34, 34, 0.35);
-  --lift-3: 12px 12px 0 rgba(34, 34, 34, 0.4);
-  --lift-blue: 6px 6px 0 rgba(0, 51, 160, 0.32);
-  --lift-yellow: 6px 6px 0 rgba(255, 215, 0, 0.55);
+  /* The room. A near-black built from the brand blue rather than a neutral
+     grey, so every surface carries the blue in its bones. */
+  --void: #05070E;
+  --deep: #080C18;
+  --panel: #0C1223;
+  --panel-raised: #111A2F;
+  --hairline: rgba(229, 228, 226, 0.12);
+  --hairline-bright: rgba(229, 228, 226, 0.28);
 
-  /* Motion. Fast and snappy: nothing slower than the site's --dur-slow. */
-  --ease-deck: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Light sources. Blue and yellow as emitted light, not as paint. */
+  --blue-lit: #2B6BFF;
+  --blue-glow: rgba(43, 107, 255, 0.45);
+  --yellow-glow: rgba(255, 215, 0, 0.5);
+  --gold-glow: rgba(212, 175, 55, 0.35);
+
+  /* Type on dark. Pure white vibrates against near-black, so the reading
+     colour is held just below full. */
+  --text-high: #F2F4F8;
+  --text-mid: rgba(242, 244, 248, 0.88);
+  --text-low: rgba(242, 244, 248, 0.7);
+
+  /* Panel stock. Near-opaque on purpose: the overlay composites onto live
+     video, and a translucent surface cannot promise a contrast ratio. */
+  --panel-stock: linear-gradient(160deg, #131C33 0%, #0A1020 100%);
+
+  /* Motion. One curve for travel, one for settle. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 160ms;
-  --dur-base: 360ms;
-  --dur-slow: 620ms;
-
-  /* Overlay-only: panel grounds. The site composites on silver; the stream
-     composites on unpredictable video, so panels carry their own opaque
-     ground rather than tinting the picture. */
-  --panel-dark: rgba(34, 34, 34, 0.90);
-  --panel-light: rgba(229, 228, 226, 0.95);
-
-  --edge: var(--silver-base);
-  --text: var(--silver-base);
-  --text-dim: rgba(229, 228, 226, 0.58);
-  --lift: var(--lift-blue);
+  --dur-base: 320ms;
+  --dur-slow: 720ms;
 
   --face: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
-  --track-label: 0.05em;   /* the site's caption tracking */
-  --track-display: -0.01em; /* tight tracking on large sizes */
-}
-
-/* The one light-ground scene inverts the border, text and lift roles rather
-   than overriding each rule individually. */
-.scene--light {
-  --edge: var(--ink);
-  --text: var(--ink);
-  --text-dim: var(--fineprint-gray);
-  --panel-dark: var(--panel-light);
-  --lift: var(--lift-2);
 }

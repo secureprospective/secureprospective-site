@@ -40,10 +40,18 @@ export function derive(p) {
   const chapter = p && p.chapter;
   const topic = (p && p.topic) || null;
 
+  const camWord = signalWord(p && p.camera, {
+    ok: "READY", degraded: "DEGRADED", down: "UNAVAILABLE",
+  });
+  const vmWord = signalWord(p && p.guest, {
+    ok: "OK", blanked: "BLANK", degraded: "DEGRADED", down: "DOWN",
+  });
+  const obsWord = connected ? "CONNECTED" : "UNAVAILABLE";
+
   const countdown =
     p && p.countdown && Number.isFinite(p.countdown.secondsRemaining)
       ? clockFace(p.countdown.secondsRemaining)
-      : "COUNTDOWN UNKNOWN";
+      : "UNKNOWN";
 
   return {
     rail,
@@ -61,13 +69,14 @@ export function derive(p) {
     returnMessage: topic ? topic.toUpperCase() : "RETURN TIME UNKNOWN",
     countdown,
 
-    camLabel: "CAMERA / " + signalWord(p && p.camera, {
-      ok: "READY", degraded: "DEGRADED", down: "UNAVAILABLE",
-    }),
-    vmStatus: "VM / " + signalWord(p && p.guest, {
-      ok: "OK", blanked: "BLANK", degraded: "DEGRADED", down: "DOWN",
-    }),
-    obsStatus: "OBS / " + (connected ? "CONNECTED" : "UNAVAILABLE"),
+    camLabel: "CAMERA / " + camWord,
+    vmStatus: "RIG / " + vmWord,
+    obsStatus: "OBS / " + obsWord,
+
+    // The readouts take the value alone; their label is a separate element.
+    camValue: camWord,
+    vmValue: vmWord,
+    obsValue: obsWord,
     operatorNote: (p && p.guest && p.guest.note) ||
                   (p && p.camera && p.camera.note) || "CHECKING",
   };

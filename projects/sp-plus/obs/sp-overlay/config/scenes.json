@@ -1,5 +1,5 @@
 {
-  "comment": "Maps OBS scene names onto overlay packs, and gives each pack its field weight. The ticker already draws itself at 0.1-0.4 alpha internally, as on the site; these are a further multiplier for compositing over video. They are higher than the site's because the site's field sits on silver and the stream's sits on ink or on the guest's screen.",
+  "comment": "Maps OBS scene names onto overlay packs and gives each its field weight. The lattice already draws itself at low alpha; opacity here is a further multiplier for compositing. RIG runs faintest because the guest's screen is the content there.",
   "sceneMap": {
     "00 HOLD": "HOLD",
     "01 TALK": "TALK",
@@ -12,49 +12,40 @@
   },
   "field": {
     "HOLD": {
-      "hz": 15,
-      "opacity": 0.5,
-      "tone": "dark"
+      "hz": 30,
+      "opacity": 1.0
     },
     "TALK": {
-      "hz": 15,
-      "opacity": 0.5,
-      "tone": "dark"
+      "hz": 30,
+      "opacity": 1.0
     },
     "RIG": {
-      "hz": 10,
-      "opacity": 0.22,
-      "tone": "dark"
+      "hz": 20,
+      "opacity": 0.34
     },
     "TALKRIG": {
-      "hz": 10,
-      "opacity": 0.22,
-      "tone": "dark"
+      "hz": 20,
+      "opacity": 0.34
     },
     "SLATE": {
-      "hz": 15,
-      "opacity": 0.4,
-      "tone": "dark"
+      "hz": 30,
+      "opacity": 0.9
     },
     "BRB": {
-      "hz": 15,
-      "opacity": 0.5,
-      "tone": "dark"
+      "hz": 30,
+      "opacity": 1.0
     },
     "TECH": {
-      "hz": 10,
-      "opacity": 0.7,
-      "tone": "light"
+      "hz": 20,
+      "opacity": 0.8
     },
     "OUTRO": {
-      "hz": 15,
-      "opacity": 0.5,
-      "tone": "dark"
+      "hz": 30,
+      "opacity": 1.0
     }
   },
   "fieldDefault": {
-    "hz": 10,
-    "opacity": 0.4,
-    "tone": "dark"
+    "hz": 20,
+    "opacity": 0.8
   }
 }

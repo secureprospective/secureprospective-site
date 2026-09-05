@@ -30,39 +30,30 @@ export class Renderer {
     }
 
     this.rail = root.querySelector("#rail-text");
-    this.scan = root.querySelector("#rail-scan");
+    this.lamp = root.querySelector("#rail-lamp");
 
-    // Split stamped titles once, at boot. These carry static text, so the
-    // letters never have to be rebuilt -- no DOM creation during animation.
-    for (const el of root.querySelectorAll("[data-stamp]")) {
-      this.stamp(el);
+    // Split titles into clipped word wrappers once, at boot. These carry
+    // static text, so nothing has to be rebuilt during animation.
+    for (const el of root.querySelectorAll("[data-words]")) {
+      this.splitWords(el);
     }
   }
 
-  /** Words stay atomic so a title never breaks inside a word. */
-  stamp(el) {
+  /** Each word clips its own glyphs so the title rises from behind its line.
+   *  Words stay atomic; a title never breaks inside one. */
+  splitWords(el) {
     const words = el.textContent.split(" ");
     el.textContent = "";
-    let index = 0;
-    words.forEach((word, w) => {
-      const span = document.createElement("span");
-      span.className = "stamp-word";
-      for (const ch of word) {
-        const letter = document.createElement("span");
-        letter.className = "stamp-letter";
-        letter.style.setProperty("--stamp-index", String(index));
-        letter.textContent = ch;
-        span.appendChild(letter);
-        index += 1;
-      }
-      el.appendChild(span);
-      if (w < words.length - 1) {
-        const gap = document.createElement("span");
-        gap.className = "stamp-letter";
-        gap.style.setProperty("--stamp-index", String(index));
-        gap.textContent = " ";
-        el.appendChild(gap);
-        index += 1;
+    words.forEach((word, i) => {
+      const wrap = document.createElement("span");
+      wrap.className = "word";
+      wrap.style.setProperty("--word-index", String(i));
+      const inner = document.createElement("span");
+      inner.textContent = word;
+      wrap.appendChild(inner);
+      el.appendChild(wrap);
+      if (i < words.length - 1) {
+        el.appendChild(document.createTextNode(" "));
       }
     });
   }
@@ -89,26 +80,30 @@ export class Renderer {
       pack.classList.remove("is-entering");
     }
 
-    this.field.pulse();
+    // The cut is a real event, so the room answers it: a pulse from where the
+    // scene's own weight sits, not from a fixed point.
+    this.field.pulse(560, 620, 0.85);
   }
 
-  /** One bar crosses the rail when the state actually changes -- the
-   *  register's status scan, not a decorative loop. Restarted by removing the
-   *  class and forcing a reflow, or a second change inside the animation would
-   *  be silently swallowed. */
-  runScan() {
-    this.scan.classList.remove("is-scanning");
-    void this.scan.offsetWidth;
-    this.scan.classList.add("is-scanning");
+  /** One ring leaves the lamp when the state actually changes -- the pill's
+   *  own inspection pulse. Restarted by removing the class and forcing a
+   *  reflow, or a change inside the animation would be swallowed. */
+  runSignal() {
+    this.lamp.classList.remove("is-signalling");
+    void this.lamp.offsetWidth;
+    this.lamp.classList.add("is-signalling");
   }
 
   apply(payload) {
     const d = derive(payload);
 
+    this.lastRailText = d.rail;
     if (this.setText(this.rail, d.rail)) {
-      this.runScan();
+      this.runSignal();
     }
     this.rail.classList.toggle("is-unknown", !d.railKnown);
+    // A dead socket kills the lamp: nothing on the pill may imply a live link.
+    this.lamp.classList.toggle("is-dark", !d.railKnown);
 
     for (const [key, els] of this.bindings) {
       const value = d[key];
@@ -116,6 +111,9 @@ export class Renderer {
       for (const el of els) {
         if (this.setText(el, value)) {
           el.classList.toggle("is-unknown", isUnknown(value));
+          // A readout dims as a whole, label included, not just its figure.
+          const readout = el.closest(".readout");
+          if (readout) readout.classList.toggle("is-unknown", isUnknown(value));
           if (el.classList.contains("chip")) {
             el.classList.toggle("is-known", value !== "--");
           }

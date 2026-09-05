@@ -1,181 +1,163 @@
-/* Motion ported from the site's immersive layer, not reinvented.
+/* Motion for the Signal Room.
  *
- * The vocabulary is the site's: cards are DEALT onto a table, a single
- * VERIFICATION PASS acknowledges that something registered, a STATUS SCAN
- * marks a row going live, and titles are STAMPED on per letter. Nothing loops
- * forever except the ambient ticker -- every other motion is a bounded signal
- * that fires once and stops.
+ * The concept's own vocabulary: words arrive from behind their own line, a
+ * travelling rule draws itself across, a yellow edge charges down the side of
+ * a panel, and the field answers a real event with an inspection pulse.
+ * Nothing loops. Every motion here fires once, on a genuine state change, and
+ * stops -- an instrument room is quiet until something happens.
  *
- * Only transform, opacity and clip-path are animated, and only on whole packs
- * or on a pseudo-element. Offsets stay on whole pixels: a fractional transform
- * resamples the 1px borders and makes them shimmer under H.264.
+ * Only transform, opacity and clip-path are animated. Offsets stay on whole
+ * pixels: a fractional transform resamples the hairlines and makes them
+ * shimmer under H.264.
  */
 
-/* --- deal-in ------------------------------------------------------------ */
+/* --- pack entry --------------------------------------------------------- */
 
 .pack {
   opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  clip-path: inset(0);
+  transform: translate3d(0, 0, 0);
   transition:
-    opacity 520ms var(--ease-deck),
-    transform 520ms var(--ease-deck),
-    clip-path 520ms var(--ease-deck);
+    opacity var(--dur-base) linear,
+    transform var(--dur-slow) var(--ease-out);
 }
 
-/* Each family enters with its own physical cue, exactly as the site does:
-   panels settle down, the rig is revealed from its lower edge, register-like
-   rows advance from the side, the closing card comes furthest. */
-.scene[data-enter="down"]    .pack.is-entering { opacity: 0; transform: translate3d(0, 32px, 0) scale(0.992); }
-.scene[data-enter="settle"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 36px, 0) scale(0.992); }
-.scene[data-enter="left"]    .pack.is-entering { opacity: 0; transform: translate3d(-24px, 0, 0) scale(0.996); }
-.scene[data-enter="right"]   .pack.is-entering { opacity: 0; transform: translate3d(24px, 0, 0) scale(0.996); }
-.scene[data-enter="reveal"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 32px, 0); clip-path: inset(0 0 6% 0); }
-.scene[data-enter="closing"] .pack.is-entering { opacity: 0; transform: translate3d(0, 45px, 0) scale(0.992); }
-.scene[data-enter="none"]    .pack.is-entering { opacity: 0; }
+.scene[data-enter="rise"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 28px, 0); }
+.scene[data-enter="left"]  .pack.is-entering { opacity: 0; transform: translate3d(-24px, 0, 0); }
+.scene[data-enter="right"] .pack.is-entering { opacity: 0; transform: translate3d(24px, 0, 0); }
+.scene[data-enter="none"]  .pack.is-entering { opacity: 0; }
 
-/* --- verification pass -------------------------------------------------- */
+/* --- kinetic wordmark --------------------------------------------------- */
 
-/* One yellow bar runs the top edge of the scene's primary panel once the
-   scene has registered. It is a signal, not a decorative loop -- which is why
-   it is an animation with `both` and no iteration count. */
-.panel--primary {
-  overflow: clip;
+/* Each word is its own line and clips its own glyphs, so the title arrives
+   from behind the rule rather than fading up. */
+.word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
 }
 
-.panel--primary::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 22%;
-  height: 3px;
-  background: var(--yellow-accent);
-  opacity: 0;
-  transform: translate3d(-120%, 0, 0);
-  pointer-events: none;
+.word > span {
+  display: inline-block;
+  transform: translate3d(0, 0, 0);
 }
 
-.scene.is-active .panel--primary::before {
-  animation: verification-pass 900ms linear 240ms both;
+.scene.is-active .word > span {
+  animation: word-rise 620ms var(--ease-out) both;
+  animation-delay: calc(var(--word-index, 0) * 70ms + 120ms);
 }
 
-@keyframes verification-pass {
-  0%   { opacity: 0; transform: translate3d(-120%, 0, 0); }
-  12%  { opacity: 1; }
-  88%  { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(520%, 0, 0); }
+@keyframes word-rise {
+  from { transform: translate3d(0, 105%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 
-/* --- status scan -------------------------------------------------------- */
+/* --- travelling rule ---------------------------------------------------- */
 
-/* The rail is the one element common to every scene, so it does not slide on
-   a cut -- that would advertise the edit. It takes the register's status scan
-   instead: a single bar crossing the chip when the state actually changes. */
-#rail {
-  overflow: clip;
-}
-
-#rail-scan {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 2px;
-  background: var(--yellow-accent);
-  opacity: 0;
-  transform: translate3d(-150%, 0, 0);
-  pointer-events: none;
-}
-
-#rail-scan.is-scanning {
-  animation: status-scan 680ms var(--ease-deck) both;
-}
-
-@keyframes status-scan {
-  0%   { opacity: 0; transform: translate3d(-150%, 0, 0); }
-  16%  { opacity: 1; }
-  84%  { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(15200%, 0, 0); }
-}
-
-/* --- stamp -------------------------------------------------------------- */
-
-/* Per-letter die-cut, left to right. Words stay atomic so a title never
-   breaks inside a word. */
-.stamp-word { display: inline-block; white-space: nowrap; }
-.stamp-letter { display: inline-block; white-space: pre; }
-
-.scene.is-active .stamp-letter {
-  opacity: 0;
-  transform: translate3d(0, 0.18em, 0) scale(1.025);
-  animation: stamp-in 480ms var(--ease-deck) forwards;
-  animation-delay: calc(var(--stamp-index, 0) * 18ms + 120ms);
-}
-
-@keyframes stamp-in {
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-
-/* --- wipe-through ------------------------------------------------------- */
-
-/* The closing card is slid into place by a yellow edge that passes across it
-   and leaves, rather than faded up. */
-.wipe {
-  position: absolute;
-  inset: 0;
-  background: var(--yellow-accent);
+.rule {
   transform: scaleX(0);
   transform-origin: 0 50%;
+}
+
+.scene.is-active .rule {
+  animation: rule-draw 720ms var(--ease-out) 160ms both;
+}
+
+@keyframes rule-draw {
+  to { transform: scaleX(1); }
+}
+
+/* --- panel charge ------------------------------------------------------- */
+
+/* A yellow edge charges down the panel's left side as it registers. The
+   concept uses exactly this to acknowledge a panel without a glow. */
+.panel--live::before,
+.panel--build::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--yellow-accent);
+  transform: scaleY(0);
+  transform-origin: 50% 0;
   pointer-events: none;
+  z-index: 3;
 }
 
-.scene.is-active .wipe {
-  animation: wipe-through 720ms var(--ease-deck) forwards;
+.scene.is-active .panel--live::before,
+.scene.is-active .panel--build::before {
+  animation: panel-charge 760ms var(--ease-out) 200ms both;
 }
 
-@keyframes wipe-through {
-  0%   { transform: scaleX(0); transform-origin: 0 50%; }
-  45%  { transform: scaleX(1); transform-origin: 0 50%; }
-  46%  { transform: scaleX(1); transform-origin: 100% 50%; }
-  100% { transform: scaleX(0); transform-origin: 100% 50%; }
+@keyframes panel-charge {
+  0%   { transform: scaleY(0); opacity: 1; }
+  62%  { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0.28; }
 }
 
-/* --- chips -------------------------------------------------------------- */
+/* --- the pill lamp ------------------------------------------------------ */
 
-/* A chapter number reads as a movement chip: bordered while pending, filled
-   yellow once the chapter is actually known. */
+/* One ring leaves the lamp when the state actually changes -- the pill's own
+   version of the field's inspection pulse. */
+#rail-lamp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--yellow-accent);
+  opacity: 0;
+}
+
+#rail-lamp.is-signalling::after {
+  animation: lamp-ring 680ms var(--ease-out) both;
+}
+
+@keyframes lamp-ring {
+  0%   { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(6); }
+}
+
+/* --- readouts ----------------------------------------------------------- */
+
+.scene.is-active .readout {
+  animation: readout-in 520ms var(--ease-out) both;
+  animation-delay: calc(var(--readout-index, 0) * 90ms + 240ms);
+}
+
+@keyframes readout-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* --- chip --------------------------------------------------------------- */
+
 .chip {
   transition:
-    background-color var(--dur-fast) var(--ease-deck),
-    color var(--dur-fast) var(--ease-deck);
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 /* --- reduced motion ----------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .pack,
-  .chip {
-    transition: none;
-  }
+  .chip { transition: none; }
 
   .scene .pack.is-entering {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    clip-path: inset(0);
+    transform: translate3d(0, 0, 0);
   }
 
-  .scene.is-active .panel--primary::before,
-  .scene.is-active .stamp-letter,
-  .scene.is-active .wipe,
-  #rail-scan.is-scanning {
+  .scene.is-active .word > span,
+  .scene.is-active .rule,
+  .scene.is-active .panel--live::before,
+  .scene.is-active .panel--build::before,
+  .scene.is-active .readout,
+  #rail-lamp.is-signalling::after {
     animation: none;
   }
 
-  .scene.is-active .stamp-letter {
-    opacity: 1;
-    transform: none;
-  }
-
-  .wipe { display: none; }
+  .rule { transform: scaleX(1); }
+  .scene.is-active .word > span { transform: translate3d(0, 0, 0); }
+  .panel--live::before,
+  .panel--build::before { transform: scaleY(1); opacity: 0.28; }
 }

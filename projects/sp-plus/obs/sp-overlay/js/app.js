@@ -8,7 +8,7 @@
 
 import { connect } from "./obs-events.js";
 import { Renderer } from "./renderer.js";
-import { DashField } from "./dash-field.js";
+import { Field } from "./field.js";
 
 const root = document.getElementById("overlay-root");
 const canvas = document.getElementById("field");
@@ -30,7 +30,7 @@ async function loadAssets() {
 async function main() {
   const config = await (await fetch("/config/scenes.json")).json();
 
-  const field = new DashField(canvas);
+  const field = new Field(canvas);
   const renderer = new Renderer(root, config.sceneMap, field);
 
   try {
@@ -47,7 +47,11 @@ async function main() {
   let lastScene = null;
   connect(
     (payload) => {
+      const before = renderer.lastRailText;
       renderer.apply(payload);
+      // A state change is an event too, and the field acknowledges it from the
+      // pill's own corner.
+      if (renderer.lastRailText !== before) field.pulse(1528, 120, 0.55);
 
       // A null scene means the bridge has no live OBS view. Hold the last
       // layout -- cutting to blank would be its own false statement -- but the

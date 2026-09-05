@@ -14,7 +14,7 @@ body {
 body {
   background-color: rgba(0, 0, 0, 0);
   font-family: var(--face);
-  color: var(--text);
+  color: var(--text-high);
   -webkit-font-smoothing: antialiased;
 }
 
