@@ -1,4 +1,14 @@
-/* SP+ brand constants. Committed values -- do not sample them off a render. */
+/* SP+ tokens, taken from the live site's design system rather than restated.
+ *
+ * Sources of truth: secureprospective-site/src/styles/tokens.css and
+ * src/styles/immersive.css. Colour, lift, easing and duration names below match
+ * the site's so the stream and the website stay one system.
+ *
+ * Accent roles are NOT interchangeable and the earlier version of this file got
+ * them backwards: GOLD is identity only -- the symbol, the lockup, brand
+ * moments. YELLOW is the action and signal accent -- verification passes, live
+ * rows, active chips. Anything that says "something just happened" is yellow.
+ */
 
 @font-face {
   font-family: "IBM Plex Sans";
@@ -17,36 +27,50 @@
 }
 
 :root {
-  --blue: #0033A0;
-  --gold: #D4AF37;
-  --yellow: #FFD700;
-  --platinum: #E5E4E2;
+  /* Colour — the locked multi-hue palette. */
+  --silver-base: #E5E4E2;
+  --blue-brand: #0033A0;
+  --gold-identity: #D4AF37;
+  --yellow-accent: #FFD700;
   --ink: #222222;
+  --white: #FFFFFF;
+  --fineprint-gray: #666666;
 
-  /* The overlay sits on unpredictable video, so panel grounds are opaque
-     enough to guarantee text contrast rather than tinting the picture. */
-  --panel-dark: rgba(34, 34, 34, 0.88);
-  --panel-light: rgba(229, 228, 226, 0.94);
+  /* Lift — hard offset, zero blur. The Card-Lift rule. No soft shadows. */
+  --lift-1: 3px 3px 0 rgba(34, 34, 34, 0.28);
+  --lift-2: 6px 6px 0 rgba(34, 34, 34, 0.35);
+  --lift-3: 12px 12px 0 rgba(34, 34, 34, 0.4);
+  --lift-blue: 6px 6px 0 rgba(0, 51, 160, 0.32);
+  --lift-yellow: 6px 6px 0 rgba(255, 215, 0, 0.55);
 
-  /* --edge is the border colour; scenes redefine it for their own ground.
-     An ink hairline is invisible on the ink base, which is why this is a
-     token and not a literal. */
-  --edge: var(--platinum);
-  --text: var(--platinum);
-  --text-dim: rgba(229, 228, 226, 0.62);
+  /* Motion. Fast and snappy: nothing slower than the site's --dur-slow. */
+  --ease-deck: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-base: 360ms;
+  --dur-slow: 620ms;
 
-  --shadow: 6px 6px #0033A02E;
+  /* Overlay-only: panel grounds. The site composites on silver; the stream
+     composites on unpredictable video, so panels carry their own opaque
+     ground rather than tinting the picture. */
+  --panel-dark: rgba(34, 34, 34, 0.90);
+  --panel-light: rgba(229, 228, 226, 0.95);
 
-  /* Type scale. Display is 700, everything else 400. Primal is prohibited. */
-  --face: "IBM Plex Sans", system-ui, sans-serif;
-  --track-label: 0.16em;
-  --track-display: 0.02em;
+  --edge: var(--silver-base);
+  --text: var(--silver-base);
+  --text-dim: rgba(229, 228, 226, 0.58);
+  --lift: var(--lift-blue);
+
+  --face: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --track-label: 0.05em;   /* the site's caption tracking */
+  --track-display: -0.01em; /* tight tracking on large sizes */
 }
 
-/* The one light-ground scene inverts the border and text roles rather than
-   overriding each rule individually. */
+/* The one light-ground scene inverts the border, text and lift roles rather
+   than overriding each rule individually. */
 .scene--light {
   --edge: var(--ink);
   --text: var(--ink);
-  --text-dim: rgba(34, 34, 34, 0.66);
+  --text-dim: var(--fineprint-gray);
+  --panel-dark: var(--panel-light);
+  --lift: var(--lift-2);
 }

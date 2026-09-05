@@ -30,7 +30,41 @@ export class Renderer {
     }
 
     this.rail = root.querySelector("#rail-text");
-    this.tick = root.querySelector("#rail-tick");
+    this.scan = root.querySelector("#rail-scan");
+
+    // Split stamped titles once, at boot. These carry static text, so the
+    // letters never have to be rebuilt -- no DOM creation during animation.
+    for (const el of root.querySelectorAll("[data-stamp]")) {
+      this.stamp(el);
+    }
+  }
+
+  /** Words stay atomic so a title never breaks inside a word. */
+  stamp(el) {
+    const words = el.textContent.split(" ");
+    el.textContent = "";
+    let index = 0;
+    words.forEach((word, w) => {
+      const span = document.createElement("span");
+      span.className = "stamp-word";
+      for (const ch of word) {
+        const letter = document.createElement("span");
+        letter.className = "stamp-letter";
+        letter.style.setProperty("--stamp-index", String(index));
+        letter.textContent = ch;
+        span.appendChild(letter);
+        index += 1;
+      }
+      el.appendChild(span);
+      if (w < words.length - 1) {
+        const gap = document.createElement("span");
+        gap.className = "stamp-letter";
+        gap.style.setProperty("--stamp-index", String(index));
+        gap.textContent = " ";
+        el.appendChild(gap);
+        index += 1;
+      }
+    });
   }
 
   /** Map an OBS scene name onto an overlay pack. An unmapped scene shows the
@@ -56,18 +90,24 @@ export class Renderer {
     }
 
     this.field.pulse();
-    this.flashTick();
   }
 
-  flashTick() {
-    this.tick.classList.add("is-lit");
-    setTimeout(() => this.tick.classList.remove("is-lit"), 420);
+  /** One bar crosses the rail when the state actually changes -- the
+   *  register's status scan, not a decorative loop. Restarted by removing the
+   *  class and forcing a reflow, or a second change inside the animation would
+   *  be silently swallowed. */
+  runScan() {
+    this.scan.classList.remove("is-scanning");
+    void this.scan.offsetWidth;
+    this.scan.classList.add("is-scanning");
   }
 
   apply(payload) {
     const d = derive(payload);
 
-    this.setText(this.rail, d.rail);
+    if (this.setText(this.rail, d.rail)) {
+      this.runScan();
+    }
     this.rail.classList.toggle("is-unknown", !d.railKnown);
 
     for (const [key, els] of this.bindings) {
@@ -76,6 +116,9 @@ export class Renderer {
       for (const el of els) {
         if (this.setText(el, value)) {
           el.classList.toggle("is-unknown", isUnknown(value));
+          if (el.classList.contains("chip")) {
+            el.classList.toggle("is-known", value !== "--");
+          }
         }
       }
     }

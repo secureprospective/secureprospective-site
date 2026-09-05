@@ -42,11 +42,7 @@
 .panel {
   background: var(--panel-dark);
   border: 1px solid var(--edge);
-  box-shadow: var(--shadow);
-}
-
-.scene--light .panel {
-  background: var(--panel-light);
+  box-shadow: var(--lift);
 }
 
 /* --- type roles -------------------------------------------------------- */
@@ -94,7 +90,7 @@
   height: 48px;
   background: var(--panel-dark);
   border: 1px solid var(--edge);
-  box-shadow: var(--shadow);
+  box-shadow: var(--lift);
 }
 
 #rail-text {
@@ -106,16 +102,26 @@
   font-size: 18px;
 }
 
-/* The one moving accent: a gold tick on the rail, shown only for a real
-   state or scene change. */
-#rail-tick {
-  position: absolute;
-  left: 1376px;
-  top: 96px;
-  width: 4px;
-  height: 48px;
-  background: var(--gold);
-  opacity: 0;
+/* A movement chip: bordered while the value is pending, filled yellow once
+   the chapter is actually known. Straight from the method spine. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  margin-right: 14px;
+}
+
+.chip.is-known {
+  background: var(--yellow-accent);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 /* --- 00 HOLD ----------------------------------------------------------- */
@@ -139,7 +145,7 @@
    a square frame reads as deliberate, not as failed widescreen. */
 .camframe {
   border: 1px solid var(--edge);
-  box-shadow: var(--shadow);
+  box-shadow: var(--lift);
   background: transparent;
 }
 
@@ -150,7 +156,7 @@
   top: 96px;
   width: 8px;
   height: 840px;
-  background: var(--blue);
+  background: var(--blue-brand);
   border-right: 1px solid var(--edge);
 }
 
@@ -163,6 +169,8 @@
 
 .slate-logo     { left: 600px; top: 160px; width: 720px; height: 176px; }
 .slate-title    { left: 384px; top: 432px; width: 1152px; height: 96px; font-size: 80px;
+                  justify-content: center; }
+.slate-chip     { left: 384px; top: 380px; width: 1152px; height: 24px;
                   justify-content: center; }
 .slate-subtitle { left: 480px; top: 568px; width: 960px; height: 48px; font-size: 24px;
                   justify-content: center; }

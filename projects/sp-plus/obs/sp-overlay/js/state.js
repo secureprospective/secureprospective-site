@@ -53,6 +53,10 @@ export function derive(p) {
     topic: topic || "TOPIC UNKNOWN",
     chapterTitle: chapter && chapter.title ? chapter.title.toUpperCase()
                                            : "TITLE UNKNOWN",
+    // The movement chip stays an empty placeholder until the number is real.
+    chapterChip: chapter && Number.isFinite(chapter.number)
+      ? String(chapter.number).padStart(2, "0")
+      : "--",
     nextSignal: topic ? topic.toUpperCase() : "NEXT SIGNAL UNKNOWN",
     returnMessage: topic ? topic.toUpperCase() : "RETURN TIME UNKNOWN",
     countdown,

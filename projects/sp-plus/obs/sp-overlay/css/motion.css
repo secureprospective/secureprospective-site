@@ -1,56 +1,181 @@
-/* Only transform and opacity are animated, and only on whole packs. Anything
-   that touches layout or paint -- width, border, box-shadow geometry,
-   font-size -- would cost a frame on a machine already running the VM and the
-   VAAPI encoder. */
+/* Motion ported from the site's immersive layer, not reinvented.
+ *
+ * The vocabulary is the site's: cards are DEALT onto a table, a single
+ * VERIFICATION PASS acknowledges that something registered, a STATUS SCAN
+ * marks a row going live, and titles are STAMPED on per letter. Nothing loops
+ * forever except the ambient ticker -- every other motion is a bounded signal
+ * that fires once and stops.
+ *
+ * Only transform, opacity and clip-path are animated, and only on whole packs
+ * or on a pseudo-element. Offsets stay on whole pixels: a fractional transform
+ * resamples the 1px borders and makes them shimmer under H.264.
+ */
+
+/* --- deal-in ------------------------------------------------------------ */
 
 .pack {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0) scale(1);
+  clip-path: inset(0);
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 160ms linear;
+    opacity 520ms var(--ease-deck),
+    transform 520ms var(--ease-deck),
+    clip-path 520ms var(--ease-deck);
 }
 
-/* Entry start states. A scene cut sets .is-entering for one frame, then
-   clears it, so the pack settles into the rule above. Offsets are whole
-   pixels: a fractional transform resamples the 1px borders and makes them
-   shimmer under H.264. */
-.scene[data-enter="left"]  .pack.is-entering { transform: translate3d(-64px, 0, 0); opacity: 0; }
-.scene[data-enter="right"] .pack.is-entering { transform: translate3d(64px, 0, 0);  opacity: 0; }
-.scene[data-enter="up"]    .pack.is-entering { transform: translate3d(0, -48px, 0); opacity: 0; }
-.scene[data-enter="down"]  .pack.is-entering { transform: translate3d(0, 48px, 0);  opacity: 0; }
+/* Each family enters with its own physical cue, exactly as the site does:
+   panels settle down, the rig is revealed from its lower edge, register-like
+   rows advance from the side, the closing card comes furthest. */
+.scene[data-enter="down"]    .pack.is-entering { opacity: 0; transform: translate3d(0, 32px, 0) scale(0.992); }
+.scene[data-enter="settle"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 36px, 0) scale(0.992); }
+.scene[data-enter="left"]    .pack.is-entering { opacity: 0; transform: translate3d(-24px, 0, 0) scale(0.996); }
+.scene[data-enter="right"]   .pack.is-entering { opacity: 0; transform: translate3d(24px, 0, 0) scale(0.996); }
+.scene[data-enter="reveal"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 32px, 0); clip-path: inset(0 0 6% 0); }
+.scene[data-enter="closing"] .pack.is-entering { opacity: 0; transform: translate3d(0, 45px, 0) scale(0.992); }
+.scene[data-enter="none"]    .pack.is-entering { opacity: 0; }
 
-/* The rail fades rather than travels; it is the one element common to every
-   scene and sliding it would advertise the cut. */
-#rail,
-#rail-text {
-  transition: opacity 160ms linear;
+/* --- verification pass -------------------------------------------------- */
+
+/* One yellow bar runs the top edge of the scene's primary panel once the
+   scene has registered. It is a signal, not a decorative loop -- which is why
+   it is an animation with `both` and no iteration count. */
+.panel--primary {
+  overflow: clip;
 }
 
-#rail-tick {
-  transition: opacity 160ms linear;
+.panel--primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22%;
+  height: 3px;
+  background: var(--yellow-accent);
+  opacity: 0;
+  transform: translate3d(-120%, 0, 0);
+  pointer-events: none;
 }
 
-#rail-tick.is-lit {
-  opacity: 1;
+.scene.is-active .panel--primary::before {
+  animation: verification-pass 900ms linear 240ms both;
 }
 
-/* Reduced motion: the locked layout appears immediately and the gold
-   highlight is suppressed. Discrete state changes still land. */
+@keyframes verification-pass {
+  0%   { opacity: 0; transform: translate3d(-120%, 0, 0); }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(520%, 0, 0); }
+}
+
+/* --- status scan -------------------------------------------------------- */
+
+/* The rail is the one element common to every scene, so it does not slide on
+   a cut -- that would advertise the edit. It takes the register's status scan
+   instead: a single bar crossing the chip when the state actually changes. */
+#rail {
+  overflow: clip;
+}
+
+#rail-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--yellow-accent);
+  opacity: 0;
+  transform: translate3d(-150%, 0, 0);
+  pointer-events: none;
+}
+
+#rail-scan.is-scanning {
+  animation: status-scan 680ms var(--ease-deck) both;
+}
+
+@keyframes status-scan {
+  0%   { opacity: 0; transform: translate3d(-150%, 0, 0); }
+  16%  { opacity: 1; }
+  84%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(15200%, 0, 0); }
+}
+
+/* --- stamp -------------------------------------------------------------- */
+
+/* Per-letter die-cut, left to right. Words stay atomic so a title never
+   breaks inside a word. */
+.stamp-word { display: inline-block; white-space: nowrap; }
+.stamp-letter { display: inline-block; white-space: pre; }
+
+.scene.is-active .stamp-letter {
+  opacity: 0;
+  transform: translate3d(0, 0.18em, 0) scale(1.025);
+  animation: stamp-in 480ms var(--ease-deck) forwards;
+  animation-delay: calc(var(--stamp-index, 0) * 18ms + 120ms);
+}
+
+@keyframes stamp-in {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* --- wipe-through ------------------------------------------------------- */
+
+/* The closing card is slid into place by a yellow edge that passes across it
+   and leaves, rather than faded up. */
+.wipe {
+  position: absolute;
+  inset: 0;
+  background: var(--yellow-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.scene.is-active .wipe {
+  animation: wipe-through 720ms var(--ease-deck) forwards;
+}
+
+@keyframes wipe-through {
+  0%   { transform: scaleX(0); transform-origin: 0 50%; }
+  45%  { transform: scaleX(1); transform-origin: 0 50%; }
+  46%  { transform: scaleX(1); transform-origin: 100% 50%; }
+  100% { transform: scaleX(0); transform-origin: 100% 50%; }
+}
+
+/* --- chips -------------------------------------------------------------- */
+
+/* A chapter number reads as a movement chip: bordered while pending, filled
+   yellow once the chapter is actually known. */
+.chip {
+  transition:
+    background-color var(--dur-fast) var(--ease-deck),
+    color var(--dur-fast) var(--ease-deck);
+}
+
+/* --- reduced motion ----------------------------------------------------- */
+
 @media (prefers-reduced-motion: reduce) {
   .pack,
-  #rail,
-  #rail-text,
-  #rail-tick {
+  .chip {
     transition: none;
   }
 
   .scene .pack.is-entering {
-    transform: translate3d(0, 0, 0);
     opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    clip-path: inset(0);
   }
 
-  #rail-tick {
-    display: none;
+  .scene.is-active .panel--primary::before,
+  .scene.is-active .stamp-letter,
+  .scene.is-active .wipe,
+  #rail-scan.is-scanning {
+    animation: none;
   }
+
+  .scene.is-active .stamp-letter {
+    opacity: 1;
+    transform: none;
+  }
+
+  .wipe { display: none; }
 }

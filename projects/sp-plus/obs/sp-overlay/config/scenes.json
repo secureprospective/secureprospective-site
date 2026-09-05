@@ -1,5 +1,5 @@
 {
-  "comment": "Maps OBS scene names onto overlay packs, and gives each pack its field weight. The map is data, not code, so renaming a scene in OBS is a one-line change here rather than an edit to the renderer.",
+  "comment": "Maps OBS scene names onto overlay packs, and gives each pack its field weight. The ticker already draws itself at 0.1-0.4 alpha internally, as on the site; these are a further multiplier for compositing over video. They are higher than the site's because the site's field sits on silver and the stream's sits on ink or on the guest's screen.",
   "sceneMap": {
     "00 HOLD": "HOLD",
     "01 TALK": "TALK",
@@ -11,14 +11,50 @@
     "07 TECHNICAL": "TECH"
   },
   "field": {
-    "HOLD":    { "hz": 10, "opacity": 0.08 },
-    "TALK":    { "hz": 10, "opacity": 0.08 },
-    "RIG":     { "hz": 6,  "opacity": 0.035 },
-    "TALKRIG": { "hz": 6,  "opacity": 0.035 },
-    "SLATE":   { "hz": 10, "opacity": 0.12 },
-    "BRB":     { "hz": 10, "opacity": 0.10 },
-    "TECH":    { "hz": 6,  "opacity": 0.06 },
-    "OUTRO":   { "hz": 10, "opacity": 0.08 }
+    "HOLD": {
+      "hz": 15,
+      "opacity": 0.5,
+      "tone": "dark"
+    },
+    "TALK": {
+      "hz": 15,
+      "opacity": 0.5,
+      "tone": "dark"
+    },
+    "RIG": {
+      "hz": 10,
+      "opacity": 0.22,
+      "tone": "dark"
+    },
+    "TALKRIG": {
+      "hz": 10,
+      "opacity": 0.22,
+      "tone": "dark"
+    },
+    "SLATE": {
+      "hz": 15,
+      "opacity": 0.4,
+      "tone": "dark"
+    },
+    "BRB": {
+      "hz": 15,
+      "opacity": 0.5,
+      "tone": "dark"
+    },
+    "TECH": {
+      "hz": 10,
+      "opacity": 0.7,
+      "tone": "light"
+    },
+    "OUTRO": {
+      "hz": 15,
+      "opacity": 0.5,
+      "tone": "dark"
+    }
   },
-  "fieldDefault": { "hz": 6, "opacity": 0.05 }
+  "fieldDefault": {
+    "hz": 10,
+    "opacity": 0.4,
+    "tone": "dark"
+  }
 }
