@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+# rig -- the SP-Alpha-Rig control profile.
+#
+# ONE command surface for the SP+ test-and-content VM, identical whether it is
+# invoked by ClaudeBox (CT105), Tom, Bee, or Christopher at the Beelink. It
+# figures out for itself whether it is running on the VM's host or off-box and
+# hops accordingly, so a brief never has to say "and remember to ssh first".
+#
+# Read RIG-PROFILE.md before extending this. The short version:
+#
+#   THREE CHANNELS, in order of preference.
+#   1. ssh      -- the real one. Full shell as `sp`, sudo, scp. Needs the guest
+#                  reachable on the LAN (see RIG-PROFILE.md -> Networking).
+#   2. agent    -- qemu-guest-agent. Survives ANY network breakage, but is
+#                  SELinux-confined to virt_qemu_ga_t: it runs as uid 0 and
+#                  still cannot systemctl, write /root, or run rpm-ostree.
+#                  Bootstrap and triage only. Never build a workflow on it.
+#   3. console  -- framebuffer screenshot + synthetic keyboard/mouse. Needs
+#                  nothing from the guest at all. Works at Plymouth, at the
+#                  LUKS prompt, at SDDM, and when the guest is wedged. This is
+#                  the channel that makes the rig recoverable rather than
+#                  reinstallable.
+#
+# Opens NO window on the Beelink. Every capture is host-side.
+
+set -uo pipefail
+
+# Resolve through symlinks -- the Beelink runs this as ~/fleet/bin/rig, a link
+# into the repo, and a plain dirname would look for rig.env next to the link.
+HERE="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+# shellcheck source=rig.env
+. "$HERE/rig.env"
+
+die() { printf 'rig: %s\n' "$*" >&2; exit 1; }
+note() { printf 'rig: %s\n' "$*" >&2; }
+
+# --- host hop -----------------------------------------------------------
+# On the Beelink we run libvirt locally. Anywhere else we tunnel. Decided by
+# whether this box actually has the domain, not by hostname string-matching --
+# hostnames drift, capability does not.
+RIG_LOCAL=0
+if command -v virsh >/dev/null 2>&1 &&
+   virsh -c "$RIG_URI" domid "$RIG_DOM" >/dev/null 2>&1; then
+  RIG_LOCAL=1
+fi
+
+# Run a command ON THE VM'S HOST (the Beelink), wherever we happen to be.
+onhost() {
+  if [ "$RIG_LOCAL" = 1 ]; then
+    bash -c "$1"
+  else
+    ssh -i "$RIG_HOST_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
+        "$RIG_HOST_USER@$RIG_HOST_ADDR" "$1"
+  fi
+}
+
+# Copy a file back from the host to wherever we are.
+fromhost() {
+  local remote="$1" local_="$2"
+  if [ "$RIG_LOCAL" = 1 ]; then
+    cp "$remote" "$local_"
+  else
+    scp -q -i "$RIG_HOST_KEY" "$RIG_HOST_USER@$RIG_HOST_ADDR:$remote" "$local_"
+  fi
+}
+
+V() { onhost "virsh -c $RIG_URI $*"; }
+
+# --- channel 2: guest agent --------------------------------------------
+# The command is base64'd end to end. Nothing else survives the four layers of
+# quoting between here and the guest (local shell -> ssh -> virsh argv -> JSON
+# string -> guest bash). Do not "simplify" this by interpolating the command.
+ga_exec() {
+  local cmd="$1" b64 json pid out
+  b64="$(printf '%s' "$cmd" | base64 -w0)"
+  json="{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"/usr/bin/bash\",\"arg\":[\"-c\",\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin; eval \\\"\$(echo $b64 | base64 -d)\\\"\"],\"capture-output\":true}}"
+
+  pid="$(onhost "virsh -c $RIG_URI qemu-agent-command $RIG_DOM '$json'" 2>&1)" \
+    || die "guest agent unreachable: $pid"
+  pid="$(printf '%s' "$pid" | grep -o '[0-9]\+' | tail -1)"
+  [ -n "$pid" ] || die "guest agent gave no pid"
+
+  # Poll rather than sleeping a guessed interval -- a package install and an
+  # `echo hi` do not take the same time, and a fixed sleep silently truncates
+  # the slow one.
+  local i=0
+  while [ $i -lt 120 ]; do
+    out="$(onhost "virsh -c $RIG_URI qemu-agent-command $RIG_DOM '{\"execute\":\"guest-exec-status\",\"arguments\":{\"pid\":$pid}}'" 2>&1)"
+    case "$out" in *'"exited":true'*) break ;; esac
+    sleep 1; i=$((i+1))
+  done
+
+  local field
+  for field in out-data err-data; do
+    printf '%s' "$out" | grep -o "\"$field\":\"[^\"]*\"" | cut -d'"' -f4 |
+      { read -r d && [ -n "$d" ] && printf '%s' "$d" | base64 -d; }
+  done
+  # Propagate the guest's exit code, not virsh's.
+  local rc
+  rc="$(printf '%s' "$out" | grep -o '"exitcode":[0-9]\+' | cut -d: -f2)"
+  return "${rc:-0}"
+}
+
+# --- guest address discovery -------------------------------------------
+rig_ip() {
+  if [ -n "${RIG_IP:-}" ]; then printf '%s' "$RIG_IP"; return 0; fi
+  # The agent knows the guest's own address even when no DHCP lease exists on
+  # the host side -- which is the case for every non-libvirt-managed network.
+  V "domifaddr $RIG_DOM --source agent" 2>/dev/null |
+    awk '$3=="ipv4"{print $4}' | cut -d/ -f1 |
+    grep -v '^127\.' | head -1
+}
+
+# --- channel 1: ssh -----------------------------------------------------
+guest_ssh() {
+  local ip; ip="$(rig_ip)"
+  [ -n "$ip" ] || die "no guest IP -- is the rig networked? try: rig state"
+  case "$ip" in
+    10.0.2.*) die "guest is on slirp user-net ($ip) and is NOT reachable.
+       The rig needs its bridged NIC. See RIG-PROFILE.md -> Networking." ;;
+  esac
+  ssh -i "$RIG_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
+      -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip" "$@"
+}
+
+# --- channel 3: console -------------------------------------------------
+declare -A KEYMAP=(
+ [a]=KEY_A [b]=KEY_B [c]=KEY_C [d]=KEY_D [e]=KEY_E [f]=KEY_F [g]=KEY_G [h]=KEY_H
+ [i]=KEY_I [j]=KEY_J [k]=KEY_K [l]=KEY_L [m]=KEY_M [n]=KEY_N [o]=KEY_O [p]=KEY_P
+ [q]=KEY_Q [r]=KEY_R [s]=KEY_S [t]=KEY_T [u]=KEY_U [v]=KEY_V [w]=KEY_W [x]=KEY_X
+ [y]=KEY_Y [z]=KEY_Z
+ [0]=KEY_0 [1]=KEY_1 [2]=KEY_2 [3]=KEY_3 [4]=KEY_4 [5]=KEY_5 [6]=KEY_6 [7]=KEY_7
+ [8]=KEY_8 [9]=KEY_9
+ [' ']=KEY_SPACE [-]=KEY_MINUS [.]=KEY_DOT [/]=KEY_SLASH [,]=KEY_COMMA
+ [\;]=KEY_SEMICOLON [\']=KEY_APOSTROPHE ['`']=KEY_GRAVE [\\]=KEY_BACKSLASH
+ [=]=KEY_EQUAL [\[]=KEY_LEFTBRACE [\]]=KEY_RIGHTBRACE
+)
+declare -A SHIFTMAP=(
+ [A]=KEY_A [B]=KEY_B [C]=KEY_C [D]=KEY_D [E]=KEY_E [F]=KEY_F [G]=KEY_G [H]=KEY_H
+ [I]=KEY_I [J]=KEY_J [K]=KEY_K [L]=KEY_L [M]=KEY_M [N]=KEY_N [O]=KEY_O [P]=KEY_P
+ [Q]=KEY_Q [R]=KEY_R [S]=KEY_S [T]=KEY_T [U]=KEY_U [V]=KEY_V [W]=KEY_W [X]=KEY_X
+ [Y]=KEY_Y [Z]=KEY_Z
+ [_]=KEY_MINUS [:]=KEY_SEMICOLON ['"']=KEY_APOSTROPHE [?]=KEY_SLASH ['~']=KEY_GRAVE
+ [!]=KEY_1 [@]=KEY_2 [\#]=KEY_3 [\$]=KEY_4 [%]=KEY_5 [^]=KEY_6 [\&]=KEY_7
+ [\*]=KEY_8 [\(]=KEY_9 [\)]=KEY_0 [+]=KEY_EQUAL [\|]=KEY_BACKSLASH
+ [\<]=KEY_COMMA [\>]=KEY_DOT [\{]=KEY_LEFTBRACE [\}]=KEY_RIGHTBRACE
+)
+sendkey() { V "send-key $RIG_DOM --codeset linux $*" >/dev/null 2>&1; }
+type_str() {
+  # Declare and measure on SEPARATE lines. `local s="$1" n=${#s}` expands
+  # ${#s} against the OUTER scope's s before the local assignment happens,
+  # which under `set -u` aborts with "s: unbound variable".
+  local s="$1"
+  local n=${#s}
+  local i ch
+  for ((i=0;i<n;i++)); do
+    ch="${s:i:1}"
+    if   [ -n "${KEYMAP[$ch]:-}" ];   then sendkey "${KEYMAP[$ch]}"
+    elif [ -n "${SHIFTMAP[$ch]:-}" ]; then sendkey KEY_LEFTSHIFT "${SHIFTMAP[$ch]}"
+    else die "no keycode for '$ch' -- extend KEYMAP in rig"; fi
+  done
+}
+
+# Pointer, via QMP. virsh has no mouse verb; input-send-event is the only way.
+# Coordinates are ABSOLUTE in a 0..32767 space, not pixels -- convert from the
+# screenshot's own dimensions so callers can think in pixels.
+pointer() {
+  local px="$1" py="$2" click="$3" w h ax ay
+  read -r w h <<<"$(screen_dims)"
+  ax=$(( px * 32767 / w )); ay=$(( py * 32767 / h ))
+  V "qemu-monitor-command $RIG_DOM '{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"abs\",\"data\":{\"axis\":\"x\",\"value\":$ax}},{\"type\":\"abs\",\"data\":{\"axis\":\"y\",\"value\":$ay}}]}}'" >/dev/null
+  if [ "$click" = 1 ]; then
+    V "qemu-monitor-command $RIG_DOM '{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"btn\",\"data\":{\"down\":true,\"button\":\"left\"}}]}}'" >/dev/null
+    V "qemu-monitor-command $RIG_DOM '{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"btn\",\"data\":{\"down\":false,\"button\":\"left\"}}]}}'" >/dev/null
+  fi
+}
+screen_dims() {
+  # Measure the framebuffer itself. QMP looks like the obvious source but
+  # `query-display-options` on this domain returns {"type":"none"} with no
+  # geometry at all, and a guessed 1920x1080 puts every click in the wrong
+  # place -- the rig actually renders 2048x1152. The screenshot cannot lie
+  # about its own size, so take one and measure it.
+  local d
+  d="$(onhost "t=\$(mktemp --suffix=.ppm); virsh -c $RIG_URI screenshot '$RIG_DOM' \"\$t\" >/dev/null 2>&1 && magick identify -format '%w %h' \"\$t\"; rm -f \"\$t\"")"
+  case "$d" in
+    [0-9]*' '[0-9]*) printf '%s\n' "$d" ;;
+    *) die "could not measure the framebuffer -- is $RIG_DOM running?" ;;
+  esac
+}
+
+usage() {
+  sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
+  cat <<'EOF'
+
+USAGE
+  rig state                 domain state, guest IP, which channels are live
+  rig shot [label]          capture the screen -> prints a local PNG path
+  rig run  <cmd...>         run a command in the guest over SSH        (channel 1)
+  rig sh                    interactive shell in the guest             (channel 1)
+  rig push <local> <remote> copy a file INTO the guest                 (channel 1)
+  rig pull <remote> <local> copy a file OUT of the guest               (channel 1)
+  rig ga   <cmd...>         run a command via the guest agent          (channel 2)
+  rig bootstrap             install the fleet SSH key into the guest   (channel 2)
+  rig type <text>           type a literal string, no Enter            (channel 3)
+  rig line <text>           type it and press Enter                    (channel 3)
+  rig key  <KEY_X...>       send raw keycodes                          (channel 3)
+  rig tty  <n>              switch to VT n                             (channel 3)
+  rig click <x> <y>         move the pointer there and left-click      (channel 3)
+  rig move  <x> <y>         move the pointer, no click                 (channel 3)
+  rig unlock [passphrase]   type the LUKS passphrase at the boot prompt
+  rig start | rig reboot | rig shutdown
+EOF
+}
+
+cmd="${1:-}"; shift 2>/dev/null || true
+case "$cmd" in
+  state)
+    st="$(V "domstate $RIG_DOM" 2>&1 | head -1)"
+    printf 'domain    %s   %s\n' "$RIG_DOM" "$st"
+    printf 'host      %s@%s  (%s)\n' "$RIG_HOST_USER" "$RIG_HOST_ADDR" \
+      "$([ "$RIG_LOCAL" = 1 ] && echo local || echo 'via ssh')"
+    ip="$(rig_ip)"
+    printf 'guest ip  %s\n' "${ip:-<none>}"
+    printf 'channel 3 console   %s\n' \
+      "$([ "$st" = running ] && echo LIVE || echo 'domain not running')"
+    if ga_exec 'true' >/dev/null 2>&1; then a=LIVE; else a=dead; fi
+    printf 'channel 2 agent     %s (SELinux-confined; bootstrap/triage only)\n' "$a"
+    case "$ip" in
+      ''|10.0.2.*) printf 'channel 1 ssh       UNAVAILABLE -- guest is not on the LAN\n' ;;
+      *) if guest_ssh true >/dev/null 2>&1; then
+           printf 'channel 1 ssh       LIVE  (ssh -i %s %s@%s)\n' "$RIG_KEY" "$RIG_USER" "$ip"
+         else
+           printf 'channel 1 ssh       reachable IP but auth/sshd failed\n'
+         fi ;;
+    esac
+    ;;
+
+  shot)
+    label="${1:-shot}"
+    ts="$(date -u +%Y%m%dT%H%M%SZ)"
+    rem="$RIG_SHOTDIR/${label}-${ts}.png"
+    onhost "mkdir -p '$RIG_SHOTDIR' && virsh -c $RIG_URI screenshot '$RIG_DOM' '$rem.ppm' >/dev/null && { magick '$rem.ppm' '$rem' 2>/dev/null || mv '$rem.ppm' '$rem'; }; rm -f '$rem.ppm'" \
+      || die "capture failed -- is $RIG_DOM running?"
+    if [ "$RIG_LOCAL" = 1 ]; then
+      onhost "readlink -f '$rem'"
+    else
+      out="${RIG_PULLDIR:-.}/$(basename "$rem")"
+      # The remote path is relative to the host user's home; scp resolves it there.
+      fromhost "$rem" "$out" || die "could not copy the capture back"
+      printf '%s\n' "$out"
+    fi
+    ;;
+
+  run)  [ $# -gt 0 ] || die "rig run needs a command"; guest_ssh "$@" ;;
+  sh)   ip="$(rig_ip)"; exec ssh -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip" ;;
+  push) [ $# -eq 2 ] || die "usage: rig push <local> <remote>"
+        ip="$(rig_ip)"; scp -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$1" "$RIG_USER@$ip:$2" ;;
+  pull) [ $# -eq 2 ] || die "usage: rig pull <remote> <local>"
+        ip="$(rig_ip)"; scp -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip:$1" "$2" ;;
+
+  ga)   [ $# -gt 0 ] || die "rig ga needs a command"; ga_exec "$*" ;;
+
+  bootstrap)
+    # Installs the guest key over CHANNEL 3 -- typed into a terminal in the
+    # logged-in desktop session. No network, no password.
+    #
+    # The obvious route is the agent's guest-ssh-add-authorized-keys, and it
+    # is advertised as enabled. It does not work on this image: SELinux
+    # confines qemu-ga to virt_qemu_ga_t, and /var/home/sp is drwx------
+    # user_home_dir_t, so the agent cannot create ~/.ssh. Measured
+    # 2026-09-05 -- "failed to create directory '/home/sp/.ssh': Permission
+    # denied". Do not re-try that path expecting a different answer.
+    [ -f "$RIG_KEY.pub" ] || die "no public key at $RIG_KEY.pub"
+    pub="$(cat "$RIG_KEY.pub")"
+    note "typing the key into the guest's terminal -- watch with: rig shot"
+    # Clear whatever is on the prompt first; a half-typed line from a previous
+    # attempt would otherwise be prefixed to this command.
+    sendkey KEY_LEFTCTRL KEY_U
+    # $HOME, never a tilde: the payload is retyped keystroke by keystroke and
+    # every character has to exist in KEYMAP.
+    type_str "mkdir -p \$HOME/.ssh && chmod 700 \$HOME/.ssh && echo '$pub' >> \$HOME/.ssh/authorized_keys && chmod 600 \$HOME/.ssh/authorized_keys && sort -u -o \$HOME/.ssh/authorized_keys \$HOME/.ssh/authorized_keys && echo KEY-INSTALLED"
+    sendkey KEY_ENTER
+    note "sent. verify with: rig shot bootstrap"
+    ;;
+
+  type) type_str "${1:?text required}" ;;
+  line) type_str "${1:?text required}"; sendkey KEY_ENTER ;;
+  key)  sendkey "$@" ;;
+  tty)  sendkey KEY_LEFTCTRL KEY_LEFTALT "KEY_F${1:?vt number required}" ;;
+  click) pointer "${1:?x}" "${2:?y}" 1 ;;
+  move)  pointer "${1:?x}" "${2:?y}" 0 ;;
+
+  unlock)
+    # The SP+ image draws its LUKS prompt on the GRAPHICAL console via
+    # Plymouth, not on the serial line. Feeding the serial console types into
+    # nothing and the VM looks hung. Send keys to the framebuffer instead.
+    type_str "${1:-$RIG_LUKS}"; sendkey KEY_ENTER
+    note "passphrase sent to $RIG_DOM"
+    ;;
+
+  start)    V "start $RIG_DOM" ;;
+  reboot)   V "reboot $RIG_DOM" ;;
+  shutdown) V "shutdown $RIG_DOM" ;;
+
+  ''|-h|--help|help) usage ;;
+  *) die "unknown command '$cmd' -- try: rig help" ;;
+esac

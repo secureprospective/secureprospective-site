@@ -65,3 +65,20 @@ installer ISO are not.
 
 Never put API keys, recovery keys, signing private keys, client data, or real printer
 credentials in this directory.
+
+## Driving the test rig — `rig/`
+
+`SP-Alpha-Rig` is the standing SP+ VM on the Beelink: the test target for new
+work and the capture surface for content creation. **`rig/RIG-PROFILE.md` is
+the one document for taking control of it**, and `rig/rig` is the single
+command surface — the same commands work from ClaudeBox, Tom, Bee, or
+Christopher's own terminal, because `rig` works out for itself whether it is
+on the VM's host and hops if it is not.
+
+    rig state          # which control channels are live — always start here
+    rig shot           # capture the screen (host-side; opens no window)
+    rig run '<cmd>'    # a real shell in the guest
+
+Read the profile before driving the rig by hand. It supersedes the older
+`~/fleet/bin/{vmshot,vmtype,vmunlock}`, which were hardcoded to a different
+domain and existed only on the Beelink.

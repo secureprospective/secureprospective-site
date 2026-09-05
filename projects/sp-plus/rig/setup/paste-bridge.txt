@@ -1,0 +1,35 @@
+# Run on the BEELINK (192.168.1.190), as root, AT THE PHYSICAL KEYBOARD.
+# Not over SSH. Step 4 drops every SSH session on this machine.
+# Purpose: put SP-Alpha-Rig on the LAN so agents can ssh into it.
+# Rollback if the network does not come back is the last line of this file.
+
+# 1. Create the bridge. It inherits enp5s0's MAC once enslaved, so DHCP
+#    returns the same 192.168.1.190 this box has now.
+nmcli con add type bridge ifname br0 con-name br0 bridge.stp no ipv4.method auto ipv6.method auto connection.autoconnect yes
+
+# 2. Enslave the physical NIC to it.
+nmcli con add type ethernet ifname enp5s0 master br0 con-name br0-port-enp5s0 connection.autoconnect yes
+
+# 3. Stop the old profile from re-claiming the NIC on boot.
+nmcli con mod "Wired connection 2" connection.autoconnect no
+
+# 4. Swap over. THE NETWORK DROPS FOR A FEW SECONDS HERE.
+nmcli con down "Wired connection 2"
+nmcli con up br0
+
+# 5. Confirm: br0 must show 192.168.1.190 and the internet must answer.
+ip -4 addr show br0
+ping -c2 192.168.1.1
+
+# 6. Let session libvirt (running as chris, not root) attach guests to br0.
+chmod u+s /usr/lib/qemu/qemu-bridge-helper
+mkdir -p /etc/qemu
+echo "allow br0" > /etc/qemu/bridge.conf
+chmod 0640 /etc/qemu/bridge.conf
+
+# 7. Confirm step 6 took.
+ls -l /usr/lib/qemu/qemu-bridge-helper
+cat /etc/qemu/bridge.conf
+
+# ROLLBACK -- only if the LAN does not come back after step 4.
+# nmcli con down br0; nmcli con mod "Wired connection 2" connection.autoconnect yes; nmcli con up "Wired connection 2"
