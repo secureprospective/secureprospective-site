@@ -51,7 +51,9 @@ rig push ./theme.tar /tmp/theme.tar
 rig sh
 ```
 
-Requires the guest reachable on the LAN. See **Networking** below.
+Verified from CT105 on 2026-09-05: a shell as `sp` (in `wheel`, SELinux
+`unconfined_t`), **passwordless sudo**, and `scp` both directions — with no ssh
+hop typed by the caller. See **Networking** below for how that is arranged.
 
 ### Channel 2 — Guest agent — the bootstrap channel
 Runs over the virtio serial channel. Survives *any* network breakage, needs no
@@ -121,22 +123,52 @@ Three things worth knowing:
 
 ---
 
-## Networking — the one thing that needs a human
+## Networking — passt, and why not a bridge
 
-**As built, the rig has NO inbound path.** Its NIC is `<interface type='user'/>`
-(slirp), so the guest sits on `10.0.2.15` — unreachable from the Beelink, let
-alone from CT105 or Bee. Channel 1 does not exist until this is fixed.
+The rig stays on **user-mode networking with a passt backend and a port
+forward**. It is not on the LAN and does not need to be:
 
-The fix is a LAN bridge, so the rig gets its own `192.168.1.x` address and
-every agent reaches it identically with plain `ssh`. That requires **root on
-the Beelink**, once, and is relayed to Christopher through `paste.md` — see
-`setup/bridge-setup.md`. It is not something an agent does unattended: it
-reconfigures the primary NIC of Christopher's daily driver.
+```xml
+<interface type='user'>
+  <mac address='52:54:00:b0:c4:9b'/>
+  <backend type='passt'/>
+  <portForward proto='tcp' address='127.0.0.1'>
+    <range start='2222' to='22'/>
+  </portForward>
+  <model type='virtio'/>
+</interface>
+```
 
-After the bridge exists the domain edit is ours, and `rig state` proves it.
+`127.0.0.1:2222` **on the Beelink** reaches the guest's `:22`. On the Beelink
+that is a local connection; from anywhere else `rig` adds
+`ProxyJump=chris@192.168.1.190` so the final hop originates on the Beelink.
+Callers never type either. Nothing is exposed to the LAN.
 
-**Do not work around this** by publishing a SPICE port, by binding the guest's
-services to a host port, or by having the guest dial out to us. The advisor
+Requires `passt` on the host (present) and libvirt ≥ 9 for `<portForward>`
+(11.3 here). **A domain edit is not enough — the VM needs a full stop and
+start**; `virsh reboot` does not re-read the XML.
+
+### Why not a LAN bridge
+
+A bridge would give the rig its own `192.168.1.x` and slightly simpler
+plumbing. It was tried on 2026-09-05 and **taken off the table**. Enslaving
+`enp5s0` reconfigures the only live NIC on Christopher's daily driver —
+`eno1` is unplugged, `wlp3s0` unavailable — so there is no fallback when it
+goes wrong, and it went wrong twice:
+
+1. NetworkManager gave `br0` its own generated MAC instead of inheriting the
+   port's, DHCP issued a new lease, and the Beelink silently moved from
+   `.190` to `.185` — breaking every reference to it across the fleet.
+2. `nmcli con down br0` released `enp5s0` without the port connection
+   re-attaching, leaving a bridge with no carrier, no DHCP, and the machine
+   with no network until it was fixed at the console.
+
+The rig is a **test VM**. It does not justify that risk to the workstation
+the whole fleet runs from. If LAN-native access is ever genuinely needed,
+bridge the unused `eno1` port instead so `enp5s0` is never touched.
+
+**Do not work around the forward** by publishing a SPICE port, by binding the
+guest's services to a host port, or by having the guest dial out. The advisor
 services next door were broken once by exactly that kind of shortcut.
 
 ---

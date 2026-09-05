@@ -101,26 +101,37 @@ ga_exec() {
   return "${rc:-0}"
 }
 
-# --- guest address discovery -------------------------------------------
+# --- guest address, as the guest sees itself ----------------------------
+# Informational only -- this is the guest's own user-net address (10.0.2.15),
+# which is NOT how anyone connects. Connections go via the port forward.
 rig_ip() {
-  if [ -n "${RIG_IP:-}" ]; then printf '%s' "$RIG_IP"; return 0; fi
-  # The agent knows the guest's own address even when no DHCP lease exists on
-  # the host side -- which is the case for every non-libvirt-managed network.
   V "domifaddr $RIG_DOM --source agent" 2>/dev/null |
     awk '$3=="ipv4"{print $4}' | cut -d/ -f1 |
     grep -v '^127\.' | head -1
 }
 
 # --- channel 1: ssh -----------------------------------------------------
+# The forward listens on the BEELINK's loopback, so the ssh connection has to
+# originate there. On the Beelink that is a plain local connection; from
+# anywhere else ProxyJump makes the final hop start on the Beelink, which is
+# what makes 127.0.0.1:2222 resolve to the guest rather than to the caller.
+ssh_opts() {
+  printf '%s\n' -i "$RIG_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
+    -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null \
+    -o LogLevel=ERROR -p "$RIG_FWD_PORT"
+  [ "$RIG_LOCAL" = 1 ] || printf '%s\n' \
+    -o "ProxyJump=$RIG_HOST_USER@$RIG_HOST_ADDR" \
+    -o "IdentityFile=$RIG_HOST_KEY"
+}
+# UserKnownHostsFile=/dev/null is deliberate: every caller connects to the
+# literal string 127.0.0.1:2222, so a shared known_hosts would collide with
+# any other forwarded host and refuse to connect.
+
+guest_target() { printf '%s@%s' "$RIG_USER" "$RIG_FWD_ADDR"; }
+
 guest_ssh() {
-  local ip; ip="$(rig_ip)"
-  [ -n "$ip" ] || die "no guest IP -- is the rig networked? try: rig state"
-  case "$ip" in
-    10.0.2.*) die "guest is on slirp user-net ($ip) and is NOT reachable.
-       The rig needs its bridged NIC. See RIG-PROFILE.md -> Networking." ;;
-  esac
-  ssh -i "$RIG_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
-      -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip" "$@"
+  local -a o; mapfile -t o < <(ssh_opts)
+  ssh "${o[@]}" "$(guest_target)" "$@"
 }
 
 # --- channel 3: console -------------------------------------------------
@@ -219,20 +230,22 @@ case "$cmd" in
     printf 'domain    %s   %s\n' "$RIG_DOM" "$st"
     printf 'host      %s@%s  (%s)\n' "$RIG_HOST_USER" "$RIG_HOST_ADDR" \
       "$([ "$RIG_LOCAL" = 1 ] && echo local || echo 'via ssh')"
-    ip="$(rig_ip)"
-    printf 'guest ip  %s\n' "${ip:-<none>}"
+    # passt hands the guest the HOST's own address, so this line looks like
+    # the Beelink's IP and is not something anyone can connect to. Label it
+    # so nobody tries.
+    printf 'guest     %s (passt mirrors the host address; NOT connectable)\n' \
+      "$(rig_ip)"
+    printf 'forward   %s:%s on the Beelink loopback -> guest:22\n' \
+      "$RIG_FWD_ADDR" "$RIG_FWD_PORT"
     printf 'channel 3 console   %s\n' \
       "$([ "$st" = running ] && echo LIVE || echo 'domain not running')"
     if ga_exec 'true' >/dev/null 2>&1; then a=LIVE; else a=dead; fi
     printf 'channel 2 agent     %s (SELinux-confined; bootstrap/triage only)\n' "$a"
-    case "$ip" in
-      ''|10.0.2.*) printf 'channel 1 ssh       UNAVAILABLE -- guest is not on the LAN\n' ;;
-      *) if guest_ssh true >/dev/null 2>&1; then
-           printf 'channel 1 ssh       LIVE  (ssh -i %s %s@%s)\n' "$RIG_KEY" "$RIG_USER" "$ip"
-         else
-           printf 'channel 1 ssh       reachable IP but auth/sshd failed\n'
-         fi ;;
-    esac
+    if guest_ssh true >/dev/null 2>&1; then
+      printf 'channel 1 ssh       LIVE  (rig run / rig sh / rig push / rig pull)\n'
+    else
+      printf 'channel 1 ssh       DOWN -- no port forward, or sshd/auth refused\n'
+    fi
     ;;
 
   shot)
@@ -252,11 +265,14 @@ case "$cmd" in
     ;;
 
   run)  [ $# -gt 0 ] || die "rig run needs a command"; guest_ssh "$@" ;;
-  sh)   ip="$(rig_ip)"; exec ssh -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip" ;;
+  sh)   mapfile -t o < <(ssh_opts); exec ssh "${o[@]}" "$(guest_target)" ;;
   push) [ $# -eq 2 ] || die "usage: rig push <local> <remote>"
-        ip="$(rig_ip)"; scp -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$1" "$RIG_USER@$ip:$2" ;;
+        # scp spells the port -P where ssh spells it -p; everything else matches.
+        mapfile -t o < <(ssh_opts | sed 's/^-p$/-P/')
+        scp "${o[@]}" "$1" "$(guest_target):$2" ;;
   pull) [ $# -eq 2 ] || die "usage: rig pull <remote> <local>"
-        ip="$(rig_ip)"; scp -i "$RIG_KEY" -o StrictHostKeyChecking=accept-new "$RIG_USER@$ip:$1" "$2" ;;
+        mapfile -t o < <(ssh_opts | sed 's/^-p$/-P/')
+        scp "${o[@]}" "$(guest_target):$1" "$2" ;;
 
   ga)   [ $# -gt 0 ] || die "rig ga needs a command"; ga_exec "$*" ;;
 
