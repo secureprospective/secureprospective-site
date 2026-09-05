@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# sp-show -- launch the SP+ production rig (Flatpak OBS 32) in a known-good state.
+#
+# Every step here exists because something was observed to break without it:
+#
+#   1. The guest must be unlocked and awake, or the RIG capture records black.
+#      KDE blanked the guest mid-test on 2026-09-05 and OBS happily recorded
+#      1920x1080 of nothing.
+#   2. virt-viewer must be running as a STANDALONE window (never virt-manager,
+#      which wraps the guest in tabs and a toolbar).
+#   3. The RIG transform is managed through obs-websocket (obsws.py), NEVER by
+#      editing the scene JSON. Hand-editing is unsupported: OBS rewrites
+#      scene-item transforms on save and the guest came back magnified 1.44x
+#      every time. Set via SetSceneItemTransform with explicitly non-zero
+#      bounds; verified to survive a restart 2026-09-05.
+#   4. The .sentinel directory must be cleared, or OBS aborts at startup with
+#      "Crash or unclean shutdown detected" and never loads the scenes.
+#
+# Usage: sp-show [--record] [--scene "02 RIG"]
+set -uo pipefail
+
+export DISPLAY="${DISPLAY:-:0}"
+OBS_CFG="$HOME/.var/app/com.obsproject.Studio/config/obs-studio"
+RECORD=0
+SCENE="02 RIG"
+PROFILE="SP+ Master Record"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --record) RECORD=1; shift ;;
+    --live)   PROFILE="SP+ YouTube Live"; shift ;;
+    --scene)  SCENE="${2:?scene name required}"; shift 2 ;;
+    *) echo "sp-show: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+
+note() { printf 'sp-show: %s\n' "$*" >&2; }
+
+# --- 1. guest up and awake -------------------------------------------------
+if ! virsh -c qemu:///session list --state-running --name 2>/dev/null | grep -qx SP-Alpha-Rig; then
+  note "starting SP-Alpha-Rig"
+  virsh -c qemu:///session start SP-Alpha-Rig >/dev/null || exit 1
+  note "guest is booting -- unlock it with: rig unlock '<passphrase>'"
+fi
+
+# nudge the pointer so KDE does not hand OBS a blanked screen
+"$HOME/fleet/bin/rig" move 960 540 >/dev/null 2>&1
+"$HOME/fleet/bin/rig" move 970 550 >/dev/null 2>&1
+
+# --- 2. standalone virt-viewer ---------------------------------------------
+if ! pgrep -x virt-viewer >/dev/null; then
+  note "launching virt-viewer"
+  nohup virt-viewer --connect qemu:///session --domain-name SP-Alpha-Rig \
+    -z 100 --attach >/dev/null 2>&1 &
+  for _ in $(seq 1 30); do
+    xwininfo -root -tree 2>/dev/null | grep -q "SP-Alpha-Rig" && break
+    sleep 1
+  done
+fi
+
+GEOM=$(xwininfo -root -tree 2>/dev/null | grep "SP-Alpha-Rig" | head -1 | grep -oE '[0-9]+x[0-9]+\+' | head -1 | tr -d '+')
+if [ "$GEOM" != "1972x1179" ]; then
+  note "WARNING: virt-viewer window is ${GEOM:-unknown}, expected 1972x1179."
+  note "         The 26/24/26/75 crop assumes that size -- reframing will be wrong."
+fi
+
+
+# --- 3. clear the unclean-shutdown marker ----------------------------------
+rm -rf "$OBS_CFG/.sentinel"
+
+# --- 4. go -----------------------------------------------------------------
+ARGS=(--disable-shutdown-check --profile "$PROFILE" --collection "SP+ Show" --scene "$SCENE")
+[ "$RECORD" -eq 1 ] && ARGS+=(--startrecording)
+
+note "launching OBS -- profile '$PROFILE', scene '$SCENE'"
+exec flatpak run com.obsproject.Studio "${ARGS[@]}"
