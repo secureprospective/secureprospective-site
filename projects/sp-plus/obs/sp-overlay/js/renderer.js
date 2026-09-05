@@ -31,6 +31,19 @@ export class Renderer {
 
     this.rail = root.querySelector("#rail-text");
     this.lamp = root.querySelector("#rail-lamp");
+    this.markwire = root.querySelector("#markwire");
+    this.meter = root.querySelector("#rail-meter");
+
+    // The rail index is one square per scene, in scene order, so the rail
+    // shows where in the running order the show currently is.
+    this.order = Object.values(sceneMap);
+    const index = root.querySelector("#rail-index");
+    this.indexNodes = this.order.map((name) => {
+      const li = document.createElement("li");
+      li.dataset.scene = name;
+      index.appendChild(li);
+      return li;
+    });
 
     // Split titles into clipped word wrappers once, at boot. These carry
     // static text, so nothing has to be rebuilt during animation.
@@ -67,6 +80,31 @@ export class Renderer {
 
     for (const [name, el] of this.scenes) {
       el.classList.toggle("is-active", name === key);
+    }
+
+    // Chrome and the mark are shared, so they are driven from the root rather
+    // than duplicated into every pack.
+    const section = key && this.scenes.get(key);
+    this.root.dataset.mark = (section && section.dataset.mark) || "none";
+    this.root.dataset.chrome =
+      (key === "RIG" || key === "TALKRIG") ? "min" : "full";
+
+    this.indexNodes.forEach((li) => {
+      li.classList.toggle("is-current", li.dataset.scene === key);
+    });
+
+    if (this.meter) {
+      this.meter.textContent = obsSceneName || "SP+ / SIGNAL ROOM";
+    }
+
+    // Restart the mark's draw. Removing the class and forcing a reflow is what
+    // makes a second cut inside the animation replay rather than be swallowed.
+    if (this.markwire) {
+      this.markwire.classList.remove("is-drawing");
+      void this.markwire.getBoundingClientRect().width;
+      if (this.root.dataset.mark !== "none") {
+        this.markwire.classList.add("is-drawing");
+      }
     }
 
     const active = key && this.scenes.get(key);

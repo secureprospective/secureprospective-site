@@ -1,41 +1,46 @@
-/* The live field, from Concept B — "The Signal Room".
+/* The live field — Signal Room, built as a room rather than a backdrop.
  *
- * Ported from concepts/b-radical/src/scripts/field.js. A lattice of drifting
- * nodes joined by hairlines wherever two come close enough; a charge travels
- * the lattice and turns a link or a node yellow where phases align.
+ * The concept's lattice is one plane. A frame that has to hold a presenter and
+ * a guest's screen needs somewhere for them to stand, so the field is built
+ * here as four depth planes drawn back to front:
  *
- * The site's field answers a visitor's inputs -- pointer, scroll, device tilt.
- * A stream has none of those. What it has instead are OBS events, so the
- * inspection pulse is fired by a scene cut or a real state change. Same
- * mechanic, wired to the inputs this surface actually has.
+ *   0  DECK    a floor grid in one-point perspective, receding to a horizon
+ *   1  FAR     small slow nodes, thin links, low alpha
+ *   2  MID     the concept's own lattice at its published values
+ *   3  NEAR    fewer, larger, faster nodes with brighter links
  *
- * Two departures from the source, both deliberate:
+ * Depth is carried by parallax rate, node size and alpha together -- change
+ * one alone and the plane reads as a different colour rather than a different
+ * distance. The pulse crosses every plane, expanding faster on the near ones,
+ * so an event reads as passing through the room instead of across a picture.
  *
- * - Node seeding uses a fixed-seed PRNG rather than Math.random, so the
- *   lattice is identical on every launch. A recording made twice puts every
- *   node in the same place.
- * - The vignette is drawn into the canvas as a destination-out mask rather
- *   than painted as an opaque overlay. On the site it can paint --void over
- *   the ground; here the ground is often live video, which must not be
- *   darkened. Masking fades the FIELD at the edges and leaves the picture
- *   untouched.
+ * Position derives from an integer frame counter and a fixed-seed PRNG, never
+ * a wall clock or Math.random: the same frame number always draws the same
+ * room, so a recording made twice matches.
  */
 
 const BLUE = "43, 107, 255";
 const YELLOW = "255, 215, 0";
 
-const LINK_DISTANCE = 132;
-const LINK_DISTANCE_SQ = LINK_DISTANCE * LINK_DISTANCE;
-const AREA_PER_NODE = 13500;
-const MAX_NODES = 130;
-
 const CHARGE_RATE = 1.1;
-const LINK_HOT = 0.93;
-const NODE_HOT = 0.96;
-
 const SEED = 0x5150b1;
 
-/** mulberry32: small, fast, and fully determined by its seed. */
+/* Each plane's distance, expressed in every channel at once. */
+const PLANES = [
+  { name: "far",  areaPerNode: 26000, cap: 90, link: 96,  speed: 0.06, radius: 0.9, alpha: 0.45, hot: 0.985 },
+  { name: "mid",  areaPerNode: 13500, cap: 130, link: 132, speed: 0.16, radius: 1.3, alpha: 1.0,  hot: 0.96 },
+  { name: "near", areaPerNode: 62000, cap: 34, link: 210, speed: 0.34, radius: 2.4, alpha: 1.25, hot: 0.93 },
+];
+
+/* The deck. A one-point perspective grid: rows bunch toward the horizon, so
+   the eye reads distance from the spacing rather than from a gradient. */
+const DECK = {
+  horizon: 0.46,     // fraction of height
+  rows: 16,
+  columns: 26,
+  alpha: 0.17,
+};
+
 function prng(seed) {
   let a = seed >>> 0;
   return function () {
@@ -55,40 +60,92 @@ export class Field {
 
     this.frame = 0;
     this.hz = 30;
-    this.weight = 1;
+    this.depth = 1;        // scene-driven depth multiplier
     this.running = false;
     this.lastTick = 0;
     this.pulses = [];
 
     const rand = prng(SEED);
-    const count = Math.min(MAX_NODES,
-      Math.round((this.width * this.height) / AREA_PER_NODE));
-    this.nodes = [];
-    for (let i = 0; i < count; i += 1) {
-      this.nodes.push({
-        x: rand() * this.width,
-        y: rand() * this.height,
-        vx: (rand() - 0.5) * 0.16,
-        vy: (rand() - 0.5) * 0.16,
-        // Phase offset so the charge does not pulse in unison.
-        phase: rand() * Math.PI * 2,
-        cx: 0, cy: 0, index: i,
-      });
-    }
+    this.planes = PLANES.map((spec) => {
+      const count = Math.min(spec.cap,
+        Math.round((this.width * this.height) / spec.areaPerNode));
+      const nodes = [];
+      for (let i = 0; i < count; i += 1) {
+        nodes.push({
+          x: rand() * this.width,
+          y: rand() * this.height,
+          vx: (rand() - 0.5) * spec.speed,
+          vy: (rand() - 0.5) * spec.speed,
+          phase: rand() * Math.PI * 2,
+          cx: 0, cy: 0, index: i,
+        });
+      }
+      return { spec, nodes };
+    });
 
+    this.buildDeck();
     this.buildMask();
   }
 
-  /** The vignette, pre-rendered once. Kept as a mask so it can subtract the
-   *  field at the edges without touching what is behind the page. */
+  /* The deck is static geometry, so it is rendered once and blitted. Redrawing
+     40-odd perspective lines every frame buys nothing. */
+  buildDeck() {
+    const w = this.width;
+    const h = this.height;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    const hy = h * DECK.horizon;
+    const vx = w * 0.5;
+
+    g.lineWidth = 1;
+
+    // Verticals converging on the vanishing point.
+    for (let i = 0; i <= DECK.columns; i += 1) {
+      const t = i / DECK.columns;
+      const x = -w * 1.2 + t * (w * 3.4);
+      const fade = 1 - Math.abs(t - 0.5) * 1.3;
+      if (fade <= 0) continue;
+      g.strokeStyle = "rgba(" + BLUE + ", " + (DECK.alpha * fade).toFixed(3) + ")";
+      g.beginPath();
+      g.moveTo(vx, hy);
+      g.lineTo(x, h);
+      g.stroke();
+    }
+
+    // Rows, spaced so they bunch toward the horizon.
+    for (let i = 1; i <= DECK.rows; i += 1) {
+      const t = i / DECK.rows;
+      const y = hy + (h - hy) * (t * t);
+      const fade = t * 0.9 + 0.1;
+      g.strokeStyle = "rgba(" + BLUE + ", " + (DECK.alpha * fade).toFixed(3) + ")";
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(w, y);
+      g.stroke();
+    }
+
+    // The horizon itself, the one line that is allowed to be bright.
+    g.strokeStyle = "rgba(" + BLUE + ", 0.30)";
+    g.beginPath();
+    g.moveTo(0, hy);
+    g.lineTo(w, hy);
+    g.stroke();
+
+    this.deck = c;
+  }
+
+  /** The vignette, pre-rendered once and applied as a mask so it can subtract
+   *  the field at the edges without laying an opaque pixel over the video. */
   buildMask() {
     const m = document.createElement("canvas");
     m.width = this.width;
     m.height = this.height;
     const c = m.getContext("2d");
     const g = c.createRadialGradient(
-      this.width * 0.5, this.height * 0.4, Math.min(this.width, this.height) * 0.30,
-      this.width * 0.5, this.height * 0.4, Math.max(this.width, this.height) * 0.62);
+      this.width * 0.5, this.height * 0.44, Math.min(this.width, this.height) * 0.26,
+      this.width * 0.5, this.height * 0.44, Math.max(this.width, this.height) * 0.64);
     g.addColorStop(0, "rgba(0,0,0,0)");
     g.addColorStop(1, "rgba(0,0,0,1)");
     c.fillStyle = g;
@@ -96,24 +153,22 @@ export class Field {
     this.mask = m;
   }
 
-  /** Scene-driven weight. RIG runs faint because the guest's screen is the
-   *  content there and the room must not compete with it. */
-  configure({ hz, opacity }) {
+  /** Scene-driven weight. `depth` scales how much of the room is admitted:
+   *  RIG keeps only the faintest planes because the guest's screen is the
+   *  content there. */
+  configure({ hz, opacity, depth }) {
     this.hz = hz;
+    this.depth = depth === undefined ? 1 : depth;
     this.canvas.style.opacity = String(opacity);
   }
 
-  /** An inspection pulse: a ring travelling out from a point, exactly as a
-   *  pointer contact does on the site. Fired here by a scene cut or a real
-   *  state change -- the only genuine events this surface receives. */
+  /** An inspection pulse, fired by a real OBS event. */
   pulse(x, y, energy = 0.8) {
     if (this.pulses.length >= 5) this.pulses.shift();
     this.pulses.push({
       x: x === undefined ? this.width * 0.5 : x,
       y: y === undefined ? this.height * 0.5 : y,
-      age: 0,
-      life: 0.95,
-      energy,
+      age: 0, life: 1.05, energy,
     });
   }
 
@@ -122,8 +177,7 @@ export class Field {
     this.running = true;
     const loop = (ts) => {
       if (!this.running) return;
-      const interval = 1000 / this.hz;
-      if (ts - this.lastTick >= interval) {
+      if (ts - this.lastTick >= 1000 / this.hz) {
         this.lastTick = ts;
         this.frame += 1;
         this.step();
@@ -133,30 +187,14 @@ export class Field {
     requestAnimationFrame(loop);
   }
 
-  stop() {
-    this.running = false;
-  }
+  stop() { this.running = false; }
 
   step() {
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
-
-    // Time derives from the frame counter, never a wall clock, so the same
-    // frame number always draws the same field.
     const dt = 1 / this.hz;
     const t = this.frame * dt;
-
-    for (const node of this.nodes) {
-      node.x += node.vx;
-      node.y += node.vy;
-      // Wrap rather than bounce: a bounded box reads as a container, and this
-      // field is meant to feel larger than the frame it is seen through.
-      if (node.x < -20) node.x = w + 20;
-      if (node.x > w + 20) node.x = -20;
-      if (node.y < -20) node.y = h + 20;
-      if (node.y > h + 20) node.y = -20;
-    }
 
     for (let i = this.pulses.length - 1; i >= 0; i -= 1) {
       this.pulses[i].age += dt;
@@ -165,11 +203,48 @@ export class Field {
 
     ctx.clearRect(0, 0, w, h);
 
-    const { buckets, cols, rows } = this.grid();
+    // Plane 0: the deck, drawn first and dimmed hardest by distance.
+    ctx.globalAlpha = 0.9 * this.depth;
+    ctx.drawImage(this.deck, 0, 0);
+    ctx.globalAlpha = 1;
 
-    // Links first, so nodes sit on top of their own connections.
-    ctx.lineWidth = 1;
-    for (const node of this.nodes) {
+    this.planes.forEach((plane, index) => {
+      // Nearer planes survive a low depth setting longer than far ones, which
+      // is what keeps a faint room reading as a room and not as haze.
+      const weight = Math.min(1, this.depth * (0.7 + index * 0.35));
+      if (weight <= 0.02) return;
+      this.drawPlane(plane, t, weight);
+    });
+
+    this.drawPulses();
+
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.drawImage(this.mask, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  drawPlane(plane, t, weight) {
+    const ctx = this.ctx;
+    const { spec, nodes } = plane;
+    const w = this.width;
+    const h = this.height;
+    const linkSq = spec.link * spec.link;
+
+    for (const node of nodes) {
+      node.x += node.vx;
+      node.y += node.vy;
+      // Wrap rather than bounce: a bounded box reads as a container, and this
+      // room is meant to feel larger than the frame it is seen through.
+      if (node.x < -30) node.x = w + 30;
+      if (node.x > w + 30) node.x = -30;
+      if (node.y < -30) node.y = h + 30;
+      if (node.y > h + 30) node.y = -30;
+    }
+
+    const { buckets, cols, rows } = this.grid(nodes, spec.link);
+
+    ctx.lineWidth = spec.name === "near" ? 1.4 : 1;
+    for (const node of nodes) {
       for (let ox = 0; ox <= 1; ox += 1) {
         for (let oy = ox === 0 ? 0 : -1; oy <= 1; oy += 1) {
           const nx = node.cx + ox;
@@ -180,16 +255,16 @@ export class Field {
 
           for (const j of bucket) {
             if (j <= node.index) continue;
-            const other = this.nodes[j];
+            const other = nodes[j];
             const dx = other.x - node.x;
             const dy = other.y - node.y;
             const dsq = dx * dx + dy * dy;
-            if (dsq >= LINK_DISTANCE_SQ) continue;
+            if (dsq >= linkSq) continue;
 
-            const strength = 1 - Math.sqrt(dsq) / LINK_DISTANCE;
+            const strength = (1 - Math.sqrt(dsq) / spec.link) * spec.alpha * weight;
             const charge =
               Math.sin(t * CHARGE_RATE + node.phase + other.phase) * 0.5 + 0.5;
-            ctx.strokeStyle = charge > LINK_HOT
+            ctx.strokeStyle = charge > spec.hot
               ? "rgba(" + YELLOW + ", " + (strength * 0.85).toFixed(3) + ")"
               : "rgba(" + BLUE + ", " + (strength * 0.3).toFixed(3) + ")";
             ctx.beginPath();
@@ -201,59 +276,64 @@ export class Field {
       }
     }
 
-    this.drawPulses();
-
-    for (const node of this.nodes) {
+    for (const node of nodes) {
       const charge = Math.sin(t * CHARGE_RATE + node.phase * 2) * 0.5 + 0.5;
-      const hot = charge > NODE_HOT;
+      const hot = charge > spec.hot;
+      const a = spec.alpha * weight;
       ctx.fillStyle = hot
-        ? "rgba(" + YELLOW + ", 0.95)"
-        : "rgba(" + BLUE + ", " + (0.35 + charge * 0.3).toFixed(3) + ")";
+        ? "rgba(" + YELLOW + ", " + Math.min(1, 0.95 * a).toFixed(3) + ")"
+        : "rgba(" + BLUE + ", " + Math.min(1, (0.35 + charge * 0.3) * a).toFixed(3) + ")";
       ctx.beginPath();
-      ctx.arc(node.x, node.y, hot ? 2.1 : 1.3, 0, Math.PI * 2);
+      ctx.arc(node.x, node.y, hot ? spec.radius * 1.6 : spec.radius, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    // Subtract the vignette so the field fades at the edges without laying a
-    // single opaque pixel over the video beneath.
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.drawImage(this.mask, 0, 0);
-    ctx.globalCompositeOperation = "source-over";
   }
 
   drawPulses() {
     if (!this.pulses.length) return;
     const ctx = this.ctx;
-    ctx.lineWidth = 1;
+    const reach = Math.min(this.width, this.height);
+
     for (const pulse of this.pulses) {
       const progress = pulse.age / pulse.life;
-      const radius = 10 + progress * Math.min(this.width, this.height) * 0.54;
-      const alpha = (1 - progress) * pulse.energy * 0.52;
-      ctx.strokeStyle = "rgba(" + YELLOW + ", " + alpha.toFixed(3) + ")";
-      ctx.beginPath();
-      ctx.arc(pulse.x, pulse.y, radius, 0, Math.PI * 2);
-      ctx.stroke();
+      const alpha = (1 - progress) * pulse.energy * 0.5 * this.depth;
+      if (alpha <= 0.004) continue;
 
-      // The shorter inner trace makes a contact read as a measured signal,
-      // not a generic glow.
-      if (progress < 0.55) {
+      // One ring per plane, each expanding at its own rate, so the pulse
+      // travels through the room rather than across a flat picture.
+      const rings = [
+        { r: 10 + progress * reach * 0.34, a: alpha * 0.55, w: 1 },
+        { r: 10 + progress * reach * 0.58, a: alpha, w: 1 },
+        { r: 10 + progress * reach * 0.92, a: alpha * 0.7, w: 1.6 },
+      ];
+
+      for (const ring of rings) {
+        ctx.lineWidth = ring.w;
+        ctx.strokeStyle = "rgba(" + YELLOW + ", " + ring.a.toFixed(3) + ")";
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, ring.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // The short inner trace makes a contact read as a measured signal
+      // rather than a generic glow.
+      if (progress < 0.5) {
+        ctx.lineWidth = 1;
         ctx.strokeStyle = "rgba(" + YELLOW + ", " + (alpha * 0.7).toFixed(3) + ")";
         ctx.beginPath();
-        ctx.arc(pulse.x, pulse.y, radius * 0.42, 0, Math.PI * 2);
+        ctx.arc(pulse.x, pulse.y, 10 + progress * reach * 0.24, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
   }
 
-  /** A uniform spatial grid: link testing only looks at neighbouring cells,
-   *  which keeps the pass linear in node count. */
-  grid() {
-    const cell = LINK_DISTANCE;
+  /** A uniform spatial grid, so link testing stays linear in node count. */
+  grid(nodes, cell) {
     const cols = Math.max(1, Math.ceil(this.width / cell));
     const rows = Math.max(1, Math.ceil(this.height / cell));
     const buckets = new Map();
 
-    this.nodes.forEach((node, i) => {
+    nodes.forEach((node, i) => {
       const cx = Math.min(cols - 1, Math.max(0, Math.floor(node.x / cell)));
       const cy = Math.min(rows - 1, Math.max(0, Math.floor(node.y / cell)));
       const key = cy * cols + cx;

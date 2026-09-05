@@ -1,5 +1,5 @@
 {
-  "comment": "Maps OBS scene names onto overlay packs and gives each its field weight. The lattice already draws itself at low alpha; opacity here is a further multiplier for compositing. RIG runs faintest because the guest's screen is the content there.",
+  "comment": "Maps OBS scene names onto overlay packs and gives each its room settings. opacity is the whole field's weight; depth scales how much of the room's depth is admitted, with nearer planes surviving a low setting longer than far ones so a faint room still reads as a room rather than as haze.",
   "sceneMap": {
     "00 HOLD": "HOLD",
     "01 TALK": "TALK",
@@ -13,39 +13,48 @@
   "field": {
     "HOLD": {
       "hz": 30,
-      "opacity": 1.0
+      "opacity": 1.0,
+      "depth": 1.0
     },
     "TALK": {
       "hz": 30,
-      "opacity": 1.0
+      "opacity": 1.0,
+      "depth": 0.92
     },
     "RIG": {
       "hz": 20,
-      "opacity": 0.34
+      "opacity": 0.3,
+      "depth": 0.3
     },
     "TALKRIG": {
       "hz": 20,
-      "opacity": 0.34
+      "opacity": 0.3,
+      "depth": 0.3
     },
     "SLATE": {
       "hz": 30,
-      "opacity": 0.9
+      "opacity": 0.95,
+      "depth": 1.0
     },
     "BRB": {
       "hz": 30,
-      "opacity": 1.0
+      "opacity": 1.0,
+      "depth": 0.95
     },
     "TECH": {
       "hz": 20,
-      "opacity": 0.8
+      "opacity": 0.85,
+      "depth": 0.7
     },
     "OUTRO": {
       "hz": 30,
-      "opacity": 1.0
+      "opacity": 1.0,
+      "depth": 1.0
     }
   },
   "fieldDefault": {
     "hz": 20,
-    "opacity": 0.8
+    "opacity": 0.8,
+    "depth": 0.7
   }
 }

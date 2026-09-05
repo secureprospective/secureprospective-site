@@ -37,12 +37,37 @@
 
 /* --- panels ------------------------------------------------------------- */
 
+/* A plate is a stack, not a card. Two ghost outlines sit behind the face at
+   increasing offset, so the panel reads as an object standing in the room
+   with space behind it. Hard offsets only -- there is no blur anywhere in
+   this concept, and depth that comes from a blur reads as a web page. */
+.plate { }
+
+.plate-back,
+.plate-face {
+  position: absolute;
+  inset: 0;
+}
+
+.plate-back {
+  border: 1px solid var(--hairline);
+  background: rgba(8, 12, 24, 0.30);
+}
+
+.plate-back--1 { transform: translate3d(14px, 14px, 0); }
+.plate-back--2 {
+  transform: translate3d(28px, 28px, 0);
+  border-color: rgba(43, 107, 255, 0.16);
+  background: rgba(8, 12, 24, 0.16);
+}
+
 /* Glass in an instrument room: a hairline frame over dark stock, lit from
-   inside by a fixed blue lens rather than by a shadow. There are no drop
-   shadows in this concept -- depth comes from light. */
+   inside by a fixed blue lens rather than by a shadow. The inset top line is
+   the light catching the plate's leading edge. */
 .panel {
   background: var(--panel-stock);
   border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 rgba(242, 244, 248, 0.10);
   overflow: hidden;
 }
 
@@ -137,6 +162,131 @@
 .readout.is-unknown .readout-value { color: var(--text-low); }
 
 .rule { background: var(--hairline); }
+
+/* --- the wire mark ------------------------------------------------------ */
+
+/* The mark as a standing object: drawn in gold wire rather than filled, big
+   enough to be architecture rather than a badge, and parked behind the
+   content so it never competes with a readable line. */
+#markwire {
+  position: absolute;
+  width: 720px;
+  height: 736px;
+  opacity: 0;
+  overflow: visible;
+  transition: opacity var(--dur-slow) var(--ease-out),
+              transform var(--dur-slow) var(--ease-out);
+}
+
+#markwire use {
+  fill: none;
+  stroke: var(--gold-identity);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Placed per scene, always off the axis the content runs down. */
+/* Sized in the mark's own aspect (157.925 : 161.545) and placed so it reads as
+   architecture behind the content, never as a badge beside it. */
+#overlay-root[data-mark="left"]   #markwire { opacity: 0.34; left: -300px; top: 90px;
+                                              width: 940px; height: 961px; }
+#overlay-root[data-mark="right"]  #markwire { opacity: 0.30; left: 1230px; top: 140px;
+                                              width: 820px; height: 839px; }
+#overlay-root[data-mark="centre"] #markwire { opacity: 0.20; left: 460px; top: 40px;
+                                              width: 1000px; height: 1023px; }
+#overlay-root[data-mark="none"]   #markwire { opacity: 0; }
+
+/* --- corner brackets ---------------------------------------------------- */
+
+/* The frame admitting it is a frame. They also mark the safe grid, so nothing
+   essential ever drifts outside them. */
+.bracket {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border: 0 solid var(--hairline-bright);
+}
+
+.bracket--tl { left: 96px;  top: 96px;    border-top-width: 2px; border-left-width: 2px; }
+.bracket--tr { left: 1776px; top: 96px;   border-top-width: 2px; border-right-width: 2px;
+               transform: translateX(-48px); }
+.bracket--bl { left: 96px;  top: 936px;   border-bottom-width: 2px; border-left-width: 2px;
+               transform: translateY(-48px); }
+.bracket--br { left: 1776px; top: 936px;  border-bottom-width: 2px; border-right-width: 2px;
+               transform: translate(-48px, -48px); }
+
+/* --- the instrument rail ------------------------------------------------ */
+
+/* The concept's left rail, carrying the mark, an index of the eight scenes
+   with the live one lit, and a vertical meter. It is the element that makes
+   the frame read as an instrument rather than a slide. */
+#chrome-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 0;
+  border-right: 1px solid var(--hairline);
+  background: rgba(5, 7, 14, 0.55);
+}
+
+.rail-mark {
+  width: 30px;
+  height: 31px;
+  flex: none;
+}
+
+.rail-mark use {
+  fill: none;
+  stroke: var(--silver-base);
+  stroke-width: 3;
+  opacity: 0.85;
+}
+
+#rail-index {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#rail-index li {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--hairline-bright);
+  transition: background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+
+#rail-index li.is-current {
+  background: var(--yellow-accent);
+  border-color: var(--yellow-accent);
+}
+
+.rail-meter {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The rig scenes give the guest the whole frame: the rail and the brackets
+   stand down, and only the lit edge remains. */
+#overlay-root[data-chrome="min"] #chrome-rail,
+#overlay-root[data-chrome="min"] .bracket { opacity: 0; }
+
+#chrome-rail,
+.bracket { transition: opacity var(--dur-base) var(--ease-out); }
 
 /* --- shared: the status pill -------------------------------------------- */
 
