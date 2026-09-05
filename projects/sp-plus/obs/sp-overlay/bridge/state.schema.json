@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SP+ overlay runtime state",
+  "description": "Written atomically by the show-control script (temp file, flush, rename). Never written by OBS and never by the browser page.",
+  "type": "object",
+  "required": ["schema", "revision", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "revision": { "type": "integer", "minimum": 0 },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "chapter": {
+      "type": ["object", "null"],
+      "required": ["number", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "number": { "type": "integer", "minimum": 0 },
+        "title": { "type": "string", "maxLength": 48 }
+      }
+    },
+    "topic": { "type": ["string", "null"], "maxLength": 96 },
+    "countdownTarget": { "type": ["string", "null"], "format": "date-time" },
+    "guest": { "$ref": "#/$defs/signal" },
+    "camera": { "$ref": "#/$defs/signal" }
+  },
+  "$defs": {
+    "signal": {
+      "type": ["object", "null"],
+      "required": ["signal", "observedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "signal": { "enum": ["ok", "degraded", "down", "unknown"] },
+        "observedAt": { "type": ["string", "null"], "format": "date-time" },
+        "note": { "type": ["string", "null"], "maxLength": 96 }
+      }
+    }
+  }
+}
