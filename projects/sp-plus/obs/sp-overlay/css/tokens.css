@@ -1,0 +1,52 @@
+/* SP+ brand constants. Committed values -- do not sample them off a render. */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/assets/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/assets/fonts/IBMPlexSans-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  --blue: #0033A0;
+  --gold: #D4AF37;
+  --yellow: #FFD700;
+  --platinum: #E5E4E2;
+  --ink: #222222;
+
+  /* The overlay sits on unpredictable video, so panel grounds are opaque
+     enough to guarantee text contrast rather than tinting the picture. */
+  --panel-dark: rgba(34, 34, 34, 0.88);
+  --panel-light: rgba(229, 228, 226, 0.94);
+
+  /* --edge is the border colour; scenes redefine it for their own ground.
+     An ink hairline is invisible on the ink base, which is why this is a
+     token and not a literal. */
+  --edge: var(--platinum);
+  --text: var(--platinum);
+  --text-dim: rgba(229, 228, 226, 0.62);
+
+  --shadow: 6px 6px #0033A02E;
+
+  /* Type scale. Display is 700, everything else 400. Primal is prohibited. */
+  --face: "IBM Plex Sans", system-ui, sans-serif;
+  --track-label: 0.16em;
+  --track-display: 0.02em;
+}
+
+/* The one light-ground scene inverts the border and text roles rather than
+   overriding each rule individually. */
+.scene--light {
+  --edge: var(--ink);
+  --text: var(--ink);
+  --text-dim: rgba(34, 34, 34, 0.66);
+}

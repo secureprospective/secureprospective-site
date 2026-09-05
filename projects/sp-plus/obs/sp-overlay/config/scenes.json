@@ -1,0 +1,24 @@
+{
+  "comment": "Maps OBS scene names onto overlay packs, and gives each pack its field weight. The map is data, not code, so renaming a scene in OBS is a one-line change here rather than an edit to the renderer.",
+  "sceneMap": {
+    "00 HOLD": "HOLD",
+    "01 TALK": "TALK",
+    "02 RIG": "RIG",
+    "03 OUTRO": "OUTRO",
+    "04 SLATE": "SLATE",
+    "05 BRB": "BRB",
+    "06 TALK+RIG": "TALKRIG",
+    "07 TECHNICAL": "TECH"
+  },
+  "field": {
+    "HOLD":    { "hz": 10, "opacity": 0.08 },
+    "TALK":    { "hz": 10, "opacity": 0.08 },
+    "RIG":     { "hz": 6,  "opacity": 0.035 },
+    "TALKRIG": { "hz": 6,  "opacity": 0.035 },
+    "SLATE":   { "hz": 10, "opacity": 0.12 },
+    "BRB":     { "hz": 10, "opacity": 0.10 },
+    "TECH":    { "hz": 6,  "opacity": 0.06 },
+    "OUTRO":   { "hz": 10, "opacity": 0.08 }
+  },
+  "fieldDefault": { "hz": 6, "opacity": 0.05 }
+}

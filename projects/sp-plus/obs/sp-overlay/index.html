@@ -1,0 +1,108 @@
+<!--
+  SP+ overlay. One persistent browser source, shared by all eight scenes:
+  the page is never reloaded on a cut, so the dash field keeps its phase and
+  each scene change costs one class swap instead of a CEF restart.
+
+  Every scene pack is present in the DOM from load. Nothing is created during
+  animation.
+-->
+<meta charset="utf-8">
+<title>SP+ Overlay</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/reset.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/motion.css">
+
+<div id="overlay-root">
+  <canvas id="field" width="1920" height="1080"></canvas>
+
+  <!-- Shared evidence rail. Present in every scene; it is the one place the
+       overlay states what it actually knows. -->
+  <div id="rail"></div>
+  <div id="rail-tick"></div>
+  <div id="rail-text" class="label label--bright">OBS STATUS / UNAVAILABLE</div>
+
+  <!-- 00 HOLD -->
+  <section class="scene" data-scene="HOLD" data-enter="left">
+    <div class="pack">
+      <img class="el hold-logo logo" src="/assets/logo/logo-metallic-dark.png"
+           width="720" height="176" alt="" decoding="sync">
+      <div class="el hold-panel panel"></div>
+      <div class="el hold-title display">SP+ IS ON HOLD</div>
+      <div class="el hold-subtitle label" data-bind="holdSubtitle">NEXT SIGNAL / UNKNOWN</div>
+    </div>
+  </section>
+
+  <!-- 01 TALK -->
+  <section class="scene" data-scene="TALK" data-enter="right">
+    <div class="pack">
+      <div class="el talk-camframe camframe"></div>
+      <div class="el talk-camlabel label" data-bind="camLabel">CAMERA / UNKNOWN</div>
+      <div class="el talk-panel panel"></div>
+      <div class="el talk-title display">TALK</div>
+      <div class="el talk-topicbox panel"></div>
+      <div class="el talk-topic display" data-bind="topic">TOPIC UNKNOWN</div>
+    </div>
+  </section>
+
+  <!-- 02 RIG. No panel pack: the guest gets the whole frame. -->
+  <section class="scene" data-scene="RIG" data-enter="none">
+    <div class="pack">
+      <div class="el rig-edge"></div>
+    </div>
+  </section>
+
+  <!-- TALK+RIG -->
+  <section class="scene" data-scene="TALKRIG" data-enter="down">
+    <div class="pack">
+      <div class="el tr-camframe camframe"></div>
+      <div class="el tr-camlabel label" data-bind="camLabel">CAMERA / UNKNOWN</div>
+    </div>
+  </section>
+
+  <!-- SLATE -->
+  <section class="scene" data-scene="SLATE" data-enter="up">
+    <div class="pack">
+      <img class="el slate-logo logo" src="/assets/logo/logo-metallic-dark.png"
+           width="720" height="176" alt="" decoding="sync">
+      <div class="el slate-title display" data-bind="chapterTitle">TITLE UNKNOWN</div>
+      <div class="el slate-subtitle label">SP+ / SECURE PROSPECTIVE</div>
+    </div>
+  </section>
+
+  <!-- BRB -->
+  <section class="scene" data-scene="BRB" data-enter="right">
+    <div class="pack">
+      <div class="el brb-panel panel"></div>
+      <div class="el brb-title display">BE RIGHT BACK</div>
+      <div class="el brb-subtitle label" data-bind="returnMessage">RETURN TIME UNKNOWN</div>
+      <div class="el brb-countdown display" data-bind="countdown">COUNTDOWN UNKNOWN</div>
+    </div>
+  </section>
+
+  <!-- TECHNICAL DIFFICULTIES. The one light-ground scene. It reports what is
+       known and refuses to claim anything is live. -->
+  <section class="scene scene--light" data-scene="TECH" data-enter="down">
+    <div class="pack">
+      <div class="el td-panel panel"></div>
+      <div class="el td-title display">TECHNICAL DIFFICULTIES</div>
+      <div class="el td-message label label--bright">SIGNAL CHECK IN PROGRESS</div>
+      <div class="el td-obs label label--bright" data-bind="obsStatus">OBS / UNAVAILABLE</div>
+      <div class="el td-vm label label--bright" data-bind="vmStatus">VM / UNKNOWN</div>
+      <div class="el td-cam label label--bright" data-bind="camLabel">CAMERA / UNKNOWN</div>
+      <div class="el td-footer label" data-bind="operatorNote">CHECKING</div>
+    </div>
+  </section>
+
+  <!-- 03 OUTRO -->
+  <section class="scene" data-scene="OUTRO" data-enter="down">
+    <div class="pack">
+      <img class="el outro-logo logo" src="/assets/logo/logo-metallic-dark.png"
+           width="720" height="176" alt="" decoding="sync">
+      <div class="el outro-title display">THANKS FOR WATCHING</div>
+      <div class="el outro-subtitle label" data-bind="nextSignal">NEXT SIGNAL UNKNOWN</div>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="/js/app.js"></script>

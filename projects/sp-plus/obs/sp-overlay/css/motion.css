@@ -1,0 +1,56 @@
+/* Only transform and opacity are animated, and only on whole packs. Anything
+   that touches layout or paint -- width, border, box-shadow geometry,
+   font-size -- would cost a frame on a machine already running the VM and the
+   VAAPI encoder. */
+
+.pack {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 160ms linear;
+}
+
+/* Entry start states. A scene cut sets .is-entering for one frame, then
+   clears it, so the pack settles into the rule above. Offsets are whole
+   pixels: a fractional transform resamples the 1px borders and makes them
+   shimmer under H.264. */
+.scene[data-enter="left"]  .pack.is-entering { transform: translate3d(-64px, 0, 0); opacity: 0; }
+.scene[data-enter="right"] .pack.is-entering { transform: translate3d(64px, 0, 0);  opacity: 0; }
+.scene[data-enter="up"]    .pack.is-entering { transform: translate3d(0, -48px, 0); opacity: 0; }
+.scene[data-enter="down"]  .pack.is-entering { transform: translate3d(0, 48px, 0);  opacity: 0; }
+
+/* The rail fades rather than travels; it is the one element common to every
+   scene and sliding it would advertise the cut. */
+#rail,
+#rail-text {
+  transition: opacity 160ms linear;
+}
+
+#rail-tick {
+  transition: opacity 160ms linear;
+}
+
+#rail-tick.is-lit {
+  opacity: 1;
+}
+
+/* Reduced motion: the locked layout appears immediately and the gold
+   highlight is suppressed. Discrete state changes still land. */
+@media (prefers-reduced-motion: reduce) {
+  .pack,
+  #rail,
+  #rail-text,
+  #rail-tick {
+    transition: none;
+  }
+
+  .scene .pack.is-entering {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+
+  #rail-tick {
+    display: none;
+  }
+}
