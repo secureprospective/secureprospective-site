@@ -1,6 +1,6 @@
 {
-    "current_scene": "01 TALK",
-    "current_program_scene": "01 TALK",
+    "current_scene": "02 RIG",
+    "current_program_scene": "02 RIG",
     "scene_order": [
         {
             "name": "00 HOLD"
@@ -92,10 +92,14 @@
             "id": "xcomposite_input",
             "versioned_id": "xcomposite_input",
             "settings": {
-                "capture_window": "",
+                "capture_window": "94371847\r\nSP-Alpha-Rig (1)\r\nvirt-viewer",
                 "show_cursor": true,
                 "include_border": false,
-                "exclude_alpha": true
+                "exclude_alpha": true,
+                "crop_top": 0,
+                "crop_left": 0,
+                "crop_right": 0,
+                "crop_bot": 0
             },
             "mixers": 0,
             "sync": 0,
@@ -124,8 +128,8 @@
                 "device_id": "/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera-video-index0",
                 "input": 0,
                 "pixelformat": 1448695129,
-                "resolution": 0,
-                "framerate": 0,
+                "resolution": 41943520,
+                "framerate": 65566,
                 "color_range": 0,
                 "buffering": true,
                 "auto_reset": true
@@ -382,7 +386,7 @@
                         "crop_bottom": 0,
                         "id": 1,
                         "group_item_backup": false,
-                        "scale_filter": "disable",
+                        "scale_filter": "lanczos",
                         "blend_method": "default",
                         "blend_type": "normal",
                         "show_transition": {
@@ -490,7 +494,7 @@
                         "crop_bottom": 0,
                         "id": 2,
                         "group_item_backup": false,
-                        "scale_filter": "disable",
+                        "scale_filter": "lanczos",
                         "blend_method": "default",
                         "blend_type": "normal",
                         "show_transition": {
