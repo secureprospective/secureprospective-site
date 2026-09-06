@@ -61,14 +61,38 @@ fi
 GEOM=$(xwininfo -root -tree 2>/dev/null | grep "SP-Alpha-Rig" | head -1 | grep -oE '[0-9]+x[0-9]+\+' | head -1 | tr -d '+')
 if [ "$GEOM" != "1972x1179" ]; then
   note "WARNING: virt-viewer window is ${GEOM:-unknown}, expected 1972x1179."
-  note "         The 26/24/26/75 crop assumes that size -- reframing will be wrong."
+  note "         The 26/70/26/29 crop assumes that size -- reframing will be wrong."
 fi
 
 
-# --- 3. clear the unclean-shutdown marker ----------------------------------
+# --- 3. the overlay bridge -------------------------------------------------
+# The overlay is a browser source pointing at 127.0.0.1:59536. Without the
+# bridge the page still loads, but it receives no OBS state at all: the rail
+# sits on OBS STATUS / UNAVAILABLE and no scene pack ever activates. Starting
+# OBS without this is starting half the rig.
+OVERLAY_DIR="$HOME/work/secureprospective-advisor-os/projects/sp-plus/obs/sp-overlay"
+if ! pgrep -f "bridge/sp-overlay-bridge.py" >/dev/null; then
+  if [ -d "$OVERLAY_DIR" ]; then
+    note "starting the overlay bridge on 59536"
+    ( cd "$OVERLAY_DIR" && setsid python3 bridge/sp-overlay-bridge.py \
+        >"$HOME/logs/sp-plus/obs/bridge.log" 2>&1 </dev/null & )
+    for _ in $(seq 1 10); do
+      curl -sf --max-time 1 http://127.0.0.1:59536/state >/dev/null && break
+      sleep 0.5
+    done
+  else
+    note "WARNING: overlay tree not found at $OVERLAY_DIR -- overlay will be blank"
+  fi
+fi
+
+if ! curl -sf --max-time 2 http://127.0.0.1:59536/state >/dev/null; then
+  note "WARNING: bridge is not answering on 59536 -- the overlay will show no state"
+fi
+
+# --- 4. clear the unclean-shutdown marker ----------------------------------
 rm -rf "$OBS_CFG/.sentinel"
 
-# --- 4. go -----------------------------------------------------------------
+# --- 5. go -----------------------------------------------------------------
 ARGS=(--disable-shutdown-check --profile "$PROFILE" --collection "SP+ Show" --scene "$SCENE")
 [ "$RECORD" -eq 1 ] && ARGS+=(--startrecording)
 
