@@ -366,3 +366,20 @@ AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24, see Op
 **Hard rules carried forward from the scaffold brief (still apply):** no new paid external services without Christopher's sign-off; real secrets/bindings/deploys are CT105's job, never bird's; a merge to `main` triggers Cloudflare Pages auto-deploy, so treat every step here as touching the live site once a Function route exists (steps 1–2 don't, step 3 onward does).
 
 **Full context if this file alone isn't enough:** `docs/ai-ecosystem/ARCHITECTURE.md` (full spec), `docs/ai-ecosystem/components/*.md` (per-component spec + what's real vs. stubbed), memory `project_ai_ecosystem_wireframe` (build history — the node:sqlite bug, all 5 LEADS resolutions, why this was squash-merged). Bird's own task-status file (`~/.config/opencode/foundation/memory/ai_ecosystem_scaffold_task.md` on bird) has the original build session's blow-by-blow if deeper archaeology is ever needed, but everything load-bearing has been folded up into this file and the memory node — you shouldn't need to SSH to bird to start this phase.
+
+---
+
+## SP+ stream overlay + OBS production rig (2026-09-05/06)
+
+**State lives in `projects/sp-plus/obs/STATUS.md`** — deliberately not restated here, because a
+fact written twice drifts. Pointer only:
+
+- OBS is **Flatpak 32.2.2**, not Debian. Debian strips CEF, so it has no browser source and
+  cannot run the overlay. Do not "fix" a browser-source problem by going back to the Debian build.
+- The overlay is at `projects/sp-plus/obs/sp-overlay/`, built on the site's **Concept B
+  ("The Signal Room")** in `secureprospective-site/concepts/b-radical/`, not the production
+  design system. Reasoning is in `STATUS.md` and the memory card
+  `project_sp_plus_overlay_signal_room`.
+- **Never edit the OBS scene collection JSON.** OBS rewrites scene-item transforms on save;
+  three attempts were lost to this. Use `bin/obsws.py` / `SetSceneItemTransform`.
+- Nothing has been used live. Do not report the rig or the overlay as production-proven.

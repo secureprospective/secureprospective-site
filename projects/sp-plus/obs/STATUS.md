@@ -1,6 +1,6 @@
 # OBS production rig — status and handoff
 
-**Last session:** 2026-09-05. **State:** built and verified; blocked on hardware.
+**Last session:** 2026-09-06. **State:** OBS migrated to Flatpak 32.2.2, settings parity proven, and a custom eight-scene overlay built on the site's Concept B system. Not yet used live.
 Plan: `OBS-PRODUCTION-PLAN.md`. Research: `research/`.
 
 ---
@@ -18,15 +18,15 @@ Screenshot evidence in `~/logs/sp-plus/obs/` on the Beelink.
 | Profile `SP+ YouTube Live` | CBR 10 Mbps, 2s keyint, High, 1080p30 | `basic.ini` + `streamEncoder.json` |
 | Profile `SP+ Master Record` | CQP 18, MKV, 3 audio tracks (`RecTracks=7`) | `basic.ini` + `recordEncoder.json` |
 | Scene collection `SP+ Show` | `00 HOLD`/`01 TALK`/`02 RIG`/`03 OUTRO` | loaded in OBS, seen in titlebar |
-| **VM capture 1:1** | **WORKS** — preview showed the live guest desktop | screenshot, 30.00/30.00 FPS, CPU 0.4% |
+| **VM capture 1:1** | **WORKS (fixed 2026-09-05)** — was rendering at 1.4371x, not 1:1; the original claim here was false. Crop 26/70/26/29 via `SetSceneItemTransform`, verified across a restart by the picture, not by a scalar. | `bin/obsws.py`, `logs/sp-plus/obs/rig-1to1-verified-20260905.png` |
 | virt-viewer client area | **exactly 1920x1080** | `xwininfo` |
 | Canvas == output == 1920x1080 | no scaling in the chain | OBS log `video settings reset` |
 | RIG source scale filter | `disable` (no resampling) | scene JSON |
-| Audio: mic -> tracks 1,2 | `mixers=3`, monitoring OFF | scene JSON + OBS log |
-| Audio: VM -> tracks 1,3 | `mixers=5`, from `SPplusVM.monitor` | scene JSON + OBS log |
+| Audio: mic -> tracks 1,2 | **WORKS (wired 2026-09-05)** — `mixers=3`. The Debian scene collection had ZERO audio sources and every `mixers=0`; this row previously described a configuration that had never existed. | measured −17.0 dB on tracks 1+2 |
+| Audio: VM -> tracks 1,3 | **WORKS (wired 2026-09-05)** — `mixers=5` from `SPplusVM.monitor`. `module-stream-restore` overrides the WirePlumber `target.object` rule and must be corrected with `pactl move-sink-input`. | measured −17.0 dB on track 3 |
 | `SPplusVM` null sink + loopback | live and persistent | `pactl`, PipeWire conf.d |
 | Hotkeys F8/F9/F10/F11/F12 | bound | scene JSON + profile `[Hotkeys]` |
-| VM memory 12 -> 10 GiB | live via virtio balloon, persisted | `dommemstat actual 10485760` |
+| VM memory | **12 GiB** — the 10 GiB balloon did NOT persist across a redefine (`size=12582912k`). | `virsh dumpxml SP-Alpha-Rig` |
 
 **Existing OBS config was NOT touched.** Profiles `SecureProspective`, `TFM`, `Untitled` and the
 `Untitled` scene collection are intact. Full backup:
