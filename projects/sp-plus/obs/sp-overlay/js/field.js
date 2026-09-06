@@ -25,6 +25,17 @@ const YELLOW = "255, 215, 0";
 const CHARGE_RATE = 1.1;
 const SEED = 0x5150b1;
 
+/* Parallax factors. The deck is the floor of the room and hardly moves; the
+   near plane is closest to the lens and moves most. The spread between them
+   IS the depth -- compress it and the room flattens into a sliding image. */
+const DECK_PARALLAX = 0.18;
+const DECK_BLEED = 80;          // deck is drawn oversized so a shift shows no edge
+const PLANE_PARALLAX = [0.42, 0.85, 1.6];
+
+function spec_parallax(index) {
+  return PLANE_PARALLAX[index] || 1;
+}
+
 /* Each plane's distance, expressed in every channel at once. */
 const PLANES = [
   { name: "far",  areaPerNode: 26000, cap: 90, link: 96,  speed: 0.06, radius: 0.9, alpha: 0.45, hot: 0.985 },
@@ -65,6 +76,13 @@ export class Field {
     this.lastTick = 0;
     this.pulses = [];
 
+    /* The camera. Each scene sits at a different position in the room, and a
+       cut moves the camera to it rather than cross-fading a backdrop. Every
+       plane offsets by its own factor, so the deck barely shifts while the
+       near lattice swings past -- which is what makes the move read as
+       travelling through a space instead of sliding a picture. */
+    this.cam = { x: 0, y: 0, tx: 0, ty: 0 };
+
     const rand = prng(SEED);
     this.planes = PLANES.map((spec) => {
       const count = Math.min(spec.cap,
@@ -90,8 +108,10 @@ export class Field {
   /* The deck is static geometry, so it is rendered once and blitted. Redrawing
      40-odd perspective lines every frame buys nothing. */
   buildDeck() {
-    const w = this.width;
-    const h = this.height;
+    // Oversized by the bleed on every side so a camera move never exposes the
+    // deck's own edge.
+    const w = this.width + DECK_BLEED * 2;
+    const h = this.height + DECK_BLEED * 2;
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
@@ -156,10 +176,14 @@ export class Field {
   /** Scene-driven weight. `depth` scales how much of the room is admitted:
    *  RIG keeps only the faintest planes because the guest's screen is the
    *  content there. */
-  configure({ hz, opacity, depth }) {
+  configure({ hz, opacity, depth, camera }) {
     this.hz = hz;
     this.depth = depth === undefined ? 1 : depth;
     this.canvas.style.opacity = String(opacity);
+    if (camera) {
+      this.cam.tx = camera[0];
+      this.cam.ty = camera[1];
+    }
   }
 
   /** An inspection pulse, fired by a real OBS event. */
@@ -201,11 +225,18 @@ export class Field {
       if (this.pulses[i].age >= this.pulses[i].life) this.pulses.splice(i, 1);
     }
 
+    // Critically damped enough to settle inside a cut without overshooting.
+    this.cam.x += (this.cam.tx - this.cam.x) * 0.12;
+    this.cam.y += (this.cam.ty - this.cam.y) * 0.12;
+
     ctx.clearRect(0, 0, w, h);
 
-    // Plane 0: the deck, drawn first and dimmed hardest by distance.
+    // Plane 0: the deck. Furthest away, so it moves least -- the parallax
+    // factors below are the whole depth cue and are deliberately spread wide.
     ctx.globalAlpha = 0.9 * this.depth;
-    ctx.drawImage(this.deck, 0, 0);
+    ctx.drawImage(this.deck,
+      Math.round(this.cam.x * DECK_PARALLAX) - DECK_BLEED,
+      Math.round(this.cam.y * DECK_PARALLAX) - DECK_BLEED);
     ctx.globalAlpha = 1;
 
     this.planes.forEach((plane, index) => {
@@ -213,7 +244,11 @@ export class Field {
       // is what keeps a faint room reading as a room and not as haze.
       const weight = Math.min(1, this.depth * (0.7 + index * 0.35));
       if (weight <= 0.02) return;
+      ctx.save();
+      ctx.translate(Math.round(this.cam.x * spec_parallax(index)),
+                    Math.round(this.cam.y * spec_parallax(index)));
       this.drawPlane(plane, t, weight);
+      ctx.restore();
     });
 
     this.drawPulses();

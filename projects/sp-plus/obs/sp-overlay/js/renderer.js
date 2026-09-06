@@ -9,7 +9,8 @@
 import { derive, isUnknown } from "./state.js";
 
 export class Renderer {
-  constructor(root, sceneMap, field) {
+  constructor(root, sceneMap, field, cameras) {
+    this.cameras = cameras || {};
     this.root = root;
     this.sceneMap = sceneMap;
     this.field = field;
@@ -44,6 +45,8 @@ export class Renderer {
       index.appendChild(li);
       return li;
     });
+
+    this.gates = Array.from(root.querySelectorAll(".gate"));
 
     // Split titles into clipped word wrappers once, at boot. These carry
     // static text, so nothing has to be rebuilt during animation.
@@ -97,6 +100,13 @@ export class Renderer {
       this.meter.textContent = obsSceneName || "SP+ / SIGNAL ROOM";
     }
 
+    // The mark stands IN the room, so it takes the camera move with everything
+    // else. Set once per cut rather than per frame: CSS eases it, and a
+    // per-frame style write on a 720px SVG is not worth the parallax.
+    const cam = (this.cameras && this.cameras[key]) || [0, 0];
+    this.root.style.setProperty("--cam-x", cam[0] + "px");
+    this.root.style.setProperty("--cam-y", cam[1] + "px");
+
     // Restart the mark's draw. Removing the class and forcing a reflow is what
     // makes a second cut inside the animation replay rather than be swallowed.
     if (this.markwire) {
@@ -143,6 +153,8 @@ export class Renderer {
     this.root.dataset.guest =
       d.vmValue === "OK" ? "ok" : "unknown";
 
+    this.applyGates(d, payload);
+
     this.lastRailText = d.rail;
     if (this.setText(this.rail, d.rail)) {
       this.runSignal();
@@ -165,6 +177,34 @@ export class Renderer {
           }
         }
       }
+    }
+  }
+
+  /** Each gate carries its own state, and a gate that changes fires the room's
+   *  pulse from its own position. An event then reads as originating somewhere
+   *  in the room rather than from an arbitrary point. */
+  applyGates(d, payload) {
+    const states = {
+      obs: d.obsValue === "CONNECTED"
+        ? ((payload && payload.stream && payload.stream.active) ||
+           (payload && payload.record && payload.record.active) ? "live" : "known")
+        : "unknown",
+      rig: d.vmValue === "OK" ? "known" : "unknown",
+      camera: d.camValue === "READY" ? "known" : "unknown",
+      chapter: d.chapterTitle === "TITLE UNKNOWN" ? "unknown" : "known",
+    };
+
+    for (const gate of this.gates) {
+      const next = states[gate.dataset.gate] || "unknown";
+      if (gate.dataset.state === next) continue;
+      gate.dataset.state = next;
+
+      // offsetLeft/Top are page coordinates, and the page is the 1920x1080
+      // canvas, so they are already the field's own coordinate space.
+      this.field.pulse(
+        gate.offsetLeft + gate.offsetWidth / 2,
+        gate.offsetTop + gate.offsetHeight / 2,
+        0.7);
     }
   }
 

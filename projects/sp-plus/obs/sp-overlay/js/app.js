@@ -31,7 +31,11 @@ async function main() {
   const config = await (await fetch("/config/scenes.json")).json();
 
   const field = new Field(canvas);
-  const renderer = new Renderer(root, config.sceneMap, field);
+  const cameras = {};
+  for (const [key, cfg] of Object.entries(config.field)) {
+    cameras[key] = cfg.camera || [0, 0];
+  }
+  const renderer = new Renderer(root, config.sceneMap, field, cameras);
 
   try {
     await loadAssets();

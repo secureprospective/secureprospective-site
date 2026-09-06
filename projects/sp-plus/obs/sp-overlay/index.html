@@ -58,6 +58,30 @@
     <div id="rail-meter" class="rail-meter">SP+ / SIGNAL ROOM</div>
   </aside>
 
+  <!-- The evidence strip. Four gates, bound to the same derivations the scenes
+       use, standing along the frame's lower safe line. This is the object that
+       makes the room mean something: it says what is observed, what is not,
+       and it never fills a cell it cannot support. When a gate changes, the
+       room's pulse originates from that gate rather than from a fixed point. -->
+  <div id="gates">
+    <div class="gate" data-gate="obs">
+      <span class="gate-label">OBS</span>
+      <span class="gate-value" data-bind="obsValue">UNAVAILABLE</span>
+    </div>
+    <div class="gate" data-gate="rig">
+      <span class="gate-label">Rig</span>
+      <span class="gate-value" data-bind="vmValue">UNKNOWN</span>
+    </div>
+    <div class="gate" data-gate="camera">
+      <span class="gate-label">Camera</span>
+      <span class="gate-value" data-bind="camValue">UNKNOWN</span>
+    </div>
+    <div class="gate" data-gate="chapter">
+      <span class="gate-label">Chapter</span>
+      <span class="gate-value" data-bind="chapterTitle">TITLE UNKNOWN</span>
+    </div>
+  </div>
+
   <!-- The live pill. The one place the overlay states what it actually knows.
        Its lamp goes dark when the link does. -->
   <div id="rail"></div>

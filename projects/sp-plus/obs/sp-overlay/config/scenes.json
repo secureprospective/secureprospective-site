@@ -1,5 +1,5 @@
 {
-  "comment": "Maps OBS scene names onto overlay packs and gives each its room settings. opacity is the whole field's weight; depth scales how much of the room's depth is admitted, with nearer planes surviving a low setting longer than far ones so a faint room still reads as a room rather than as haze.",
+  "comment": "Maps OBS scene names onto overlay packs and gives each its room settings. opacity is the field's weight; depth scales how much of the room is admitted; camera is the scene's position in the room, in pixels, which each depth plane offsets by its own parallax factor so a cut travels rather than slides.",
   "sceneMap": {
     "00 HOLD": "HOLD",
     "01 TALK": "TALK",
@@ -14,47 +14,83 @@
     "HOLD": {
       "hz": 30,
       "opacity": 1.0,
-      "depth": 1.0
+      "depth": 1.0,
+      "camera": [
+        -70,
+        -30
+      ]
     },
     "TALK": {
       "hz": 30,
       "opacity": 1.0,
-      "depth": 0.92
+      "depth": 0.92,
+      "camera": [
+        90,
+        10
+      ]
     },
     "RIG": {
       "hz": 20,
       "opacity": 0.3,
-      "depth": 0.3
+      "depth": 0.3,
+      "camera": [
+        0,
+        0
+      ]
     },
     "TALKRIG": {
       "hz": 20,
       "opacity": 0.3,
-      "depth": 0.3
+      "depth": 0.3,
+      "camera": [
+        20,
+        14
+      ]
     },
     "SLATE": {
       "hz": 30,
       "opacity": 0.95,
-      "depth": 1.0
+      "depth": 1.0,
+      "camera": [
+        -30,
+        -60
+      ]
     },
     "BRB": {
       "hz": 30,
       "opacity": 1.0,
-      "depth": 0.95
+      "depth": 0.95,
+      "camera": [
+        60,
+        36
+      ]
     },
     "TECH": {
       "hz": 20,
       "opacity": 0.85,
-      "depth": 0.7
+      "depth": 0.7,
+      "camera": [
+        -40,
+        50
+      ]
     },
     "OUTRO": {
       "hz": 30,
       "opacity": 1.0,
-      "depth": 1.0
+      "depth": 1.0,
+      "camera": [
+        30,
+        -44
+      ]
     }
   },
   "fieldDefault": {
     "hz": 20,
     "opacity": 0.8,
-    "depth": 0.7
+    "depth": 0.7,
+    "camera": [
+      0,
+      0
+    ]
   }
 }
