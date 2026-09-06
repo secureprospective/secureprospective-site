@@ -1,5 +1,12 @@
 /* Motion for the Signal Room.
  *
+ * Every duration here sits under the design system's locked 500ms ceiling.
+ * The earlier pass ran 620-1100ms, which reads as a cinematic intro rather
+ * than a register acknowledging a state change -- and the locked motion rules
+ * forbid reveals slower than 500ms outright. A 240ms event is seven encoded
+ * frames at 30fps where an 820ms one is twenty-five, so this is a bitrate
+ * saving as well as a correction.
+ *
  * The concept's own vocabulary: words arrive from behind their own line, a
  * travelling rule draws itself across, a yellow edge charges down the side of
  * a panel, and the field answers a real event with an inspection pulse.
@@ -17,8 +24,8 @@
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition:
-    opacity var(--dur-base) linear,
-    transform var(--dur-slow) var(--ease-out);
+    opacity var(--dur-fast) linear,
+    transform var(--dur-base) var(--ease-out);
 }
 
 .scene[data-enter="rise"]  .pack.is-entering { opacity: 0; transform: translate3d(0, 28px, 0); }
@@ -42,8 +49,8 @@
 }
 
 .scene.is-active .word > span {
-  animation: word-rise 620ms var(--ease-out) both;
-  animation-delay: calc(var(--word-index, 0) * 70ms + 120ms);
+  animation: word-rise 240ms var(--ease-out) both;
+  animation-delay: calc(var(--word-index, 0) * 26ms + 60ms);
 }
 
 @keyframes word-rise {
@@ -59,7 +66,7 @@
 }
 
 .scene.is-active .rule {
-  animation: rule-draw 720ms var(--ease-out) 160ms both;
+  animation: rule-draw 320ms var(--ease-out) 160ms both;
 }
 
 @keyframes rule-draw {
@@ -85,7 +92,7 @@
 
 .scene.is-active .panel--live::before,
 .scene.is-active .panel--build::before {
-  animation: panel-charge 760ms var(--ease-out) 200ms both;
+  animation: panel-charge 340ms var(--ease-out) 200ms both;
 }
 
 @keyframes panel-charge {
@@ -107,7 +114,7 @@
 }
 
 #rail-lamp.is-signalling::after {
-  animation: lamp-ring 680ms var(--ease-out) both;
+  animation: lamp-ring 420ms var(--ease-out) both;
 }
 
 @keyframes lamp-ring {
@@ -118,8 +125,8 @@
 /* --- readouts ----------------------------------------------------------- */
 
 .scene.is-active .readout {
-  animation: readout-in 520ms var(--ease-out) both;
-  animation-delay: calc(var(--readout-index, 0) * 90ms + 240ms);
+  animation: readout-in 260ms var(--ease-out) both;
+  animation-delay: calc(var(--readout-index, 0) * 40ms + 120ms);
 }
 
 @keyframes readout-in {
@@ -177,7 +184,7 @@
 }
 
 #markwire.is-drawing use {
-  animation: mark-draw 1100ms var(--ease-out) 120ms both;
+  animation: mark-draw 300ms var(--ease-out) 120ms both;
 }
 
 @keyframes mark-draw {
@@ -189,11 +196,11 @@
 /* The ghost plates start under the face and slide out to their offsets, so
    the panel opens into depth rather than arriving already stacked. */
 .plate-back {
-  transition: transform var(--dur-slow) var(--ease-out);
+  transition: transform var(--dur-base) var(--ease-out);
 }
 
-.scene.is-active .plate-back--1 { animation: plate-open-1 720ms var(--ease-out) 140ms both; }
-.scene.is-active .plate-back--2 { animation: plate-open-2 820ms var(--ease-out) 200ms both; }
+.scene.is-active .plate-back--1 { animation: plate-open-1 260ms var(--ease-out) 140ms both; }
+.scene.is-active .plate-back--2 { animation: plate-open-2 300ms var(--ease-out) 200ms both; }
 
 @keyframes plate-open-1 {
   from { transform: translate3d(0, 0, 0); opacity: 0; }

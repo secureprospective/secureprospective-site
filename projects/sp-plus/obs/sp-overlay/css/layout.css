@@ -174,8 +174,8 @@
   height: 736px;
   opacity: 0;
   overflow: visible;
-  transition: opacity var(--dur-slow) var(--ease-out),
-              transform var(--dur-slow) var(--ease-out);
+  transition: opacity var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
 }
 
 #markwire use {
@@ -194,6 +194,10 @@
                                               width: 820px; height: 839px; }
 #overlay-root[data-mark="centre"] #markwire { opacity: 0.20; left: 460px; top: 40px;
                                               width: 1000px; height: 1023px; }
+/* A cropped edge of the mark, running off the frame -- a seal pressed at the
+   margin rather than a reticle centred behind the content. */
+#overlay-root[data-mark="edge"]   #markwire { opacity: 0.26; left: 1420px; top: 300px;
+                                              width: 760px; height: 778px; }
 #overlay-root[data-mark="none"]   #markwire { opacity: 0; }
 
 /* --- corner brackets ---------------------------------------------------- */
@@ -282,11 +286,20 @@
 
 /* The rig scenes give the guest the whole frame: the rail and the brackets
    stand down, and only the lit edge remains. */
+/* Protection includes non-interference. When the guest's workstation is the
+   evidence, the overlay proves restraint: the rail, the brackets AND the pill
+   all stand down, leaving only the scene edge. */
 #overlay-root[data-chrome="min"] #chrome-rail,
-#overlay-root[data-chrome="min"] .bracket { opacity: 0; }
+#overlay-root[data-chrome="min"] .bracket,
+#overlay-root[data-chrome="min"] #rail,
+#overlay-root[data-chrome="min"] #rail-lamp,
+#overlay-root[data-chrome="min"] #rail-text { opacity: 0; }
 
 #chrome-rail,
-.bracket { transition: opacity var(--dur-base) var(--ease-out); }
+.bracket,
+#rail,
+#rail-lamp,
+#rail-text { transition: opacity var(--dur-base) var(--ease-out); }
 
 /* --- shared: the status pill -------------------------------------------- */
 
@@ -353,14 +366,29 @@
   background: transparent;
 }
 
-/* Corner ticks: the concept's inspection marker, parked at the aperture. */
+/* Corner ticks: the concept's inspection marker, parked at the aperture.
+   They are lit ONLY when the camera is actually reported ready. A complete
+   aperture with bright corners reads as an observed, live source -- so it has
+   to pass the same evidence gate as the text beside it. Unknown gets a dim
+   registration outline, never an inspected frame. */
 .camframe::before,
 .camframe::after {
   content: "";
   position: absolute;
   width: 16px;
   height: 16px;
-  border: 0 solid var(--yellow-accent);
+  border: 0 solid var(--hairline-bright);
+}
+
+#overlay-root[data-camera="ready"] .camframe::before,
+#overlay-root[data-camera="ready"] .camframe::after {
+  border-color: var(--yellow-accent);
+}
+
+/* An unobserved aperture recedes to a bare registration outline. */
+#overlay-root:not([data-camera="ready"]) .camframe {
+  border-style: dashed;
+  border-color: var(--hairline);
 }
 
 .camframe::before {
@@ -387,6 +415,8 @@
   background: var(--blue-lit);
 }
 
+/* The lit head of the edge is a claim about the guest, so it is gated like
+   every other affirmative mark. */
 .rig-edge::after {
   content: "";
   position: absolute;
@@ -394,6 +424,10 @@
   top: 0;
   width: 3px;
   height: 180px;
+  background: var(--hairline-bright);
+}
+
+#overlay-root[data-guest="ok"] .rig-edge::after {
   background: var(--yellow-accent);
 }
 
@@ -404,14 +438,15 @@
 
 /* --- SLATE -------------------------------------------------------------- */
 
-.slate-logo     { left: 600px; top: 168px; width: 720px; height: 176px; }
-.slate-rule     { left: 384px; top: 404px; width: 1152px; height: 1px; }
-.slate-chip     { left: 384px; top: 436px; width: 1152px; height: 24px;
-                  justify-content: center; }
-.slate-title    { left: 288px; top: 486px; width: 1344px; height: 104px; font-size: 92px;
-                  justify-content: center; }
-.slate-subtitle { left: 480px; top: 628px; width: 960px; height: 40px;
-                  justify-content: center; }
+/* Chapter-first: the number and title take the record-card position, and the
+   lockup drops to a footer credit. A slate that leads with the logo is a
+   holding card; a slate that leads with the chapter is a record. */
+.slate-index    { left: 288px; top: 300px; width: 400px; height: 20px; }
+.slate-chip     { left: 288px; top: 340px; width: 400px; height: 40px; }
+.slate-rule     { left: 288px; top: 412px; width: 1344px; height: 1px; }
+.slate-title    { left: 288px; top: 452px; width: 1344px; height: 112px; font-size: 96px; }
+.slate-topic    { left: 288px; top: 604px; width: 1344px; height: 24px; }
+.slate-logo     { left: 288px; top: 852px; width: 420px; height: 103px; }
 
 /* --- BRB ---------------------------------------------------------------- */
 
@@ -443,6 +478,12 @@
 
 /* The movement chip: an outlined index that fills yellow only once the number
    is genuinely known. */
+.slate-chip .chip {
+  min-width: 92px;
+  height: 40px;
+  font-size: 26px;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

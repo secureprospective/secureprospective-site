@@ -135,6 +135,14 @@ export class Renderer {
   apply(payload) {
     const d = derive(payload);
 
+    // Publish the signal states so CSS can gate affirmative geometry on them.
+    // An aperture, a lit edge or a bright corner is a claim that a source is
+    // observed, and a claim has to pass the same evidence gate as the text.
+    this.root.dataset.camera =
+      d.camValue === "READY" ? "ready" : "unknown";
+    this.root.dataset.guest =
+      d.vmValue === "OK" ? "ok" : "unknown";
+
     this.lastRailText = d.rail;
     if (this.setText(this.rail, d.rail)) {
       this.runSignal();
