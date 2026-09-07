@@ -14,15 +14,15 @@ records what must be verified before anything is built.
 | # | Decision | Rationale | Reversible? |
 |---|---|---|---|
 | D1 | Product is named **SP+** | Chosen by Christopher, 2026-08-25 | No |
-| D2 | Base is **Fedora 44** | Current stable since 2026-04-28; ~13-month support window | Yes, at cost |
-| D3 | Build architecture is **image mode (bootc)** | Reproducible, atomic, rollback-capable, registry-delivered. Document 2 §1-2. Independently reached by both research passes | Yes, before Phase 1 |
-| D4 | Derive from **`quay.io/fedora/fedora-kinoite:44`** (KDE) and **`quay.io/fedora/fedora-silverblue:44`** (GNOME) | Fedora maintains the desktop; SP+ maintains only its delta. Confirmed bootc-compatible by registry label inspection (`containers.bootc=1`, `ostree.bootable=true`, kernel `7.1.10-200.fc44`, rebuilt 2026-08-26). `quay.io/fedora-ostree-desktops/*` is the equivalent fallback address | Yes, before Phase 1 |
+| D2 | **Fedora 44/KDE is the active delivery base; Debian 13 Trixie/Cinnamon is the separate long-term distribution path** | Fedora bootc proves the immediate product; Debian provides a stable conventional-workstation path that Secure Prospective must deliberately learn to maintain. Document 11 | Yes, at cost |
+| D3 | Fedora uses **image mode (bootc)**; Debian uses **controlled mutability** rather than a false immutability claim | Fedora provides reproducible atomic deployments. Debian uses a constrained repository profile, managed updates, verified Btrfs snapshots, and explicit restore semantics. Document 11 | Yes, before either public release |
+| D4 | Derive the active Fedora edition from **`quay.io/fedora/fedora-kinoite:44`** (KDE); do not build a GNOME edition in the current direction | Fedora maintains the KDE desktop; SP+ maintains only its delta. Cinnamon is the Debian-path desktop. `quay.io/fedora-ostree-desktops/*` remains the equivalent fallback address | Yes, before Phase 1 |
 | D5 | **No out-of-tree kernel modules, no custom kernel** in v1 | Preserves stock Fedora Secure Boot with zero MOK enrollment. Document 2 §4 | Only with a designed MOK flow |
 | D6 | **Golden-image capture is a discovery technique, never a shipping mechanism** | Encryption, identity, and reproducibility all fail. Document 2 §1 Option D | No |
 | D7 | Encryption is established **on the user's machine at install time**, never preseeded | An ISO cannot hold a secret | No |
-| D8 | TPM2 enrollment and recovery-key generation are **first-boot steps** | Anaconda cannot do it. Document 2 §5 | No |
+| D8 | Recovery-key generation is a mandatory post-install step; TPM2 is separately gated | Fedora adds recovery key and TPM2 at first boot because Anaconda cannot enroll TPM2. Debian must prove its passphrase/recovery path before adding TPM2. Document 11 | No |
 | D9 | A **passphrase keyslot is retained permanently** alongside TPM2 | Firmware changes invalidate PCR 7 | No |
-| D10 | Install media is **`bootc-generic-iso` with a purpose-built SP+ installer container carrying Anaconda**, for both pilot and public release. A live "try SP+" ISO is a later optional artifact | `anaconda-iso` is the historical type; Anaconda already understands bootc, LUKS2, and destructive-operation confirmation, and is maintained by people who are not us. Revised after the parallel pass, document 7 §3-4 | Yes |
+| D10 | Fedora install media is **`bootc-generic-iso` with a purpose-built SP+ installer container carrying Anaconda**. Debian install media is a separately gated graphical live installer | Anaconda remains Fedora's installer of record. Debian must prove its own live-installer path before it becomes product infrastructure. Document 11 | Yes |
 | D11 | **Podman is a prerequisite** on any build host; the Docker path is deleted | Document 5 Part I §3 | No |
 | D12 | Three channels: `edge`, `next`, `stable`, with a canary ring | Document 4 §2 | Yes |
 | D13 | Images are **cosign-signed** and a signature policy ships in the image | Supply-chain integrity | No |
@@ -43,6 +43,7 @@ records what must be verified before anything is built.
 | D28 | The **Fedora 44 to 45 migration is a scheduled rehearsal**, run on the canary ring the week F45 ships (2026-10-20), not deferred | Christopher, 2026-08-26: slow early adoption means a small blast radius, which is exactly when you want to run this for the first time. Document 4 §5 | No |
 | D29 | The **first testable artifact is an ISO that completes an Anaconda install in QEMU** under enforced Secure Boot, before any bare-metal attempt | Christopher, 2026-08-26. A failed VM install costs a minute; a failed laptop install costs an evening. Document 3 §2.3 | No |
 | D30 | **Secure Boot is pre-tested in QEMU** using `OVMF_CODE_4M.secboot.fd` with `OVMF_VARS_4M.ms.fd`, and **gated on the Dell** | The MS-key VARS file enrolls Microsoft's KEK and db, so the shim signature is genuinely validated. Real firmware still gates. Document 3 §2.3-2.4 | No |
+| D31 | **Two-track platform direction:** Fedora/KDE is immediate; Debian Trixie/Cinnamon is the long-term distribution path | The platforms share the SP+ security, Fin, evidence, and advisor-workflow goals but have separate low-level update and recovery mechanisms. Document 11 is controlling. | Yes, before either public release |
 
 ---
 
@@ -277,3 +278,4 @@ Every one of these was true on 2026-08-25 and every one can change.
 | 2026-08-25 | Created. D1-D20 recorded; Q1-Q11 opened. |
 | 2026-08-26 | Session close. D28 (F45 as a scheduled rehearsal), D29 (QEMU-installable ISO is the first artifact), D30 (Secure Boot pre-tested in QEMU, gated on the Dell) recorded from Christopher's direction. Q6 gains row zero, the Dell. |
 | 2026-08-25 | Revised after the parallel research pass (document 7). D10 rewritten: Anaconda via `bootc-generic-iso` is the installer of record, and the live-ISO route is demoted to optional. D4 confirmed by registry label inspection. D21-D27 added. Q5 reframed. Q12-Q15 opened. Q1 extended to cover Brave's updater behavior on an immutable root. |
+| 2026-09-07 | D2-D4, D8, and D10 scoped to the active Fedora/KDE path and D31 added. Debian 13 Trixie/Cinnamon becomes the separately gated long-term distribution path. See `11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md`. |
