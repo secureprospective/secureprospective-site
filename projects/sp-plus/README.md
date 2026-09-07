@@ -23,8 +23,12 @@ Read in order. Each document assumes the ones before it.
 | 3 | [`docs/03-ISO-BUILD-PLAN.md`](docs/03-ISO-BUILD-PLAN.md) | The phased build plan from empty repository to a plug-and-play ISO, with a blocking gate on every phase |
 | 4 | [`docs/04-MAINTENANCE-AND-RELEASE.md`](docs/04-MAINTENANCE-AND-RELEASE.md) | The multi-year operating model: channels, signing, Fedora version migration, support, cost, and the discontinuation plan |
 | 5 | [`docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md`](docs/05-POSTMORTEM-ANTIPATTERNS-AND-BRANDING.md) | What went wrong on 2026-08-25 and why, 48 numbered anti-patterns, and the Fedora trademark obligations |
-| 6 | [`docs/06-OPEN-QUESTIONS-AND-DECISIONS.md`](docs/06-OPEN-QUESTIONS-AND-DECISIONS.md) | Decisions of record (D1–D30), open questions with owners (Q1–Q15), and the facts to re-verify before building |
+| 6 | [`docs/06-OPEN-QUESTIONS-AND-DECISIONS.md`](docs/06-OPEN-QUESTIONS-AND-DECISIONS.md) | Decisions of record (D1–D37), open questions with owners (Q1–Q19), and the facts to re-verify before building |
 | 8 | [`docs/08-BUILD-SESSION-HANDOFF.md`](docs/08-BUILD-SESSION-HANDOFF.md) | **Read this first if you are starting the build.** Build-host inventory, the first commands, the three things most likely to bite, and the calendar |
+| 9 | [`docs/09-BUTTERBIAN-BUTTERKNIFE-TRIAGE.md`](docs/09-BUTTERBIAN-BUTTERKNIFE-TRIAGE.md) | The durable research record on Butterbian-XFCE, Butterknife, and the JustAGuy ecosystem, and what SP+ may and may not take from them |
+| 10 | [`docs/10-BUTTERKNIFE-CINNAMON-AUDIT.md`](docs/10-BUTTERKNIFE-CINNAMON-AUDIT.md) | The read-only audit of a real Butterknife Cinnamon install in a KVM guest — what its installer, Btrfs layout, and Timeshift integration actually do |
+| 11 | [`docs/11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md`](docs/11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md) | **The controlling direction.** Fedora/KDE as the immediate product, Debian Trixie/Cinnamon as the long-term distribution, the Debian architecture from base to user experience, and delivery Gates A–D. It does not authorize implementation |
+| 12 | [`docs/12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`](docs/12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md) | How the Debian path gets built: what Fedora gave for free and Debian makes SP+ own, the six SP+ packages, the fail-closed managed update path, the Calamares and live-build configuration, and phases 0–E with their gates |
 
 Supporting records:
 

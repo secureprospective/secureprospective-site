@@ -1,7 +1,7 @@
 # SP+ — Decision Register and Open Questions
 
 **Document 6 of 6 in the SP+ planning set.**
-Status: living document. Last updated 2026-08-25.
+Status: living document. Last updated 2026-09-07.
 
 Part I records decisions that are made, so they are not relitigated. Part II records
 questions that are open, with who decides and what evidence would settle them. Part III
@@ -44,6 +44,12 @@ records what must be verified before anything is built.
 | D29 | The **first testable artifact is an ISO that completes an Anaconda install in QEMU** under enforced Secure Boot, before any bare-metal attempt | Christopher, 2026-08-26. A failed VM install costs a minute; a failed laptop install costs an evening. Document 3 §2.3 | No |
 | D30 | **Secure Boot is pre-tested in QEMU** using `OVMF_CODE_4M.secboot.fd` with `OVMF_VARS_4M.ms.fd`, and **gated on the Dell** | The MS-key VARS file enrolls Microsoft's KEK and db, so the shim signature is genuinely validated. Real firmware still gates. Document 3 §2.3-2.4 | No |
 | D31 | **Two-track platform direction:** Fedora/KDE is immediate; Debian Trixie/Cinnamon is the long-term distribution path | The platforms share the SP+ security, Fin, evidence, and advisor-workflow goals but have separate low-level update and recovery mechanisms. Document 11 is controlling. | Yes, before either public release |
+| D32 | The Debian installer is **stock Calamares 3.3 plus a `calamares-settings-spplus` package**; SP+ writes no installer code | Debian ships Calamares 3.3.14-1 in Trixie. `calamares-settings-debian` is ISC-licensed and described upstream as an example for derivatives, so its module layout is a supported starting point. Debian stock configuration yields a single `@rootfs` subvolume and LUKS1 with an encrypted `/boot`, so SP+ must own its settings package rather than patch the installer. Document 12 §4 | Yes, before Phase A. **Durable architecture decision: expert-AI panel before the first build.** |
+| D33 | **No grub-btrfs and no snapshot boot menu.** Recovery is Timeshift restore, from the running system or from the SP+ live USB | grub-btrfs is not packaged in any Debian suite, so shipping it means owning a boot-critical third-party component. Two named restore operations are simpler to document, to test, and to explain to a non-technical advisor. Document 12 §3 | Yes, at cost |
+| D34 | **Fin ships on Debian as `sp-plus-fin`**, vendoring a pinned Node 22 from the nodejs.org tarball, SHASUMS-verified, plus a pinned `pi`. npm is not present on the installed machine | Trixie carries nodejs 20.19.2 and there is no backport; `pi` requires Node >= 22.19.0. Vendoring inside one package keeps the runtime pinned and auditable, and keeps a second ecosystem's package manager off the advisor machine. Document 12 §2 | Yes, before Phase D |
+| D35 | **Debian artifacts are built on the Beelink with reproducibility gates and published to Cloudflare R2.** CI is deferred to Phase E | The Fedora lane is already Beelink-built and there is no `.github/` in the repository. This records a deliberate tension with D20: the build host is a single machine until the release lane exists. Document 12 §5 | Yes, at Phase E |
+| D36 | The managed update path is **fail-closed: snapshot creation and verification precede any APT transaction**, and a failure stops the update and is reported as degraded | A snapshot that was never verified is not protection, and silently proceeding is the failure this product exists to prevent. Document 11 semi-immutable operating model; Document 12 §3 | No |
+| D37 | **Debian trust roots are Debian and the SP+ repository only**, enforced by APT pinning. Backports are enabled per package, never as a suite | Every additional origin is a permanent supply-chain obligation. Pinning makes the boundary mechanical rather than a matter of discipline. Document 11 repository profile; Document 12 §2 | Yes, per package |
 
 ---
 
@@ -238,6 +244,46 @@ the four outcomes and could ship far sooner.
 *Owner:* Christopher. *Deadline:* before Phase 2. *This is a scope question, not a
 technical one, and it deserves a deliberate answer rather than momentum.*
 
+### Q16 — dracut or initramfs-tools as the Debian product default?
+
+**Open.** TPM2 unlock through `systemd-cryptenroll` requires dracut on Trixie;
+initramfs-tools ignores `tpm2-device`. initramfs-tools is Debian's default and the
+better-trodden path for everything else. Swapping the initramfs generator is a
+boot-critical change, so it is confined to Gate B and does not touch Gate A. If Gate B
+fails, initramfs-tools stands and TPM stays out of the product.
+
+*Owner:* engineering. *Deadline:* Gate B.
+
+### Q17 — Firefox ESR or a Chromium-family browser on Debian?
+
+**Open.** This inherits Q1 rather than reopening it. Firefox ESR is the repository-first
+supported browser on the Debian path. A Chromium-family browser, including Brave, remains
+a compatibility exception that must be earned by carrier-portal and PWA evidence, and it
+must not become a reason to add an uncontrolled APT repository to every machine.
+
+*Owner:* Christopher. *Deadline:* Gate D, on Q1 evidence.
+
+### Q18 — What does Timeshift restore look like for a non-technical advisor?
+
+**Open.** With no snapshot boot menu (D33), the rescue path is: boot the SP+ live USB,
+unlock the LUKS volume, open Timeshift, select a snapshot, restore. Each of those steps is
+a place an advisor can stall, and the LUKS unlock in particular happens before any
+familiar interface appears. The question is whether this is walkable with a printed card
+and the help corpus, or whether it needs a purpose-built rescue front end.
+
+*Owner:* Christopher, with engineering evidence. *Deadline:* Gate A, since Gate A already
+requires proving a permanent restore from the USB.
+
+### Q19 — Is Cloudflare R2 a sound APT origin?
+
+**Open.** APT clients revalidate `InRelease` on every update, and object-storage caching
+and TLS behaviour differ from a conventional mirror. Unverified: how R2 handles
+conditional requests for `InRelease`, whether stale caching can serve an out-of-date index
+alongside fresh packages, and what that does to APT's own freshness checks. This must be
+tested with a real client before any machine outside the lab updates from it.
+
+*Owner:* engineering. *Deadline:* Phase E.
+
 ---
 
 ## Part III — Facts to re-verify before building
@@ -279,3 +325,4 @@ Every one of these was true on 2026-08-25 and every one can change.
 | 2026-08-26 | Session close. D28 (F45 as a scheduled rehearsal), D29 (QEMU-installable ISO is the first artifact), D30 (Secure Boot pre-tested in QEMU, gated on the Dell) recorded from Christopher's direction. Q6 gains row zero, the Dell. |
 | 2026-08-25 | Revised after the parallel research pass (document 7). D10 rewritten: Anaconda via `bootc-generic-iso` is the installer of record, and the live-ISO route is demoted to optional. D4 confirmed by registry label inspection. D21-D27 added. Q5 reframed. Q12-Q15 opened. Q1 extended to cover Brave's updater behavior on an immutable root. |
 | 2026-09-07 | D2-D4, D8, and D10 scoped to the active Fedora/KDE path and D31 added. Debian 13 Trixie/Cinnamon becomes the separately gated long-term distribution path. See `11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md`. |
+| 2026-09-07 | D32-D37 recorded and Q16-Q19 opened, covering the Debian live installer, the fail-closed managed update path, the SP+ package set, and the release lane. See `12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`. |

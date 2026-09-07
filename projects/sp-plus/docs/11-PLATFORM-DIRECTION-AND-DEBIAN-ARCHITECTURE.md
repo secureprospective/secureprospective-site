@@ -39,8 +39,8 @@ Debian 13 Trixie
 
 - The installer creates an unencrypted EFI System Partition and `/boot`, plus a LUKS2-encrypted Btrfs system volume. Product language must say **“encrypted system and user-data volume with unencrypted boot partitions,”** not claim literal encryption of every byte.
 - The advisor creates a permanent LUKS passphrase. A recovery key is generated, shown once, confirmed, and never retained in logs, the ISO, or the installed system.
-- Btrfs uses a clear subvolume layout: `@`, `@home`, `@var_log`, `@var_cache`, and `@var_tmp`. Timeshift creates local recovery snapshots; grub-btrfs may provide snapshot boot entries.
-- Snapshot boot, permanent restore, and external backup are three separate operations. Local snapshots are not a disk-failure backup and are not bootc-equivalent atomic rollback.
+- Btrfs uses a clear subvolume layout: `@`, `@home`, `@var_log`, `@var_cache`, and `@var_tmp`. Timeshift creates local recovery snapshots. There is no snapshot boot menu: grub-btrfs is not packaged in any Debian suite and is out of scope (D33). Recovery is Timeshift restore, either from the running system or from the SP+ live USB. See `12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`.
+- Undoing the last update, permanent restore from the live USB, and external backup are three separate operations. Local snapshots are not a disk-failure backup and are not bootc-equivalent atomic rollback.
 - TPM2 is convenience only. It is a later, separately gated capability and can never displace the passphrase and recovery key.
 
 ### Semi-immutable operating model
@@ -104,7 +104,7 @@ Add virtual TPM2 to the already-passing Gate A system. Test enrollment through t
 
 ### Gate C — managed update and recovery
 
-Prove that the SP+ maintenance path blocks or plainly reports missing snapshots, records the update and snapshot identifiers, retains a bootable kernel, handles disk-pressure limits, and distinguishes temporary snapshot boot from permanent restore.
+Prove that the SP+ maintenance path blocks or plainly reports missing snapshots, records the update and snapshot identifiers, retains a bootable kernel, handles disk-pressure limits, and distinguishes undoing the last update on a running system from a permanent restore performed from the SP+ live USB.
 
 ### Gate D — advisor workflow and supportability
 
