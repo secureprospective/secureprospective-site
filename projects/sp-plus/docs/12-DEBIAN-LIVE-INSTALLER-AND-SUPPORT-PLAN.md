@@ -1,6 +1,6 @@
 # SP+ — Debian Live Installer and Support Plan
 
-**Status:** plan, 2026-09-07
+**Status:** plan, revision 2, 2026-09-07 — revised after an independent verification audit (`docs/ledger/AUDIT-2026-09-07-doc12-bee.md`) found three incorrect facts in §0, an incorrect premise under D32, and an unaddressed hardware-enablement gap
 **Decision owner:** Christopher
 **Scope:** the Debian live installer and the support infrastructure the Debian path requires. It authorizes nothing by itself; Phase 0 begins only on Christopher's approval.
 
@@ -8,25 +8,34 @@ Document 11 set the Debian direction and deliberately stopped there. This docume
 
 ## 0. Fact base and re-verification list
 
-Every row below was checked on 2026-09-07 against the cited source. Each carries the phase before which it must be checked again, because every one of them can change. The table is a re-verification list. It is not evidence that any build, gate, or test has passed.
+Every row below was checked on 2026-09-07 against the cited source, and the observation recorded is what the source actually says rather than what the plan expected it to say. Each row carries the phase before which it must be checked again, because every one of them can change. The table is a re-verification list. It is not evidence that any build, gate, or test has passed.
+
+A row marked **UNVERIFIED** is a claim this plan has not established. It may be true. It is not permitted to carry weight in a decision until it is checked, and any decision resting on one is provisional by construction.
 
 | Fact, as verified 2026-09-07 | Source | Re-verify before |
 |---|---|---|
 | Calamares in Trixie is **3.3.14-1**. | [sources.debian.org/src/calamares](https://sources.debian.org/src/calamares/) | Phase 0 |
 | live-build in Trixie is **1:20250505+deb13u1**. | [sources.debian.org/src/live-build](https://sources.debian.org/src/live-build/) | Phase 0 |
-| Timeshift in Trixie is **24.06.6-2**. | [sources.debian.org/src/timeshift](https://sources.debian.org/src/timeshift/) | Phase C |
-| Cinnamon in Trixie is **6.4.10** (6.4.10-2+deb13u1 is staged in trixie-proposed-updates). | [sources.debian.org/src/cinnamon](https://sources.debian.org/src/cinnamon/) | Phase A |
+| Timeshift in Trixie is **24.06.6-2**. This is upstream's current line; there is no newer Timeshift to pursue. | [sources.debian.org/src/timeshift](https://sources.debian.org/src/timeshift/) | Phase C |
+| Cinnamon in Trixie is **6.4.10-2** (6.4.10-2+deb13u1 staged in proposed-updates). Newer suites carry 6.6.9-2. Per D38 the Trixie version is the target. | [sources.debian.org/src/cinnamon](https://sources.debian.org/src/cinnamon/) | Phase A |
 | Node.js in Trixie is **20.19.2+dfsg-1+deb13u2**, and there is **no trixie-backports entry** — only sid and forky carry Node 22 and 24. | [sources.debian.org/src/nodejs](https://sources.debian.org/src/nodejs/) | Phase D |
-| **grub-btrfs is not packaged in any Debian suite.** The source-package query returns 404. | [sources.debian.org/src/grub-btrfs](https://sources.debian.org/src/grub-btrfs/) — HTTP 404 | Phase C |
-| `pi` (`@earendil-works/pi-coding-agent` 0.85.1) requires **Node >= 22.19.0**, which Trixie cannot supply. Taken with the row above, this is why D34 vendors Node. | Package metadata, recorded 2026-09-07 | Phase D |
-| Calamares 3.3 supports `luksGeneration: luks2` in `partition.conf` and a configurable `btrfsSubvolumes` list in `mount.conf`, defaulting to `@ @home @cache @log`. | Calamares 3.3 module configuration, recorded 2026-09-07 | Phase A |
-| Debian's stock Calamares configuration produces a **single `@rootfs` subvolume and LUKS1 with an encrypted `/boot`** — neither of which matches document 11. This is the reason SP+ must ship its own settings package rather than accept the default. | `calamares-settings-debian`, recorded 2026-09-07 | Phase 0 |
-| `calamares-settings-debian` is **ISC-licensed** and is described upstream as an example for derivatives. Its module layout — partition, mount, users, bootloader, packages, plus the `sources-media` and `sources-final` helpers — is a supported starting point. | `calamares-settings-debian`, recorded 2026-09-07 | Phase 0 |
-| TPM2 enrolment via `systemd-cryptenroll` requires **dracut** on Trixie; initramfs-tools ignores `tpm2-device`. This is why TPM is Gate B only and touches nothing in Gate A. | Recorded 2026-09-07; see Q16 | Phase B |
-| Debian point releases arrive roughly every two months. Trixie EOL is approximately **2028-06**, with LTS beyond it. | Debian release policy, recorded 2026-09-07 | Phase E |
-| The repository holds **no `.github/`**; the Fedora lane is already Beelink-built. This is the ground for D35 and for deferring CI to Phase E. | This repository: `git ls-files \| grep '^\.github/'` returns nothing, 2026-09-07 | Phase E |
+| `pi` (`@earendil-works/pi-coding-agent` 0.85.1) requires **Node >= 22.19.0**, which Trixie cannot supply. | [registry.npmjs.org metadata](https://registry.npmjs.org/@earendil-works%2fpi-coding-agent/0.85.1) | Phase D |
+| Node upstream ships **separate `linux-x64` and `linux-arm64` binaries**; there is no architecture-independent Node tarball. | [nodejs.org/dist/v22.19.0](https://nodejs.org/dist/v22.19.0/) | Phase D |
+| **grub-btrfs is absent from the Debian source index.** The source-package query returns HTTP 404. This establishes absence from Debian, not absence from every third-party repository — which is sufficient for D33, since D37 admits no third-party repositories. | [sources.debian.org/src/grub-btrfs](https://sources.debian.org/src/grub-btrfs/) — HTTP 404 | Phase C |
+| Upstream Calamares 3.3 defaults to **`luksGeneration: luks1`** and **`defaultFileSystemType: "ext4"`**. | [partition.conf lines 102, 210](https://sources.debian.org/data/main/c/calamares/3.3.14-1/src/modules/partition/partition.conf) | Phase 0 |
+| Upstream Calamares 3.3 `mount.conf` defines `btrfsSubvolumes` as **`/@`, `/@home`, `/@cache` (at `/var/cache`), `/@log` (at `/var/log`)**. There is no `@var_tmp` and no `@rootfs`. | [mount.conf lines 50–61](https://sources.debian.org/data/main/c/calamares/3.3.14-1/src/modules/mount/mount.conf) | Phase 0 |
+| `calamares-settings-debian` **ships no `partition.conf` at all**, and its `mount.conf` defines only `extraMounts` — no `btrfsSubvolumes`. Debian's stock installer therefore **inherits the upstream defaults above**: LUKS1, ext4, and the upstream subvolume names. | [module directory listing](https://sources.debian.org/api/src/calamares-settings-debian/13.0.13-1/calamares/modules/) · [its mount.conf](https://sources.debian.org/data/main/c/calamares-settings-debian/13.0.13-1/calamares/modules/mount.conf) | Phase 0 |
+| `calamares-settings-debian` is **ISC-licensed** and is described upstream as a settings package for derivatives. It is a starting point for layout and packaging conventions; it is **not** an implementation of the SP+ storage design. | [package](https://packages.debian.org/trixie/calamares-settings-debian) · [copyright](https://sources.debian.org/data/main/c/calamares-settings-debian/13.0.13-1/debian/copyright) | Phase 0 |
+| **Trixie full support ends 2028-08-09; LTS ends 2030-06-30.** | [debian.org/releases](https://www.debian.org/releases/) | Phase E |
+| Firmware packages exist in Trixie at **20250410-2** for Intel (`firmware-iwlwifi`), Realtek (`firmware-realtek`), Atheros/Qualcomm (`firmware-atheros`), Broadcom (`firmware-brcm80211`) and MediaTek (`firmware-mediatek`); Intel audio DSP is `firmware-sof-signed` 2025.01-1. | [packages.debian.org/trixie/firmware-iwlwifi](https://packages.debian.org/trixie/firmware-iwlwifi) and sibling package pages | Phase A |
+| `firmware-b43-installer` and `firmware-b43legacy-installer` **fetch firmware over the network at install time**. They provide no offline coverage. | [packages.debian.org/trixie/firmware-b43-installer](https://packages.debian.org/trixie/firmware-b43-installer) | Phase A |
+| The Trixie kernel is **`linux-image-amd64` 6.12.107-1**. It sets the driver baseline; it does not imply firmware coverage. | [packages.debian.org/trixie/linux-image-amd64](https://packages.debian.org/trixie/linux-image-amd64) | Phase A |
+| **UNVERIFIED —** that TPM2 enrolment via `systemd-cryptenroll` *requires* dracut on Trixie and that initramfs-tools cannot support it. `systemd-cryptenroll` supports TPM2 and dracut is packaged, but no source checked establishes the requirement. Bug #1031254 records TPM-related failures without proving the general claim. Q16 owns this. | [systemd-cryptenroll(1)](https://www.freedesktop.org/software/systemd/man/latest/systemd-cryptenroll.html) · [Bug #1031254](https://bugs.debian.org/1031254) | Phase B — **must be settled before any TPM work is scheduled** |
+| **UNVERIFIED —** that no CI exists for the Fedora lane. `git ls-files \| grep '^\.github/'` returns nothing in this repository as of 2026-09-07, which proves only that this tree tracks no workflow files. | This repository, 2026-09-07 | Phase E |
 
-Two rows above are negative findings, and they are the load-bearing ones. grub-btrfs is absent from Debian entirely, which is what makes D33 a matter of fact rather than taste. Node 22 is absent from Trixie and from its backports, which is what makes D34's vendoring the only honest route to Fin on this platform.
+Three rows are load-bearing negatives. grub-btrfs is absent from Debian, which makes D33 a matter of fact rather than taste. Node 22 is absent from Trixie and its backports, and no architecture-independent Node binary exists, which together set the terms of D34. And Debian's stock Calamares settings override neither the encryption nor the subvolume defaults, which is why SP+ must ship its own `partition.conf` and `mount.conf` — the subject of D32.
+
+The two UNVERIFIED rows are recorded as such deliberately. An earlier draft of this table asserted the dracut requirement and a `@rootfs` subvolume layout as established facts; neither survived checking, and the `@rootfs` layout does not exist in any source consulted. The correction is the reason this table now separates what was observed from what was assumed.
 
 Existing Fedora assets that port to Debian unchanged: `knowledge/`, `helpapp/`, `welcome/`, `playbooks/`, `runtime/spplus_rpc.py`, the Fin prompt, skills and extensions, `branding/`, the LibreOffice `.xcd` files, and the `tests/` gates covering them. Everything bootc-specific — `spplus-stage-update*`, `spplus-update-control`, `spplus-update-health`, the polkit rules, and the `bootc status` evidence path — needs a Debian equivalent, and §3 is where that equivalent is designed.
 
@@ -40,7 +49,7 @@ Fedora/KDE provides the immediate proving ground through the bootc model. The De
 | Install media | `bootc-generic-iso` | live-build ISO + `calamares-settings-spplus` | medium |
 | Atomic update + rollback | `bootc upgrade` / `rollback` | `spplus-maintain`: snapshot-verify → apt → kernel-retain → record → offer restart; fail-closed | **large — the real infra** |
 | Supply-chain trust | cosign policy in image | GPG-signed APT repo (`reprepro` on Beelink → R2), key in `sp-plus-keyring` with two-key overlap | medium |
-| Product software delivery | image layers | 6 arch-all `.debs` | medium |
+| Product software delivery | image layers | 6 `.debs`, five arch-all (§2) | medium |
 | Apps | Flatpak on immutable root | same: one Flathub allowlist, Firefox ESR from Debian | small |
 | Evidence report | `bootc status` + LUKS + `mokutil` | `apt` state + Timeshift snapshot list + LUKS + `mokutil` | small |
 | Fin | pi via npm in image | `sp-plus-fin` `.deb` with vendored Node 22 | small, off critical path |
@@ -75,18 +84,34 @@ If snapshot creation or verification fails, the update stops or reports degraded
 
 ### 1.4 Supply-chain trust
 
-Fedora's comparison point is a cosign policy in the image. Debian SP+ must operate a GPG-signed APT repository. The repository configuration uses `reprepro` on Beelink and publishes to R2. `sp-plus-keyring` carries the repository signing public keys. The keyring has two slots for key rotation and overlap. The repository configuration under `repo/` contains no keys.
+**What this protects, and from what.** Every SP+ machine will, on a schedule, download software and run it as root. That is the update path, and it is the most dangerous thing the product does routinely. The question this section answers is: *when the machine installs a package, how does it know that package came from us and not from someone else?*
 
-D37 defines the intended trust roots:
+The threat is not an advisor doing something careless. It is an attacker who can answer the machine's download request — a hostile network, a compromised mirror, a stolen hosting account — and hand it a package that installs cleanly and does whatever they want. The advisor sees a normal update. There is nothing to notice.
 
-- Debian;
-- the SP+ repository.
+**The mechanism that answers it is a signature, and only a signature.** SP+ operates a GPG-signed APT repository. Debian's package manager verifies the repository's signature before it trusts a package list, and the machine holds the public half of that key in `sp-plus-keyring`. A package that is not covered by a signature the machine already trusts does not install. This is the whole of the protection; everything else in this section is bookkeeping around it.
 
-APT pinning enforces the Debian and SP+ source boundary. Backports are per-package exceptions only. Backports are not enabled by default. The repository design does not authorize generic third-party APT sources. Q19 remains open: whether R2 is a suitable APT origin, including the required `InRelease` caching and TLS behavior. The plan records R2 as the intended hosting lane without treating that open question as resolved.
+The bookkeeping matters because the key is a long-lived secret that can be lost or stolen:
+
+- `sp-plus-keyring` carries **two key slots**, so a key can be replaced while the old one is still accepted. Without overlap, rotating a key strands every machine that has not updated yet.
+- The `repo/` configuration in this repository contains **no private keys**, and never will.
+- `reprepro` on the Beelink assembles and signs the repository; R2 hosts the result. **Hosting is not trust** — R2 serves bytes, and the signature is what makes those bytes safe. A compromised R2 bucket cannot forge a package, only withhold or replay one.
+
+**What pinning does and does not do.** D37 names two trust roots, Debian and SP+, and APT pinning enforces that boundary. Pinning selects *which candidate wins* when two repositories offer the same package. It is a policy about preference, **not an authentication mechanism** — it does not verify a signature and does not decide which keys are trusted. That job belongs to `Signed-By` in the deb822 source entry, which binds a repository to a specific key. Earlier drafts of this plan blurred the two; they are separate controls and both are required.
+
+Backports are per-package exceptions under D37, never a standing source.
+
+**What is still unowned.** This section defines the shape of the trust model, not its operation. The following are open and must be settled before the repository carries a real update — they are grouped under the APT trust decision in §5:
+
+- the exact `Signed-By` binding and how the keyring reaches a machine during installation, before any network update has run;
+- pin priority values, and what happens when the SP+ repository is unreachable — the update must fail closed, not silently fall through to another source;
+- key rotation and revocation procedure, and the response if a signing key is believed compromised;
+- Q19: whether R2 is a sound APT origin, including `InRelease` caching behaviour and TLS.
+
+Until those are settled, this plan describes an intended trust model and not an operating one.
 
 ### 1.5 Product software delivery
 
-Fedora supplies product software through image layers. Debian supplies the six SP+ packages described in §2. The packages are arch-all. They are built with `dpkg-deb` and `debhelper` on Beelink.
+Fedora supplies product software through image layers. Debian supplies the six SP+ packages described in §2. They are built with `dpkg-deb` and `debhelper` on Beelink. Five of the six are genuinely architecture-independent; `sp-plus-fin` is not, and §2 states why.
 
 `sp-plus-base` supplies the operating-system overlay and package policy. `sp-plus-desktop` supplies Cinnamon defaults and desktop configuration. `sp-plus-maintain` supplies the maintenance, evidence, first-login, welcome, and help path. `sp-plus-fin` supplies Fin outside the critical update path.
 
@@ -123,7 +148,9 @@ The Debian support surface is larger than the ISO. Secure Prospective must maint
 
 ## 2. SP+ package set
 
-All six packages are arch-all. All six are built with `dpkg-deb` and `debhelper` on Beelink.
+Five of the six packages are `Architecture: all`. All six are built with `dpkg-deb` and `debhelper` on Beelink.
+
+**`sp-plus-fin` cannot honestly be `Architecture: all`.** It vendors a Node runtime, and upstream Node ships separate `linux-x64` and `linux-arm64` binaries with no architecture-independent build (§0). A package declaring `Architecture: all` while embedding one architecture's binary is mislabelled, and would install on hardware it cannot run on. The resolution is owned by the Fin architecture decision in §5; the options are to declare `sp-plus-fin` `Architecture: amd64`, to split it per architecture, to depend on an architecture-specific runtime package, or to drop Fin from the base image. This plan does not choose between them, and Phase D does not begin until one is chosen.
 
 | Package | Required contents |
 |---|---|
@@ -212,7 +239,7 @@ pi is pinned. The Fin launcher, prompts, skills, and extensions are packaged wit
 
 ### 3.1 Trigger and cadence
 
-DN-30 is reused verbatim. The Debian interpretation changes the meaning of stage and apply but not the cadence.
+DN-30 is **not** reused verbatim, and earlier drafts of this section said it was. DN-30 specifies a fortnightly cadence keyed to ISO-week parity with a Sunday reboot two days after the Friday stage; the Debian text below describes a weekly cadence. The two are different policies. Until Christopher rules, DN-30's cadence stands as written and the Debian lane inherits it unchanged; any divergence needs its own decision number rather than a quiet restatement here.
 
 | Event | Time | Debian action |
 |---|---|---|
@@ -359,7 +386,19 @@ A custom kernel is not added. Out-of-tree kernel modules are not added to the su
 
 ### 4.2 Calamares target layout
 
-Calamares owns the target layout through the specified configuration files.
+Calamares owns the target layout through the specified configuration files. **Every setting in the table below is an override.** Stock Calamares 3.3 defaults to LUKS1 and ext4, and `calamares-settings-debian` ships no `partition.conf` at all and no `btrfsSubvolumes` in its `mount.conf` — so Debian's stock installer inherits those upstream defaults (§0). Nothing in the SP+ storage design is obtained by installing an existing package and accepting what it does.
+
+This is the substance of D32. The work is *settings-package configuration*, not writing installer code: `calamares-settings-spplus` supplies the module configuration that stock Calamares then executes. That distinction is what keeps the maintenance burden bounded, and it is also why the layout below is unproven until Gate A actually installs it. A configuration file asserting `luks2` is not evidence that the installed target is LUKS2; `cryptsetup luksDump` on the installed machine is.
+
+The delta from stock, stated plainly:
+
+| Setting | Stock default | SP+ requires |
+|---|---|---|
+| LUKS generation | `luks1` | `luks2` |
+| Root filesystem | `ext4` | `btrfs` |
+| Btrfs subvolumes | `/@`, `/@home`, `/@cache`, `/@log` | `@ @home @var_log @var_cache @var_tmp` |
+
+The subvolume names differ from upstream's even where the mount points coincide, and `@var_tmp` has no upstream equivalent. Timeshift's documented Btrfs support is written around `@` and `@home`; whether it behaves correctly with the three additional subvolumes is **not established** and is part of the Phase C snapshot gate, not an assumption this section is entitled to make.
 
 | Configuration | Required setting |
 |---|---|
@@ -400,7 +439,7 @@ The mount options are:
 compress=zstd:1 noatime
 ```
 
-The user configuration creates one user. Autologin is off. The user is in the sudo group. The advisor's direct APT and dpkg path is still blocked by the policy in §3. `packages.conf` removes packages needed only by the live environment. `bootloader.conf` selects `grub-efi`.
+The user configuration creates one user. Autologin is off. The user is in the sudo group. The advisor's direct APT and dpkg path is still blocked by the policy in §3. `packages.conf` removes packages needed only by the live environment. `bootloader.conf` selects `grub-efi`. That value names the bootloader family, **not** Debian's signed-shim chain; the exact signed packages on the installed target, and a post-install boot test with Secure Boot still enabled, are required by the Secure Boot decision in §5. Signed boot components being present on the live medium is not proof that the installed system uses them.
 
 ### 4.3 Recovery-key timing
 
@@ -447,6 +486,49 @@ ISO acceptance follows the existing `tests/preflight-gate.sh` pattern.
 
 The acceptance check does not replace the installation gate. A signed ISO that does not install the target layout has not passed. A manifest that does not match the intended package input has not passed. A BIOS-only result does not pass the UEFI product gate. A path that requires firmware changes or MOK enrollment is outside the supported hardware list until a product-approved path exists.
 
+### 4.6 Hardware enablement and firmware
+
+Advisors buy the laptop they buy. HP business and consumer models are common in this market, and the machine that arrives is chosen by a purchasing decision SP+ does not control. A product that installs cleanly in a virtual machine and cannot bring up wireless on the advisor's actual laptop has not shipped.
+
+**Enabling an archive area is not installing firmware.** §2 puts `non-free-firmware` in the deb822 sources, and earlier drafts of this plan treated that as the hardware story. It is not. The archive area makes firmware packages *available to install*; it does not place a single firmware file in the live image or on the installed system. Those are separate acts and each needs its own package list.
+
+The distinction has a sharp consequence. If the live ISO does not itself carry wireless firmware, then on a laptop whose only network is that wireless chip, **the installer boots with no network at all**. Every step that assumes connectivity — fetching packages, reaching the SP+ repository, validating the keyring against a live source — fails on exactly the hardware this section exists to support. The installation must therefore be self-sufficient: everything the target needs is on the medium before it boots.
+
+**Firmware packages, verified present in Trixie 2026-09-07.** Versions are `20250410-2` unless noted.
+
+| Coverage | Package |
+|---|---|
+| Intel wireless | `firmware-iwlwifi` |
+| Realtek wireless | `firmware-realtek` |
+| Qualcomm / Atheros wireless | `firmware-atheros` |
+| Broadcom / Cypress wireless | `firmware-brcm80211` |
+| MediaTek wireless | `firmware-mediatek` |
+| Intel audio DSP | `firmware-sof-signed` (2025.01-1) |
+| Bluetooth | `bluez-firmware` (1.2-13) |
+| AMD / Intel graphics | `firmware-amd-graphics`, `firmware-intel-graphics` |
+
+**Explicitly excluded: `firmware-b43-installer` and `firmware-b43legacy-installer`.** These are not firmware packages; they are downloaders that fetch firmware over the network during installation. They cannot work in the offline case above, and a package that silently requires connectivity in an installer designed to work without it is worse than an unsupported chipset — it fails late, in front of the advisor, with no clear cause. Older Broadcom b43 hardware is therefore **outside the supported hardware list** until a package-complete path exists.
+
+Both the live image and the installed target carry the firmware set. The live image needs it to install; the target needs it to boot afterwards. Neither inherits it from the other.
+
+**What is not yet established.** The package list above is the coverage Debian offers, not proof that any specific machine works. No SP+ document currently names a single HP model, and no chipset in any advisor's actual laptop has been mapped to a package. That mapping is the substance of the hardware decision in §5, and until it exists the supported hardware list is empty rather than broad.
+
+**The firmware gate.** Phase A does not pass on a virtual machine alone. On at least one real target laptop, all of the following must be observed and recorded:
+
+| # | What must be proven |
+|---|---|
+| 1 | Wireless works **in the live session**, before installation begins |
+| 2 | A full installation completes **with the network cable unplugged and wireless unconfigured** |
+| 3 | After first reboot, wireless and Bluetooth work on the installed system |
+| 4 | Audio initialises and plays |
+| 5 | Suspend and resume return to a working desktop, with wireless still up |
+| 6 | Internal storage and UEFI boot behave, with Secure Boot enabled and no MOK enrolment |
+| 7 | `fwupdmgr get-devices` reports the machine's devices |
+| 8 | The exact model, wireless chipset (`lspci -nn`), and firmware package supplying it are **recorded in the ledger** |
+| 9 | Behaviour when firmware is genuinely absent is observed and documented — the machine must say so plainly, not fail silently |
+
+Row 8 is what turns a passing test into a supported-hardware entry. A model that has not been through this table is not supported; it is untested, and the two must never be reported as the same thing.
+
 ## 5. Phases and gates
 
 The phases are sequential. Each phase blocks the next. There is no overlap, following D18. A later gate cannot be passed by inference from Butterknife, Fedora, or a BIOS-only virtual machine.
@@ -457,7 +539,7 @@ The phase table is:
 |---|---|---|
 | 0 Scaffold | `debian/` tree, 6 empty-but-installable packages, repository signing key generated offline, `build-live.sh`, `build-packages.sh`, `publish-repo.sh` that refuses unsigned or older artifacts and mirrors `publish-image.sh` | Packages install on a stock Trixie VM; the repository verifies from a second VM |
 | A Installer + encryption + recovery | Live ISO installs unattended-by-config into a disposable OVMF Secure Boot VM with no TPM | Document 11 Gate A: LUKS2 passphrase, first-login recovery key shown once and works, Secure Boot stays on, no MOK, Timeshift snapshot and permanent restore from the SP+ USB proven, `mokutil --sb-state` and `cryptsetup luksDump` recorded |
-| B TPM2 | dracut swap plus `systemd-cryptenroll --tpm2-pcrs` policy, Q15 | Document 11 Gate B; if it fails, Gate A stands |
+| B TPM2 | initramfs implementation per Q16, plus `systemd-cryptenroll --tpm2-pcrs` policy | Document 11 Gate B; if it fails, Gate A stands |
 | C Managed update | `spplus-maintain` end to end on the Gate A VM | Document 11 Gate C: fail-closed behavior proven by deliberately breaking snapshot creation; record written; two kernels retained; DN-30 timers fire |
 | D Advisor workflow | Fin, Welcome, help, evidence, Firefox ESR PWAs, and the LibreOffice parity gate ported; bare metal on HW-00 Dell | Document 11 Gate D; Christopher uses it |
 | E Release lane | R2 hosting, portal download, mile-marker tagging, quarterly ISO | The first external machine updates from R2 |
@@ -477,7 +559,7 @@ The deliverable is:
 
 `publish-repo.sh` refuses unsigned artifacts. `publish-repo.sh` refuses older artifacts. Its refusal behavior mirrors `publish-image.sh`. The package build uses `dpkg-deb` and `debhelper`.
 
-The package set is arch-all. All six packages use the same `BUILD_ID`. The live-build configuration is present in `live/`. The repository configuration is present in `repo/`.
+The package set is `Architecture: all` except `sp-plus-fin` (§2). All six packages use the same `BUILD_ID`. The live-build configuration is present in `live/`. The repository configuration is present in `repo/`.
 
 The repository configuration contains no keys. The script and package trees are present in `scripts/` and `packages/<name>/`. D32 is a quality gate before the installer build. The expert-AI panel must review the durable stock-Calamares decision before that build begins. Christopher's approval is also required before Phase 0 begins. The Phase 0 gate has two checks.
 
@@ -520,7 +602,7 @@ The planned implementation is a dracut swap with:
 systemd-cryptenroll --tpm2-pcrs
 ```
 
-The policy is associated with Q15. Q16 remains open: dracut versus initramfs-tools as the product default.
+Q15 is the Fedora PCR-policy question and does not govern this lane. The Debian question is **Q16**: dracut versus initramfs-tools as the product default. The dracut requirement is recorded as UNVERIFIED in §0, so Phase B begins by settling Q16 with a test, not by assuming its answer.
 
 The Phase B tests are:
 
@@ -600,9 +682,31 @@ A phase is complete only when its listed gate has evidence. The next phase does 
 
 If Gate B fails, Gate A remains the product baseline. If Gate C fails, the managed update path remains unapproved. If Gate D fails, the hardware and advisor workflow remain outside the supported profile. If Gate E fails, the release lane remains unapproved.
 
+
+### 5.8 Decisions that must be owned before their phase begins
+
+The audit recorded in `docs/ledger/AUDIT-2026-09-07-doc12-bee.md` found that several parts of this plan named an outcome without naming who decides it or what would prove it. Each row below blocks its phase. A phase whose decisions in this table are unresolved does not start, and no gate in §5 may be reported as passed while one is outstanding.
+
+| # | Decision | Blocks | What settles it |
+|---|---|---|---|
+| 1 | **Storage contract** — LUKS generation, exact subvolume names, separate `/boot` behaviour, mount ordering, discard policy, and Timeshift compatibility with the SP+ subvolume set | Phase A | An installed target inspected with `cryptsetup luksDump` and `btrfs subvolume list`, plus a Timeshift snapshot and restore across the full subvolume set |
+| 2 | **TPM2 contract** — the initramfs implementation (Q16), and proof of unlock, recovery-key fallback, re-enrolment, and behaviour across a kernel update | Phase B | A clean installed target, not a configuration file. §0 records the dracut requirement as UNVERIFIED |
+| 3 | **Recovery lifecycle** — when the key is generated, where the only readable copy exists, what "not stored on disk" means given that a LUKS2 recovery credential *is* an enrolled keyslot, how a lost key is replaced, and what recovery means before first login | Phase A | A written lifecycle plus an observed recovery on a machine whose passphrase is unknown |
+| 4 | **Secure Boot chain** — the exact signed packages on the installed target | Phase A | A post-install boot with Secure Boot enabled and no MOK enrolment, recorded via `mokutil --sb-state` |
+| 5 | **Firmware policy** — the accepted package list, live image and target both, and offline-install behaviour | Phase A | The §4.6 firmware gate, on real hardware |
+| 6 | **Hardware matrix** — exact HP models with their wireless, audio, Bluetooth and storage chipsets, each mapped to a firmware package | Phase D | §4.6 row 8, one ledger entry per supported model. Until then the supported list is empty, not broad |
+| 7 | **APT trust** — `Signed-By` binding, keyring bootstrap during installation, pin priorities, rotation and revocation, and behaviour when the SP+ repository is unreachable | Phase E | §1.4's open list closed, and a fail-closed test with the repository deliberately unavailable |
+| 8 | **Fin architecture** — whether `sp-plus-fin` is `Architecture: amd64`, split per architecture, dependent on an architecture-specific runtime, or dropped from the base image | Phase D | A ruling from Christopher; §2 states the options |
+| 9 | **CI authority** — whether the Beelink may produce *release* artifacts or only development builds, and when CI becomes mandatory | Phase E | A ruling reconciling D20 with D35, which currently conflict on ownership |
+| 10 | **Update cadence** — whether the Debian lane keeps DN-30's fortnightly cadence or moves to weekly (§3) | Phase C | A ruling from Christopher, recorded as its own decision number |
+| 11 | **Snapshot acceptance matrix** — the additional subvolumes, `/home`, `/boot`, TPM state, failed restores, absent snapshots, and disk-pressure conditions | Phase C | Doc 11's Gate C requires all three of disk pressure, snapshot headroom, and distinguishing "no snapshot" from "snapshot exists but restore failed"; the Phase C gate must exercise each explicitly |
+| 12 | **Release terminology** — which artifact is being promoted, signed, tested and rolled back when the plan says "release": the ISO, the repository, or both | Phase E | A definition in `docs/ledger/RELEASES.md`, referenced by full path |
+
+None of these is a research task to be deferred indefinitely. Each has a phase attached, and the phase is the deadline.
+
 ## 6. Support obligation, Debian edition
 
-Debian point releases, approximately two-monthly, and Trixie EOL, approximately 2028-06 with LTS, replace Fedora's six-month bump. The plan treats this as the cheaper cadence. The cadence is not a removal of support work. The Debian edition still requires an owned package, installer, update, release, hardware, and discontinuation process.
+Debian point releases, approximately two-monthly, and Trixie's support window — full support to **2028-08-09**, LTS to **2030-06-30** (§0) — replace Fedora's six-month bump. The plan treats this as the cheaper cadence. The cadence is not a removal of support work. The Debian edition still requires an owned package, installer, update, release, hardware, and discontinuation process.
 
 ### 6.1 Standing calendar
 
