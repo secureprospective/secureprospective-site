@@ -44,7 +44,7 @@ records what must be verified before anything is built.
 | D29 | The **first testable artifact is an ISO that completes an Anaconda install in QEMU** under enforced Secure Boot, before any bare-metal attempt | Christopher, 2026-08-26. A failed VM install costs a minute; a failed laptop install costs an evening. Document 3 §2.3 | No |
 | D30 | **Secure Boot is pre-tested in QEMU** using `OVMF_CODE_4M.secboot.fd` with `OVMF_VARS_4M.ms.fd`, and **gated on the Dell** | The MS-key VARS file enrolls Microsoft's KEK and db, so the shim signature is genuinely validated. Real firmware still gates. Document 3 §2.3-2.4 | No |
 | D31 | **Two-track platform direction:** Fedora/KDE is immediate; Debian Trixie/Cinnamon is the long-term distribution path | The platforms share the SP+ security, Fin, evidence, and advisor-workflow goals but have separate low-level update and recovery mechanisms. Document 11 is controlling. | Yes, before either public release |
-| D32 | The Debian installer is **stock Calamares 3.3 driven by a `calamares-settings-spplus` package that supplies `partition.conf` and `mount.conf`**; SP+ writes no installer *code*, but does own the full storage configuration | Debian ships Calamares 3.3.14-1 in Trixie. Verified 2026-09-07: upstream Calamares defaults to `luksGeneration: luks1` and `defaultFileSystemType: ext4`, and `calamares-settings-debian` ships **no `partition.conf` at all** and no `btrfsSubvolumes` in its `mount.conf`, so Debian stock inherits those upstream defaults. The SP+ layout (LUKS2, Btrfs, `@ @home @var_log @var_cache @var_tmp`) is therefore obtained only by overriding both files. **Corrected 2026-09-07:** the prior wording claimed Debian stock produces an `@rootfs` subvolume; no such layout exists in any source consulted. Document 12 §0, §4.2 | Yes, before Phase A. **Durable architecture decision: expert-AI panel before the first build.** |
+| D32 | The Debian installer is **stock Calamares 3.3 driven by a `calamares-settings-spplus` package that supplies `partition.conf` and `mount.conf`**; SP+ writes no installer *code*, but does own the full storage configuration | Debian ships Calamares 3.3.14-1 in Trixie. Verified 2026-09-07: upstream Calamares defaults to `luksGeneration: luks1` and `defaultFileSystemType: ext4`, and `calamares-settings-debian` ships **no `partition.conf` at all** and no `btrfsSubvolumes` in its `mount.conf`, so Debian stock takes upstream's LUKS1/ext4 partition defaults and the mount module's code fallback of `/@` and `/@home` only. The SP+ layout (LUKS2, Btrfs, `@ @home @var_log @var_cache @var_tmp`) is therefore obtained only by overriding both files. **Corrected 2026-09-07:** the prior wording claimed Debian stock produces an `@rootfs` subvolume; no such layout exists in any source consulted. Document 12 §0, §4.2 | Yes, before Phase A. **Durable architecture decision: expert-AI panel before the first build.** |
 | D33 | **No grub-btrfs and no snapshot boot menu.** Recovery is Timeshift restore, from the running system or from the SP+ live USB | grub-btrfs is not packaged in any Debian suite, so shipping it means owning a boot-critical third-party component. Two named restore operations are simpler to document, to test, and to explain to a non-technical advisor. Document 12 §3 | Yes, at cost |
 | D34 | **Fin ships on Debian as `sp-plus-fin`**, vendoring a pinned Node 22 from the nodejs.org tarball, SHASUMS-verified, plus a pinned `pi`. npm is not present on the installed machine | Trixie carries nodejs 20.19.2 and there is no backport; `pi` requires Node >= 22.19.0. Vendoring inside one package keeps the runtime pinned and auditable, and keeps a second ecosystem's package manager off the advisor machine. Document 12 §2 | Yes, before Phase D |
 | D35 | **Debian artifacts are built on the Beelink with reproducibility gates and published to Cloudflare R2.** CI is deferred to Phase E | The Fedora lane is already Beelink-built and there is no `.github/` in the repository. This records a deliberate tension with D20: the build host is a single machine until the release lane exists. Document 12 §5 | Yes, at Phase E |
@@ -53,6 +53,8 @@ records what must be verified before anything is built.
 | D38 | **The platform base stays Debian 13 Trixie stable.** Cinnamon is the version Trixie ships (6.4.10-2). A newer Cinnamon is a per-package backport under D37, and only when a **named feature** requires it — never as a standing posture | Christopher's ruling, 2026-09-07. A rolling desktop is the largest single source of unplanned breakage on advisor machines, and every such break lands on Secure Prospective. D36's fail-closed update path assumes a base that does not move underneath it. Timeshift needs no action: Trixie's 24.06.6-2 is upstream's current line. Document 12 §0 | Yes, per named feature |
 | D39 | **Firmware is carried in both the live image and the installed target**, from an explicit package list. `firmware-b43-installer` and `firmware-b43legacy-installer` are excluded and older Broadcom b43 hardware is unsupported | Enabling the `non-free-firmware` archive area makes firmware *available*; it installs nothing. A live ISO without wireless firmware has no network on exactly the laptops this decision protects, so installation must be self-sufficient. The b43 packages download at install time and cannot work offline. Document 12 §4.6 | Yes, before Phase A |
 | D40 | **A laptop model is "supported" only after it passes the §4.6 firmware gate and is recorded in the ledger** with its model, wireless chipset and firmware package | The plan names HP as the common advisor hardware but no SP+ document names a single model or chipset. Until the mapping exists the supported list is empty rather than broad, and untested must never be reported as supported. Document 12 §4.6, §5.8 | Yes, per model |
+| D41 | **The Debian lane keeps DN-30's cadence**: fortnightly staging on even ISO weeks (Friday 15:00) with the apply and conditional restart on the following Sunday (04:00) | Christopher's ruling, 2026-09-07. A draft of document 12 described a weekly schedule and called it a verbatim reuse of DN-30; it was neither. The one genuine Debian difference is the restart predicate: DN-30 conditions reboot on a staged bootc deployment, and Debian has no such object, so restart is conditional on the recorded APT result instead. Document 12 §3 | No |
+| D42 | **`sp-plus-fin` is `Architecture: amd64`, and the SP+ Debian edition targets amd64 only for now** | Christopher's ruling, 2026-09-07. Two reasons of different weight. The narrow one: `pi` needs Node >= 22.19.0 and upstream Node ships no architecture-independent binary, so a package embedding one runtime cannot honestly be `Architecture: all`. That alone is cheap to reverse. The binding reason is platform enablement — arm64 laptops boot per-device rather than through the generic UEFI/ACPI path, so there is no single arm64 ISO that installs across a class of machines; each model needs its own device tree and firmware, peripheral support is weakest exactly there, and Gate A's Secure Boot guarantee may not be achievable. The office SP+ is securing today is almost entirely x86. **Scoped to today's hardware, not to the architecture** — see Q20. Document 12 §2, §4.6 | Reviewable — see Q20 |
 
 ---
 
@@ -249,9 +251,15 @@ technical one, and it deserves a deliberate answer rather than momentum.*
 
 ### Q16 — dracut or initramfs-tools as the Debian product default?
 
-**Open.** TPM2 unlock through `systemd-cryptenroll` requires dracut on Trixie;
-initramfs-tools ignores `tpm2-device`. initramfs-tools is Debian's default and the
-better-trodden path for everything else. Swapping the initramfs generator is a
+**Open.** An earlier version of this entry asserted that TPM2 unlock through
+`systemd-cryptenroll` *requires* dracut on Trixie and that initramfs-tools ignores
+`tpm2-device`. **That assertion is not established by any source checked on 2026-09-07** and
+has been removed: `systemd-cryptenroll` documents TPM2 support and dracut is packaged, but
+Debian bug #1031254 records TPM-related failures without proving the general claim. Document
+12 §0 records it as UNVERIFIED. An open question may not carry its own presumed answer — that
+is what made this one look settled while it was not. initramfs-tools is Debian's default and
+the better-trodden path for everything else, and the first task under this question is to
+establish by test whether it can support the design at all. Swapping the initramfs generator is a
 boot-critical change, so it is confined to Gate B and does not touch Gate A. If Gate B
 fails, initramfs-tools stands and TPM stays out of the product.
 
@@ -288,6 +296,43 @@ tested with a real client before any machine outside the lab updates from it.
 *Owner:* engineering. *Deadline:* Phase E.
 
 ---
+
+
+### Q20 — When does arm64 become a supported SP+ target?
+
+**Open.** ARM is the growth architecture in mobile computing, and advisor laptops are mobile
+computing. D42 makes SP+ amd64-only, and treating that as permanent would be wrong: it is a
+judgement about cost today, not a statement about what SP+ is.
+
+The cost today is not the Fin package — that is half a day's work, since upstream Node ships
+`linux-arm64`. The cost is that supporting an arm64 laptop means a hardware-enablement project
+per model — device tree, firmware, boot chain — on platforms whose Linux support is still
+moving, and on which SP+ may not be able to keep Gate A's promise of Secure Boot enabled with
+no MOK enrolment.
+
+**Review triggers.** Any one of these reopens this question rather than waiting for a scheduled
+review:
+
+1. An advisor or prospect arrives with an arm64 laptop as their working machine.
+2. Debian ships a generic arm64 desktop installer that boots mainstream Qualcomm or comparable
+   laptops without per-model enablement.
+3. The Secure Boot and full-disk-encryption path in Gate A becomes demonstrable on an arm64
+   laptop with vendor-signed boot components.
+4. Two or more mainstream business laptop lines an advisor would plausibly buy ship arm64 as
+   the default configuration.
+
+**What must be re-checked when it reopens**, because none of it is stable: mainline kernel
+support for the specific SoC; whether Debian's installer and signed boot chain cover it;
+firmware packaging and redistribution terms; and whether Timeshift, LUKS2 and the SP+ subvolume
+layout behave the same on that platform. No answer recorded before a trigger fires should be
+trusted.
+
+**Interim position:** arm64 is unsupported, and the advisor-facing purchasing guidance says so
+plainly so that nobody buys hardware SP+ cannot run. Unsupported is not a judgement about ARM.
+It is a statement about what has been tested — the same bar D40 applies to every model.
+
+*Owner:* Christopher. *Deadline:* trigger-based, not scheduled.
+
 
 ## Part III — Facts to re-verify before building
 
@@ -329,4 +374,5 @@ Every one of these was true on 2026-08-25 and every one can change.
 | 2026-08-25 | Revised after the parallel research pass (document 7). D10 rewritten: Anaconda via `bootc-generic-iso` is the installer of record, and the live-ISO route is demoted to optional. D4 confirmed by registry label inspection. D21-D27 added. Q5 reframed. Q12-Q15 opened. Q1 extended to cover Brave's updater behavior on an immutable root. |
 | 2026-09-07 | D2-D4, D8, and D10 scoped to the active Fedora/KDE path and D31 added. Debian 13 Trixie/Cinnamon becomes the separately gated long-term distribution path. See `11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md`. |
 | 2026-09-07 | D32-D37 recorded and Q16-Q19 opened, covering the Debian live installer, the fail-closed managed update path, the SP+ package set, and the release lane. See `12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`. |
+| 2026-09-07 | **D41** (DN-30 cadence stands for the Debian lane), **D42** (`sp-plus-fin` is `Architecture: amd64`; the Debian edition is amd64-only for now) and **Q20** (when arm64 becomes a supported target, with named review triggers) recorded after a second independent audit. **Q16 corrected**: its asserted dracut requirement was not established by any source and has been removed — an open question may not carry its own presumed answer. See `docs/ledger/AUDIT-2026-09-07-doc12-terra.md`. |
 | 2026-09-07 | **D32 corrected** after independent verification: Debian stock Calamares inherits upstream LUKS1/ext4 defaults and defines no Btrfs subvolumes, and the previously recorded `@rootfs` layout does not exist. D38 records the stable-base ruling; D39 and D40 record firmware carriage and the supported-hardware bar. See `docs/ledger/AUDIT-2026-09-07-doc12-bee.md`. |
