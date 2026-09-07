@@ -224,6 +224,27 @@ These are requirements for an SP+ implementation, not instructions to modify Jus
 - Reproducibility of the Butterknife build
 - Licensing boundaries for any reuse
 
+## Beelink Graphite-One theme trial
+
+The Beelink host is running Cinnamon with this relevant configuration:
+
+```text
+Cinnamon shell: Graphite-One
+GTK theme:      Mint-Y-Dark-Blue
+Window manager: Mint-Y
+Icons:          Mint-L
+Cursor:         Bibata-Modern-Classic
+Font:           Ubuntu 10
+```
+
+The custom theme source is the Beelink user theme at `~/.themes/Graphite-One`. It contains Cinnamon, GTK2, GTK3, and Metacity assets. Its `index.theme` declares the `Paper` icon theme and `DMZ-White` cursor, but those complete icon assets were not present on the Beelink and were not copied.
+
+For visual evaluation, the complete `Graphite-One` theme directory was copied into the Buttertest user account at `/home/fin/.themes/Graphite-One`. Buttertest was then set to Graphite-One for its Cinnamon shell, GTK, window manager, and GNOME GTK settings. Its existing icon and cursor themes were retained because the referenced Paper assets were unavailable.
+
+The live screenshot showed the theme applying successfully: dark panel and terminal styling, Graphite-One window decorations, and a functioning Cinnamon session. This was a user-level theme install, not a system package install. No Butterknife system files were changed. The temporary SSH port forward used for the copy was removed.
+
+The theme is visually useful for comparison but is not yet an SP+ candidate. It has no GTK4 directory, so newer GTK4/libadwaita applications may not follow it. Any SP+ use would require an independent theme review, original licensing/asset confirmation, accessibility checks, light/dark behavior, and modern GTK coverage.
+
 ## Next examination step
 
 Run one separate disposable UEFI VM with:
