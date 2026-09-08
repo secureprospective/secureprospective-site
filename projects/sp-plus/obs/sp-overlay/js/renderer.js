@@ -8,6 +8,8 @@
 
 import { derive, isUnknown } from "./state.js";
 
+const CLEAN_CHROME_SCENES = new Set(["HOLD", "BRB", "SLATE", "TECH", "OUTRO"]);
+
 export class Renderer {
   constructor(root, sceneMap, field, cameras) {
     this.cameras = cameras || {};
@@ -89,8 +91,9 @@ export class Renderer {
     // than duplicated into every pack.
     const section = key && this.scenes.get(key);
     this.root.dataset.mark = (section && section.dataset.mark) || "none";
-    this.root.dataset.chrome =
-      (key === "RIG" || key === "TALKRIG") ? "min" : "full";
+    this.root.dataset.chrome = CLEAN_CHROME_SCENES.has(key)
+      ? "clean"
+      : key === "RIG" ? "min" : "full";
 
     this.indexNodes.forEach((li) => {
       li.classList.toggle("is-current", li.dataset.scene === key);

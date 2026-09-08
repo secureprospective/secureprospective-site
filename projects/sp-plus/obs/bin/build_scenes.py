@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.expanduser("~/fleet/bin"))
 from obsws import OBS  # noqa: E402
 
 OVERLAY = "SP+ Overlay — persistent"
-OVERLAY_URL = "http://127.0.0.1:59536/index.html?v=3"
+OVERLAY_URL = "http://127.0.0.1:59536/index.html?v=4"
 
 MIC = "MIC — Christopher"
 VMA = "VM — SP+ audio"
