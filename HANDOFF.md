@@ -1,11 +1,41 @@
-# HANDOFF — SP+ Debian installer and support plan
+# HANDOFF
 
-**Baton:** ClaudeBox — 2026-09-07
+**Baton:** ClaudeBox → open · 2026-09-08
 
-**Where it stands:** `projects/sp-plus/docs/11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md` remains the controlling direction. New this session: `projects/sp-plus/docs/12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`, which turns doc 11's Gates A–D into phases 0–E and defines the support infrastructure the Debian path needs that Fedora got for free from bootc — the six SP+ packages, a GPG-signed APT repository, the fail-closed `spplus-maintain` update path, the Calamares and live-build configuration SP+ owns, and the release lane. Doc 06 gains D32–D37 and Q16–Q19. Doc 11's grub-btrfs and snapshot-boot language is struck (D33). README now lists docs 9 through 12. **Documents only — no code, no packages, no ISO.**
+## Where it stands
 
-**Next move:** Christopher reads doc 12 and approves it. Then the D32 expert-AI panel gate (stock Calamares 3.3 plus `calamares-settings-spplus` is a durable architecture decision). Only then Phase 0 per doc 12 §5: the `projects/sp-plus/debian/` tree, six empty-but-installable packages, an offline-generated repo signing key, and the three build scripts. Nothing in Phase 0 exists before that approval.
+SP+ has two lanes and one unanswered question: continue on Fedora bootc, or move to Debian 13.
+Full state for **both** lanes — what exists, what is verified, what is only planned, what was
+learned and what it cost — is in:
 
-**Blocked on:** Christopher's approval of doc 12, and the D32 panel after it. Unrelated and pre-existing: the runtime test `test_tampered_playbook_is_blocked` fails with `that approval is not recognised` where `integrity` is expected. No session has caused or fixed it.
+`projects/sp-plus/docs/ledger/SP-PLUS-STATE-2026-09-08.md`
 
-**Tried and rejected:** grub-btrfs and a snapshot boot menu — not packaged in any Debian suite, so it means owning a boot-critical third-party component; recovery is Timeshift restore instead (D33). TPM2 anywhere in Gate A — `systemd-cryptenroll` needs dracut on Trixie and initramfs-tools ignores `tpm2-device`, so the initramfs swap is confined to Gate B (Q16). Debian backports as a suite — per-package only (D37). npm on the advisor machine — Fin vendors a pinned Node 22 inside `sp-plus-fin` instead (D34). Patching Calamares — SP+ ships a settings package, no installer code (D32). CI before Phase E — the Beelink builds, R2 hosts, and the tension with D20 is recorded rather than hidden (D35). Also still standing from the prior session: XFCE as the desktop; global Mint repositories on Debian; Testing/Forky/Sid mixing; Butterknife code, branding, configuration and `butterrepo` reuse without review; fail-open snapshots as a recovery guarantee; calling local snapshots backups or bootc-equivalent rollback.
+Read that first. It is the authoritative document and it is written so an agent can start cold.
+
+Doc 12 (Debian plan) is at revision 2 after three independent audits, on branch
+`session/sp-plus-debian-plan`. The Fedora base re-pin is staged on `session/sp-plus-base-repin`
+and is **NOT BUILT and NOT GATED** — nothing may ship from it until a rebuild and a full hardware
+gate run.
+
+## Next move
+
+Christopher decides Fedora vs Debian. Everything else waits on that. Claude's recommendation is
+stay on Fedora, keep Debian as a triggered option; reasoning in §5 of the state document.
+
+## Blocked on
+
+- The lane decision.
+- `gh` is not installed on the Beelink, so the Fedora base cannot be mirrored to ghcr yet.
+- Pre-existing and unrelated: `test_tampered_playbook_is_blocked` fails. Not caused or fixed here.
+
+## Tried and rejected, with why
+
+- **Recovering the old Fedora base digest.** Not possible. containers-storage keeps layers
+  decompressed; the original compressed blobs are gone. `skopeo copy --preserve-digests` refuses.
+  Do not retry this — a content archive exists at `/QEMU/base-archive/`, and it is not the pin.
+- **Blanket `podman system prune`.** Would delete the last live copy of the `dd672611` base.
+  ~30 GB is left reclaimable deliberately.
+- **One large dispatch brief.** Ten questions in one brief ran 100 minutes and nearly timed out.
+  Split briefs ran 10 and 4 minutes. Split them.
+- **Trusting a dispatcher agent's completion report.** One reported success in two seconds having
+  never run a command. Check the tree.
