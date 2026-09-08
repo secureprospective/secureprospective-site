@@ -14,13 +14,15 @@ Added `grafix/secureprospective-facebook-page-cover.png`, a 1600×600 static Fac
 
 Added `grafix/secureprospective-facebook-profile-photo.png`, a 1024×1024 logo-only profile image with no words or photography.
 
+Added `grafix/secureprospective-linkedin-page-banner.png`, the approved v2 design rendered at 4200×700 for the LinkedIn Page cover field. LinkedIn's own presets also fail at Apply, so the remaining problem is page/session/backend behavior, not the asset.
+
 ## Next move
 
-Review the Facebook cover and profile assets, then publish them with the first Facebook page post when ready.
+Review the committed LinkedIn banner, then use it when LinkedIn's Page cover update works. Do not publish the proposed Microsoft/PII post without explicit approval of the final copy and permission to post.
 
 ## Blocked on
 
-Nothing.
+LinkedIn Page cover updates fail even with LinkedIn's built-in presets; likely LinkedIn page/session/backend issue.
 
 ## Tried and rejected
 
