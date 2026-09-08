@@ -12,9 +12,11 @@ The approved public-site redesign is live on `https://secureprospective.com` fro
 
 Added `grafix/secureprospective-facebook-page-cover.png`, a 1600×600 static Facebook cover using the current site palette, logo, voice, and SP+ availability state. It contains no personal photography.
 
+Added `grafix/secureprospective-facebook-profile-photo.png`, a 1024×1024 logo-only profile image with no words or photography.
+
 ## Next move
 
-Review the new Facebook cover asset and publish it with the first Facebook page post when ready.
+Review the Facebook cover and profile assets, then publish them with the first Facebook page post when ready.
 
 ## Blocked on
 
