@@ -2,7 +2,7 @@
 
 ## Baton
 
-Bee, 2026-09-08
+ClaudeBox, 2026-09-08
 
 ## Where it stands
 
