@@ -26,10 +26,11 @@ RIG = "RIG — SP+ console"
 
 # color_source_v3 takes ABGR. Brand hex reversed byte-wise, alpha 0xFF.
 BASES = {
-    "BASE — TALK": (0xFF222222, "01 TALK"),        # ink
-    "BASE — SLATE": (0xFF222222, "04 SLATE"),      # ink, matching TALK and BRB
-    "BASE — BRB": (0xFF222222, "05 BRB"),          # ink
-    "BASE — TECHNICAL": (0xFFE2E4E5, "07 TECHNICAL"),  # platinum #E5E4E2
+    # Match the HOLD/OUTRO background exactly: #141414.
+    "BASE — TALK": (0xFF141414, "01 TALK"),
+    "BASE — SLATE": (0xFF141414, "04 SLATE"),
+    "BASE — BRB": (0xFF141414, "05 BRB"),
+    "BASE — TECHNICAL": (0xFF141414, "07 TECHNICAL"),
 }
 
 NEW_SCENES = ["04 SLATE", "05 BRB", "06 TALK+RIG", "07 TECHNICAL"]
