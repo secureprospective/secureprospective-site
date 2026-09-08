@@ -22,7 +22,7 @@
 # answer is mirroring the base into our own registry, not a longer pin.
 #
 # Bumping this digest requires a rebuild and a full re-run of the hardware gate.
-FROM quay.io/fedora/fedora-kinoite@sha256:dd672611f9ffbfab7ceff4a43c1365ce09b04d5732b8657a3d1f3fc5ffaf608f
+FROM quay.io/fedora/fedora-kinoite@sha256:6041ce7cf2b3318c4703d7a1a23e4d8e2de83e72c5e941b915750ed86414214c
 
 # --- Release identity (D-01). Fedora scheme: a round integer, no minor.
 # SP+ 1, SP+ 2. There is no 1.1 -- an advisor never makes an upgrade decision,
