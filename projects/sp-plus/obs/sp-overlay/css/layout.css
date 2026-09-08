@@ -165,10 +165,11 @@
 
 /* --- the evidence strip ------------------------------------------------- */
 
-/* Four gates on the lower safe line. Each is a register cell, not a badge:
+/* Three gates on the lower safe line. Each is a register cell, not a badge:
    a tick, a label, and the value the bridge can actually support. State is
    carried by geometry and text as well as colour, so it survives a monochrome
-   encode and a colour-blind viewer. */
+   encode and a colour-blind viewer. Camera health stays with the camera frame
+   or the technical page instead of occupying a permanent rail cell. */
 #gates {
   position: absolute;
   left: 96px;
@@ -176,7 +177,7 @@
   width: 1728px;
   height: 60px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -431,8 +432,8 @@
 
 /* --- 01 TALK ------------------------------------------------------------ */
 
-.talk-camframe { left: 128px; top: 224px; width: 640px; height: 480px; }
-.talk-camlabel { left: 128px; top: 724px; width: 640px; height: 40px; }
+.talk-camframe  { left: 128px; top: 224px; width: 640px; height: 480px; }
+.talk-camstatus { left: 152px; top: 668px; width: 592px; height: 24px; opacity: 0; }
 .talk-panel    { left: 896px; top: 224px; width: 784px; height: 320px; }
 .talk-title    { left: 944px; top: 268px; width: 688px; height: 80px; font-size: 72px; }
 .talk-topicbox { left: 896px; top: 592px; width: 784px; height: 112px; }
@@ -468,6 +469,13 @@
 #overlay-root:not([data-camera="ready"]) .camframe {
   border-style: dashed;
   border-color: var(--hairline);
+}
+
+#overlay-root[data-camera="degraded"] .talk-camstatus,
+#overlay-root[data-camera="degraded"] .tr-camstatus,
+#overlay-root[data-camera="down"] .talk-camstatus,
+#overlay-root[data-camera="down"] .tr-camstatus {
+  opacity: 1;
 }
 
 .camframe::before {
@@ -512,8 +520,8 @@
 
 /* --- TALK+RIG ----------------------------------------------------------- */
 
-.tr-camframe { left: 1328px; top: 576px; width: 448px; height: 336px; }
-.tr-camlabel { left: 1328px; top: 932px; width: 448px; height: 32px; font-size: 17px; }
+.tr-camframe  { left: 1328px; top: 576px; width: 448px; height: 336px; }
+.tr-camstatus { left: 1352px; top: 876px; width: 400px; height: 24px; font-size: 17px; opacity: 0; }
 
 /* --- SLATE -------------------------------------------------------------- */
 

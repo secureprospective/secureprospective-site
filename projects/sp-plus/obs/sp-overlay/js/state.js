@@ -69,7 +69,8 @@ export function derive(p) {
     returnMessage: topic ? topic.toUpperCase() : "RETURN TIME UNKNOWN",
     countdown,
 
-    camLabel: "CAMERA / " + camWord,
+    camNotice: camWord === "UNAVAILABLE" ? "CAMERA OFFLINE" :
+               camWord === "DEGRADED" ? "CAMERA DEGRADED" : "",
     vmStatus: "RIG / " + vmWord,
     obsStatus: "OBS / " + obsWord,
 

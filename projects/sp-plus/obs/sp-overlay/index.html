@@ -58,7 +58,7 @@
     <div id="rail-meter" class="rail-meter">SP+ / SIGNAL ROOM</div>
   </aside>
 
-  <!-- The live evidence strip. Four gates, bound to the same derivations the
+  <!-- The live evidence strip. Three gates, bound to the same derivations the
        scenes use, standing along the frame's lower safe line on production
        pages. Clean broadcast pages hide it so their message stays primary.
        When a gate changes, the room's pulse originates from that gate rather
@@ -71,10 +71,6 @@
     <div class="gate" data-gate="rig">
       <span class="gate-label">Rig</span>
       <span class="gate-value" data-bind="vmValue">UNKNOWN</span>
-    </div>
-    <div class="gate" data-gate="camera">
-      <span class="gate-label">Camera</span>
-      <span class="gate-value" data-bind="camValue">UNKNOWN</span>
     </div>
     <div class="gate" data-gate="chapter">
       <span class="gate-label">Chapter</span>
@@ -103,7 +99,7 @@
   <section class="scene" data-scene="TALK" data-enter="right" data-mark="right">
     <div class="pack">
       <div class="el talk-camframe camframe"></div>
-      <div class="el talk-camlabel label" data-bind="camLabel">CAMERA / UNKNOWN</div>
+      <div class="el talk-camstatus label label--bright" data-bind="camNotice"></div>
       <div class="el talk-panel plate"><div class="plate-back plate-back--2"></div><div class="plate-back plate-back--1"></div><div class="plate-face panel panel--live"></div></div>
       <div class="el talk-title display" data-words>TALK</div>
       <div class="el talk-topicbox plate"><div class="plate-back plate-back--2"></div><div class="plate-back plate-back--1"></div><div class="plate-face panel "></div></div>
@@ -122,7 +118,7 @@
   <section class="scene" data-scene="TALKRIG" data-enter="rise" data-mark="none">
     <div class="pack">
       <div class="el tr-camframe camframe"></div>
-      <div class="el tr-camlabel label" data-bind="camLabel">CAMERA / UNKNOWN</div>
+      <div class="el tr-camstatus label label--bright" data-bind="camNotice"></div>
     </div>
   </section>
 

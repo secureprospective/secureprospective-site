@@ -24,7 +24,7 @@ export class Renderer {
     for (const el of root.querySelectorAll(".scene")) {
       this.scenes.set(el.dataset.scene, el);
     }
-    // A binding name can appear in several scenes (camLabel does), so each
+    // A binding name can appear in several scenes (camNotice does), so each
     // name maps to a list.
     for (const el of root.querySelectorAll("[data-bind]")) {
       const key = el.dataset.bind;
@@ -151,8 +151,11 @@ export class Renderer {
     // Publish the signal states so CSS can gate affirmative geometry on them.
     // An aperture, a lit edge or a bright corner is a claim that a source is
     // observed, and a claim has to pass the same evidence gate as the text.
-    this.root.dataset.camera =
-      d.camValue === "READY" ? "ready" : "unknown";
+    this.root.dataset.camera = {
+      READY: "ready",
+      DEGRADED: "degraded",
+      UNAVAILABLE: "down",
+    }[d.camValue] || "unknown";
     this.root.dataset.guest =
       d.vmValue === "OK" ? "ok" : "unknown";
 
@@ -193,7 +196,6 @@ export class Renderer {
            (payload && payload.record && payload.record.active) ? "live" : "known")
         : "unknown",
       rig: d.vmValue === "OK" ? "known" : "unknown",
-      camera: d.camValue === "READY" ? "known" : "unknown",
       chapter: d.chapterTitle === "TITLE UNKNOWN" ? "unknown" : "known",
     };
 
