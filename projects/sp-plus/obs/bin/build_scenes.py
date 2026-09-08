@@ -27,7 +27,7 @@ RIG = "RIG — SP+ console"
 # color_source_v3 takes ABGR. Brand hex reversed byte-wise, alpha 0xFF.
 BASES = {
     "BASE — TALK": (0xFF222222, "01 TALK"),        # ink
-    "BASE — SLATE": (0xFFA03300, "04 SLATE"),      # blue     #0033A0
+    "BASE — SLATE": (0xFF222222, "04 SLATE"),      # ink, matching TALK and BRB
     "BASE — BRB": (0xFF222222, "05 BRB"),          # ink
     "BASE — TECHNICAL": (0xFFE2E4E5, "07 TECHNICAL"),  # platinum #E5E4E2
 }

@@ -521,7 +521,7 @@
 .slate-rule     { left: 288px; top: 412px; width: 1344px; height: 1px; }
 .slate-title    { left: 288px; top: 452px; width: 1344px; height: 112px; font-size: 96px; }
 .slate-topic    { left: 288px; top: 604px; width: 1344px; height: 24px; }
-.slate-logo     { left: 288px; top: 852px; width: 420px; height: 103px; }
+.slate-logo.logo { left: 288px; top: 760px; width: 420px; height: 103px; }
 
 /* --- BRB ---------------------------------------------------------------- */
 
