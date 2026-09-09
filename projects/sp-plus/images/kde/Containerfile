@@ -22,7 +22,15 @@
 # answer is mirroring the base into our own registry, not a longer pin.
 #
 # Bumping this digest requires a rebuild and a full re-run of the hardware gate.
-FROM quay.io/fedora/fedora-kinoite@sha256:dd672611f9ffbfab7ceff4a43c1365ce09b04d5732b8657a3d1f3fc5ffaf608f
+# BUMPED 2026-09-09. Twice-collected: the dd672611 pin was gone from quay, and so
+# was the 6041ce7c replacement resolved only two days earlier -- Fedora rotates
+# these faster than a pin survives. Re-resolved from :44 on the day. Verified
+# before use: image version 44.20260909.1, kernel 7.1.13-200.fc44, amd64, and it
+# pairs with the fedora-bootc digest the installer pins, which carries the same
+# kernel. The standing mitigation in the note above -- mirror the base into our
+# own registry -- is still not done, and this is the second rotation it would
+# have prevented.
+FROM quay.io/fedora/fedora-kinoite@sha256:1424b842708911553486cc4003526a138704fd44c4531d926b96b9340561dd92
 
 # --- Release identity (D-01). Fedora scheme: a round integer, no minor.
 # SP+ 1, SP+ 2. There is no 1.1 -- an advisor never makes an upgrade decision,
