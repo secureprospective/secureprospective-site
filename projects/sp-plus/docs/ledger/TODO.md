@@ -234,3 +234,32 @@ component reads those paths.
 letting `*)` clobber them.
 **Acceptance:** rebuild and confirm `file /usr/share/anaconda/pixmaps/fedora.css` reports text,
 not PNG data.
+
+### T-19 - Sleep and resume: proven on the VM except for the display
+
+Measured 2026-09-09 on the alpha2 install in QEMU, after enabling
+`<suspend-to-mem enabled='yes'/>` in the domain XML (it ships disabled, which is why sleep
+could not be tested before).
+
+**What works.** Kickoff -> Sleep suspends in about 4 seconds. The kernel logs
+`PM: suspend entry (deep)` and `PM: suspend exit` 13 seconds later. After resume the session,
+D-Bus, networking and every unit are healthy, and no unit is failed.
+
+**Security-relevant and confirmed:** the machine wakes LOCKED. `kwin_wayland` holds a delay
+inhibitor reading "Ensuring that the screen gets locked before going to sleep", and after resume
+`org.freedesktop.ScreenSaver GetActive` returns true and logind reports `LockedHint=yes`. This
+matters because `config/kscreenlockerrc` ships `Autolock=false`; the resume lock is a separate
+setting and it is in force.
+
+**What fails, and it is the VM's GPU.** The screen never comes back. `kwin_wayland` logs
+`Pageflip timed out! This is a bug in the virtio_gpu kernel driver` once a second, 28 times in
+one resume, and `kscreen-doctor --dpms on` hangs. The framebuffer stays wedged through a guest
+reboot; only destroying and restarting the domain clears it. SP+ ships no logind, sleep.conf or
+powerdevil overrides, so this is stock Fedora KDE on a virtio GPU, not an SP+ policy.
+
+**Unproven, and only real hardware can prove it:** that the Dell resumes with a working screen on
+i915. The Dell has never suspended once in 7 days of uptime (`PM: suspend entry` count is zero),
+and it must not be suspended unattended - if resume fails there is nobody at the keyboard.
+
+**Acceptance:** on the Dell, with someone present: close the lid or choose Sleep, wake it, and
+confirm the screen returns and asks for the password.
