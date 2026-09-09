@@ -1,0 +1,201 @@
+#!/usr/bin/bash
+# SP+ — the one privileged entry point for attaching a printer.
+#
+# WHY THIS EXISTS. Until 2026-09-09 the Welcome printer card did exactly one
+# thing: it looked for an already-configured queue and, finding none, told the
+# advisor "no usable printer is set up yet. Open printer settings to add one."
+# There was no button. Christopher's correction, testing the alpha2 install:
+#
+#   "Why do we not have a 'find printer button' then they select the printer(s)
+#    on the network and then test page, dont hide everything"
+#
+# So the card now owns the whole job -- find, choose, test -- and this helper is
+# the privileged half of it. Discovery and queue creation both need root: lpinfo
+# talks to the CUPS backends directly, and lpadmin writes printers.conf.
+#
+# CONTRACT, deliberately identical to spplus-update-control so there is one
+# shape to learn. One subcommand per invocation. Exactly one JSON object on
+# stdout, always, including on failure -- callers parse stdout and never guess
+# from an exit code. Diagnostics go to stderr.
+#
+#   discover  ask the CUPS backends what is on the network. Network. Slow.
+#   list      what is already configured here, and which one is the default.
+#   add       create a queue for one discovered device and make it the default.
+#
+# WHAT THIS IS NOT. It does not print. The test page stays in Welcome, over
+# pycups, as the advisor -- so a page is only ever claimed printed when CUPS
+# reports that job finished, which is the check that already existed.
+set -uo pipefail
+
+emit() { python3 -c 'import json,sys; print(json.dumps(json.loads(sys.argv[1])))' "$1"; }
+
+fail() {
+    python3 -c 'import json,sys; print(json.dumps({"ok": False, "reason": sys.argv[1]}))' "$1"
+    exit 0
+}
+
+need() { command -v "$1" >/dev/null 2>&1 || fail "The print service tools are not installed on this computer."; }
+
+# lpinfo can sit for a long time on a network with nothing to find. The advisor
+# is watching a button, so the wait is bounded and a timeout is reported as a
+# timeout rather than as "no printers", which would be a lie.
+DISCOVER_TIMEOUT=${SPPLUS_DISCOVER_TIMEOUT:-30}
+
+discover() {
+    need lpinfo
+    local out status
+    out=$(timeout "$DISCOVER_TIMEOUT" lpinfo -l -v 2>/dev/null)
+    status=$?
+    if [ "$status" = 124 ]; then
+        fail "The search for printers took too long to finish. Check the network connection and try again."
+    fi
+    if [ "$status" != 0 ]; then
+        fail "The print service could not be asked what is on the network."
+    fi
+    printf '%s\n' "$out" | python3 -c '
+import json, re, sys
+
+# lpinfo -l -v prints one stanza per device:
+#     Device: uri = ipp://printer.local/ipp/print
+#             class = network
+#             info = HP LaserJet 400
+#             make-and-model = HP LaserJet 400
+#             device-id = MFG:HP;MDL:LaserJet 400;
+#             location = Front office
+# It also lists the BACKENDS themselves, whose "uri" is a bare scheme with no
+# host ("network socket"). Those are not printers and must never be offered.
+devices = []
+current = None
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if line.startswith("Device:"):
+        if current:
+            devices.append(current)
+        current = {}
+        line = line[len("Device:"):]
+    if current is None or "=" not in line:
+        continue
+    key, _, value = line.partition("=")
+    current[key.strip()] = value.strip()
+if current:
+    devices.append(current)
+
+
+def suggested_name(device):
+    """A CUPS queue name the advisor will recognise on a print dialog.
+
+    CUPS accepts no spaces, slashes, hashes or non-ASCII in a queue name, and
+    silently refusing a printer because its model contains a space would look
+    to the advisor like the printer simply did not work.
+    """
+    raw = device.get("info") or device.get("make-and-model") or "Printer"
+    name = re.sub(r"[^A-Za-z0-9]+", "-", raw).strip("-")
+    return (name or "Printer")[:64]
+
+
+out = []
+seen = set()
+for device in devices:
+    uri = device.get("uri") or ""
+    if "://" not in uri:
+        continue
+    if uri in seen:
+        continue
+    seen.add(uri)
+    out.append({
+        "uri": uri,
+        "name": suggested_name(device),
+        "model": device.get("make-and-model") or device.get("info") or "",
+        "location": device.get("location") or "",
+        "kind": device.get("class") or "",
+    })
+
+# Network printers first: a USB printer is already plugged in and obvious, and
+# the advisor came here to find the one down the hall.
+out.sort(key=lambda d: (d["kind"] != "network", d["name"].lower()))
+print(json.dumps({"ok": True, "printers": out}))
+'
+}
+
+list_queues() {
+    need lpstat
+    { lpstat -v 2>/dev/null; printf -- '--default--\n'; lpstat -d 2>/dev/null; } | python3 -c '
+import json, sys
+
+queues = []
+default = ""
+in_default = False
+for line in sys.stdin:
+    line = line.strip()
+    if line == "--default--":
+        in_default = True
+        continue
+    if in_default:
+        # "system default destination: NAME", or "no system default destination"
+        if ":" in line:
+            default = line.split(":", 1)[1].strip()
+        continue
+    # "device for NAME: uri"
+    if line.startswith("device for ") and ":" in line:
+        head, _, uri = line.partition(":")
+        queues.append({"name": head[len("device for "):].strip(),
+                       "uri": uri.strip()})
+print(json.dumps({"ok": True, "queues": queues, "default": default}))
+'
+}
+
+add_queue() {
+    local uri=${1:-} name=${2:-}
+    need lpadmin
+    [ -n "$uri" ] || fail "No printer was chosen."
+    case "$uri" in
+        *://*) ;;
+        *) fail "That printer address is not one this computer can use." ;;
+    esac
+    # The name comes from the page, so it is sanitised here as well. The page is
+    # not a trusted source of a shell word, and a queue name is one.
+    # -s squeezes runs, so "HP LaserJet (front office)" becomes one hyphen
+    # between words rather than a name full of "--".
+    name=$(printf '%s' "$name" | tr -cs 'A-Za-z0-9_' '-' | sed 's/^-*//; s/-*$//' | cut -c1-64)
+    [ -n "$name" ] || name="Printer"
+
+    # A second printer of the same model must not silently replace the first.
+    local candidate=$name suffix=2
+    while lpstat -p "$candidate" >/dev/null 2>&1; do
+        candidate="${name}-${suffix}"
+        suffix=$((suffix + 1))
+        [ "$suffix" -le 20 ] || fail "There are already too many printers with this name."
+    done
+    name=$candidate
+
+    # -m everywhere is the driverless path every printer sold since about 2017
+    # supports, and it needs nothing installed. Older printers answer over IPP
+    # too but cannot describe themselves, so the generic raster PPD is the
+    # fallback rather than leaving the advisor with a queue that prints nothing.
+    local err
+    if ! err=$(lpadmin -p "$name" -E -v "$uri" -m everywhere 2>&1); then
+        if ! err=$(lpadmin -p "$name" -E -v "$uri" -m drv:///cupsfilters.drv/pwgrast.ppd 2>&1); then
+            python3 -c '
+import json, sys
+detail = [l for l in sys.argv[1].splitlines() if l.strip()]
+print(json.dumps({"ok": False, "reason": "This printer could not be set up. " +
+                  (detail[-1] if detail else "The print service gave no reason.")}))' "$err"
+            exit 0
+        fi
+    fi
+    cupsenable "$name" >/dev/null 2>&1
+    cupsaccept "$name" >/dev/null 2>&1
+    # The advisor added it because they intend to use it, and the test page and
+    # every application print dialog follow the default.
+    lpadmin -d "$name" >/dev/null 2>&1
+    emit "$(python3 -c '
+import json, sys
+print(json.dumps({"ok": True, "name": sys.argv[1], "uri": sys.argv[2]}))' "$name" "$uri")"
+}
+
+case "${1:-}" in
+    discover) discover ;;
+    list)     list_queues ;;
+    add)      add_queue "${2:-}" "${3:-}" ;;
+    *)        fail "Unknown printer command." ;;
+esac

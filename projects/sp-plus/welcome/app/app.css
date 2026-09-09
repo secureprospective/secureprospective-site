@@ -579,3 +579,18 @@ body.service-panel-open{overflow:hidden}
 #check-result[data-source=fin]+.verdict-source{color:var(--blue)}
 /* A problem is not one more neutral fact in the specification list. */
 .check-summary li[data-kind=problem]{font-weight:800;color:var(--ink);background:var(--yellow);padding:3px 5px;margin:3px 0}
+
+/* The printer lane owns the whole job -- find, choose, test -- so it carries
+   several buttons in sequence. The shared rule pins one button to the bottom of
+   a lane, which would scatter these; here they simply follow each other. */
+/* Three steps in sequence, so the buttons pack in order rather than one being
+   pinned to the bottom of the lane. The lane must still fit the viewport: every
+   Welcome screen has to work without scrolling. */
+.printer-lane .secondary-action{margin-top:9px}
+.printer-lane p{margin:9px 0}
+.printer-lane .lane-spacer{display:none}
+.printer-found{display:grid;gap:5px;max-height:154px;overflow:auto;margin:9px 0}
+.printer-found label{display:grid;grid-template-columns:auto 1fr;gap:7px;align-items:start;padding:6px;border:1px solid var(--ink);background:var(--white);font-size:11px;font-weight:700;cursor:pointer}
+.printer-found label small{display:block;font-weight:400;opacity:.75}
+.office-lane .lane-note{margin:0 0 9px;font-size:11px;font-weight:700}
+.office-lane .lane-note:empty{display:none}

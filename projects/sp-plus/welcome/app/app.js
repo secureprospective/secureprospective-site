@@ -781,6 +781,118 @@
     const save = document.getElementById('share-save').checked;
     send('spplus:check-share?server=' + encodeURIComponent(server) + '&folder=' + encodeURIComponent(folder) + '&username=' + encodeURIComponent(username) + '&save=' + save);
   });
+  // THE PRINTER LANE, 2026-09-09. It used to be one button: check for a
+  // configured queue, and if there was none, tell the advisor to "open printer
+  // settings" -- naming an application it did not open, and hiding the only
+  // part of the job they actually needed. Christopher: "Why do we not have a
+  // 'find printer button' then they select the printer(s) on the network and
+  // then test page, dont hide everything." So the lane now shows all three
+  // steps, and the shell does the privileged half.
+  const printerFindButton = document.getElementById('printer-find');
+  const printerAddButton = document.getElementById('printer-add');
+  const printerFound = document.getElementById('printer-found');
+  const printerFindResult = document.getElementById('printer-find-result');
+  const printerConfigured = document.getElementById('printer-configured');
+
+  function finishPrinterList(result) {
+    if (!printerConfigured) return;
+    const queues = (result && result.queues) || [];
+    if (!queues.length) {
+      printerConfigured.textContent = 'No printer is set up on this computer yet.';
+      return;
+    }
+    const names = queues.map(q => q.name);
+    const preferred = (result && result.default) || names[0];
+    if (names.length === 1) {
+      printerConfigured.textContent = 'Set up here: ' + names[0] + '. The test page goes to it.';
+      return;
+    }
+    // Named in full up to two. Beyond that the lane would grow past the screen,
+    // and every Welcome screen has to fit without scrolling.
+    const shown = names.length <= 2 ? names.join(' and ')
+      : names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more';
+    printerConfigured.textContent = 'Set up here: ' + shown + '. The test page goes to ' + preferred + '.';
+  }
+
+  function finishPrinterFind(result) {
+    if (printerFindButton) printerFindButton.disabled = false;
+    if (!printerFound) return;
+    const found = (result && result.printers) || [];
+    printerFound.textContent = '';
+    if (!result || result.ok !== true) {
+      printerFound.hidden = true;
+      if (printerAddButton) printerAddButton.hidden = true;
+      const why = (result && result.reason) || 'The search for printers did not finish this time.';
+      if (printerFindResult) printerFindResult.textContent = why;
+      announce(why.toUpperCase(), 'stub');
+      return;
+    }
+    if (!found.length) {
+      printerFound.hidden = true;
+      if (printerAddButton) printerAddButton.hidden = true;
+      if (printerFindResult) printerFindResult.textContent = 'Nothing answered on this network. Check the printer is switched on and on the same network, then look again.';
+      announce('NOTHING ANSWERED ON THIS NETWORK.', 'stub');
+      return;
+    }
+    found.forEach((printer, index) => {
+      const label = document.createElement('label');
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'printer-found';
+      radio.value = printer.uri;
+      radio.dataset.name = printer.name || '';
+      if (index === 0) radio.checked = true;
+      const text = document.createElement('span');
+      text.textContent = printer.model || printer.name || printer.uri;
+      const detail = document.createElement('small');
+      detail.textContent = [printer.location, printer.uri].filter(Boolean).join(' / ');
+      text.appendChild(detail);
+      label.appendChild(radio);
+      label.appendChild(text);
+      printerFound.appendChild(label);
+    });
+    printerFound.hidden = false;
+    if (printerAddButton) {
+      printerAddButton.hidden = false;
+      printerAddButton.disabled = false;
+    }
+    const many = found.length === 1 ? 'One printer answered' : found.length + ' printers answered';
+    if (printerFindResult) printerFindResult.textContent = many + '. Choose yours, then add it.';
+    announce(many.toUpperCase() + '. CHOOSE YOURS, THEN ADD IT.');
+  }
+
+  function finishPrinterAdd(result) {
+    if (printerAddButton) printerAddButton.disabled = false;
+    if (result && result.ok) {
+      if (printerFindResult) printerFindResult.textContent = result.name + ' was added and is now the printer this computer uses. Send a test page to be sure.';
+      announce((result.name + ' WAS ADDED. SEND A TEST PAGE TO BE SURE.').toUpperCase());
+      send('spplus:printer-list');
+      return;
+    }
+    const why = (result && result.reason) || 'That printer could not be added this time.';
+    if (printerFindResult) printerFindResult.textContent = why;
+    announce(why.toUpperCase(), 'stub');
+  }
+
+  if (printerFindButton) printerFindButton.addEventListener('click', () => {
+    printerFindButton.disabled = true;
+    if (printerFindResult) printerFindResult.textContent = 'Looking for printers on your network. This takes a few seconds.';
+    announce('LOOKING FOR PRINTERS ON YOUR NETWORK. THIS TAKES A FEW SECONDS.');
+    send('spplus:printer-find');
+  });
+
+  if (printerAddButton) printerAddButton.addEventListener('click', () => {
+    const chosen = printerFound && printerFound.querySelector('input:checked');
+    if (!chosen) {
+      if (printerFindResult) printerFindResult.textContent = 'Choose a printer from the list first.';
+      return;
+    }
+    printerAddButton.disabled = true;
+    if (printerFindResult) printerFindResult.textContent = 'Setting up ' + (chosen.dataset.name || 'the printer') + '.';
+    announce('SETTING UP THE PRINTER YOU CHOSE.');
+    send('spplus:printer-add?uri=' + encodeURIComponent(chosen.value) + '&name=' + encodeURIComponent(chosen.dataset.name || ''));
+  });
+
   const printerButton = document.getElementById('printer-test');
   const printerResult = document.getElementById('printer-result');
   function finishPrinter(result) {
@@ -1057,6 +1169,10 @@
   }
 
   send('spplus:tool-status');
+  // Local query: what printers does this computer already have? Asking at
+  // start-up means the printer lane states the truth before the advisor
+  // reaches it, rather than looking untouched on a machine that is set up.
+  send('spplus:printer-list');
   // Ask once at start-up so the section is already truthful when the advisor
   // reaches it. `status` is local only -- it reads what the machine already
   // knows and touches no network.
@@ -1123,10 +1239,15 @@
           item.classList.toggle('selected', selected);
           item.setAttribute('aria-checked', selected ? 'true' : 'false');
         });
-        selectedTheme = (result.theme || '').toUpperCase();
+        // The advisor chose "BREEZE LIGHT", not "org.kde.breeze.desktop". The
+        // shell answers with the package id because that is what it applied;
+        // the name on the card is what the person reads back. Falling back to
+        // the id keeps a theme installed outside this list still nameable.
+        const appliedCard = themeCards.find(item => item.dataset.lnf === result.theme);
+        selectedTheme = ((appliedCard && appliedCard.dataset.theme) || result.theme || '').toUpperCase();
         document.getElementById('final-theme').textContent = `${selectedTheme} / SELECTED`;
         announce(`${selectedTheme} APPLIED. THE WHOLE DESKTOP CHANGED.`);
-        if (detail) detail.textContent = 'Applied after package validation and readback. The hardware session still needs to confirm the visuals, app cache, splash screen, and Dell-specific evidence.';
+        if (detail) detail.textContent = 'Applied. Anything already open keeps its old look until you close and reopen it, and the sign-in screen changes the next time you sign in.';
         if (samePreview) {
           setPreviewResult('Applied. The helper verified the package settings, wallpaper, decoration, and requested layout.', 'success');
           previewApply.dataset.state = 'applied';
@@ -1160,6 +1281,9 @@
     emailResult: finishEmail,
     shareResult: finishShare,
     printerResult: finishPrinter,
+    printerFindResult: finishPrinterFind,
+    printerAddResult: finishPrinterAdd,
+    printerListResult: finishPrinterList,
     serviceResult: finishServiceCapability,
     serviceOpenResult: finishServiceOpen,
     updateResult: finishUpdate,

@@ -559,6 +559,7 @@ RUN set -eux; \
 # The digest and not the version, because every build in the SP+ 1 line reports
 # version '1' -- observed while testing this -- so keying on the version would
 # announce one update and then silently swallow every one after it.
+COPY config/spplus-printer-control       /usr/libexec/spplus-printer-control
 COPY config/spplus-update-control        /usr/libexec/spplus-update-control
 COPY config/spplus-stage-update          /usr/libexec/spplus-stage-update
 COPY config/spplus-update-notify         /usr/libexec/spplus-update-notify
@@ -569,8 +570,9 @@ COPY config/spplus-update-notify.timer   /usr/lib/systemd/user/spplus-update-not
 
 RUN set -eux; \
     chmod 0755 /usr/libexec/spplus-stage-update /usr/libexec/spplus-update-notify \
-              /usr/libexec/spplus-update-control; \
+              /usr/libexec/spplus-update-control /usr/libexec/spplus-printer-control; \
     bash -n /usr/libexec/spplus-update-control; \
+    bash -n /usr/libexec/spplus-printer-control; \
     bash -n /usr/libexec/spplus-stage-update; \
     bash -n /usr/libexec/spplus-update-notify; \
     systemd-analyze verify /usr/lib/systemd/system/spplus-stage-update.service; \
@@ -1870,6 +1872,13 @@ COPY tests/welcome-close-gate.sh /usr/libexec/sp-plus/welcome/welcome-close-gate
 RUN set -eux; \
     grep -q 'spplus-update-control' /usr/libexec/sp-plus/welcome/welcome.py; \
     grep -q "update-check" /usr/libexec/sp-plus/welcome/app/app.js; \
+# The printer lane is find, choose, test. Welcome does the finding and the queue
+# creation through the privileged helper (both need root). Dropping either half
+# of the wiring returns the card to the single dead-end button of 2026-09-09.
+    grep -q 'spplus-printer-control' /usr/libexec/sp-plus/welcome/welcome.py; \
+    grep -q "printer-find" /usr/libexec/sp-plus/welcome/app/app.js; \
+    grep -q "printer-add" /usr/libexec/sp-plus/welcome/app/app.js; \
+    grep -q 'id="printer-find"' /usr/libexec/sp-plus/welcome/app/index.html; \
     grep -q "update-apply" /usr/libexec/sp-plus/welcome/app/app.js; \
     grep -q 'id="update-check"' /usr/libexec/sp-plus/welcome/app/index.html; \
     echo "WELCOME_UPDATE_WIRING_OK the manual lane uses the guarded helper"

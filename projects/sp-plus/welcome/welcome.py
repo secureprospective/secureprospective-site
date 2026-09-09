@@ -135,6 +135,8 @@ DISPLAY_KCM = os.environ.get('SPPLUS_DISPLAY_KCM', 'kcm_kscreen')
 TUNE = os.environ.get('SPPLUS_TUNE', '/usr/libexec/spplus-tune')
 UPDATE_CONTROL = os.environ.get('SPPLUS_UPDATE_CONTROL',
                                '/usr/libexec/spplus-update-control')
+PRINTER_CONTROL = os.environ.get('SPPLUS_PRINTER_CONTROL',
+                                 '/usr/libexec/spplus-printer-control')
 SELFTEST_SHARE_UP = os.environ.get('SPPLUS_SELFTEST_SHARE_UP', '127.0.0.1')
 SELFTEST_SHARE_DOWN = os.environ.get('SPPLUS_SELFTEST_SHARE_DOWN', '203.0.113.1')
 MACHINE_DOC = os.environ.get('SPPLUS_MACHINE_DOC', '/var/lib/sp-plus/THIS-MACHINE.md')
@@ -1427,6 +1429,57 @@ class ShareCheckWorker(QThread):
             self.result_ready.emit(self, {'ok': False, 'message': self._message_for_error(error)})
 
 
+class PrinterControlWorker(QThread):
+    """Ask the privileged printer helper one question, off Qt's UI thread.
+
+    Finding printers and creating a queue both need root -- lpinfo talks to the
+    CUPS backends and lpadmin writes printers.conf -- so both go through
+    /usr/libexec/spplus-printer-control, which is the only privileged thing
+    Welcome asks about printers. Printing the test page stays unprivileged and
+    stays in PrinterWorker, so a page is claimed printed only when CUPS says
+    that job finished.
+
+    Like the update helper, this one always prints a single JSON object, so an
+    unparseable answer is reported as the fault it is rather than swallowed.
+    """
+
+    result_ready = Signal(object, object)
+
+    #: Discovery waits on the network and on printers that answer slowly; the
+    #: helper bounds itself at 30s, so this only has to outlast it.
+    TIMEOUTS = {'discover': 45, 'list': 20, 'add': 90}
+
+    def __init__(self, action, args=()):
+        super().__init__()
+        self.action = action
+        self.args = list(args)
+
+    def run(self):
+        try:
+            done = subprocess.run(
+                [SUDO, '-n', PRINTER_CONTROL, self.action] + self.args,
+                capture_output=True, text=True,
+                timeout=self.TIMEOUTS.get(self.action, 45))
+        except subprocess.TimeoutExpired:
+            payload = {'ok': False,
+                       'reason': 'The printer service did not answer in time.'}
+        except OSError:
+            payload = {'ok': False,
+                       'reason': 'The printer service is not installed on this computer.'}
+        except subprocess.SubprocessError:
+            payload = {'ok': False, 'reason': 'The printer service did not answer.'}
+        else:
+            try:
+                payload = json.loads(done.stdout or '')
+            except ValueError:
+                detail = (done.stderr or '').strip().splitlines()
+                payload = {'ok': False,
+                           'reason': detail[-1] if detail else
+                           'The printer service gave an answer Welcome could not read.'}
+        payload['action'] = self.action
+        self.result_ready.emit(self, payload)
+
+
 class PrinterWorker(QThread):
     """Check CUPS, submit one test page, and wait for its CUPS job state."""
 
@@ -1712,6 +1765,13 @@ class WelcomeBridge(QObject):
                                                   password or '', save_securely))
         elif parsed.path == 'print-test':
             self.print_test()
+        elif parsed.path == 'printer-find':
+            self.printer_find()
+        elif parsed.path == 'printer-list':
+            self.printer_list()
+        elif parsed.path == 'printer-add':
+            self.printer_add((params.get('uri') or [''])[0].strip(),
+                             (params.get('name') or [''])[0].strip())
         elif parsed.path == 'update-status':
             self.update_action('status')
         elif parsed.path == 'update-check':
@@ -1835,6 +1895,19 @@ class WelcomeBridge(QObject):
 
     def print_test(self):
         self._dispatch(PrinterWorker(), 'printerResult')
+
+    def printer_find(self):
+        self._dispatch(PrinterControlWorker('discover'), 'printerFindResult')
+
+    def printer_list(self):
+        self._dispatch(PrinterControlWorker('list'), 'printerListResult')
+
+    def printer_add(self, uri, name):
+        if not uri:
+            self._send('printerAddResult',
+                       {'ok': False, 'reason': 'Choose a printer first.'})
+            return
+        self._dispatch(PrinterControlWorker('add', [uri, name]), 'printerAddResult')
 
     def install_tool(self, app_id):
         self._dispatch(FlatpakInstallWorker(app_id), 'toolResult')
