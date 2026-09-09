@@ -11,7 +11,23 @@
 
 ### T-07 — Graphical installer paints grey (#808080) forever
 
-**Status:** OPEN. Worked around by defaulting to `inst.text` (commit `20830ed`).
+**Status:** RESOLVED 2026-09-09. Observed working on the alpha2 ISO in QEMU.
+
+The fix landed on 2026-08-26 and this entry was never updated, so the ledger
+described the machine as broken for two weeks after it was mended. Two commits
+did it: `f22887b` created the `autovt@.service -> anaconda-shell@.service`
+symlink in BOTH `/usr/lib` and `/etc` and set `ReserveVT=2`, and the graphical
+entry was restored as the DEFAULT boot entry in `installer/iso.yaml`, with text
+mode kept as the second entry.
+
+Measured on 2026-09-09: booting the default entry of `SP-PLUS-1.0-alpha2.iso`
+paints the full graphical Anaconda with SP+ branding -- sidebar logo, "WELCOME TO
+SP+ 1.0.", the language spoke, the hub, and every spoke through to "Complete!".
+No grey. Evidence in `~/logs/sp-plus/alpha2-install-2026-09-09/`.
+
+**Do not trust a status line in this file over the source.** This one was wrong
+in the direction that costs the most: it described a shipped fix as an open
+defect and named a "leading candidate" that was already implemented.
 
 **What is NOT the cause** (verified 2026-08-26, do not retest): local graphical mode was
 NOT removed in Fedora 44 (Anaconda became a native Wayland client in F42; RDP replaced
@@ -33,7 +49,25 @@ Add the link in `installer/Containerfile` and retest.
 
 ### T-08 — Confirm the LUKS passphrase UX in TEXT mode
 
-**Risk flagged by research, NOT yet verified.** Anaconda's TUI contains a LUKS passphrase
+**Status:** RESOLVED 2026-09-09 for the graphical path, which is now the default
+boot entry -- so the risk this entry describes is no longer on the advisor's road.
+
+Measured end to end on alpha2 in QEMU:
+
+1. Installation Destination shows `Automatic` storage with "Encrypt my data."
+   ticked and the note "You'll set a passphrase next."
+2. Done opens **DISK ENCRYPTION PASSPHRASE** -- Passphrase and Confirm fields,
+   a live strength meter, reveal toggles, and the keyboard-layout warning.
+3. Save Passphrase clears the spoke's warning icon.
+4. On first boot the machine shows the SP+-branded prompt "Enter your passphrase
+   to unlock this computer" and the passphrase set at install unlocks it.
+
+D34 is satisfied: the advisor sets their own LUKS2 passphrase and nothing else
+knows it. The text-mode question is now academic rather than product-blocking,
+because text mode is the second entry and only reached deliberately. It stays
+worth answering before the text entry is offered as a supported route.
+
+**Original risk, kept for the record.** Anaconda's TUI contains a LUKS passphrase
 dialog, but the visible passphrase path is associated with preconfigured or incomplete
 automated Kickstart partitioning. Our kickstart declares `--encrypted --luks-version=luks2`
 with NO passphrase. It is NOT established that interactive `inst.text` offers the same
@@ -46,9 +80,16 @@ exact prompt sequence. If text mode cannot prompt, the options are RDP
 
 ### T-09 — Kickstart hardcodes `--ondisk=vda`
 
-`vda` is a virtio disk. The Dell (HW-00) has a SATA mechanical drive and will present
-`sda`. The kickstart will fail there as written. Make disk selection dynamic or interactive
-before the bare-metal test.
+**Status:** RESOLVED. `interactive-defaults.ks` no longer names a disk. A `%pre`
+block picks the largest writable, non-removable, non-USB disk with `lsblk` and
+refuses with a message rather than guessing when none qualifies, then emits
+`ignoredisk`/`clearpart`/`autopart` through `%include`. That works on virtio and
+on the Dell's SATA `sda` alike.
+
+Confirmed on virtio 2026-09-09: the installer auto-selected "Virtio Block Device
+vda / 80 GiB free" and reported `Automatic partitioning selected`, with no
+operator choice and no custom-storage classification. **Still unconfirmed on the
+Dell's SATA disk** -- that is part of the bare-metal run, not this entry.
 
 ### T-10 — Test VMs must expose a driveable console, not a GTK window
 
