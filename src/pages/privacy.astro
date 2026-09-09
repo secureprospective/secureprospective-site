@@ -1,0 +1,405 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const updated = 'September 9, 2026';
+---
+
+<Layout
+  title="Privacy Policy: SecureProspective"
+  description="What SecureProspective collects, why, how long it is kept, and how to have it deleted."
+>
+  <Nav />
+
+  <main id="main" class="legal-page">
+    <div class="legal-shell">
+      <header class="legal-head">
+        <p class="legal-kicker">Legal</p>
+        <h1>Privacy Policy</h1>
+        <p class="legal-updated">Last updated {updated}</p>
+        <p class="legal-lede">
+          This policy covers secureprospective.com and the services we run for the advisors
+          who work with us, including the social publishing tool at
+          social.secureprospective.com. It says what we collect, why we collect it, who
+          else sees it, and how to have it removed.
+        </p>
+      </header>
+
+      <nav class="legal-index" aria-label="On this page">
+        <a href="#who-we-are">Who we are</a>
+        <a href="#what-we-collect">What we collect</a>
+        <a href="#social-accounts">Connected social accounts</a>
+        <a href="#platform-terms">Platform-specific terms</a>
+        <a href="#how-we-use-it">How we use it</a>
+        <a href="#sharing">Who else sees it</a>
+        <a href="#retention">How long we keep it</a>
+        <a href="#data-deletion">Deleting your data</a>
+        <a href="#security">Security</a>
+        <a href="#your-rights">Your rights</a>
+        <a href="#children">Children</a>
+        <a href="#changes">Changes</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <section id="who-we-are" aria-labelledby="who-we-are-title">
+        <h2 id="who-we-are-title">Who we are</h2>
+        <p>
+          SecureProspective is an insurance marketing organization serving independent
+          insurance and annuity producers. In this policy, "we" and "us" mean
+          SecureProspective. "You" means anyone who visits our website, contacts us, or
+          uses a service we operate for advisors.
+        </p>
+        <p>
+          We are the controller of the personal information described here. Our contact
+          details are in the <a href="#contact">Contact</a> section.
+        </p>
+      </section>
+
+      <section id="what-we-collect" aria-labelledby="what-we-collect-title">
+        <h2 id="what-we-collect-title">What we collect</h2>
+
+        <h3>When you visit the website</h3>
+        <p>
+          Our hosting and network provider records standard request information, including
+          IP address, browser and device type, the pages requested, and the time of the
+          request. This is used to serve the site, keep it available, and defend it against
+          abuse. We do not run advertising trackers or sell this information.
+        </p>
+
+        <h3>When you contact us</h3>
+        <p>
+          If you fill in a form or email us, we receive what you send: typically your name,
+          email address, phone number if you give one, and the content of your message.
+        </p>
+
+        <h3>When you have an advisor account</h3>
+        <p>
+          For advisors using services we host, we hold the account details needed to run
+          them: name, email address, the organization you belong to, and the content you
+          create in the service, such as drafted and scheduled posts and any media you
+          upload.
+        </p>
+
+        <h3>What we do not collect</h3>
+        <p>
+          We do not collect client information on behalf of advisors through these tools,
+          and we do not ask for Social Security numbers, account numbers, or health
+          information anywhere on this website.
+        </p>
+      </section>
+
+      <section id="social-accounts" aria-labelledby="social-accounts-title">
+        <h2 id="social-accounts-title">Connected social accounts</h2>
+        <p>
+          Our social publishing service lets an advisor connect their own social media
+          accounts so they can schedule and publish their own posts. Connecting an account
+          is always initiated by the advisor, and it is always their account, not ours.
+        </p>
+        <p>When you connect an account, we receive and store:</p>
+        <ul>
+          <li>
+            an access token issued by that platform, which lets the service act on the
+            account you authorized, and only in the ways you authorized;
+          </li>
+          <li>
+            basic profile information used to identify the connection in the interface,
+            such as the account or page name, its identifier on that platform, and its
+            profile picture;
+          </li>
+          <li>
+            the posts you publish through the service, and the engagement and reach
+            statistics that platform reports back for them.
+          </li>
+        </ul>
+        <p>
+          Access tokens are stored so the service can publish on your schedule without
+          asking you to sign in again. They are held against your own organization in our
+          database and are not shared with, or usable by, any other advisor.
+        </p>
+        <p>
+          We use this access to publish the content you create, to read back the
+          performance of those posts, and to show you which accounts and pages are
+          connected. We do not read your private messages, we do not post anything you have
+          not scheduled or approved, and we do not use your social data to build advertising
+          profiles or to train machine learning models.
+        </p>
+        <p>
+          You can disconnect an account at any time from within the service, and you can
+          revoke our access from the platform's own settings. Disconnecting stops all future
+          access immediately.
+        </p>
+      </section>
+
+      <section id="platform-terms" aria-labelledby="platform-terms-title">
+        <h2 id="platform-terms-title">Platform-specific terms</h2>
+
+        <h3>Google and YouTube</h3>
+        <p>
+          Our use of information received from Google APIs adheres to the
+          <a
+            href="https://developers.google.com/terms/api-services-user-data-policy"
+            rel="noopener noreferrer"
+            target="_blank">Google API Services User Data Policy</a
+          >, including its Limited Use requirements. Where the service connects a YouTube
+          account, it uses the YouTube API Services, and your use of it is also subject to
+          the <a href="https://www.youtube.com/t/terms" rel="noopener noreferrer" target="_blank">YouTube Terms of Service</a>
+          and the <a href="https://policies.google.com/privacy" rel="noopener noreferrer" target="_blank">Google Privacy Policy</a>.
+          You can revoke our access to your Google account at
+          <a href="https://myaccount.google.com/permissions" rel="noopener noreferrer" target="_blank">myaccount.google.com/permissions</a>.
+        </p>
+
+        <h3>Meta (Facebook and Instagram)</h3>
+        <p>
+          Where the service connects a Facebook Page, we access only the pages you select
+          during authorization, and only for the permissions you grant. You can review and
+          remove our access under Settings, then Business Integrations, in your Facebook
+          account.
+        </p>
+
+        <h3>LinkedIn</h3>
+        <p>
+          Where the service connects a LinkedIn profile or company page, we access it only
+          for the permissions you grant during authorization. You can remove our access
+          under Settings, then Data Privacy, then Permitted Services.
+        </p>
+      </section>
+
+      <section id="how-we-use-it" aria-labelledby="how-we-use-it-title">
+        <h2 id="how-we-use-it-title">How we use it</h2>
+        <ul>
+          <li>To provide the services you asked for, including publishing what you schedule.</li>
+          <li>To answer your questions and stay in contact with you about your work with us.</li>
+          <li>To keep our systems available, secure, and free of abuse.</li>
+          <li>To meet our legal and regulatory obligations.</li>
+        </ul>
+        <p>
+          We do not sell personal information, and we do not share it with advertisers.
+        </p>
+      </section>
+
+      <section id="sharing" aria-labelledby="sharing-title">
+        <h2 id="sharing-title">Who else sees it</h2>
+        <p>
+          We keep the number of parties involved deliberately small. Information is shared
+          only with:
+        </p>
+        <ul>
+          <li>
+            the social media platforms you choose to connect, when we act on your behalf at
+            your instruction;
+          </li>
+          <li>
+            infrastructure providers that host, deliver, or protect our services, acting on
+            our instructions and not for their own purposes;
+          </li>
+          <li>
+            professional advisors, or a regulator or law enforcement body, where we are
+            legally required to do so.
+          </li>
+        </ul>
+        <p>
+          Our hosted services run on infrastructure we operate and administer ourselves,
+          rather than on a third-party software vendor's platform.
+        </p>
+      </section>
+
+      <section id="retention" aria-labelledby="retention-title">
+        <h2 id="retention-title">How long we keep it</h2>
+        <ul>
+          <li>
+            <strong>Access tokens</strong> are kept while an account is connected, and
+            deleted when you disconnect it or close your account.
+          </li>
+          <li>
+            <strong>Posts and scheduled content</strong> are kept while your account is
+            open, so you have your own history.
+          </li>
+          <li>
+            <strong>Enquiries and correspondence</strong> are kept for as long as we are in
+            contact with you and for a reasonable period afterwards.
+          </li>
+          <li>
+            <strong>Server and security logs</strong> are kept for a short operational
+            period and then discarded.
+          </li>
+        </ul>
+      </section>
+
+      <section id="data-deletion" aria-labelledby="data-deletion-title">
+        <h2 id="data-deletion-title">Deleting your data</h2>
+        <p>You can have your information removed in either of these ways.</p>
+        <ol>
+          <li>
+            <strong>Disconnect an account yourself.</strong> In the social publishing
+            service, open the channel and remove it. Its stored access token and profile
+            details are deleted with it.
+          </li>
+          <li>
+            <strong>Ask us.</strong> Email
+            <a href="mailto:info@secureprospective.com">info@secureprospective.com</a> with
+            the subject line <strong>Data deletion request</strong>, from the email address
+            associated with your account, and tell us what you want removed: a single
+            connected account, or your account and all of its content.
+          </li>
+        </ol>
+        <p>
+          We will confirm receipt and complete the deletion within 30 days, and we will tell
+          you when it is done. If we are required by law to retain something, we will say so
+          and tell you what and why.
+        </p>
+      </section>
+
+      <section id="security" aria-labelledby="security-title">
+        <h2 id="security-title">Security</h2>
+        <p>
+          Traffic to our services is encrypted in transit. Access tokens and account
+          credentials are held on systems we administer, with access limited to the people
+          who need it to operate the service. No system is perfect, and we do not claim
+          otherwise; if a breach affects your information, we will tell you.
+        </p>
+      </section>
+
+      <section id="your-rights" aria-labelledby="your-rights-title">
+        <h2 id="your-rights-title">Your rights</h2>
+        <p>
+          You can ask us for a copy of the information we hold about you, ask us to correct
+          it, ask us to delete it, or object to a particular use of it. Write to
+          <a href="mailto:info@secureprospective.com">info@secureprospective.com</a> and we
+          will respond within 30 days. We will not treat you differently for exercising any
+          of these rights.
+        </p>
+      </section>
+
+      <section id="children" aria-labelledby="children-title">
+        <h2 id="children-title">Children</h2>
+        <p>
+          Our services are for insurance professionals and are not directed to children. We
+          do not knowingly collect information from anyone under 18. If you believe we have,
+          contact us and we will delete it.
+        </p>
+      </section>
+
+      <section id="changes" aria-labelledby="changes-title">
+        <h2 id="changes-title">Changes to this policy</h2>
+        <p>
+          If we change this policy we will update the date at the top of the page. Where a
+          change materially affects how we handle your information, we will tell account
+          holders directly rather than relying on you to notice.
+        </p>
+      </section>
+
+      <section id="contact" aria-labelledby="contact-title">
+        <h2 id="contact-title">Contact</h2>
+        <p>
+          Questions about this policy, or about anything we hold, go to
+          <a href="mailto:info@secureprospective.com">info@secureprospective.com</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .legal-page {
+    padding: clamp(3rem, 8vw, 6rem) 1.25rem clamp(4rem, 10vw, 7rem);
+  }
+
+  .legal-shell {
+    max-width: 46rem;
+    margin: 0 auto;
+  }
+
+  .legal-head {
+    margin-bottom: 2.5rem;
+  }
+
+  .legal-kicker {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .legal-head h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    line-height: 1.1;
+  }
+
+  .legal-updated {
+    margin: 0 0 1.5rem;
+    font-size: 0.875rem;
+    opacity: 0.65;
+  }
+
+  .legal-lede {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+  }
+
+  .legal-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin-bottom: 3rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    font-size: 0.8125rem;
+  }
+
+  .legal-index a {
+    opacity: 0.75;
+    text-decoration: none;
+  }
+
+  .legal-index a:hover,
+  .legal-index a:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .legal-shell section + section {
+    margin-top: 2.75rem;
+  }
+
+  .legal-shell h2 {
+    margin: 0 0 1rem;
+    font-size: 1.375rem;
+    line-height: 1.25;
+  }
+
+  .legal-shell h3 {
+    margin: 1.75rem 0 0.5rem;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  .legal-shell p,
+  .legal-shell li {
+    line-height: 1.7;
+  }
+
+  .legal-shell p {
+    margin: 0 0 1rem;
+  }
+
+  .legal-shell ul,
+  .legal-shell ol {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+  }
+
+  .legal-shell li {
+    margin-bottom: 0.5rem;
+  }
+
+  .legal-shell a {
+    color: inherit;
+  }
+</style>
