@@ -26,7 +26,59 @@ from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 ROOT = Path(__file__).resolve().parent
 APP_URL = QUrl.fromLocalFile(str(ROOT / 'app' / 'index.html'))
-INSTANCE_NAME = 'spplus-welcome'
+# One Welcome per advisor: the second launch hands focus to the first rather
+# than opening a rival window. Overridable so a gate can run an isolated Welcome
+# on a machine where the advisor already has one open -- without the seam, the
+# running session owns this socket, every gate launch returns immediately at
+# `not owns_instance`, and the gate passes having exercised nothing. That is not
+# hypothetical: it is what silently defeated the first run of
+# tests/welcome-no-show-gate.sh on the Dell, 2026-09-09.
+INSTANCE_NAME = os.environ.get('SPPLUS_INSTANCE_NAME', 'spplus-welcome')
+
+# WHERE "DO NOT SHOW THIS SETUP AGAIN" LIVES, AND WHY IT IS NOT localStorage.
+#
+# The checkbox used to write localStorage['spplus-welcome-no-show'] from the
+# page, and the shell read it back through runJavaScript on the next launch.
+# That never worked on an installed machine and could not have:
+# QWebEngineProfile.defaultProfile() is OFF THE RECORD, so its localStorage is
+# held in memory and is destroyed when the process exits. Measured on the Dell
+# 2026-09-09:
+#
+#     offTheRecord = True
+#     storagePath  = '.../QtWebEngine/OffTheRecord'
+#
+# So the advisor ticked the box, Welcome said "WELCOME WILL STAY OUT OF THE WAY
+# NEXT TIME", the value died with the process, and Welcome autostarted again at
+# every login -- forever, with no way for them to stop it.
+#
+# The durable store is QSettings, which is where --reset-no-show ALREADY looked;
+# the reset flag was clearing a store that nothing ever wrote to. The preference
+# now lives in exactly one place, and the shell -- not the page -- owns it.
+SETTINGS_ORG = 'Secure Prospective'
+SETTINGS_APP = 'SP+ Welcome'
+NO_SHOW_KEY = 'welcome/no-show'
+
+
+def welcome_settings() -> QSettings:
+    """The one durable store for Welcome's own preferences."""
+    return QSettings(SETTINGS_ORG, SETTINGS_APP)
+
+
+def read_no_show() -> bool:
+    """True when the advisor asked not to be shown setup again.
+
+    QSettings returns the INI value as a string, so compare against the string
+    this module writes rather than trusting Python truthiness -- a bare bool()
+    of the string 'false' is True and would hide Welcome from everyone.
+    """
+    return str(welcome_settings().value(NO_SHOW_KEY, 'false')).lower() == 'true'
+
+
+def write_no_show(value: bool) -> None:
+    """Record the preference and flush it, so a crash cannot lose the answer."""
+    settings = welcome_settings()
+    settings.setValue(NO_SHOW_KEY, 'true' if value else 'false')
+    settings.sync()
 
 # Applying a global theme has to change EVERY component together -- colours,
 # icons, widget style, Plasma theme, window decoration, cursor and fonts. That is
@@ -1668,6 +1720,8 @@ class WelcomeBridge(QObject):
             self.update_action('stage')
         elif parsed.path == 'update-apply':
             self.update_action('apply')
+        elif parsed.path == 'no-show':
+            self.set_no_show((params.get('value') or ['false'])[0].lower() == 'true')
         elif parsed.path == 'finish':
             self.finish()
 
@@ -1741,6 +1795,26 @@ class WelcomeBridge(QObject):
         window = self.view.window()
         if window is not None:
             window.close()
+
+    def set_no_show(self, value: bool):
+        """Record "do not show this setup again", and tell the page it stuck.
+
+        Written synchronously rather than at close: the advisor may tick the box
+        and then shut the lid, and a preference only saved on a clean exit is a
+        preference that is sometimes lost.
+        """
+        write_no_show(value)
+        self.publish_no_show(announce=True)
+
+    def publish_no_show(self, announce=False):
+        """Tell the page what the stored preference actually is.
+
+        `announce` is False for the startup publish, which only has to make the
+        checkbox agree with the store; it is True after the advisor changes it,
+        which is the one time the page should say so out loud.
+        """
+        self._send('noShowState', {'ok': True, 'value': read_no_show(),
+                                   'announce': announce})
 
     def update_action(self, action):
         """Run one update verb. The page decides what to show, never what is true."""
@@ -1906,16 +1980,15 @@ class WelcomeWindow(QMainWindow):
         if self.captures:
             QTimer.singleShot(700, self.capture_next)
             return
-        if not self.force:
-            self.view.page().runJavaScript("localStorage.getItem('spplus-welcome-no-show')", self.close_if_opted_out)
+        # Whether to open at all was already settled in main() before this
+        # window existed. All that is left is to make the checkbox agree with
+        # the store, for someone who ticked it and reopened Welcome from the
+        # menu -- otherwise the setting looks like it was forgotten.
+        self.bridge.publish_no_show()
         if self.screen != 1:
             self.view.page().runJavaScript(f'window.spWelcome.go({max(0, min(7, self.screen - 1))})')
         if self.help_depth:
             QTimer.singleShot(900, lambda: self.view.page().runJavaScript(f'window.spWelcome.helpDepth({self.help_depth})'))
-
-    def close_if_opted_out(self, value):
-        if value == 'true':
-            self.close()
 
     def capture_next(self):
         self._capture_index = 0
@@ -2201,9 +2274,21 @@ def main():
         if not owns_instance:
             return 0
     if args.reset_no_show:
-        QSettings('Secure Prospective', 'SP+ Welcome').clear()
-    window = WelcomeWindow(args.force or args.screenshots or args.self_test_close or args.self_test,
-                           args.screen, args.screenshots, args.help_depth)
+        # Reset the one preference this flag names. It used to .clear() the
+        # whole store, which would take every other Welcome setting with it --
+        # harmless while nothing else was stored there, and a trap the moment
+        # anything is.
+        write_no_show(False)
+    force = args.force or args.screenshots or args.self_test_close or args.self_test
+    # Honour "do not show this setup again" BEFORE building a window. This used
+    # to happen in loadFinished, which meant Welcome opened, loaded the whole
+    # page, and only then closed itself -- a visible flash at every login for
+    # someone who asked not to see it, and no opt-out at all on any launch where
+    # the page failed to load, because loadFinished(ok=False) returns early.
+    # Nothing about this decision needs the page, so it no longer waits for it.
+    if not force and read_no_show():
+        return 0
+    window = WelcomeWindow(force, args.screen, args.screenshots, args.help_depth)
     if instance is not None:
         instance.activated.connect(window.raise_and_focus)
         window.single_instance = instance

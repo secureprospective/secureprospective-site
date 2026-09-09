@@ -810,7 +810,11 @@
     announce('CHECKING FLATHUB. DISCOVER WILL OPEN ONLY IF IT IS READY.');
     send('spplus:browse-store');
   });
-  document.getElementById('no-show').addEventListener('change', event => { localStorage.setItem('spplus-welcome-no-show', event.target.checked ? 'true' : 'false'); announce(event.target.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.'); });
+  // The preference goes to the SHELL, not to localStorage. This page runs in an
+  // off-the-record QWebEngine profile, so anything localStorage holds is thrown
+  // away when Welcome exits -- which is exactly why ticking this box used to do
+  // nothing at all. The shell owns the durable copy and answers on noShowState.
+  document.getElementById('no-show').addEventListener('change', event => { send('spplus:no-show?value=' + (event.target.checked ? 'true' : 'false')); });
   askForm.addEventListener('submit', event => {
     event.preventDefault();
     const question = askInput.value.trim();
@@ -1097,6 +1101,18 @@
     if (article) { helpView = {kind:'article', category:'Everyday work', article}; renderHelp(); }
   }
   window.spWelcome = {
+    // The shell is the authority on this preference. It reports the value it
+    // actually stored, both at startup and after a change, so the box reflects
+    // what is on disk rather than what the click implied.
+    noShowState: function(result){
+      const box = document.getElementById('no-show');
+      if (!box || !result || !result.ok) return;
+      box.checked = result.value === true;
+      // Only a change the advisor just made is worth announcing. Saying it at
+      // startup too would tell them every single launch that Welcome will
+      // appear again next time, which is noise and reads like a warning.
+      if (result.announce) announce(box.checked ? 'WELCOME WILL STAY OUT OF THE WAY NEXT TIME.' : 'WELCOME WILL APPEAR AGAIN NEXT TIME.');
+    },
     themeApplied: function(result){
       const detail = document.getElementById('theme-detail');
       const samePreview = previewCard && result && result.theme === previewCard.dataset.lnf;
