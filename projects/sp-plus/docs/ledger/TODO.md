@@ -264,35 +264,109 @@ and it must not be suspended unattended - if resume fails there is nobody at the
 **Acceptance:** on the Dell, with someone present: close the lid or choose Sleep, wake it, and
 confirm the screen returns and asks for the password.
 
-### T-20 - Welcome screen 03: the email card breaks its layout on "Other account"
+### T-20 - Welcome: fixed-height containers paint over the content below them
 
 Found 2026-09-10 during the Bee alpha sweep, on the released Alpha v0.10 image
 (`sha256:2ee969adfc7a105a6b930db9cee7313f2965042bade7b5f077edcd785b1530cb`). **Fix in the
 next ISO.**
 
-**Reproduce.** Welcome -> 03 Office connections -> in the `03 / EMAIL` card choose
-**Other account**. The radio group grows a "Paste the web address your practice uses for
-email" label and a URL field.
+Originally logged as a single email-card bug. Phase P02 showed it is not one card and not
+one screen: **every fixed-height container in Welcome overflows silently.** There is no
+scroll, no reflow and no clipping mask, so content that grows is simply drawn on top of
+whatever sits below. Fix this at the container level, once, rather than tuning each card -
+a per-card patchwork would leave the next piece of dynamic text to find its own way out.
 
-**What happens.** The added field pushes the card's own content past its bottom edge:
+**Reproduce - screen 03, Office connections.** All three cards do it:
 
-- The explanatory line "It must start with https. SP+ opens the page and never asks for or
-  stores your password." is clipped mid-sentence at the card boundary.
-- **The OPEN EMAIL SIGN-IN button escapes the card entirely** and lands on top of the
-  "A QUICK NOTE" strip below it, with that strip's text still visible underneath the button.
+- `03 / EMAIL`, choose **Other account**: the URL field pushes the card past its bottom
+  edge. "It must start with https..." is clipped mid-sentence and **OPEN EMAIL SIGN-IN
+  escapes the card onto the "A QUICK NOTE" strip**.
+- `01 / OFFICE FOLDER`, run a check against an unreachable server: the error
+  "INVALID-SERVER COULD NOT BE REACHED ON THE NETWORK..." renders *superimposed* on the
+  quick-note strip. Two runs of text occupy the same pixels and neither is legible.
+- `02 / PRINTER`, click PRINT ONE TEST PAGE with no printer: the status text overlaps the
+  same strip, and **`I'LL DO THIS LATER` becomes unreachable** - the advisor cannot skip
+  the step the screen just told them to skip.
 
-Evidence: `~/logs/sp-plus/testvm/shots/p02-s03-other-url-20260910T034930Z.png`.
+Evidence: `~/logs/sp-plus/testvm/shots/p02-s03-other-url-20260910T034930Z.png`,
+`p02-s03-check-folder-invalid-20260910T035118Z.png`,
+`p02-s03-print-test-page-20260910T035224Z.png`.
 
-**Why it matters.** This is the screen where an advisor connects their email, and the
-control they need is the one that breaks out of its box and lands on top of other text.
-It also violates the standing rule that every Welcome screen fits one viewport with no
-overflow - the other two cards on this screen are fixed-height and this one is not.
+**Reproduce - screen 04, Social service details.** Open Social details. The capability
+list reported by the Social service is taller than the panel; the FACEBOOK row is sliced
+in half by the panel footer and scrolling does nothing. The advisor cannot see what the
+service actually offers, which is the panel's only job. Evidence:
+`p02-s04-social-scrolled-20260910T035630Z.png`.
 
-**Note on how it was found.** Bee was mid-phase and driving the screen correctly; the
-defect was caught by reading its screenshot, not its prose. The lesson is the standing
-one: look at the rendered result.
+**Why it matters.** Screen 03 is where an advisor connects their email, and it is
+precisely the error paths - the ones a nervous advisor will hit - that destroy the layout.
+An advisor who cannot read the error and cannot reach the skip button is stuck on the
+screen with no way forward and no idea why. It also violates the standing rule that every
+Welcome screen fits one viewport with no overflow.
 
-**Acceptance:** with "Other account" selected at 1280x800, the whole card renders inside
-its own border, nothing is clipped, and no control overlaps the strip below. Check the
-Google Workspace and Microsoft 365 selections at the same time - they are shorter, but
-the card should not resize in a way that shifts the rest of the screen.
+**Note on how it was found.** The first instance was caught by reading Bee's screenshot,
+not its prose; the full extent was caught the same way. The lesson is the standing one:
+look at the rendered result.
+
+**Acceptance:** at 1280x800, drive every dynamic state on screens 03 and 04 - each email
+provider including Other account, a folder check that fails, a printer search that finds
+nothing, a test page with no printer, and a Social capability list longer than its panel.
+In every case content stays inside its own border, nothing is drawn over the strip or
+footer, every control including the skip stays reachable, and anything too tall scrolls
+with a visible scrollbar. Also check the Google Workspace and Microsoft 365 selections do
+not shift the rest of the screen.
+
+### T-21 - Welcome: stale status text survives a change of provider
+
+Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.**
+
+**Reproduce.** Welcome -> 03 Office connections -> `03 / EMAIL`. Choose Microsoft 365 and
+launch it, come back, then choose Google Workspace.
+
+**What happens.** The card still reads "MICROSOFT 365 IS OPEN IN YOUR BROWSER. SP+ DID NOT
+HANDLE OR STORE YOUR PASSWORD." while Google Workspace is the selected radio. Evidence:
+`~/logs/sp-plus/testvm/shots/p02-s03-google-reset-for-skip-20260910T035311Z.png`.
+
+**Why it matters.** The advisor is being told a sentence about a provider they have just
+moved away from, on the screen where they are deciding which provider they use. It reads
+as the app having done something they did not ask for.
+
+**Acceptance:** changing the provider selection clears any status from the previous one.
+
+### T-22 - Welcome: an error tells the advisor to open Settings but offers no way in
+
+Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.**
+
+Clicking PRINT ONE TEST PAGE with no printer configured returns "THE PRINT SERVICE IS
+RUNNING, BUT NO USABLE PRINTER IS SET UP YET. OPEN PRINTER SETTINGS TO ADD ONE." - as
+plain text, with no button or link that opens printer settings, and partly obscured by the
+footer per T-20.
+
+This is the vocabulary problem in another form: the message assumes the advisor knows
+where "printer settings" is. Screen 01 already opens System Settings from a link, so the
+mechanism exists.
+
+**Acceptance:** the message carries a control that opens printer settings directly.
+
+### T-23 - Welcome: Windows-facing copy still contains Linux and technical jargon
+
+Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.** Low severity.
+
+Observed in Welcome: "learn Linux", "leaving it mounted", "GVFS", "desktop wallet",
+"ENCRYPTED AT REST", "SEC Marketing Rule". Evidence:
+`~/logs/sp-plus/testvm/shots/p02-final-screen1-20260910T040742Z.png`,
+`p02-s03-start-20260910T034717Z.png`, `p02-s04-social-back-20260910T035703Z.png`.
+
+The audience is an advisor who is frightened of anything outside Windows. "GVFS" and
+"mounted" are the words that confirm their fear that this is a machine for engineers.
+
+**Acceptance:** each term is replaced with what it means to the advisor, or removed. Keep
+the accuracy - the point is not to hide that the folder connection is temporary, it is to
+say so without naming the filesystem layer that implements it.
+
+### T-24 - Welcome screen 02: the footer promises "Apply", the button says "Use This Look"
+
+Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.** Low severity, but
+it is one screen's two halves disagreeing about what the same action is called.
+
+**Acceptance:** one name for the action, used in both places.
