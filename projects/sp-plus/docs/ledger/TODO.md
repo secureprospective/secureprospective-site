@@ -736,3 +736,61 @@ Markdown links (T-29), screens 07/08 clipping and the Social list.
 separate gates that pass while the thing they check is wrong - LibreOffice parity (T-31),
 the Brave policy gate (T-36), and, by omission, anything Shields-related. A gate that
 cannot fail is a false positive, and those have been shipping green.
+
+## Did anything fail to close? - VM log audit, 2026-09-10
+
+Christopher asked whether any program failed to close cleanly and whether a crash
+notification had been missed. Both were checked against the guest's own logs across every
+boot of the sweep.
+
+### No application failed to close
+
+All 40 applications closed cleanly. After the final login the process table holds only
+baseline session services - `startplasma-wayland`, `kwin_wayland`, `plasmashell`, `kded6`,
+`baloo_file`, `pipewire`, portals - every one of them started at login. Nothing was left
+behind by Brave, LibreOffice, Zoom, VLC, Discover, Dolphin, KeePassXC or any other tested
+application, and there are no orphans from earlier phases.
+
+### Three core dumps, all caused by the test harness
+
+`coredumpctl` shows exactly three crashes for the whole sweep:
+
+| Time (CDT) | Process | Command |
+|---|---|---|
+| 02:59:05 | `plasma-discover` | — |
+| 03:57:42 | `kscreen-doctor` | `kscreen-doctor -o` |
+| 04:06:33 | `lookandfeeltool` | `lookandfeeltool --list` |
+
+**All three have an identical stack**: `QGuiApplicationPrivate::createPlatformIntegration`
+-> `init_platform` -> `QMessageLogger::fatal` -> `qAbort`. That is Qt refusing to start
+because there is no display to attach to. The subordinate agent ran GUI-linked Qt tools over
+SSH with no `WAYLAND_DISPLAY`, and Qt aborts rather than printing an error.
+
+**These are not SP+ defects and no advisor can reach them** - they need a shell with no
+session, which an advisor does not have. Recorded so the core dumps are not mistaken later
+for product instability.
+
+### T-39 - a crash notification was genuinely dropped
+
+The one real finding from the audit, and it is the thing Christopher suspected.
+
+`drkonqi-coredump-processor[1776]: socket state unexpectedly QLocalSocket::UnconnectedState
+aborting crash processing`
+
+The crash was captured by `systemd-coredump` but the handover to DrKonqi failed, so no
+notification was ever raised. Across the whole sweep the advisor-facing crash notifier
+displayed **nothing**, for three crashes.
+
+Separately, `drkonqi-coredump-pickup.service` logged
+`Service reached runtime time limit. Stopping. / Failed with result 'timeout'`. That is the
+unit's designed 30-minute lifetime expiring and is upstream behaviour rather than an SP+
+fault - but it is what P01 reported as a failed user unit, so it is noise that will be
+re-reported by every future audit until it is either suppressed or documented.
+
+**Why it matters.** An advisor is frightened of this machine already. A program that
+vanishes with no explanation is the worst version of that fear, and the notifier whose job
+is to say "something closed unexpectedly, it was not your fault" is currently silent.
+
+**Acceptance:** crash an application deliberately on the Dell and confirm the advisor sees a
+plain-language notification. Then decide whether `drkonqi-coredump-pickup.service` reaching
+its time limit should keep presenting as a failed unit.
