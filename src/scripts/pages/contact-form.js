@@ -10,6 +10,12 @@
 const ROUTES = new Set(['operating', 'sp-plus', 'prospective']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// How long to wait for the Turnstile widget before telling the visitor it is not
+// coming. The script is third-party, so a blocked domain or a privacy extension
+// makes it never arrive; long enough not to fire on a slow connection, short
+// enough that nobody sits in front of a form that cannot work.
+const TURNSTILE_TIMEOUT_MS = 8000;
+
 let teardown = () => {};
 
 function boot() {
@@ -21,7 +27,50 @@ function boot() {
   const status = form.querySelector('[data-contact-status]');
   const submit = form.querySelector('[data-contact-submit]');
   const route = form.querySelector('#cf-route');
+  const slot = form.querySelector('[data-turnstile-slot]');
+  const fallback = form.querySelector('[data-turnstile-fallback]');
   const lines = Array.from(document.querySelectorAll('[data-contact-line]'));
+
+  // Turnstile writes its token into a hidden input it injects into the form.
+  // Its presence is the only honest signal that the widget actually rendered.
+  const hasWidget = () => Boolean(form.querySelector('[name="cf-turnstile-response"]'));
+
+  let widgetFailed = false;
+  let watchdog = null;
+  let observer = null;
+
+  const giveUpOnWidget = () => {
+    if (widgetFailed || hasWidget()) return;
+    widgetFailed = true;
+    if (fallback) fallback.hidden = false;
+    if (slot) slot.hidden = true;
+    if (submit) submit.disabled = true;
+  };
+
+  // The timeout is a guess about a slow network, so it has to be reversible.
+  // A widget that arrives late on a phone would otherwise leave the visitor
+  // staring at a disabled button and an escape hatch they did not need.
+  const widgetArrived = () => {
+    if (!widgetFailed) return;
+    widgetFailed = false;
+    if (fallback) fallback.hidden = true;
+    if (slot) slot.hidden = false;
+    if (submit) submit.disabled = false;
+  };
+
+  // A site key that never made it into the build is the same dead end for the
+  // visitor as a blocked script, so it is reported the same way and at once.
+  if (slot && !slot.dataset.sitekey) {
+    giveUpOnWidget();
+  } else {
+    watchdog = window.setTimeout(giveUpOnWidget, TURNSTILE_TIMEOUT_MS);
+    // Turnstile injects its token input whenever it finishes, which may be
+    // after the timeout has already fired.
+    observer = new MutationObserver(() => {
+      if (hasWidget()) widgetArrived();
+    });
+    observer.observe(form, { childList: true, subtree: true });
+  }
 
   const say = (message, tone) => {
     if (!status) return;
@@ -73,6 +122,14 @@ function boot() {
       return;
     }
     if (!turnstileToken) {
+      if (widgetFailed || !hasWidget()) {
+        giveUpOnWidget();
+        say(
+          'The spam check could not load, so this form cannot send. Email info@secureprospective.com instead.',
+          'error',
+        );
+        return;
+      }
       say('The verification check has not finished yet. Give it a moment and try again.', 'error');
       return;
     }
@@ -118,6 +175,10 @@ function boot() {
   form.addEventListener('submit', onSubmit);
 
   teardown = () => {
+    if (watchdog !== null) window.clearTimeout(watchdog);
+    watchdog = null;
+    if (observer) observer.disconnect();
+    observer = null;
     form.removeEventListener('submit', onSubmit);
     lines.forEach((line) => line.removeEventListener('click', onLineClick));
     teardown = () => {};

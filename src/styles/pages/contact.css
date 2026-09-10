@@ -117,7 +117,6 @@
 .contact-channel-card {
   display: flex;
   flex-direction: column;
-  min-height: 258px;
   padding: 26px;
   border: 1px solid var(--ink);
   background: var(--white);
@@ -153,7 +152,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 48px;
-  margin-top: auto;
+  margin-top: 20px;
   color: var(--ink);
   font-size: clamp(1.18rem, 2vw, 1.5rem);
   font-weight: 700;
@@ -171,14 +170,6 @@
 .contact-channel-card > a:focus-visible {
   outline: 3px solid var(--blue-brand);
   outline-offset: 4px;
-}
-
-.contact-channel-card > p {
-  margin-top: 13px;
-  color: var(--blue-brand);
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.015em;
 }
 
 .contact-hero-footer {
@@ -215,7 +206,7 @@
 }
 
 .contact-routing > .shell {
-  padding-block: clamp(76px, 10vw, 128px) clamp(88px, 11vw, 140px);
+  padding-block: clamp(76px, 10vw, 128px) clamp(56px, 7vw, 88px);
 }
 
 .contact-routing-heading {
@@ -541,7 +532,6 @@
   }
 
   .contact-channel-card {
-    min-height: 218px;
     padding: 22px;
     box-shadow: 5px 5px 0 var(--yellow-accent);
   }
@@ -652,7 +642,7 @@
 
 .contact-form-section {
   background: var(--silver-base);
-  padding: 0 0 96px;
+  padding: clamp(56px, 7vw, 88px) 0 96px;
 }
 
 .contact-form-frame {
@@ -856,4 +846,34 @@
   .contact-form-submit {
     transition: none;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Send desk: required marks and the spam-check fallback
+   -------------------------------------------------------------------------- */
+
+.contact-field-required {
+  margin-left: 8px;
+  color: var(--blue-brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Shown only when the Turnstile script never arrives. It has to read as the
+   working instruction it is, not as a validation error the visitor caused. */
+.contact-form-fallback {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border-left: 4px solid var(--yellow-accent);
+  background: #f4f4f2;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.contact-form-fallback a {
+  color: var(--blue-brand);
+  text-underline-offset: 3px;
 }
