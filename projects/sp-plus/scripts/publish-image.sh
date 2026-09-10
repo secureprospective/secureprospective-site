@@ -114,26 +114,75 @@ say "signing by digest"
 # the exact bytes it was made over.
 DIGEST=$(skopeo inspect "docker://$REPO:latest" | python3 -c 'import json,sys; print(json.load(sys.stdin)["Digest"])')
 echo "  digest $DIGEST"
-# Sign with OUR key and nothing else -- no public transparency log. Reaching
-# for the log made signing fail outright on 2026-09-02, AFTER the push had
-# already succeeded, so the fleet tag briefly served an unsigned image:
-#   Post "https://rekor.sigstore.dev/api/v1/log/entries": tls: access denied
-# The log adds nothing here: verification is against the public key in $KEYDIR,
-# offline. --tlog-upload=false is NOT the way to say that on this cosign; it is
-# deprecated and refused. An empty signing config -- no rekor, no TSA -- is.
-SC="$KEYDIR/signing-config.json"
-if [ ! -s "$SC" ]; then
-    "$COSIGN" signing-config create --out "$SC"
-fi
-COSIGN_PASSWORD=$(cat "$KEYDIR/password") \
-    "$COSIGN" sign --yes --signing-config "$SC" \
-        --key "$KEYDIR/cosign.key" "$REPO@$DIGEST"
 
-say "verifying the signature we just made"
-# A signature nobody checked is not a signature. Verify before declaring done.
-"$COSIGN" verify --insecure-ignore-tlog=true --key "$KEYDIR/cosign.pub" \
-    "$REPO@$DIGEST" >/dev/null \
-    && echo "  ok  signature verifies against $KEYDIR/cosign.pub"
+# WHY THIS NO LONGER USES COSIGN. Measured 2026-09-10 against a booted SP+ VM:
+# cosign v3 does not write the attachment that the machine reads. It publishes
+# an OCI referrers index pointing at an
+# `application/vnd.dev.sigstore.bundle.v0.3+json` artifact, under a tag with no
+# `.sig` suffix. containers/image -- which is what bootc uses to fetch the OS
+# image -- looks for `sha256-<digest>.sig` in the legacy cosign layout, does not
+# find it, and reports:
+#
+#   Source image rejected: A signature was required, but no signature exists
+#
+# `cosign verify` passes on the same image, because cosign reads its own format.
+# So the fleet tag WAS signed, verifiably, in a format no advisor machine can
+# use. Shipping the Phase S reject-by-default policy against a cosign-signed tag
+# would have stopped every machine updating. `--registry-referrers-mode=legacy`
+# does NOT fix it; per its own help text that flag governs FETCHING references,
+# not writing them.
+#
+# skopeo produces the format containers/image reads, using the same key file.
+# --sign-identity is not decorative: without it the signature records whatever
+# reference the copy targeted, and the policy's signedIdentity check rejects it.
+#
+# This requires attachments to be enabled ON THE PUBLISHING HOST too, or skopeo
+# refuses with "writing sigstore attachments is disabled by configuration".
+RD=/etc/containers/registries.d/sp-plus-ghcr.yaml
+if ! grep -qs 'use-sigstore-attachments: true' "$RD"; then
+    echo "  ERROR: $RD does not enable sigstore attachments." >&2
+    echo "  Signing would silently produce nothing the fleet can verify. Create it with:" >&2
+    echo "    docker:" >&2
+    echo "      ghcr.io/secureprospective:" >&2
+    echo "        use-sigstore-attachments: true" >&2
+    exit 5
+fi
+
+skopeo copy --preserve-digests \
+    --sign-by-sigstore-private-key "$KEYDIR/cosign.key" \
+    --sign-passphrase-file "$KEYDIR/password" \
+    --sign-identity "$REPO:latest" \
+    "docker://$REPO@$DIGEST" "docker://$REPO:latest"
+
+say "verifying the signature the way an ADVISOR MACHINE will read it"
+# cosign verifying its own signature proved nothing on 2026-09-10: it passed
+# against a signature no SP+ machine could find. The only verification worth
+# running is the one the fleet performs -- containers/image, the shipped policy,
+# the shipped public key.
+#
+# It has to be `podman pull --signature-policy`. `skopeo --policy ... inspect`
+# was tried first and DOES NOT ENFORCE THE POLICY AT ALL: measured 2026-09-10,
+# it accepted a deliberately unsigned image without complaint. A verification
+# step that cannot fail is worse than none, because it is believed.
+#
+# This is cheap despite pulling the fleet image: every blob was just built and
+# pushed from this host, so only the manifest and the signature move. The
+# signature is checked against the manifest before any layer is considered.
+VERIFY_POLICY=$(mktemp)
+cat > "$VERIFY_POLICY" <<POLICY
+{"default":[{"type":"reject"}],"transports":{"docker":{"$REPO":[{"type":"sigstoreSigned",
+"keyPath":"$KEYDIR/cosign.pub","signedIdentity":{"type":"matchRepository"}}]}}}
+POLICY
+if $PODMAN pull -q --signature-policy "$VERIFY_POLICY" "$REPO@$DIGEST" >/dev/null 2>&1; then
+    echo "  ok  the policy SP+ ships accepts $REPO@$DIGEST"
+else
+    echo "  FAILED: the signature is not readable by the policy SP+ ships." >&2
+    echo "  Do not announce this release. Every machine would stop updating." >&2
+    $PODMAN pull --signature-policy "$VERIFY_POLICY" "$REPO@$DIGEST" 2>&1 | tail -2 >&2
+    rm -f "$VERIFY_POLICY"
+    exit 6
+fi
+rm -f "$VERIFY_POLICY"
 
 say "published"
 printf '%s@%s\n' "$REPO" "$DIGEST"

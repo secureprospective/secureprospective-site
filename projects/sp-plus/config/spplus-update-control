@@ -44,6 +44,21 @@ print(json.dumps({"ok": False, "state": "error", "reason": sys.argv[1]}))' "$1"
     exit 0
 }
 
+# A refused signature is not a network problem and must never be reported as
+# one. Phase S makes this machine reject any OS image that is not signed by
+# Secure Prospective, and the raw error containers/image produces reads like a
+# crash to anyone who is not a systems engineer. The advisor needs to know three
+# things and no others: the update was refused, the computer is fine, and there
+# is nothing for them to do about it. There is deliberately no way for the
+# advisor to override this -- the whole value of the control is that it cannot
+# be talked out of.
+signature_failure() {   # <bootc stderr> -> plain english, or empty if unrelated
+    printf '%s' "$1" | grep -qiE \
+        'signature|sigstore|policy requirement|Source image rejected|not accepted|SignatureValidationFailed' \
+        || return 1
+    printf '%s' 'This update was refused because it is not signed by Secure Prospective. Your computer is safe and is still working normally, and it will keep the version it is running. It will try again on its own. If you keep seeing this, contact support.'
+}
+
 # Everything below reads bootc status through one parser. It reports the booted
 # and staged digests and, critically, the two timestamps the downgrade guard
 # needs. A machine with no cachedUpdate yet is a normal state, not an error.
@@ -164,6 +179,7 @@ check)
     # A network failure is an ordinary condition on a tethered or hotel
     # connection, and it is reported as itself rather than as "up to date".
     if ! err=$(bootc upgrade --check 2>&1); then
+        if sig=$(signature_failure "$err"); then fail "$sig"; fi
         fail "Could not reach the update service. $(printf '%s' "$err" | tail -1)"
     fi
     decide "$(read_state)"
@@ -180,6 +196,7 @@ stage)
         exit 0
     fi
     if ! err=$(bootc upgrade 2>&1); then
+        if sig=$(signature_failure "$err"); then fail "$sig"; fi
         fail "The update did not finish downloading. $(printf '%s' "$err" | tail -1)"
     fi
     decide "$(read_state)"

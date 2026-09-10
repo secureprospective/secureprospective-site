@@ -2918,4 +2918,47 @@ RUN set -eux; \
     grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
     echo "STORE_GATE_OK stock Discover, backends flatpak+fwupd, no rpm-ostree, no PackageKit, Flathub shipped"
 
+# ============================================================================
+# PHASE S -- verify the signature on our own OS image
+#
+# SP+ has signed every image it publishes since 2026-09-01 and, until now, no
+# installed machine has ever checked one. Measured on alpha4:
+#   /etc/containers/policy.json -> {"default":[{"type":"insecureAcceptAnything"}]}
+#   /etc/pki/containers/        -> did not exist
+# So anyone able to write ghcr.io/secureprospective/sp-plus-kde:latest owned the
+# fleet. `publish-image.sh` constrains OUR publishing; it cannot constrain
+# anybody else's.
+#
+# bootc honours /etc/containers/policy.json when it fetches images (upstream
+# bootc docs, "Container image verification"), so this is the whole mechanism --
+# there is no bootc-specific switch to also set.
+#
+# THE ORDER MATTERS AND IT IS NOT NEGOTIABLE. A machine only starts enforcing
+# this once it has BOOTED an image that carries the policy, and that image has
+# to arrive through the old, unverified path. Ship it, install it, prove
+# verification works, and only then depend on it. The failure mode if the key
+# and the publish lane ever disagree is that a machine stops UPDATING. It does
+# not stop working, and `bootc rollback` is still there.
+#
+# signedIdentity is matchRepository because that is what cosign's own signatures
+# match; the stricter default rejects them. The residual risk is stated in
+# docs/14-THREAT-MODEL.md: whoever controls the tag can serve any digest we have
+# ever signed. The downgrade guard in spplus-stage-update is what covers that,
+# and it is a separate control from this one.
+# ============================================================================
+COPY config/containers/sp-plus-cosign.pub          /etc/pki/containers/sp-plus-cosign.pub
+COPY config/containers/policy.json                 /etc/containers/policy.json
+COPY config/containers/ghcr-secureprospective.yaml /etc/containers/registries.d/ghcr-secureprospective.yaml
+
+RUN set -eux; \
+    chmod 0644 /etc/pki/containers/sp-plus-cosign.pub \
+               /etc/containers/policy.json \
+               /etc/containers/registries.d/ghcr-secureprospective.yaml; \
+    python3 -c 'import json,sys; p=json.load(open("/etc/containers/policy.json")); \
+sys.exit(0 if p["default"][0]["type"]=="reject" else 1)'; \
+    grep -q "sigstoreSigned" /etc/containers/policy.json; \
+    grep -q "use-sigstore-attachments: true" /etc/containers/registries.d/ghcr-secureprospective.yaml; \
+    openssl pkey -pubin -in /etc/pki/containers/sp-plus-cosign.pub -noout; \
+    echo "SIGPOLICY_GATE_OK default=reject, ghcr scope sigstoreSigned, attachments on, key parses"
+
 RUN bootc container lint

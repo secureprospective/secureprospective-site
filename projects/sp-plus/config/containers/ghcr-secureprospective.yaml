@@ -1,0 +1,8 @@
+# Cosign attaches its signature to the registry as a separate `.sig` artifact
+# rather than to a lookaside server. containers/image does not go looking for
+# those unless it is told to, and if it does not look it finds no signature and
+# the pull is REJECTED. This one line is the difference between a policy that
+# verifies and a policy that refuses everything.
+docker:
+    ghcr.io/secureprospective:
+        use-sigstore-attachments: true

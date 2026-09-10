@@ -1,0 +1,62 @@
+{
+    "default": [
+        {
+            "type": "reject"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "ghcr.io/secureprospective/sp-plus-kde": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "/etc/pki/containers/sp-plus-cosign.pub",
+                    "signedIdentity": {
+                        "type": "matchRepository"
+                    }
+                }
+            ]
+        },
+        "containers-storage": {
+            "": [
+                {
+                    "type": "insecureAcceptAnything"
+                }
+            ]
+        },
+        "dir": {
+            "": [
+                {
+                    "type": "reject"
+                }
+            ]
+        },
+        "docker-daemon": {
+            "": [
+                {
+                    "type": "reject"
+                }
+            ]
+        },
+        "oci": {
+            "": [
+                {
+                    "type": "reject"
+                }
+            ]
+        },
+        "oci-archive": {
+            "": [
+                {
+                    "type": "reject"
+                }
+            ]
+        },
+        "docker-archive": {
+            "": [
+                {
+                    "type": "reject"
+                }
+            ]
+        }
+    }
+}
