@@ -255,118 +255,6 @@ function methodSpine(subscribe) {
 }
 
 /* --------------------------------------------------------------------------
-   Card inspection. On a pointer device the two operating-state cards behave
-   like measured objects on a table. A damped rAF response gives the pointer
-   weight; the crosshair records where the inspection is happening.
-   -------------------------------------------------------------------------- */
-
-function cardTilt() {
-  if (prefersReducedMotion() || !window.matchMedia('(hover: hover)').matches) return;
-
-  const maxDegrees = 2.4;
-  const maxLift = 4;
-  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-
-  document.querySelectorAll('[data-tilt]').forEach((card) => {
-    const state = {
-      active: false,
-      targetX: 0,
-      targetY: 0,
-      targetLift: 0,
-      currentX: 0,
-      currentY: 0,
-      currentLift: 0,
-      frame: null,
-      lastTime: 0,
-    };
-
-    const request = () => {
-      if (state.frame === null) state.frame = requestAnimationFrame(step);
-    };
-
-    const step = (now) => {
-      state.frame = null;
-      const elapsed = state.lastTime ? Math.min(64, now - state.lastTime) : 16;
-      state.lastTime = now;
-      // Frame-rate independent damping: responsive on entry, calm on return.
-      const blend = 1 - Math.exp(-elapsed / 86);
-
-      state.currentX += (state.targetX - state.currentX) * blend;
-      state.currentY += (state.targetY - state.currentY) * blend;
-      state.currentLift += (state.targetLift - state.currentLift) * blend;
-      card.style.setProperty('--tilt-x', state.currentX.toFixed(3));
-      card.style.setProperty('--tilt-y', state.currentY.toFixed(3));
-      card.style.setProperty('--tilt-lift', `${state.currentLift.toFixed(3)}px`);
-
-      const settled = Math.max(
-        Math.abs(state.targetX - state.currentX),
-        Math.abs(state.targetY - state.currentY),
-        Math.abs(state.targetLift - state.currentLift)
-      ) < 0.01;
-
-      if (!settled || state.active) request();
-      else {
-        card.style.removeProperty('will-change');
-        state.lastTime = 0;
-      }
-    };
-
-    const reset = () => {
-      state.active = false;
-      state.targetX = 0;
-      state.targetY = 0;
-      state.targetLift = 0;
-      card.removeAttribute('data-inspecting');
-      request();
-    };
-
-    const onEnter = () => {
-      state.active = true;
-      card.dataset.inspecting = 'true';
-      card.style.willChange = 'transform';
-      request();
-    };
-
-    const onMove = (event) => {
-      if (event.pointerType === 'touch') return;
-      const rect = card.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-
-      const px = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-      const py = clamp((event.clientY - rect.top) / rect.height, 0, 1);
-      state.targetX = (0.5 - py) * maxDegrees;
-      state.targetY = (px - 0.5) * maxDegrees;
-      state.targetLift = -maxLift;
-      card.style.setProperty('--inspect-x', `${(px * 100).toFixed(2)}%`);
-      card.style.setProperty('--inspect-y', `${(py * 100).toFixed(2)}%`);
-      request();
-    };
-
-    const onBlur = reset;
-    card.addEventListener('pointerenter', onEnter, { passive: true });
-    card.addEventListener('pointermove', onMove, { passive: true });
-    card.addEventListener('pointerleave', reset, { passive: true });
-    card.addEventListener('pointercancel', reset, { passive: true });
-    window.addEventListener('blur', onBlur);
-
-    onCleanup(() => {
-      if (state.frame !== null) cancelAnimationFrame(state.frame);
-      state.frame = null;
-      card.removeEventListener('pointerenter', onEnter);
-      card.removeEventListener('pointermove', onMove);
-      card.removeEventListener('pointerleave', reset);
-      card.removeEventListener('pointercancel', reset);
-      window.removeEventListener('blur', onBlur);
-      card.removeAttribute('data-inspecting');
-      card.style.removeProperty('will-change');
-      card.style.setProperty('--tilt-x', '0');
-      card.style.setProperty('--tilt-y', '0');
-      card.style.setProperty('--tilt-lift', '0px');
-    });
-  });
-}
-
-/* --------------------------------------------------------------------------
    Title stamping. Words remain atomic so the mobile lockup never breaks in
    the middle of a word. The heading's accessible name stays one clean string.
    -------------------------------------------------------------------------- */
@@ -434,7 +322,6 @@ function boot() {
   scrollChrome(subscribe);
   heroParallax(subscribe);
   methodSpine(subscribe);
-  cardTilt();
 
   // Do not let fallback font metrics decide the authored lockup entrance.
   // The content is already visible while the font promise settles.

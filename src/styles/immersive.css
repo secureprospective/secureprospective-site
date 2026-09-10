@@ -95,7 +95,7 @@
   /* Each family enters with its own physical cue. State panels settle down,
      the method is revealed from its lower edge, and register rows advance
      from the side like a controlled record update. */
-  [data-motion-enabled] .dual-state [data-deal] { transform: translate3d(0, 2.25rem, 0) scale(0.992); }
+  [data-motion-enabled] .truth-field[data-deal] { transform: translate3d(0, 2.25rem, 0) scale(0.992); }
   [data-motion-enabled] .method-spine[data-deal] {
     transform: translate3d(0, 2rem, 0);
     clip-path: inset(0 0 6% 0);
@@ -152,6 +152,9 @@
   [data-motion-ready] .pronunciation {
     animation: sub-reveal 360ms var(--ease-deck) 320ms both;
   }
+  [data-motion-ready] .hero-sp-plus {
+    animation: hero-card-in 640ms var(--ease-deck) 450ms both;
+  }
 }
 
 @keyframes stamp-in {
@@ -161,8 +164,47 @@
   from { opacity: 0; transform: translate3d(0, 6px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
+@keyframes hero-card-in {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
 
 .pronunciation { position: relative; z-index: 2; }
+
+/* The SP+ card in the hero is the page's one promoted card: it sits highest
+   on the table and answers the pointer with a real, tracked offset. */
+.hero-sp-plus {
+  position: relative;
+  z-index: 2;
+  overflow: clip;
+  box-shadow: var(--lift-2);
+  transition: transform var(--dur-base) var(--ease-deck), box-shadow var(--dur-base) var(--ease-deck);
+}
+.hero-sp-plus:hover,
+.hero-sp-plus:focus-visible {
+  transform: translate3d(-3px, -3px, 0);
+  box-shadow: var(--lift-3);
+}
+
+/* A single verification pass runs along the card's top edge after the identity
+   has registered. It is a signal, not a decorative infinite loop. */
+.hero-sp-plus::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22%;
+  height: 3px;
+  background: var(--yellow-accent);
+  opacity: 0;
+  transform: translate3d(-120%, 0, 0);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-ready] .hero-sp-plus::before {
+    animation: verification-pass 900ms linear 520ms both;
+  }
+}
 
 /* The SP+ card in the hero is the page's one promoted card: it sits highest
    on the table and answers the pointer with a real, tracked offset. */
@@ -178,77 +220,7 @@
   100% { opacity: 0; transform: translate3d(520%, 0, 0); }
 }
 
-/* --------------------------------------------------------------------------
-   Dual state. Two cards on a table, so they answer a pointer inspection with
-   a damped tilt, a lifted edge and a literal crosshair.
-   -------------------------------------------------------------------------- */
-
-.dual-state { perspective: 1400px; }
-
-.state-field {
-  position: relative;
-  --tilt-x: 0;
-  --tilt-y: 0;
-  --tilt-lift: 0px;
-  transition: box-shadow var(--dur-fast) var(--ease-deck);
-}
-
-/* The inspection cursor is deliberately literal: two hairlines pin the
-   current read point to the card rather than adding a generic glow. */
-.state-field::before,
-.state-field::after {
-  position: absolute;
-  z-index: 2;
-  background: currentColor;
-  content: '';
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-fast) linear;
-}
-.state-field::before {
-  top: var(--inspect-y, 50%);
-  right: 0;
-  left: 0;
-  height: 1px;
-}
-.state-field::after {
-  top: 0;
-  bottom: 0;
-  left: var(--inspect-x, 50%);
-  width: 1px;
-}
-.state-field[data-inspecting='true']::before,
-.state-field[data-inspecting='true']::after { opacity: 0.42; }
-.inspection-marker {
-  position: absolute;
-  z-index: 3;
-  top: var(--inspect-y, 50%);
-  left: var(--inspect-x, 50%);
-  width: 12px;
-  height: 12px;
-  border: 1px solid currentColor;
-  opacity: 0;
-  transform: translate3d(-50%, -50%, 0);
-  pointer-events: none;
-  transition: opacity var(--dur-fast) linear;
-}
-.state-field[data-inspecting='true'] .inspection-marker { opacity: 0.9; }
-
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .state-field[data-tilt].is-dealt {
-    transform:
-      perspective(1400px)
-      rotateX(calc(var(--tilt-x, 0) * 1deg))
-      rotateY(calc(var(--tilt-y, 0) * 1deg))
-      translate3d(0, var(--tilt-lift, 0px), 0);
-    transform-style: preserve-3d;
-  }
-  .state-field[data-tilt][data-inspecting='true'] { z-index: 3; }
-  .state-field--secure[data-tilt][data-inspecting='true'] { box-shadow: var(--lift-yellow); }
-  .state-field--prospective[data-tilt][data-inspecting='true'] { box-shadow: var(--lift-2); }
-}
-
-.state-lede { max-width: var(--measure-lede); }
+.truth-lede { max-width: var(--measure-lede); }
 
 /* Ledger figures count up, and sit on a hairline that draws itself in. */
 .evidence-ledger > div { position: relative; }
@@ -456,7 +428,6 @@ p { text-wrap: pretty; }
 @media (max-width: 760px) {
   .shell { width: min(100% - 48px, var(--container-max, 1200px)); }
 
-  .state-field-body { padding: 56px 24px; }
 
   .identity-lockup,
   .spine-copy,
@@ -466,13 +437,13 @@ p { text-wrap: pretty; }
 
   /* The paragraphs the detector named, guaranteed an inset of their own so
      they cannot bleed even if a parent's padding is overridden later. */
-  .state-lede,
-  .build-proof { max-width: 100%; }
+  .truth-lede,
+  .truth-answer,
+  .hero-sp-plus { max-width: 100%; }
 }
 
 @media (max-width: 360px) {
   .shell { width: min(100% - 40px, var(--container-max, 1200px)); }
-  .state-field-body { padding: 48px 20px; }
 }
 
 /* The register heading grew a clause when its kicker was folded in, so it
@@ -509,7 +480,7 @@ p { text-wrap: pretty; }
   .site-nav .site-link,
   .site-footer .footer-index a,
   .site-footer .footer-close > span,
-  .state-field-head,
+  .truth-field-head,
   .spine-steps > li > span,
   .proof-status,
   .operation-rail,

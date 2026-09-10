@@ -9,98 +9,76 @@ import HeroTicker from '../components/HeroTicker.astro';
   <Nav />
 
   <main id="main" transition:name="page-card">
-    <section class="identity-hero" aria-labelledby="identity-title">
+    <section class="identity-hero">
       <HeroTicker />
       <div class="identity-lockup">
-        <!--
-          The wordmark keeps its stamp reveal but it is no longer the h1. A
-          visitor arriving from a recruiting ad landed on a logo and a phonetic
-          spelling and had to scroll to find a sentence. The heading is the
-          argument now; the mark identifies who is making it.
-        -->
         <p class="identity-kicker">Operator to operator</p>
         <p class="identity-mark" data-stamp>SecureProspective</p>
         <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
-
-        <h1 id="identity-title">
-          Most of what an advisor is sold was never used by the people selling it.
-        </h1>
-
-        <p class="identity-lede">
-          The pitch has not changed in twenty-five years. More products, more leads,
-          more tools, more training, more scale. Bring your license, bring your
-          ambition. Then Tuesday morning arrives, you have a case in front of you,
-          and there is nobody to ask.
-        </p>
-
-        <p class="identity-truth">
-          Christopher Campbell still writes business with real clients, and has spent
-          eight years inside IMOs and financial advisor offices. SecureProspective is
-          the operation he runs. SP+ is what that operation built for its own
-          producers. A broad promise is not an operating model.
-        </p>
-
-        <p class="identity-routes">
-          <a href="/services">See the operation →</a>
-          <a href="/the-work">See SP+ →</a>
-        </p>
+        <a class="hero-sp-plus" href="/the-work">
+          <span>SP+ // ACTIVE BUILD</span>
+          <strong>The safer advisor workstation.</strong>
+          <small>Access begins with a fit review and five production contracts. No software fee, no recurring SP+ subscription.</small>
+          <b>Explore SP+ →</b>
+        </a>
       </div>
     </section>
 
-    <section class="dual-state" aria-label="Secure and prospective operating states">
-      <article class="state-field state-field--secure" data-deal data-tilt>
-        <span class="inspection-marker" aria-hidden="true"></span>
-        <div class="state-field-head">
-          <span>STATE // OPERATING</span>
-          <span>REVENUE ACTIVE</span>
-        </div>
-        <div class="state-field-body">
-          <h2>The business<br />that exists.</h2>
-          <p class="state-lede">
-            SecureProspective operates inside the work: annuity and life-insurance wholesale,
-            producer development, case design, suitability, and infrastructure for active agents.
+    <!--
+      The argument, in the slot the two-state section used to hold. SP+ had the
+      right-hand half of that section and a whole page of its own saying the same
+      thing better, so the half went and this took the full width. The heading is
+      the page's h1: the mark above identifies who is speaking, this says why
+      anyone should listen.
+    -->
+    <section class="truth-field" aria-labelledby="identity-title" data-deal>
+      <div class="truth-field-head">
+        <span>STATE // OPERATING</span>
+        <span>REVENUE ACTIVE</span>
+      </div>
+      <div class="shell truth-grid">
+        <div class="truth-copy">
+          <h1 id="identity-title">
+            Most of what an advisor is sold was never used by the people selling it.
+          </h1>
+
+          <p class="truth-lede">
+            The pitch has not changed in twenty-five years. More products, more leads,
+            more tools, more training, more scale. Bring your license, bring your
+            ambition. Then Tuesday morning arrives, you have a case in front of you,
+            and there is nobody to ask.
           </p>
-          <div class="evidence-ledger" aria-label="IMO operating evidence">
-            <div style="--ledger-index: 0">
-              <strong data-count-to="8">8</strong><span>Active producers</span>
-            </div>
-            <div style="--ledger-index: 1">
-              <strong data-count-to="18" data-count-prefix="~$" data-count-suffix="M">~$18M</strong>
-              <span>Current annual annuity volume assisted</span>
-            </div>
-            <div style="--ledger-index: 2">
-              <strong data-count-to="110" data-count-prefix="~$" data-count-suffix="M">~$110M</strong>
-              <span>Total annuity production assisted over six years</span>
-            </div>
-          </div>
+
+          <p class="truth-answer">
+            Christopher Campbell still writes business with real clients, and has spent
+            eight years inside IMOs and financial advisor offices. SecureProspective is
+            the operation he runs: annuity and life-insurance wholesale, producer
+            development, case design, suitability, and infrastructure for active agents.
+            A broad promise is not an operating model.
+          </p>
+
           <a href="/services" class="action action--light">Enter the operation <span>→</span></a>
         </div>
-      </article>
 
-      <article class="state-field state-field--prospective" data-deal data-tilt style="--deal-delay: 120ms">
-        <span class="inspection-marker" aria-hidden="true"></span>
-        <div class="state-field-head">
-          <span>STATE // IN BUILD</span>
-          <span>DELIVERABLE 001</span>
-        </div>
-        <div class="state-field-body">
-          <h2>The workstation<br />that protects the practice.</h2>
-          <p class="state-lede">
-            SP+ is a Fedora-based immutable workstation for insurance agents and financial advisors,
-            encrypted from installation, contained where practical, and built around human-held AI assistance.
-          </p>
-          <div class="build-proof">
-            <span class="build-proof-mark" aria-hidden="true"></span>
-            <p><strong>SP+ is for producers who place five production contracts with SecureProspective.</strong> That partnership is what pays for the work. There is no software fee and no recurring SP+ subscription on top of it.</p>
+        <div class="evidence-ledger" aria-label="IMO operating evidence">
+          <div style="--ledger-index: 0">
+            <strong data-count-to="8">8</strong><span>Active producers</span>
           </div>
-          <a href="/the-work" class="action action--signal">See how SP+ works <span>→</span></a>
+          <div style="--ledger-index: 1">
+            <strong data-count-to="18" data-count-prefix="~$" data-count-suffix="M">~$18M</strong>
+            <span>Current annual annuity volume assisted</span>
+          </div>
+          <div style="--ledger-index: 2">
+            <strong data-count-to="110" data-count-prefix="~$" data-count-suffix="M">~$110M</strong>
+            <span>Total annuity production assisted over six years</span>
+          </div>
         </div>
-      </article>
+      </div>
     </section>
 
     <section class="method-spine shell" data-deal>
       <div class="spine-copy">
-        <h2>One operation.<br />Five movements.</h2>
+        <h2>One operation. Five movements.</h2>
         <p>
           The method is not a consulting product sitting above the business. It is the discipline
           being applied inside it. Every claim moves through an evidence gate.
