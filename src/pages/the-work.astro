@@ -12,17 +12,30 @@ import '../styles/pages/the-work.css';
       <div class="work-hero-inner shell">
         <div class="work-hero-copy">
           <h1 id="work-title">SP+.</h1>
-          <div class="work-status-bar" aria-label="SP+ build status">
+          <!--
+            Two states, because SP+ has two. One bar reading IN BUILD made the
+            whole thing look like there was nothing to install, and there is: the
+            workstation ships, and the advisor layer on top of it does not yet.
+          -->
+          <div class="work-status-bar" aria-label="SP+ release status">
             <span>DELIVERABLE // 001</span>
-            <span>STATE // IN BUILD</span>
+            <span class="work-status-shipped">Workstation // alpha released</span>
+            <span class="work-status-building">Advisor layer // in build</span>
           </div>
           <p class="work-manifest">Immutable. Encrypted.<br />Contained. AI-First.</p>
           <p class="work-hero-lede">
             A safer workstation for professionals trusted with other people’s financial lives.
           </p>
+          <p class="work-hero-state">
+            The workstation exists and installs today. The Fedora-based foundation is
+            stable enough to run a day on, an alpha build is released to partnered
+            producers, and it is under continuous test. What is still being built is
+            the layer above it: the assistance and the workflow that make the machine
+            specific to advisory work rather than merely safer than the one you have.
+          </p>
           <div class="work-hero-actions">
             <a class="action action--dark" href="#security">Read the foundation <span class="action-mark" aria-hidden="true"></span></a>
-            <span class="work-honesty">BUILD STATUS / active work</span>
+            <span class="work-honesty">Alpha released / advisor layer in build</span>
           </div>
         </div>
 
@@ -66,7 +79,7 @@ import '../styles/pages/the-work.css';
               </div>
             </div>
           </div>
-          <figcaption>A representation of the operating model, not a screenshot. The product is in build.</figcaption>
+          <figcaption>A representation of the operating model, not a screenshot. The workstation at the centre of it installs today; the advisor layer either side of it is in build.</figcaption>
         </figure>
       </div>
       <div class="work-hero-foot shell" aria-label="SP+ status details">

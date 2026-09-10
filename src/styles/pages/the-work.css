@@ -87,10 +87,10 @@
 .work-status-bar {
   margin-top: 32px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  max-width: 520px;
+  gap: 10px 14px;
+  max-width: 560px;
   padding-block: 12px;
   border-block: 1px solid var(--blue-brand);
   color: var(--blue-brand);
@@ -101,10 +101,25 @@
   text-transform: uppercase;
 }
 
-.work-status-bar span:last-child {
-  padding: 5px 7px;
+/* Shipped reads as shipped and in-build reads as in-build. One yellow chip on
+   the last item said nothing about which state it marked. */
+.work-status-shipped,
+.work-status-building {
+  padding: 5px 8px;
+  border: 1px solid var(--blue-brand);
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.work-status-shipped {
+  border-color: var(--ink);
   background: var(--yellow-accent);
   color: var(--ink);
+}
+
+.work-status-building {
+  background: transparent;
+  color: var(--blue-brand);
 }
 
 .work-hero h1 {
@@ -130,6 +145,15 @@
   margin-top: 28px;
   font-size: clamp(1.05rem, 1.45vw, 1.22rem);
   line-height: 1.58;
+}
+
+.work-hero-state {
+  max-width: 46ch;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(34, 34, 34, 0.28);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .work-hero-actions {
