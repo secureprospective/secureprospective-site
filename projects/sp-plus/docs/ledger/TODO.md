@@ -634,3 +634,55 @@ re-verified. The desktop was clean afterwards with every tested process gone.
 
 **Discover at 18s and Firewall at 20s are the two slowest things an advisor can click.**
 Neither shows progress while it waits.
+
+### T-36 - Brave does not block ads on a freshly installed machine
+
+Reported by Christopher 2026-09-10 from hands-on testing of Alpha v0.10 on the Dell:
+"In testing the Dell I noticed Brave isnt blocking ads." Investigated on the test VM the
+same day. **This is a real defect and it is a first-impression defect.**
+
+**What is actually wrong.** Shields itself is fine - it is enabled, and per-site Shields
+metadata is being written for the sites the sweep visited. What is missing is the filter
+lists. Brave ships no lists inside the browser package; it downloads them after first run
+as components, on its own lazy schedule. On the test VM:
+
+- `First Run` was stamped `2026-09-09 22:48`.
+- `Default/adblock_cache/engine1.dat` (2.2 MB) appeared at `2026-09-10 01:14`, **2h26m later**.
+- `Default/adblock_cache/engine0.dat` (8.6 MB, the full default list engine) appeared at
+  `2026-09-10 07:01` - **8 hours 13 minutes after first run.**
+- Components eventually present: `Brave Default Adblock Filters` 1.0.22179, `Brave First
+  Party Adblock Filters` 1.0.481, `Regional Catalog` 1.0.97.
+
+So for the whole of an advisor's first session on a new machine, Brave is running with
+Shields "up" and nothing behind it. That is precisely the window in which the advisor
+decides whether this computer was a good idea.
+
+**Second, smaller problem.** The managed policy at `/etc/brave/policies/managed/sp-plus.json`
+sets 24 keys and **not one of them concerns ad blocking or Shields**. The whole feature
+rests on an upstream default. Nothing in the image asserts it, and the `BRAVE_POLICY_OK`
+gate cannot catch a regression because it only asserts on keys that are already there -
+another gate that cannot fail in the direction that matters.
+
+**Confirm it on the Dell in one step:** open `brave://components` and read the version
+beside **Brave Ad Block Updater**. `0.0.0.0` means the lists have never been fetched and
+nothing is being blocked. That is the diagnostic, and it takes a few seconds.
+
+**Fix, at the rules level rather than per machine.** Preferred order:
+
+1. **Ship the filter lists in the image** so the engine is populated at first boot rather
+   than hours later. The component updater then remains the update path, which satisfies
+   the standing rule that everything shipped has one.
+2. Failing that, a first-login unit that forces a component update immediately instead of
+   waiting for Brave's schedule, with the advisor told nothing - it should simply be true
+   by the time they open the browser.
+3. Add explicit Shields policy keys so the setting is asserted by SP+ and not inherited,
+   and extend the policy gate to assert them so the gate can fail.
+
+**Acceptance:** on a machine installed from the ISO, open Brave for the first time and load
+a page carrying ads; they are blocked, and `brave://components` shows a real version for
+Brave Ad Block Updater. Prove it on the Dell, not on a VM.
+
+**Honest limit of this evidence:** what was proven is that the engine file was written more
+than eight hours after first run, and that no policy asserts Shields. Ads passing through
+during that window follows from it but was not itself watched happening - the VM was busy
+with another phase and could not be driven.
