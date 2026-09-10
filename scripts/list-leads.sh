@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# List captured chatbot leads from the ccwork-leads R2 bucket, newest last.
+# List captured contact-form leads from the secureprospective-leads R2 bucket,
+# newest last. The old ccwork-leads bucket belonged to the retired chatbot.
 #
 # Auth: needs a Cloudflare API token with R2 read. Uses $CLOUDFLARE_API_TOKEN
 # if set, otherwise falls back to /root/.cf_token (CT105). The token is never
@@ -9,7 +10,7 @@
 set -euo pipefail
 
 ACCOUNT_ID="002dd2f758b67ac08d05a3809d65a25a"
-BUCKET="ccwork-leads"
+BUCKET="secureprospective-leads"
 TOKEN="${CLOUDFLARE_API_TOKEN:-$(cat /root/.cf_token 2>/dev/null || true)}"
 
 if [ -z "$TOKEN" ]; then
@@ -32,5 +33,5 @@ echo "== ${count} lead(s) =="
 while IFS= read -r k; do
   [ -z "$k" ] && continue
   curl -s "${API}/objects/${k}" -H "Authorization: Bearer ${TOKEN}" \
-    | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"- {d.get('created_at','?')}  {d.get('name','?')}  <{d.get('email','?')}>\")"
+    | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"- {d.get('created_at','?')}  [{d.get('route','?')}]  {d.get('name','?')}  <{d.get('email','?')}>\")"
 done <<< "$keys"

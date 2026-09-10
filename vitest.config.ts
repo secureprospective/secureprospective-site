@@ -1,17 +1,15 @@
 import { defineConfig } from "vitest/config";
 
-// Vitest configuration for the AI-ecosystem library + future site tests.
+// Tests cover the code this site actually ships: the Pages Functions behind
+// the contact form. The former AI-ecosystem library and its 200-odd tests were
+// removed from this repo along with the chatbot lane; see
+// docs/PARKED-AI-ECOSYSTEM.md for where that lives and how to bring it back.
 //
-// Scope: src/lib/ecosystem/ test files (glob: ** slash *.test.ts).
-// Does NOT typecheck (esbuild-only transform, same as the prior
-// /tmp/opencode smoke-test pattern) — run `npx tsc --noEmit` separately
-// for type coverage. Test files use explicit vitest imports rather than
-// globals, so no tsconfig change is required.
-//
-// Component 10 spec: docs/ai-ecosystem/ARCHITECTURE.md §5.10.
+// This config transforms with esbuild and does not typecheck. Run
+// `npx tsc --noEmit` separately for type coverage.
 export default defineConfig({
   test: {
-    include: ["src/lib/ecosystem/**/*.test.ts"],
+    include: ["tests/**/*.test.ts"],
     exclude: ["node_modules/**", "dist/**"],
     environment: "node",
     globals: false,
