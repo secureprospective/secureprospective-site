@@ -34,6 +34,10 @@ h3 {
   font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
+  /* Display type on this site runs 60-80px inside columns that are often only
+     400-500px wide, which leaves two or three words a line and a very uneven
+     rag. Balancing the lines is the ramp-level fix; the alternative is tuning a
+     measure by hand on every heading and re-tuning it whenever the copy moves. */
   text-wrap: balance;
 }
 
@@ -107,7 +111,16 @@ button, input, textarea, select { font: inherit; }
 .site-link.active { background: var(--blue-brand); color: var(--white); }
 .link-state { width: 7px; height: 7px; border: 1px solid currentColor; }
 .site-link.active .link-state { background: var(--yellow-accent); border-color: var(--yellow-accent); }
-.site-link--utility { margin-left: 4px; background: var(--white); }
+/* Member access is the back office for a handful of advisors. A solid white
+   block made it the loudest thing in the bar, louder than Contact, for every
+   visitor who will never sign in. It keeps its own slot and its own rule, set
+   back rather than lit up. */
+.site-link--utility {
+  margin-left: 12px;
+  border-left: 1px solid rgba(34, 34, 34, 0.35);
+  font-weight: 500;
+}
+.site-link--utility:hover { background: var(--ink); color: var(--white); }
 .nav-toggle { display: none; }
 
 /* Hero: production ticker motion with the new identity lockup */
@@ -276,7 +289,7 @@ button, input, textarea, select { font: inherit; }
   min-height: 650px;
   padding: clamp(54px, 7vw, 96px) clamp(28px, 6vw, 84px);
 }
-.state-field h2 { max-width: 680px; font-size: clamp(3rem, 5.8vw, 5.5rem); }
+.state-field h2 { max-width: 14ch; font-size: clamp(2.6rem, 4.4vw, 4.2rem); }
 .state-lede { margin-top: 34px; font-size: clamp(1.05rem, 1.4vw, 1.25rem); line-height: 1.55; }
 .evidence-ledger { width: 100%; margin: 42px 0 8px; border-top: 1px solid rgba(255,255,255,0.62); }
 .evidence-ledger > div {
@@ -314,10 +327,13 @@ button, input, textarea, select { font: inherit; }
   margin-top: 54px;
   list-style: none;
 }
+/* No min-height floor. These five sit in one grid row, so they already stretch
+   to the tallest of them; a 210px floor on top of that put 100px of empty white
+   between the number chip and the title, which reads as a missing graphic rather
+   than as breathing room. */
 .spine-steps li {
   display: flex;
   flex-direction: column;
-  min-height: 210px;
   padding: 20px;
   border: 1px solid var(--ink);
   background: var(--white);
@@ -329,9 +345,9 @@ button, input, textarea, select { font: inherit; }
 .spine-steps small { margin-top: 10px; line-height: 1.4; }
 
 .proof-register { padding-block: clamp(72px, 9vw, 124px); border-block: 2px solid var(--ink); background: var(--white); }
-.proof-register-grid { display: grid; grid-template-columns: 0.75fr 1.25fr; gap: clamp(48px, 8vw, 120px); }
+.proof-register-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: clamp(40px, 5vw, 76px); }
 .proof-register-title > span { display: block; margin-bottom: 28px; color: var(--blue-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; }
-.proof-register-title h2 { font-size: clamp(2.8rem, 5vw, 5.2rem); }
+.proof-register-title h2 { font-size: clamp(2.5rem, 3.9vw, 4rem); }
 .proof-lines { display: grid; gap: 14px; }
 .proof-line {
   display: grid;
@@ -354,10 +370,20 @@ button, input, textarea, select { font: inherit; }
 .proof-line--future { opacity: 0.68; }
 
 .closing-field { padding-block: clamp(88px, 12vw, 160px); background: var(--ink); color: var(--white); }
-.closing-field-grid { display: grid; grid-template-columns: 0.5fr 1.5fr; gap: 24px 70px; }
-.closing-field p { padding-top: 12px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.closing-field h2 { max-width: 950px; font-size: clamp(3rem, 6vw, 5.8rem); }
-.closing-actions { grid-column: 2; display: flex; align-items: baseline; gap: 36px; }
+
+/* One column, read top to bottom: kicker, statement, terms, then the action.
+   This grid used to be two columns sized 0.5fr/1.5fr for a kicker that the
+   markup never supplied, so the heading auto-placed into the narrow track and
+   its own min-content width forced the two tracks to parity. The result was a
+   thirteen-line heading beside a button that sat 800px above the end of the
+   sentence it was meant to answer. */
+.closing-field-grid { display: grid; gap: 28px; }
+.closing-field-kicker { color: var(--yellow-accent); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.closing-field h2 { max-width: 18ch; font-size: clamp(3rem, 6vw, 5.8rem); }
+.closing-field-terms { max-width: 46ch; font-size: 1.05rem; line-height: 1.55; }
+.closing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 36px; }
+.closing-actions .action { margin-top: 0; }
+.closing-actions .text-link { margin-top: 0; }
 
 /* Interior pages retain the ledger side of the Property Card System */
 .record-hero { min-height: 560px; border-bottom: 2px solid var(--ink); background: var(--silver-base); }
@@ -604,9 +630,10 @@ button, input, textarea, select { font: inherit; }
   margin-top: 48px;
 }
 
+/* Three columns in one grid row already match each other's height. The 280px
+   floor on top of that left 100px of empty space under the shortest list. */
 .access-terms section {
   min-width: 0;
-  min-height: 280px;
   padding: 22px;
   border: 1px solid currentColor;
   transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
@@ -705,11 +732,19 @@ button, input, textarea, select { font: inherit; }
 .site-footer { padding-block: 42px; background: var(--ink); color: var(--white); }
 .footer-grid { display: flex; flex-direction: column; gap: 24px; }
 .footer-index { display: flex; flex-wrap: wrap; gap: 24px; }
-.footer-index a { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.footer-index a { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .footer-index a:hover { color: var(--yellow-accent); }
 .footer-rule { height: 1px; background: rgba(255,255,255,0.25); }
 .footer-close { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 24px; align-items: center; }
-.footer-legal { font-size: 11px; text-underline-offset: 3px; }
+/* On a phone these two were 18px tall, well under the 44px a thumb needs. The
+   type stays small; the hit area is padded out around it. */
+.footer-legal {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 11px;
+  text-underline-offset: 3px;
+}
 .footer-legal:hover { color: var(--yellow-accent); }
 .footer-close span { font-size: 11px; }
 .footer-close p { font-family: var(--font-body); font-size: 0.95rem; font-weight: 700; text-transform: uppercase; }
@@ -720,10 +755,8 @@ button, input, textarea, select { font: inherit; }
   .state-field--prospective { border-top: 2px solid var(--ink); border-left: 0; }
   .state-field-body { min-height: 0; }
   .spine-copy,
-  .proof-register-grid,
-  .closing-field-grid { grid-template-columns: 1fr; }
+  .proof-register-grid { grid-template-columns: 1fr; }
   .spine-steps { grid-template-columns: repeat(3, 1fr); }
-  .closing-actions { grid-column: 1; }
   .security-grid { grid-template-columns: 1fr; }
   .contact-options { grid-template-columns: 1fr; }
   .contact-option { min-height: 300px; }
@@ -765,7 +798,7 @@ button, input, textarea, select { font: inherit; }
   .identity-hero { min-height: calc(100svh - 66px); }
   .identity-lockup { padding-block: 48px; }
   /* One closed-up word cannot wrap, so it must scale instead. Primal advance widths
-     measured from public/fonts/Primal.otf: SECUREPROSPECTIVE is 13.683em including
+     measured from the Primal display face: SECUREPROSPECTIVE is 13.683em including
      0.015em tracking. The shell leaves 100% - 32px here, so the type has to stay at
      or under (100vw - 32px) / 13.683, which is 6.5vw at 320px and looser above it.
      6.3vw holds with margin at every width down to 320. */
@@ -784,7 +817,6 @@ button, input, textarea, select { font: inherit; }
   .evidence-ledger > div { grid-template-columns: 116px 1fr; }
   .method-spine { padding-block: 76px; }
   .spine-steps { grid-template-columns: 1fr; }
-  .spine-steps li { min-height: 160px; }
   .proof-line { grid-template-columns: 76px 1fr 24px; padding-block: 18px; }
   .proof-line small { grid-column: 2 / -1; }
   .closing-field { padding-block: 88px; }

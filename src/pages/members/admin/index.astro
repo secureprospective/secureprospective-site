@@ -6,7 +6,7 @@ import Footer from '../../../components/Footer.astro';
 
 <Layout title="Admin Console: SecureProspective Back Office" description="Administrative console for the SecureProspective back office." noindex>
   <Nav />
-  <main class="admin-shell" id="admin-shell" hidden>
+  <main class="admin-shell" id="main" hidden>
     <div class="admin-inner container">
       <div class="admin-header">
         <div>
@@ -106,7 +106,7 @@ import Footer from '../../../components/Footer.astro';
     email_verified_at: string | null;
   };
 
-  const shell = document.getElementById('admin-shell') as HTMLElement | null;
+  const shell = document.getElementById('main') as HTMLElement | null;
   const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;
 
   const inviteForm = document.getElementById('invite-form') as HTMLFormElement | null;

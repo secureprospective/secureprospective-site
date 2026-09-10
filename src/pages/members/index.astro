@@ -7,7 +7,7 @@ import HeroTicker from '../../components/HeroTicker.astro';
 
 <Layout title="Back Office: SecureProspective" description="Invite-only access to the SecureProspective back office." noindex>
   <Nav />
-  <main class="gate-shell" id="gate-shell" hidden>
+  <main class="gate-shell" id="main" hidden>
     <!--
       The home page's ticker, reused rather than reinvented. It sits behind
       the card as a field, not an entrance -- same component, same pause
@@ -46,7 +46,7 @@ import HeroTicker from '../../components/HeroTicker.astro';
   // provisioning are retired projects. Their routes are gone with them, so
   // leaving the buttons would have left two controls that 404. What remains
   // in the back office is the SP+ download and, for admins, the console.
-  const shell = document.getElementById('gate-shell') as HTMLElement | null;
+  const shell = document.getElementById('main') as HTMLElement | null;
   const emailEl = document.getElementById('user-email') as HTMLElement | null;
   const adminLink = document.getElementById('admin-link') as HTMLAnchorElement | null;
   const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;

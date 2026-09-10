@@ -6,6 +6,12 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # HTML was going out as max-age=0, must-revalidate, so every page view was a
+  # round trip to the origin and cf-cache-status stayed DYNAMIC. The build is
+  # static, so the edge can hold it while browsers still revalidate: Cloudflare
+  # serves from cache for a minute, then serves the stale copy while it
+  # refreshes behind the request. The fingerprinted rules below override this.
+  Cache-Control: public, max-age=0, must-revalidate, s-maxage=60, stale-while-revalidate=86400
   # Turnstile is the only third-party script the site's own markup loads, and its
   # challenge runs in a frame it injects. Cloudflare's own analytics beacon is
   # allowed as well: Pages injects it at the edge when Web Analytics is enabled,

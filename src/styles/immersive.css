@@ -410,7 +410,7 @@
    -------------------------------------------------------------------------- */
 
 .closing-field { position: relative; overflow: hidden; }
-.closing-field h2 { max-width: 22ch; }
+.closing-field h2 { max-width: 18ch; }
 
 .closing-field::before {
   content: '';
@@ -514,8 +514,8 @@ p { text-wrap: pretty; }
 
 /* The register heading grew a clause when its kicker was folded in, so it
    needs a slightly tighter measure to keep its two-line shape. */
-.proof-register-title h2 { max-width: 16ch; }
-.closing-field h2 { max-width: 26ch; }
+.proof-register-title h2 { max-width: 22ch; }
+.closing-field h2 { max-width: 18ch; }
 
 /* --- Second remediation round -------------------------------------------- */
 

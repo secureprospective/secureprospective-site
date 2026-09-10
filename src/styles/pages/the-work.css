@@ -472,14 +472,16 @@
 
 .work-premise-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: clamp(46px, 8vw, 128px);
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: clamp(40px, 5vw, 88px);
   margin-top: 66px;
 }
 
+/* 9ch put this six lines deep at one or two words a line. 13ch keeps the
+   stacked display shape the interior pages use without shredding the sentence. */
 .work-premise h2 {
-  max-width: 9ch;
-  font-size: clamp(3.3rem, 6.25vw, 5.8rem);
+  max-width: 18ch;
+  font-size: clamp(2.9rem, 5.2vw, 4.8rem);
 }
 
 .work-copy {

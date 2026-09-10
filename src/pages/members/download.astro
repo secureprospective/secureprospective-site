@@ -6,7 +6,7 @@ import Footer from '../../components/Footer.astro';
 
 <Layout title="Download SP+: SecureProspective" description="Download the current SP+ alpha build. Members only." noindex>
   <Nav />
-  <main class="dl-shell" id="dl-shell" hidden>
+  <main class="dl-shell" id="main" hidden>
     <header class="dl-head">
       <p class="eyebrow">Back Office</p>
       <h1>Download SP+</h1>
@@ -104,7 +104,7 @@ import Footer from '../../components/Footer.astro';
 </Layout>
 
 <script>
-  const shell = document.getElementById('dl-shell') as HTMLElement | null;
+  const shell = document.getElementById('main') as HTMLElement | null;
   const list = document.getElementById('dl-list') as HTMLElement | null;
   const empty = document.getElementById('dl-empty') as HTMLElement | null;
 
@@ -263,14 +263,21 @@ import Footer from '../../components/Footer.astro';
     margin-bottom: var(--space-5);
   }
 
-  .property-card__band--static {
+  /* The layout and the white text belong to the band itself. They used to live
+     only on --static, so --warn -- which sets an ink background and nothing
+     else -- rendered ink text on an ink ground: a 1:1 contrast ratio and a
+     heading nobody could read. The modifiers now set the background alone. */
+  .property-card__band {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
-    background: var(--blue-brand);
     color: var(--white);
+  }
+
+  .property-card__band--static {
+    background: var(--blue-brand);
   }
 
   .property-card__title {

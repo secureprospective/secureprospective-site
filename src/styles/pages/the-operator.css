@@ -640,11 +640,15 @@
   color: var(--white);
 }
 
+/* The shared lift is 35%-opacity ink, which reads clearly against the white
+   station but all but disappears against this one's brand-blue ground. The
+   yellow card gets the same offset at full ink so the lift is the same device
+   on both bands rather than one that only shows up on half of them. */
 .operator-station--technology .operator-station-transfer {
   --transfer-eyebrow: var(--ink);
   background: var(--yellow-accent);
   color: var(--ink);
-  box-shadow: var(--operator-lift-ink);
+  box-shadow: 7px 7px 0 var(--ink);
 }
 
 .operator-station--technology .operator-station-transfer p {
