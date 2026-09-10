@@ -39,10 +39,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
-    id: "1.0-alpha",
-    label: "SP+ 1.0 Alpha",
-    key: "sp-plus/sp-plus-1.0-alpha.iso",
-    filename: "sp-plus-1.0-alpha.iso",
+    id: "0.10-alpha",
+    label: "SP+ Alpha v0.10",
+    key: "sp-plus/sp-plus-0.10-alpha.iso",
+    filename: "sp-plus-0.10-alpha.iso",
     size: 5452943360,
     sha256: "5e10d090d07b28b6809003b12fa5f65a8a0b51630121349916ec2d95ecc8d221",
     released: "2026-09-09",
