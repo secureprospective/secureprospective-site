@@ -794,3 +794,40 @@ is to say "something closed unexpectedly, it was not your fault" is currently si
 **Acceptance:** crash an application deliberately on the Dell and confirm the advisor sees a
 plain-language notification. Then decide whether `drkonqi-coredump-pickup.service` reaching
 its time limit should keep presenting as a failed unit.
+
+### T-20 - FIXED AND VERIFIED ON THE RIG, 2026-09-10
+
+Commits `2fd9bd3` and `8e72d3b`. Verified visually on `fedora-alpha-test` at **1280x800**,
+the viewport where the defect appeared, by driving the states that used to break it.
+
+**What was wrong.** `.office-lane` carried `height:317px` with **no `overflow` declaration
+anywhere in the stylesheet**. Content past that number did not scroll, did not grow and was
+not clipped at the card border; it painted over whatever sat below and was caught only by
+`.screen{overflow:hidden}`. 317 was a constant tuned until one content state fit, so every
+state with more content - every error path - overflowed.
+
+**The fix, in two parts.** The second part was found by looking at the result, not by
+reasoning:
+
+1. The screen is a flex column; furniture does not flex; one region per screen absorbs
+   growth with `min-height:0; overflow-y:auto`. Applied to screens 03, 07, 08 and the
+   service detail panel.
+2. That alone was **not enough**. The grid then had a definite height from `flex:1 1 auto`,
+   and a stretched single row pinned every lane to the container height - so a lane's
+   result paragraph still rendered outside its own border, onto empty space instead of onto
+   the strip. `align-content:start; align-items:start; grid-auto-rows:max-content` sizes the
+   row to content, so each card wraps exactly what is in it.
+
+**Verified states** (screenshots in `~/logs/sp-plus/testvm/shots/`):
+
+| State | Before | After |
+|---|---|---|
+| Email "Other account" | OPEN EMAIL SIGN-IN on the quick-note strip | inside the card; scrollbar; full https text reachable (`t20-05`, `t20-12`) |
+| Printer test, no printer | status text superimposed on the strip; skip unreachable | inside the card, and **I'LL DO THIS LATER is reachable** (`t20-11`, `t20-12`) |
+| Folder check, bad server | error painted on top of the strip, both illegible | strip clean, message legible (`t20-09`) |
+
+The quick-note strip is clean in every state, and each card's border now wraps its own
+content. Cards are content-height rather than equal-height, which reads correctly.
+
+**Not yet verified:** screens 07 and 08 and the Social panel got the same contract but were
+not driven. They should be checked on the next ISO before T-20 is closed outright.
