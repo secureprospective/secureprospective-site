@@ -576,3 +576,61 @@ and the login screen immediately after it is stock Breeze blue with a generic av
 advisor sees the brand, then loses it, then gets it back on the desktop. Not logged as a
 defect because it may be deliberate for the alpha; raising it because the unlock sequence
 is the first thing an advisor sees every morning.
+
+## Sweep P05 - every application launches (re-run 2026-09-10)
+
+The original P05 timed out at 90 minutes with no output because its brief pointed at
+"every non-hidden .desktop file" against P01's count of 233. **The real number of visible
+applications is 40**; the rest are `NoDisplay` entries that never appear in the menu. It
+was re-cut as P05A/B/C with explicit named lists. Part A covered 15 applications in 23
+minutes.
+
+### T-34 - Flameshot cannot take a screenshot
+
+Sweep P05A. Launching Flameshot leaves only a tray process; the capture overlay starts -
+the screen dims and the "Tool Settings" tab appears - and then the selection UI never
+paints and the capture aborts. Confirmed by looking at the evidence, not only the report:
+`~/logs/sp-plus/testvm/shots/p05a-flameshot-capture-20260910T113828Z.png` shows the dimmed
+overlay with nothing drawn on it.
+
+Journal: `QPainter::begin: Paint device returned engine == 0, type: 2`, repeated
+`Painter not active`, then `flameshot: info: Screenshot aborted.`
+
+This is a Wayland painting failure and may be virtio-GPU specific, so **it needs the Dell
+to confirm** - but note that SP+ also ships **Spectacle**, KDE's own screenshot tool, which
+is native to Wayland. If Flameshot cannot be made reliable, the cheaper fix is to drop it
+and leave one screenshot tool that works rather than two entries where one fails.
+
+**Acceptance:** an advisor can take and save a screenshot from the menu on the Dell.
+
+### T-35 - Discover logs an SSL read error before loading
+
+Sweep P05A. `QIODevice::read (QSslSocket): device not open`. The catalog does load, after
+about 18 seconds. Low severity, but 18 seconds with no explanation is a long time for an
+advisor who has just clicked something.
+
+### Not defects, recorded so they are not re-raised
+
+- **"Fin has no models available" is correct behaviour, not a defect.** Bee graded it High.
+  On a fresh rig nobody has signed Fin in to a provider, and the warning tells the advisor
+  exactly what to do: "Use /login to log into a provider via OAuth or API key." Welcome
+  screen 05 is the path that does this. Fin itself launched in 4 seconds, drew, and its
+  command autocomplete worked.
+- **Brave's graphics errors are the VM.** `virtio_gpu_drv_video.so init failed`,
+  `WebGL1 blocklisted`, `GpuControl.CreateCommandBuffer` failures. Every page still drew
+  and responded. Same family as T-26; answer it on the Dell.
+
+### P05A results - 13 of 15 fully passed
+
+Launched, drew, interacted and closed cleanly, with seconds-to-usable on the deliberately
+slow rig: About This Computer 1s, Ark 2s, Brave 3s, btop++ 3s, Canva 5s, Disks 3s,
+Dolphin 3s, Fidelity Wealthscape 5s, Google Maps 6s, Google Messages 5s, Google Photos 6s,
+Discover 18s, Firewall 20s.
+
+The web-app launchers all reached the right site: Canva `canva.com`, Fidelity
+`wealthscape.com`, Maps `maps.google.com`, Messages `messages.google.com/web`, Photos
+`photos.google.com`. Firewall authenticated and showed its runtime zones. Boot digest
+re-verified. The desktop was clean afterwards with every tested process gone.
+
+**Discover at 18s and Firewall at 20s are the two slowest things an advisor can click.**
+Neither shows progress while it waits.
