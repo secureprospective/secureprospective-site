@@ -1,9 +1,9 @@
 ---
 /*
- * The identity field is a restrained operations ticker: rows of dashes travel
- * in alternating directions while a yellow signal passes through the register.
- * It is a continuous field, not the page's focal entrance, and it pauses when
- * the hero leaves the viewport or the document is hidden.
+ * Homepage-only ambient register. A fixed 32px ledger grid sits beneath rows
+ * of moving evidence marks. One yellow scan passes through the field while the
+ * blue marks continue in opposing directions, suggesting continuous audit
+ * rather than decorative motion. The loop pauses off-screen and when hidden.
  */
 ---
 
@@ -12,8 +12,6 @@
 </div>
 
 <script>
-  // One lifecycle for the ticker. The initial call and Astro's page-load event
-  // can both fire, so boot is guarded and before-swap resets that guard.
   (function () {
     var raf = null;
     var running = false;
@@ -29,6 +27,7 @@
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     var blue = '0, 51, 160';
     var yellow = '255, 215, 0';
+    var ink = '34, 34, 34';
 
     function dpr() {
       return Math.min(window.devicePixelRatio || 1, 2);
@@ -49,6 +48,56 @@
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
     }
 
+    function drawGrid(width, height) {
+      var unit = 32;
+      ctx.strokeStyle = 'rgba(' + ink + ', 0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (var x = 0.5; x <= width; x += unit) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (var y = 0.5; y <= height; y += unit) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawRegister(width, height) {
+      var rowHeight = 32;
+      var dashWidth = 8;
+      var gap = 8;
+      var unit = dashWidth + gap;
+      var rows = Math.ceil(height / rowHeight) + 1;
+
+      for (var row = 0; row <= rows; row += 1) {
+        var y = row * rowHeight + rowHeight / 2;
+        var direction = row % 2 === 0 ? 1 : -1;
+        var offset = ((t * 32 * direction) % unit + unit) % unit;
+        var rowPhase = (row * 0.5) % (Math.PI * 2);
+
+        for (var x = -unit; x < width + unit; x += unit) {
+          var dx = x - offset;
+          var wave = Math.sin((dx / Math.max(width, 1)) * Math.PI * 2 + t * 1.25 + rowPhase) * 0.5 + 0.5;
+          var signal = wave > 0.92;
+          var brightness = 0.12 + wave * 0.24;
+          ctx.fillStyle = signal
+            ? 'rgba(' + yellow + ', ' + Math.min(0.88, brightness + 0.48).toFixed(2) + ')'
+            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
+          ctx.fillRect(dx, y - 1, dashWidth, 2);
+        }
+      }
+    }
+
+    function drawScan(width, height) {
+      var scanX = reduceMotion.matches ? width * 0.68 : ((t * 48) % (width + 64)) - 32;
+      ctx.fillStyle = 'rgba(' + yellow + ', 0.4)';
+      ctx.fillRect(scanX, 0, 2, height);
+      ctx.fillStyle = 'rgba(' + blue + ', 0.28)';
+      ctx.fillRect(scanX + 8, 0, 1, height);
+    }
+
     function draw() {
       if (!canvas || !ctx) return;
       var scale = dpr();
@@ -57,29 +106,9 @@
       if (!width || !height) return;
 
       ctx.clearRect(0, 0, width, height);
-      var rowHeight = 28;
-      var rows = Math.ceil(height / rowHeight) + 1;
-      var dashWidth = 10;
-      var gap = 8;
-      var unit = dashWidth + gap;
-
-      for (var row = 0; row <= rows; row += 1) {
-        var y = row * rowHeight + rowHeight / 2;
-        var direction = row % 2 === 0 ? 1 : -1;
-        var offset = ((t * 40 * direction) % unit + unit) % unit;
-        var rowPhase = (row * 0.37) % (Math.PI * 2);
-
-        for (var x = -unit; x < width + unit; x += unit) {
-          var dx = x - offset;
-          var wave = Math.sin((dx / width) * Math.PI * 2 + t * 1.4 + rowPhase) * 0.5 + 0.5;
-          var signal = wave > 0.88;
-          var brightness = 0.1 + wave * 0.3;
-          ctx.fillStyle = signal
-            ? 'rgba(' + yellow + ', ' + Math.min(1, brightness + 0.5).toFixed(2) + ')'
-            : 'rgba(' + blue + ', ' + brightness.toFixed(2) + ')';
-          ctx.fillRect(dx, y - 1, dashWidth, 2);
-        }
-      }
+      drawGrid(width, height);
+      drawRegister(width, height);
+      drawScan(width, height);
     }
 
     function loop(now) {
@@ -184,13 +213,11 @@
       if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onMotionChange);
       else if (reduceMotion.addListener) reduceMotion.addListener(onMotionChange);
 
-      // Font loading can change the hero's intrinsic height on narrow screens.
-      // Reconcile the field when the browser finishes choosing its face.
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(function () {
           if (canvas === node) onResize();
         }).catch(function (error) {
-          console.warn('[Concept A ticker] font readiness failed; keeping current field size.', error);
+          console.warn('[Homepage register] font readiness failed; keeping current field size.', error);
         });
       }
 
