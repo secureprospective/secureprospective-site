@@ -76,7 +76,7 @@
   grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
   align-items: center;
   gap: clamp(40px, 6vw, 92px);
-  min-height: clamp(650px, calc(100svh - 76px), 900px);
+  min-height: clamp(650px, calc(100svh - var(--nav-h)), 900px);
   padding-block: clamp(58px, 8vw, 112px);
 }
 

@@ -76,41 +76,56 @@ button, input, textarea, select { font: inherit; }
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  min-height: 76px;
+  min-height: var(--nav-h);
 }
 
+/* The glyph alone. The bar used to spell SECUREPROSPECTIVE beside it, a hundred
+   pixels above the same word set at display size in the hero, and the 205px it
+   took were the reason every two-word link broke across two lines. */
 .wordmark {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1;
+  padding-right: 20px;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
-.wordmark-mark { width: 27px; fill: currentColor; }
+.wordmark-mark {
+  width: 30px;
+  fill: currentColor;
+  transition: fill 120ms ease-out;
+}
+
+.wordmark:hover .wordmark-mark { fill: var(--blue-brand); }
 .site-links { display: flex; align-items: stretch; }
 .site-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 14px;
+  padding: 0 16px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.065em;
   text-decoration: none;
   text-transform: uppercase;
+  white-space: nowrap;
   transition: background 120ms ease-out, color 120ms ease-out;
 }
+
 .site-link:hover,
 .site-link.active { background: var(--blue-brand); color: var(--white); }
-.link-state { width: 7px; height: 7px; border: 1px solid currentColor; }
-.site-link.active .link-state { background: var(--yellow-accent); border-color: var(--yellow-accent); }
+
+/* The current page is marked by the rule above it, the way the campaign boards
+   mark a section. Every item used to carry a small outlined square whether or
+   not it meant anything, so six of the seven were decoration and the one that
+   carried the state had to compete with them. */
+.site-link.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--yellow-accent);
+}
 /* Member access is the back office for a handful of advisors. A solid white
    block made it the loudest thing in the bar, louder than Contact, for every
    visitor who will never sign in. It keeps its own slot and its own rule, set
@@ -791,13 +806,13 @@ button, input, textarea, select { font: inherit; }
   .contact-option { min-height: 300px; }
 }
 
-/* The horizontal nav needs about 830px for the wordmark, six links and the
-   member slot. Below that it used to run off the right edge, because the burger
-   did not take over until 760px: every page scrolled sideways in the 760-830
-   gap. The nav switches on its own measurement now, not the page's. */
-@media (max-width: 880px) {
-  .nav-main { min-height: 66px; }
-  .wordmark { font-size: 12px; }
+/* The bar switches on what it actually measures rather than on the page's
+   mobile breakpoint. Six links, the member slot and the glyph need roughly this
+   much; below 760px it used to run off the right edge because the burger did
+   not take over until then, and every page scrolled sideways in the gap. */
+@media (max-width: 790px) {
+  :root { --nav-h: 62px; }
+  .wordmark-mark { width: 26px; }
   .nav-toggle {
     display: flex;
     align-items: center;
@@ -816,7 +831,7 @@ button, input, textarea, select { font: inherit; }
   .nav-toggle-mark { width: 14px; height: 14px; border: 1px solid var(--ink); background: var(--yellow-accent); }
   .site-links {
     position: absolute;
-    top: 68px;
+    top: calc(var(--nav-h) + 2px);
     right: 0;
     left: 0;
     display: none;

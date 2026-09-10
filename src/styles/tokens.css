@@ -34,6 +34,10 @@
 
   /* Layout */
   --container-max: 1200px;
+  /* The nav bar's height. Five interior heroes size themselves against it with
+     calc(100svh - var(--nav-h)), so it lives here rather than being written out
+     as a number in each of them. The mobile bar redefines it. */
+  --nav-h: 68px;
   --gutter: 24px;
   --radius-default: 0px;
   --radius-button: 2px;

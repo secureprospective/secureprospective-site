@@ -78,7 +78,7 @@
 .operator-hero-grid {
   display: grid;
   grid-template-columns: minmax(170px, 218px) minmax(0, 1fr);
-  min-height: clamp(650px, calc(100svh - 76px), 790px);
+  min-height: clamp(650px, calc(100svh - var(--nav-h)), 790px);
 }
 
 .operator-hero-rail {

@@ -30,7 +30,7 @@
    -------------------------------------------------------------------------- */
 
 .method-hero {
-  min-height: clamp(680px, calc(100svh - 76px), 860px);
+  min-height: clamp(680px, calc(100svh - var(--nav-h)), 860px);
   border-bottom: 2px solid var(--ink);
   background: var(--silver-base);
 }
