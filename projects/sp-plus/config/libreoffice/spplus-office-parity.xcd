@@ -201,6 +201,20 @@
        command surface, not a ribbon with a menu bar above it.
        Sidebar=Arrow collapses the task pane to its reveal control; there
        is no "never show" value. -->
+  <!-- `Active` takes the notebookbar .ui FILENAME, not the mode's label.
+       Until 2026-09-10 this was <value>Tabbed</value>, which is the label
+       shown in View > User Interface and the CommandArg; LibreOffice's code
+       matches neither, so every module silently fell back to Standard Toolbar
+       while the config read back exactly as written. That is how Alpha v0.10
+       shipped a classic menu-and-toolbar office suite to advisors who were
+       promised the Office layout, under a parity gate reporting 58 passes:
+       the gate asserted 'Tabbed' too, so it confirmed the wrong value.
+
+       The correct value was not reasoned out, it was observed. On the test VM
+       a real `.uno:ToolbarMode Mode=notebookbar.ui` dispatch was sent to a
+       fresh profile and the resulting registrymodifications.xcu was diffed;
+       LibreOffice wrote Active=notebookbar.ui, and hid standardbar and
+       textobjectbar itself. -->
   <oor:component-data oor:name="ToolbarMode" oor:package="org.openoffice.Office.UI">
       <prop oor:name="ActiveWriter"><value>notebookbar.ui</value></prop>
       <prop oor:name="ActiveCalc"><value>notebookbar.ui</value></prop>
@@ -208,7 +222,7 @@
       <prop oor:name="ActiveDraw"><value>notebookbar.ui</value></prop>
       <node oor:name="Applications">
         <node oor:name="Writer" oor:op="fuse">
-          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <prop oor:name="Active"><value>notebookbar.ui</value></prop>
           <node oor:name="Modes">
             <node oor:name="Tabbed" oor:op="fuse">
               <prop oor:name="HasMenubar"><value>false</value></prop>
@@ -217,7 +231,7 @@
           </node>
         </node>
         <node oor:name="Calc" oor:op="fuse">
-          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <prop oor:name="Active"><value>notebookbar.ui</value></prop>
           <node oor:name="Modes">
             <node oor:name="Tabbed" oor:op="fuse">
               <prop oor:name="HasMenubar"><value>false</value></prop>
@@ -226,7 +240,7 @@
           </node>
         </node>
         <node oor:name="Impress" oor:op="fuse">
-          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <prop oor:name="Active"><value>notebookbar.ui</value></prop>
           <node oor:name="Modes">
             <node oor:name="Tabbed" oor:op="fuse">
               <prop oor:name="HasMenubar"><value>false</value></prop>
@@ -235,7 +249,7 @@
           </node>
         </node>
         <node oor:name="Draw" oor:op="fuse">
-          <prop oor:name="Active"><value>Tabbed</value></prop>
+          <prop oor:name="Active"><value>notebookbar.ui</value></prop>
           <node oor:name="Modes">
             <node oor:name="Tabbed" oor:op="fuse">
               <prop oor:name="HasMenubar"><value>false</value></prop>

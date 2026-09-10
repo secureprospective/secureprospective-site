@@ -1,4 +1,21 @@
 :root{--blue:#0033a0;--gold:#d4af37;--yellow:#ffd700;--silver:#e5e4e2;--ink:#222;--white:#fff;--fine:#666;--line:1px solid var(--ink);--hard:6px 6px 0 #0033a02e;--fast:160ms cubic-bezier(.16,1,.3,1)}
+/* T-28: `hidden` must actually hide.
+
+   The HTML `hidden` attribute works through the user agent's
+   `[hidden]{display:none}`, which ANY class-level `display` value beats on
+   specificity. `#update-act` is a `.primary-action`, so `display:inline-flex`
+   won and the button stayed on screen with `hidden` set -- which is how
+   Welcome came to offer "DOWNLOAD IT NOW" while its own text said the
+   computer was up to date. The advisor presses it and nothing happens.
+
+   The stylesheet already carried NINE per-element patches of the form
+   `.thing[hidden]{display:none}`, added one at a time as each instance was
+   found. That is a patchwork that has to be extended every time someone adds
+   a hidden element, and the tenth omission is a defect exactly like this one.
+   One rule at the top makes the attribute mean what it says everywhere. The
+   nine are now redundant and should go in the next consolidation pass.
+   Toggle visibility with `el.hidden`, and this holds. */
+[hidden]{display:none!important}
 *{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--silver);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.45}body{overflow:hidden}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}::selection{background:var(--yellow);color:var(--ink)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .app-shell{display:grid;grid-template-columns:268px minmax(0,1fr);height:var(--shell-height,100vh);min-height:720px}.route-rail{display:flex;flex-direction:column;background:var(--blue);color:var(--white);border-right:2px solid var(--ink);padding:27px 22px 20px}.brand-block{display:grid;gap:4px}.brand-mark{font-family:'Noto Sans Condensed Black','Noto Sans Condensed',sans-serif;font-size:32px;line-height:.8;letter-spacing:.04em}.brand-name,.route-caption,.topline,.lane-title span,.lane-title b,.tool-detail,.tool-state,.map-key,.title-stamp,.ledger-callout span,.help-head span,.fin-index,.fin-ledger span,.discover-strip span,.handoff-register span{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.brand-name{font-size:9px;letter-spacing:.16em}.rail-rule{height:1px;background:#fff8;margin:26px 0 17px}.route-caption{margin:0 0 11px;color:var(--yellow)}.route-list{display:grid;gap:2px}.route{display:grid;grid-template-columns:38px 1fr;gap:8px;align-items:center;min-height:42px;padding:6px 8px;border:1px solid transparent;background:transparent;color:inherit;text-align:left;transition:background var(--fast),color var(--fast),border-color var(--fast)}.route b{font-size:10px;color:#fff9}.route span{font-size:12px;font-weight:650}.route:hover,.route.current{background:var(--yellow);border-color:var(--ink);color:var(--ink)}.route.current b,.route:hover b{color:var(--blue)}.rail-foot{display:flex;gap:9px;align-items:flex-start;margin-top:auto;padding-top:17px;border-top:1px solid #fff8;font-size:10px;font-weight:700;letter-spacing:.055em;line-height:1.45}.signal-dot{width:9px;height:9px;flex:0 0 auto;background:var(--yellow);border:1px solid var(--white)}
 .work-area{display:grid;grid-template-rows:38px minmax(0,1fr) 74px;min-width:0;min-height:0;background:var(--silver)}.topline{display:flex;justify-content:space-between;align-items:center;padding:0 31px;border-bottom:var(--line);color:var(--fine);font-size:9px}.screens{position:relative;min-height:0;overflow:auto}.screen{display:none;position:relative;min-height:100%;padding:38px 42px 30px}.screen.active{display:block;animation:screen-in 160ms cubic-bezier(.16,1,.3,1) both}@keyframes screen-in{from{opacity:.01;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}

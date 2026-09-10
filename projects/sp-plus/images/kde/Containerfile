@@ -2237,7 +2237,19 @@ RUN printf '%s\n' \
 # Deliberately LEFT VISIBLE and not up for quiet removal: Brave,
 # LibreOffice Writer/Calc, Okular, Gwenview, Dolphin, KCalc, KeePassXC, Fin,
 # kitty, System Settings, System Monitor, Firewall, Discover, Print Settings,
-# Spectacle, Flameshot, KWrite, micro, Ark, Help Center.
+# Spectacle, Flameshot, KWrite, micro, Ark.
+#
+# Help Center WAS in that keep-visible list and was moved to the hidden group
+# on 2026-09-10 (T-30). Two reasons, and the second is the decisive one:
+#   1. It sits beside the SP+ entry, which is called "Help". An advisor cannot
+#      tell "Help Center" from "Help", and the standing rule is that navigation
+#      must not require knowing the right word.
+#   2. It does not work. Sweep P05B opened it, chose Fundamentals, and got
+#      "There is no documentation available for /fundamentals/index.html."
+#      An empty duplicate of the help system is worse than no entry at all --
+#      the advisor who picks wrong concludes the help is broken.
+# khelpcenter itself stays installed; `khelpcenter` and any application's F1
+# still work. Only the menu entry is hidden.
 RUN for d in org.kde.partitionmanager \
              org.kde.kdebugsettings org.kde.kjournaldbrowser \
              org.kde.drkonqi.coredump.gui org.kde.kinfocenter \
@@ -2246,13 +2258,15 @@ RUN for d in org.kde.partitionmanager \
              org.kde.konsole org.kde.kate org.kde.kfind org.kde.kwalletmanager \
              org.kde.kdeconnect.app org.kde.kdeconnect.nonplasma \
              org.kde.kdeconnect.sms org.kde.krfb kvantummanager \
-             org.kde.kcharselect org.kde.plasma.emojier; do \
+             org.kde.kcharselect org.kde.plasma.emojier \
+             org.kde.khelpcenter; do \
       f="/usr/share/applications/$d.desktop"; \
       [ -e "$f" ] || continue; \
       desktop-file-edit --set-key=NoDisplay --set-value=true "$f" \
         || { echo "MENU FAILED to hide $d"; exit 1; }; \
     done; \
-    for d in org.kde.partitionmanager org.kde.konsole org.kde.kdeconnect.app; do \
+    for d in org.kde.partitionmanager org.kde.konsole org.kde.kdeconnect.app \
+             org.kde.khelpcenter; do \
       grep -q '^NoDisplay=true' "/usr/share/applications/$d.desktop" \
         || { echo "MENU FAILED: $d still visible"; exit 1; }; \
     done; \

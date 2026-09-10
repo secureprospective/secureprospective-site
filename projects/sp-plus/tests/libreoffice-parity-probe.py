@@ -84,13 +84,13 @@ SETTINGS = [
     ("/org.openoffice.Office.UI.ToolbarMode", "ActiveCalc", "notebookbar.ui"),
     ("/org.openoffice.Office.UI.ToolbarMode", "ActiveImpress", "notebookbar.ui"),
     ("/org.openoffice.Office.UI.ToolbarMode/Applications/Writer",
-     "Active", "Tabbed"),
+     "Active", "notebookbar.ui"),
     ("/org.openoffice.Office.UI.ToolbarMode/Applications/Calc",
-     "Active", "Tabbed"),
+     "Active", "notebookbar.ui"),
     ("/org.openoffice.Office.UI.ToolbarMode/Applications/Impress",
-     "Active", "Tabbed"),
+     "Active", "notebookbar.ui"),
     ("/org.openoffice.Office.UI.ToolbarMode/Applications/Draw",
-     "Active", "Tabbed"),
+     "Active", "notebookbar.ui"),
     # Draw is the one module whose stock Tabbed mode keeps a menu bar.
     ("/org.openoffice.Office.UI.ToolbarMode/Applications/Writer/Modes/Tabbed",
      "HasMenubar", False),
@@ -234,6 +234,26 @@ def main():
                      "1/100 mm and 12pt is 423" % standard)
     else:
         print("  ok  SIZE StandardHeight is not a twips value")
+
+    # ooSetupLastVersion is what actually suppresses the "You are running
+    # LibreOffice for the first time" dialog. Verified by elimination on the
+    # test VM 2026-09-10: with FirstRun=false, WhatsNewDialog=false and the
+    # infobar disabled but this key absent, the dialog still appeared; adding
+    # it was what stopped it. So it is pinned to the shipped version -- which
+    # means a LibreOffice UPDATE will bring the dialog back unless the pin is
+    # moved with it. This check exists to fail loudly when that happens,
+    # rather than letting an advisor meet the wizard after an update.
+    prod = reader(ctx, "/org.openoffice.Setup/Product")
+    pinned = prod.getPropertyValue("ooSetupLastVersion")
+    running = ".".join(prod.getPropertyValue("ooSetupVersion").split(".")[:2])
+    checked += 1
+    if pinned != running:
+        fails.append("VERSION ooSetupLastVersion is pinned to %r but LibreOffice "
+                     "is %r; the first-run dialog will reappear. Update the pin "
+                     "in config/libreoffice/spplus-office-parity.xcd."
+                     % (pinned, running))
+    else:
+        print("  ok  VERSION first-run pin matches LibreOffice %s" % running)
 
     facs = reader(ctx, "/org.openoffice.Setup/Office/Factories")
     for name, want in FACTORIES:

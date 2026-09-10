@@ -730,7 +730,17 @@
     if (emailOtherBox) emailOtherBox.hidden = picked !== 'other';
   }
   document.querySelectorAll('input[name="email"]').forEach((radio) => {
-    radio.addEventListener('change', syncEmailOther);
+    radio.addEventListener('change', () => {
+      syncEmailOther();
+      // T-21: the status line describes what happened to the PREVIOUS
+      // provider. Leaving it up means an advisor who opened Microsoft 365,
+      // came back and picked Google Workspace is still being told
+      // "Microsoft 365 is open in your browser" -- which reads as the app
+      // having done something they did not ask for.
+      if (emailResult) emailResult.textContent = '';
+      officeState.email = '';
+      updateOfficeSummary();
+    });
   });
   syncEmailOther();
   emailButton.addEventListener('click', () => {
