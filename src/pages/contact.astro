@@ -3,6 +3,8 @@ import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/pages/contact.css';
+
+const siteKey = import.meta.env.PUBLIC_CONTACT_TURNSTILE_SITE_KEY;
 ---
 
 <Layout title="Contact: SecureProspective" description="Choose the SecureProspective conversation that matches the work in front of you.">
@@ -30,8 +32,7 @@ import '../styles/pages/contact.css';
               <span>Direct channel</span>
               <span class="contact-channel-mark" aria-hidden="true"></span>
             </div>
-            <a href="mailto:secureprospective@gmail.com">secureprospective@gmail.com</a>
-            <p>Montgomery, Texas</p>
+            <a href="mailto:info@secureprospective.com">info@secureprospective.com</a>
           </aside>
         </div>
       </div>
@@ -65,7 +66,7 @@ import '../styles/pages/contact.css';
                 class="contact-line"
                 data-contact-line="operating"
                 data-route-label="OPERATING // AVAILABLE NOW"
-                href="mailto:secureprospective@gmail.com?subject=Insurance%20producer%20infrastructure"
+                href="#contact-form"
               >
                 <span class="contact-line-marker contact-line-marker--operating" aria-hidden="true"></span>
                 <span class="contact-line-copy">
@@ -73,7 +74,7 @@ import '../styles/pages/contact.css';
                   <h3>Producer infrastructure.</h3>
                   <p>Case design, product positioning, federal benefits, suitability, or IMO operating support.</p>
                 </span>
-                <span class="contact-line-action"><strong>Open email →</strong></span>
+                <span class="contact-line-action"><strong>Choose this line →</strong></span>
               </a>
             </li>
 
@@ -82,7 +83,7 @@ import '../styles/pages/contact.css';
                 class="contact-line"
                 data-contact-line="sp-plus"
                 data-route-label="ACTIVE // FIT REVIEW"
-                href="mailto:secureprospective@gmail.com?subject=SP%2B%20fit%20review"
+                href="#contact-form"
               >
                 <span class="contact-line-marker contact-line-marker--active" aria-hidden="true"></span>
                 <span class="contact-line-copy">
@@ -90,7 +91,7 @@ import '../styles/pages/contact.css';
                   <h3>SP+.</h3>
                   <p>Review operating fit, five-contract qualification, hardware compatibility, installation scope, and support expectations.</p>
                 </span>
-                <span class="contact-line-action"><strong>Start fit review →</strong></span>
+                <span class="contact-line-action"><strong>Choose this line →</strong></span>
               </a>
             </li>
 
@@ -99,7 +100,7 @@ import '../styles/pages/contact.css';
                 class="contact-line"
                 data-contact-line="prospective"
                 data-route-label="PROSPECTIVE // EMERGING"
-                href="mailto:secureprospective@gmail.com?subject=Prospective%20AI-native%20transformation"
+                href="#contact-form"
               >
                 <span class="contact-line-marker contact-line-marker--prospective" aria-hidden="true"></span>
                 <span class="contact-line-copy">
@@ -107,10 +108,73 @@ import '../styles/pages/contact.css';
                   <h3>AI-native transformation.</h3>
                   <p>For operators following the method as it earns external application through delivered evidence.</p>
                 </span>
-                <span class="contact-line-action"><strong>Open email →</strong></span>
+                <span class="contact-line-action"><strong>Choose this line →</strong></span>
               </a>
             </li>
           </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-form-section" aria-labelledby="contact-form-title">
+      <div class="shell">
+        <div class="contact-form-frame" data-deal>
+          <div class="contact-form-head">
+            <span>FILE // SEND</span>
+            <span class="contact-form-head-mark" aria-hidden="true"></span>
+          </div>
+
+          <div class="contact-form-grid">
+            <div class="contact-form-intro">
+              <h2 id="contact-form-title">Send it here.</h2>
+              <p>
+                Tell us which line you are on and what you are working with. Christopher reads
+                every one of these himself and answers from
+                <a href="mailto:info@secureprospective.com">info@secureprospective.com</a>.
+              </p>
+              <p class="contact-form-note">
+                Prefer your own mail client? Write to
+                <a href="mailto:info@secureprospective.com">info@secureprospective.com</a> directly.
+              </p>
+            </div>
+
+            <form class="contact-form" id="contact-form" data-contact-form novalidate>
+              <div class="contact-field">
+                <label for="cf-name">Name</label>
+                <input id="cf-name" name="name" type="text" autocomplete="name" required maxlength="120" />
+              </div>
+
+              <div class="contact-field">
+                <label for="cf-email">Email</label>
+                <input id="cf-email" name="email" type="email" autocomplete="email" required maxlength="200" />
+              </div>
+
+              <div class="contact-field">
+                <label for="cf-route">Line</label>
+                <select id="cf-route" name="route" required>
+                  <option value="operating">Producer infrastructure</option>
+                  <option value="sp-plus">SP+ fit review</option>
+                  <option value="prospective">AI-native transformation</option>
+                </select>
+              </div>
+
+              <div class="contact-field contact-field--wide">
+                <label for="cf-message">What are you working with?</label>
+                <textarea id="cf-message" name="message" rows="5" maxlength="4000"></textarea>
+              </div>
+
+              <div class="contact-field contact-field--wide">
+                <div class="cf-turnstile" data-sitekey={siteKey}></div>
+              </div>
+
+              <p class="contact-form-status" data-contact-status role="status" aria-live="polite" hidden></p>
+
+              <button type="submit" class="contact-form-submit" data-contact-submit>
+                Send it
+                <span class="contact-form-submit-mark" aria-hidden="true"></span>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </section>
@@ -118,7 +182,10 @@ import '../styles/pages/contact.css';
   <Footer />
 </Layout>
 
+<script is:inline async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+
 <script>
   import '../scripts/motion.js';
   import '../scripts/pages/contact.js';
+  import '../scripts/pages/contact-form.js';
 </script>

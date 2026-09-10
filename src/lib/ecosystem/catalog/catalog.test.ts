@@ -32,7 +32,7 @@ describe("loadBusinessConfig('secureprospective')", () => {
   });
   it("serviceAreaRadius null (national)", () => expect(sp.serviceAreaRadius).toBeNull());
   it("contact.email = locked value", () => {
-    expect(sp.contact.email).toBe("secureprospective@gmail.com");
+    expect(sp.contact.email).toBe("info@secureprospective.com");
   });
   it("domain matches", () => expect(sp.domain).toBe("secureprospective.com"));
   it("tagline matches locked H2", () => {

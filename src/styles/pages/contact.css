@@ -640,3 +640,220 @@
     transition: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Send desk
+
+   The routing board above chooses the line; this is where the record is
+   written. Same platinum stock and square corners as the rest of the deck,
+   with the ink frame doing the containing so the form reads as one filed
+   object rather than a stack of loose inputs.
+   -------------------------------------------------------------------------- */
+
+.contact-form-section {
+  background: var(--silver-base);
+  padding: 0 0 96px;
+}
+
+.contact-form-frame {
+  border: 2px solid var(--ink);
+  background: var(--white);
+}
+
+.contact-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.contact-form-head-mark {
+  width: 34px;
+  height: 8px;
+  background: var(--yellow-accent);
+}
+
+.contact-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 40px;
+  padding: 36px 32px 40px;
+}
+
+.contact-form-intro h2 {
+  margin: 0 0 16px;
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+  line-height: 1.08;
+}
+
+.contact-form-intro p {
+  margin: 0 0 14px;
+  max-width: 42ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.contact-form-intro a {
+  color: var(--blue-brand);
+  text-underline-offset: 3px;
+}
+
+.contact-form-note {
+  font-size: 0.86rem;
+  color: #55565a;
+}
+
+.contact-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+  align-content: start;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.contact-field--wide {
+  grid-column: 1 / -1;
+}
+
+.contact-field label {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.contact-field input,
+.contact-field select,
+.contact-field textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.contact-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.contact-field input:focus-visible,
+.contact-field select:focus-visible,
+.contact-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--blue-brand);
+  box-shadow: 4px 4px 0 rgba(0, 51, 160, 0.2);
+}
+
+.contact-form-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 11px 13px;
+  border: 2px solid var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.contact-form-status[data-tone='error'] {
+  border-color: #9b1c1c;
+  color: #9b1c1c;
+  background: #fdf3f3;
+}
+
+.contact-form-status[data-tone='ok'] {
+  border-color: var(--blue-brand);
+  color: var(--blue-brand);
+  background: #f2f5fc;
+}
+
+.contact-form-status[data-tone='pending'] {
+  color: #55565a;
+  background: var(--silver-base);
+}
+
+.contact-form-submit {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.contact-form-submit:hover:not(:disabled),
+.contact-form-submit:focus-visible {
+  background: var(--blue-brand);
+  color: var(--white);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.contact-form-submit:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.contact-form-submit-mark {
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+}
+
+@media (max-width: 900px) {
+  .contact-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 28px 20px 32px;
+  }
+}
+
+@media (max-width: 560px) {
+  .contact-form-section {
+    padding-bottom: 64px;
+  }
+
+  .contact-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-field input,
+  .contact-field select,
+  .contact-field textarea,
+  .contact-form-submit {
+    transition: none;
+  }
+}
