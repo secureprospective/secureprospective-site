@@ -193,9 +193,9 @@
 .home-page .hero-sp-plus {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(45ch, 2fr);
-  grid-template-rows: auto 1fr;
-  align-items: stretch;
+  grid-template-columns: minmax(0, auto) minmax(0, 54ch) max-content;
+  grid-template-rows: auto auto;
+  align-items: center;
   gap: var(--space-3);
   width: 100%;
   min-width: 0;
@@ -238,25 +238,38 @@
 }
 
 /*
-  The detail column carries the rule and owns the distribution. Nothing here is
-  a fixed height: the column is as tall as the headline beside it, and the copy
-  and the link sit at its two ends, so the card squares up at any zoom or width
-  instead of leaving a void under a short paragraph.
+  Three columns, each sized to what it holds: the mark and headline, the copy
+  behind its rule, and the action at the far edge. The card is a full-width
+  band, so anything narrower than its content columns would leave a field of
+  white beside a capped paragraph. Putting the action in its own column spends
+  that width on words the card already has rather than on new ones.
 */
-.home-page .sp-plus-detail {
-  display: flex;
-  flex-direction: column;
+.home-page .sp-plus-flag {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+}
+
+.home-page .hero-sp-plus > small {
   grid-column: 2;
   grid-row: 1 / 3;
-  gap: var(--space-3);
-  justify-content: flex-start;
+  align-self: center;
   min-width: 0;
-  padding-left: var(--space-3);
+  padding-left: var(--space-4);
   border-left: var(--home-line) solid var(--ink);
 }
 
+.home-page .hero-sp-plus > b {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+  justify-self: end;
+}
+
 .home-page .hero-sp-plus > strong {
-  align-self: end;
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
   max-width: 18ch;
   color: var(--blue-brand);
   font-family: var(--font-display);
@@ -270,20 +283,14 @@
   line-height: 0.95;
 }
 
-.home-page .sp-plus-detail small {
-  max-width: 54ch;
-  color: var(--ink);
+.home-page .hero-sp-plus > small {
   font-size: var(--text-body);
-  font-weight: 400;
   line-height: 1.5;
 }
 
-.home-page .sp-plus-detail b {
-  padding-right: var(--space-6);
-  font-family: var(--font-display);
+.home-page .hero-sp-plus > b {
+  padding-right: var(--space-5);
   font-size: var(--text-caption);
-  letter-spacing: 0.06em;
-  white-space: nowrap;
 }
 
 @media (hover: hover) {
@@ -777,29 +784,38 @@
 
   .home-page .hero-sp-plus {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
   }
 
   .home-page .sp-plus-flag,
   .home-page .hero-sp-plus > strong,
-  .home-page .sp-plus-detail {
+  .home-page .hero-sp-plus > small,
+  .home-page .hero-sp-plus > b {
     grid-column: 1;
     grid-row: auto;
+    align-self: auto;
+    justify-self: start;
   }
 
-  .home-page .sp-plus-detail {
+  .home-page .hero-sp-plus > small {
     padding-top: var(--space-3);
     padding-left: 0;
     border-top: var(--home-line) solid var(--ink);
     border-left: 0;
   }
 
+  /*
+    The display face is wide, so 36px of it overflows a phone's card box even
+    at a 16ch cap: one long word ("WORKSTATION.") is wider than the column.
+    A step down the scale is what actually fits, rather than a cap that the
+    word ignores.
+  */
   .home-page .hero-sp-plus > strong {
-    max-width: 16ch;
-    font-size: var(--text-h2);
+    max-width: 100%;
+    font-size: var(--text-h3);
   }
 
-  .home-page .sp-plus-detail b {
+  .home-page .hero-sp-plus > b {
     padding-right: 0;
   }
 
