@@ -136,6 +136,29 @@ for kv in "passwordauthentication no" "permitrootlogin no" "kbdinteractiveauthen
     fi
 done
 
+# ------------------------------------------------------- boot chain (Phase 0)
+# These four are downstream of the FIRMWARE, not of anything SP+ builds. They
+# read as failures on a VM with no Secure Boot, which is what the test lane gave
+# us until 2026-09-10 -- `lockdown=[none]` and `sig_enforce=N` were artefacts of
+# the harness and were repeatedly mistaken for product defects. Asserting them
+# here means the harness can no longer lie by omission: a lane that cannot boot
+# securely now fails loudly instead of quietly measuring nothing.
+sb="$(remote "sudo mokutil --sb-state 2>&1 | head -1")"
+if printf '%s' "$sb" | grep -qi 'SecureBoot enabled'; then record PASS "secure boot enabled" "$sb"
+else record FAIL "secure boot enabled" "${sb:-<no state>}"; fi
+
+lock="$(remote "cat /sys/kernel/security/lockdown 2>/dev/null")"
+if printf '%s' "$lock" | grep -q '\[integrity\]\|\[confidentiality\]'; then record PASS "kernel lockdown active" "$lock"
+else record FAIL "kernel lockdown active" "${lock:-<absent>}"; fi
+
+sigenf="$(remote "cat /sys/module/module/parameters/sig_enforce 2>/dev/null")"
+if [ "$sigenf" = Y ]; then record PASS "module signature enforced" "sig_enforce=$sigenf"
+else record FAIL "module signature enforced" "sig_enforce=${sigenf:-<absent>}"; fi
+
+tpmv="$(remote "cat /sys/class/tpm/tpm0/tpm_version_major 2>/dev/null")"
+if [ "$tpmv" = 2 ]; then record PASS "tpm 2.0 present" "tpm0 version $tpmv"
+else record FAIL "tpm 2.0 present" "${tpmv:-<no tpm0>}"; fi
+
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then
