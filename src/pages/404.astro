@@ -2,18 +2,57 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+
+const routes = [
+  { href: '/services', label: 'The Operation', note: 'The insurance business that already runs.' },
+  { href: '/the-work', label: 'SP+', note: 'The advisor workstation in active build.' },
+  { href: '/the-method', label: 'The Method', note: 'How the work moves, start to finish.' },
+  { href: '/the-operator', label: 'The Operator', note: 'Who is accountable for it.' },
+  { href: '/contact', label: 'Contact', note: 'Send it and get an answer.' },
+];
 ---
 
-<Layout title="Not in this concept: SecureProspective" description="This preview builds the homepage only.">
+<Layout
+  title="Page not found: SecureProspective"
+  description="That address does not exist on secureprospective.com. Every page of the site is listed here."
+>
   <Nav />
-  <main id="main" transition:name="page-card">
-    <section class="closing-field">
-      <div class="shell closing-field-grid">
-        <p>Concept preview</p>
-        <h2>This page isn't built yet.</h2>
-        <div class="closing-actions">
-          <a href="/" class="action action--signal">Back to the homepage <span>→</span></a>
+  <main id="main" class="notfound" transition:name="page-card">
+    <section class="notfound-hero">
+      <div class="shell notfound-hero-grid">
+        <span class="notfound-code">404</span>
+        <div class="notfound-copy">
+          <h1>That address does not exist.</h1>
+          <p>
+            The link is either mistyped or it points at something we no longer publish.
+            Nothing is wrong with the site. Here is everything on it.
+          </p>
         </div>
+      </div>
+    </section>
+
+    <section class="notfound-index">
+      <div class="shell">
+        <div class="notfound-index-head" aria-hidden="true">
+          <span>SITE INDEX</span>
+          <span class="notfound-index-mark"></span>
+        </div>
+        <ul class="notfound-routes">
+          {routes.map((route) => (
+            <li>
+              <a href={route.href}>
+                <strong>{route.label}</strong>
+                <span>{route.note}</span>
+                <b aria-hidden="true">→</b>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="notfound-fallback">
+          Looking for something you cannot find? Write to
+          {' '}<a href="mailto:info@secureprospective.com">info@secureprospective.com</a>{' '}
+          and we will point you at it.
+        </p>
       </div>
     </section>
   </main>
@@ -21,8 +60,146 @@ import Footer from '../components/Footer.astro';
 </Layout>
 
 <style>
-  /* The concept preview ships the homepage only, so every navigation target
-     lands here. Kept deliberately plain: it explains the boundary of the
-     preview without pretending to be a designed page. */
-  .closing-field { min-height: 62vh; display: grid; align-items: center; }
+  /* The 404 is a real page, not an apology. A visitor who mistypes a URL from a
+     campaign link gets the whole site laid out in front of them rather than a
+     dead end, so a bad link costs a click instead of the visit. */
+  .notfound-hero {
+    border-bottom: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--white);
+  }
+
+  .notfound-hero-grid {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: clamp(24px, 4vw, 56px);
+    align-items: start;
+    padding-block: clamp(72px, 9vw, 112px);
+  }
+
+  .notfound-code {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 700;
+    line-height: 0.86;
+    color: var(--yellow-accent);
+    letter-spacing: -0.04em;
+  }
+
+  .notfound-copy h1 {
+    margin: 0 0 18px;
+    font-size: clamp(1.9rem, 4.4vw, 3.1rem);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+  }
+
+  .notfound-copy p {
+    margin: 0;
+    max-width: 54ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: #d8d8d6;
+  }
+
+  .notfound-index {
+    background: var(--silver-base);
+    color: var(--ink);
+  }
+
+  .notfound-index > .shell {
+    padding-block: clamp(48px, 6vw, 76px) clamp(64px, 8vw, 96px);
+  }
+
+  .notfound-index-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--ink);
+    color: var(--blue-brand);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .notfound-index-mark {
+    width: 34px;
+    height: 8px;
+    background: var(--yellow-accent);
+  }
+
+  .notfound-routes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .notfound-routes a {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: baseline;
+    padding: 20px 4px;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.16);
+    color: var(--ink);
+    text-decoration: none;
+    transition: background 140ms ease, padding-inline 140ms ease;
+  }
+
+  .notfound-routes a:hover,
+  .notfound-routes a:focus-visible {
+    background: var(--white);
+    padding-inline: 14px 10px;
+    outline: none;
+  }
+
+  .notfound-routes a:focus-visible {
+    outline: 3px solid var(--blue-brand);
+    outline-offset: -3px;
+  }
+
+  .notfound-routes strong {
+    font-size: 1.12rem;
+    letter-spacing: -0.02em;
+  }
+
+  .notfound-routes span {
+    font-size: 0.94rem;
+    line-height: 1.5;
+    color: #55565a;
+  }
+
+  .notfound-routes b {
+    color: var(--blue-brand);
+  }
+
+  .notfound-fallback {
+    margin: 28px 0 0;
+    font-size: 0.94rem;
+    line-height: 1.6;
+    color: #55565a;
+  }
+
+  .notfound-fallback a {
+    color: var(--blue-brand);
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    .notfound-hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .notfound-routes a {
+      grid-template-columns: minmax(0, 1fr) auto;
+      row-gap: 6px;
+    }
+
+    .notfound-routes span {
+      grid-column: 1 / -1;
+    }
+  }
 </style>
