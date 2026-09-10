@@ -370,3 +370,33 @@ Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.** Low sever
 it is one screen's two halves disagreeing about what the same action is called.
 
 **Acceptance:** one name for the action, used in both places.
+
+### T-25 - Three shipped themes have no panel layout of their own (decision needed)
+
+Raised 2026-09-10, Bee sweep P03, Alpha v0.10. **This is a question for Christopher, not a
+code defect.**
+
+Applying Nordic Dark, Catppuccin Mocha or Catppuccin Latte leaves the standard bottom-left
+panel in place. Welcome says so plainly: "Panel and pinned apps: replaced with the standard
+arrangement, because this theme does not define its own." The desktop is correct and
+usable - wallpaper, colours and decorations all change. Evidence:
+`~/logs/sp-plus/testvm/shots/P03-61-catppuccin-mocha-closed-20260910T042346Z.png`.
+
+Bee graded this FAIL against the "every theme owns its panel" criterion. That grading is
+too literal. Those three are upstream third-party themes and upstream Plasma themes
+generally do not ship a panel layout; the standing rule that the creator's declared intent
+outranks the SP+ normalization layer says the fallback is the right behaviour, and the app
+is honest about it.
+
+**The decision:** does SP+ author panel layouts for the third-party themes it ships, so
+every theme in the picker feels first-class, or does it keep the honest fallback? The first
+is more work per theme and means overriding creator intent; the second means three of eight
+themes change less than the advisor expects when they pick them. Christopher's call.
+
+### P03 - theme round trip PASSED
+
+Recorded 2026-09-10 for completeness, since this is the acceptance test that has failed
+before. All eight themes applied and were visually verified. Panel, Kickoff, window focus
+and close worked after every apply. The Breeze Light -> Modern Light -> Breeze Light round
+trip completed **twice** with no breakage. Already-open windows keep their old look until
+reopened, which is what the advisor message promises.
