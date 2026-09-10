@@ -263,3 +263,36 @@ and it must not be suspended unattended - if resume fails there is nobody at the
 
 **Acceptance:** on the Dell, with someone present: close the lid or choose Sleep, wake it, and
 confirm the screen returns and asks for the password.
+
+### T-20 - Welcome screen 03: the email card breaks its layout on "Other account"
+
+Found 2026-09-10 during the Bee alpha sweep, on the released Alpha v0.10 image
+(`sha256:2ee969adfc7a105a6b930db9cee7313f2965042bade7b5f077edcd785b1530cb`). **Fix in the
+next ISO.**
+
+**Reproduce.** Welcome -> 03 Office connections -> in the `03 / EMAIL` card choose
+**Other account**. The radio group grows a "Paste the web address your practice uses for
+email" label and a URL field.
+
+**What happens.** The added field pushes the card's own content past its bottom edge:
+
+- The explanatory line "It must start with https. SP+ opens the page and never asks for or
+  stores your password." is clipped mid-sentence at the card boundary.
+- **The OPEN EMAIL SIGN-IN button escapes the card entirely** and lands on top of the
+  "A QUICK NOTE" strip below it, with that strip's text still visible underneath the button.
+
+Evidence: `~/logs/sp-plus/testvm/shots/p02-s03-other-url-20260910T034930Z.png`.
+
+**Why it matters.** This is the screen where an advisor connects their email, and the
+control they need is the one that breaks out of its box and lands on top of other text.
+It also violates the standing rule that every Welcome screen fits one viewport with no
+overflow - the other two cards on this screen are fixed-height and this one is not.
+
+**Note on how it was found.** Bee was mid-phase and driving the screen correctly; the
+defect was caught by reading its screenshot, not its prose. The lesson is the standing
+one: look at the rendered result.
+
+**Acceptance:** with "Other account" selected at 1280x800, the whole card renders inside
+its own border, nothing is clipped, and no control overlaps the strip below. Check the
+Google Workspace and Microsoft 365 selections at the same time - they are shorter, but
+the card should not resize in a way that shifts the rest of the screen.
