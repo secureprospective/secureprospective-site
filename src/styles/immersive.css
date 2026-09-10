@@ -95,7 +95,6 @@
   /* Each family enters with its own physical cue. State panels settle down,
      the method is revealed from its lower edge, and register rows advance
      from the side like a controlled record update. */
-  [data-motion-enabled] .truth-field[data-deal] { transform: translate3d(0, 2.25rem, 0) scale(0.992); }
   [data-motion-enabled] .method-spine[data-deal] {
     transform: translate3d(0, 2rem, 0);
     clip-path: inset(0 0 6% 0);
@@ -447,7 +446,7 @@ p { text-wrap: pretty; }
   .site-nav .site-link,
   .site-footer .footer-index a,
   .site-footer .footer-close > span,
-  .truth-field-head,
+  .truth-card-head,
   .spine-steps > li > span,
   .proof-status,
   .operation-rail,

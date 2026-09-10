@@ -9,56 +9,60 @@ import HeroTicker from '../components/HeroTicker.astro';
   <Nav />
 
   <main id="main" transition:name="page-card">
+    <!--
+      The opening screen. Identity, the SP+ card, and the argument all sit inside
+      the ticker field with no scroll: the story a visitor came for is on screen
+      when the page opens rather than one viewport below it.
+    -->
     <section class="identity-hero">
       <HeroTicker />
       <div class="identity-lockup">
         <p class="identity-kicker">Operator to operator</p>
         <p class="identity-mark" data-stamp>SecureProspective</p>
         <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
+
         <a class="hero-sp-plus" href="/the-work">
           <span>SP+ // ACTIVE BUILD</span>
           <strong>The safer advisor workstation.</strong>
           <small>Access begins with a fit review and five production contracts. No software fee, no recurring SP+ subscription.</small>
           <b>Explore SP+ →</b>
         </a>
-      </div>
-    </section>
 
-    <!--
-      The argument, in the slot the two-state section used to hold. SP+ had the
-      right-hand half of that section and a whole page of its own saying the same
-      thing better, so the half went and this took the full width. The heading is
-      the page's h1: the mark above identifies who is speaking, this says why
-      anyone should listen.
-    -->
-    <section class="truth-field" aria-labelledby="identity-title" data-deal>
-      <div class="truth-field-head">
-        <span>STATE // OPERATING</span>
-        <span>REVENUE ACTIVE</span>
-      </div>
-      <div class="shell truth-copy">
-        <h1 id="identity-title">
-          Most of what an advisor is sold was never used by the people selling it.
-        </h1>
+        <!--
+          The argument, dealt onto the field as a card rather than run as a
+          full-bleed band. It answers a pointer the way the rest of the deck
+          does, which is what gives this screen its depth.
+        -->
+        <article class="truth-card" aria-labelledby="identity-title">
+          <div class="truth-card-head">
+            <span>STATE // OPERATING</span>
+            <span>REVENUE ACTIVE</span>
+          </div>
+          <div class="truth-card-body">
+            <h1 id="identity-title">
+              Most of what an advisor is sold was never used by the people selling it.
+            </h1>
 
-        <div class="truth-columns">
-          <p class="truth-lede">
-            The pitch has not changed in twenty-five years. More products, more leads,
-            more tools, more training, more scale. Bring your license, bring your
-            ambition. Then Tuesday morning arrives, you have a case in front of you,
-            and there is nobody to ask.
-          </p>
+            <div class="truth-columns">
+              <p class="truth-lede">
+                The pitch has not changed in twenty-five years. More products, more leads,
+                more tools, more training, more scale. Bring your license, bring your
+                ambition. Then Tuesday morning arrives, you have a case in front of you,
+                and there is nobody to ask.
+              </p>
 
-          <p class="truth-answer">
-            Christopher Campbell still writes business with real clients, and has spent
-            eight years inside IMOs and financial advisor offices. SecureProspective is
-            the operation he runs: annuity and life-insurance wholesale, producer
-            development, case design, suitability, and infrastructure for active agents.
-            A broad promise is not an operating model.
-          </p>
-        </div>
+              <p class="truth-answer">
+                Christopher Campbell still writes business with real clients, and has spent
+                eight years inside IMOs and financial advisor offices. SecureProspective is
+                the operation he runs: annuity and life-insurance wholesale, producer
+                development, case design, suitability, and infrastructure for active agents.
+                A broad promise is not an operating model.
+              </p>
+            </div>
 
-        <a href="/services" class="action action--light">Enter the operation <span>→</span></a>
+            <a href="/services" class="action action--light">Enter the operation <span>→</span></a>
+          </div>
+        </article>
       </div>
     </section>
 

@@ -124,12 +124,16 @@ button, input, textarea, select { font: inherit; }
 .nav-toggle { display: none; }
 
 /* Hero: production ticker motion with the new identity lockup */
+/* The opening screen holds identity, the SP+ card and the argument card. It was
+   a centred 100svh field with one small strip in it, which pushed everything a
+   visitor came to read a whole viewport down. It is top-ranged now and sized by
+   its contents. */
 .identity-hero {
   position: relative;
   display: grid;
-  min-height: calc(100svh - 76px);
   overflow: hidden;
-  place-items: center;
+  align-content: start;
+  justify-items: center;
   border-bottom: 2px solid var(--ink);
   background: var(--silver-base);
 }
@@ -152,7 +156,7 @@ button, input, textarea, select { font: inherit; }
   position: relative;
   z-index: 1;
   width: min(100% - 48px, 1320px);
-  padding-block: 64px;
+  padding-block: clamp(18px, 2vw, 26px) clamp(24px, 2.6vw, 32px);
   /* Left-ranged, like the recruiting creative this page is the landing for.
      Four lines of centred body copy give a reader two ragged edges to track
      and no consistent place for the eye to return to. */
@@ -195,8 +199,8 @@ button, input, textarea, select { font: inherit; }
   align-items: center;
   gap: 24px;
   width: min(100%, 980px);
-  margin: 56px 0 0;
-  padding: 20px 22px;
+  margin: clamp(18px, 2.2vw, 28px) 0 0;
+  padding: 16px 22px;
   border: 1px solid var(--ink);
   background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
@@ -278,25 +282,48 @@ button, input, textarea, select { font: inherit; }
 .text-link--light { color: var(--white); }
 
 /* Homepage hierarchy */
-/* This band replaced the two-state section. SP+ held the right-hand half and
-   has a whole page saying the same thing in more detail, so the half went and
-   the argument took the full width. */
-.truth-field {
-  border-bottom: 2px solid var(--ink);
+
+/* Dealt onto the field like every other card in the deck: square corners, a
+   hairline edge and a hard offset shadow that deepens under a pointer. */
+.truth-card {
+  margin-top: clamp(18px, 2.2vw, 28px);
+  border: 1px solid var(--ink);
   background: var(--blue-brand);
   color: var(--white);
+  box-shadow: 10px 10px 0 rgba(34, 34, 34, 0.32);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
 }
 
-.truth-copy {
-  padding-block: clamp(64px, 8vw, 112px);
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .truth-card:hover,
+  .truth-card:focus-within {
+    transform: translate(-4px, -4px);
+    box-shadow: 14px 14px 0 rgba(34, 34, 34, 0.4);
+  }
 }
 
-.truth-copy h1 {
-  max-width: 26ch;
+.truth-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  text-transform: uppercase;
+}
+
+.truth-card-body {
+  padding: clamp(22px, 2.2vw, 28px) clamp(22px, 2.8vw, 40px) clamp(22px, 2.2vw, 26px);
+}
+
+.truth-card h1 {
+  max-width: 30ch;
   font-family: var(--font-body);
-  font-size: clamp(2.1rem, 4vw, 3.5rem);
+  font-size: clamp(1.8rem, 2.9vw, 2.6rem);
   letter-spacing: -0.02em;
-  line-height: 1.02;
+  line-height: 1.04;
 }
 
 /* The claim and the answer to it, set side by side. A single 62ch column in a
@@ -306,32 +333,22 @@ button, input, textarea, select { font: inherit; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(32px, 4vw, 72px);
-  margin-top: 38px;
-  padding-top: 26px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .truth-lede,
 .truth-answer {
   max-width: 52ch;
-  font-size: clamp(1rem, 1.15vw, 1.12rem);
-  line-height: 1.6;
+  font-size: clamp(0.98rem, 1.05vw, 1.06rem);
+  line-height: 1.55;
 }
 
 .truth-answer { font-weight: 500; }
 
-.truth-copy .action { margin-top: 40px; }
+.truth-card .action { margin-top: 18px; }
 
-.truth-field-head {
-  display: flex;
-  justify-content: space-between;
-  padding: 11px 18px;
-  border-bottom: 1px solid currentColor;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.085em;
-  text-transform: uppercase;
-}
 .spine-copy { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end; }
 .spine-copy h2 { font-size: clamp(2.5rem, 3.9vw, 4rem); }
 .spine-copy p { font-size: 1.08rem; }
@@ -774,8 +791,11 @@ button, input, textarea, select { font: inherit; }
   .contact-option { min-height: 300px; }
 }
 
-@media (max-width: 760px) {
-  .shell { width: min(100% - 32px, 1200px); }
+/* The horizontal nav needs about 830px for the wordmark, six links and the
+   member slot. Below that it used to run off the right edge, because the burger
+   did not take over until 760px: every page scrolled sideways in the 760-830
+   gap. The nav switches on its own measurement now, not the page's. */
+@media (max-width: 880px) {
   .nav-main { min-height: 66px; }
   .wordmark { font-size: 12px; }
   .nav-toggle {
@@ -807,7 +827,11 @@ button, input, textarea, select { font: inherit; }
   }
   .site-links.is-open { display: flex; }
   .site-link { min-height: 52px; padding-inline: 20px; border-top: 1px solid rgba(34,34,34,0.25); font-size: 11px; }
-  .identity-hero { min-height: calc(100svh - 66px); }
+  .site-link--utility { margin-left: 0; border-left: 0; }
+}
+
+@media (max-width: 760px) {
+  .shell { width: min(100% - 32px, 1200px); }
   .identity-lockup { width: min(100% - 40px, 1320px); padding-block: 48px; }
   /* One closed-up word cannot wrap, so it must scale instead. Primal advance widths
      measured from the Primal display face: SECUREPROSPECTIVE is 13.683em including
@@ -819,7 +843,7 @@ button, input, textarea, select { font: inherit; }
   .hero-sp-plus { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 40px; padding: 18px; }
   .hero-sp-plus > strong { margin-top: 8px; }
   .hero-sp-plus > b { margin-top: 12px; }
-  .truth-copy h1 { max-width: none; font-size: clamp(1.7rem, 7.4vw, 2.7rem); }
+  .truth-card h1 { max-width: none; font-size: clamp(1.6rem, 6.6vw, 2.3rem); }
   .truth-columns { grid-template-columns: 1fr; gap: 22px; }
   .truth-answer { padding-top: 22px; border-top: 1px solid rgba(255, 255, 255, 0.55); }
   .method-spine { padding-block: 76px; }
