@@ -14,7 +14,7 @@ import { sendLeadNotification } from "../_lib/lead-notify";
 
 interface Env {
   SP_LEADS: R2Bucket;
-  CONTACT_TURNSTILE_SECRET_KEY: string;
+  TURNSTILE_SECRET_KEY: string;
   BREVO_PRIVATE_API_KEY?: string;
 }
 
@@ -101,7 +101,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // it worth scripting against, so an unverifiable submission is refused
   // rather than waved through.
   const verified = await verifyTurnstile(
-    env.CONTACT_TURNSTILE_SECRET_KEY,
+    env.TURNSTILE_SECRET_KEY,
     payload.turnstileToken,
     request.headers.get("CF-Connecting-IP"),
   );

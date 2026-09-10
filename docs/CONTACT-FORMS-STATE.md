@@ -11,7 +11,7 @@
 | CCwork chatbot removed | `ChatWidget.astro` and `functions/api/ask.ts` deleted, `Layout.astro` updated. It had been returning a bare 502 in production. |
 | `/api/lead` hardened | Route/message/source/page validation, Turnstile fails closed, distinct status codes, R2 write decides success, notification failure is logged and never fails the visitor. |
 | R2 bucket `secureprospective-leads` | Created. `SP_LEADS` binding added to **both** Production and Preview. |
-| Turnstile widget `SP Contact Form` | Created. Site key `0x4AAAAAAEvPtaln-Oque4ng`. Hostnames: secureprospective.com, www.secureprospective.com, secureprospective-site.pages.dev. Separate from the `SP Back Office` widget. |
+| Turnstile | Reuses the existing `SP Back Office` widget and its `PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`, already set in Production. A second widget `SP Contact Form` (`0x4AAAAAAEvPtaln-Oque4ng`) was created earlier and is now unused; delete it or keep it dormant. |
 | Brevo sender domain `notify.secureprospective.com` | **Authenticated.** Four records added by BIND import, all resolving. |
 | Root mail DNS untouched | Re-checked after the import: SPF still `v=spf1 include:_spf.google.com ~all`, MX still `1 smtp.google.com`, `_dmarc` still `p=reject`. Every Brevo record sits under `notify`. |
 
@@ -20,7 +20,7 @@
 - **Cloudflare Email Sending was rejected**: it requires the Workers Paid plan. Pages Functions also have no email binding at all (the full binding list ends at Workers AI). Brevo's free tier is the path.
 - **A sending subdomain, not the root.** The root carries live Google Workspace mail under DMARC `p=reject`; authenticating it in Brevo would mean editing the SPF and DKIM records real business mail depends on.
 - **Manual DNS records, not Brevo-managed.** The automatic option grants Brevo write access to the zone and the delegated option hands it NS control of a subdomain. Neither is warranted for four static records.
-- **Its own Turnstile widget**, not the back office's, so the public marketing form and the login page can be rotated and read separately.
+- **Reuse the back office's Turnstile widget** rather than a second one, decided 2026-09-10 to keep the number of variables down. The cost is that the login page and the public contact form share one secret, so rotating either rotates both. The `SP Back Office` widget originally listed only `secureprospective.com` and `secureprospective-site.pages.dev`; `www.secureprospective.com` serves a live 200 rather than redirecting, so `www` had to be added to that widget's hostnames or the form would fail for anyone arriving on a www link.
 
 ## Remaining: three variables, then test
 
@@ -29,14 +29,16 @@ Entering credentials into fields is something I do not do, so these are Christop
 In **Workers & Pages -> secureprospective-site -> Settings -> Variables and secrets**, add all three to
 **Production and Preview both** (the environment selector is at the top of Settings):
 
-| Type | Name | Value |
-|---|---|---|
-| Text | `PUBLIC_CONTACT_TURNSTILE_SITE_KEY` | `0x4AAAAAAEvPtaln-Oque4ng` |
-| Secret | `CONTACT_TURNSTILE_SECRET_KEY` | Turnstile -> `SP Contact Form` -> Settings -> secret key |
-| Secret | `BREVO_PRIVATE_API_KEY` | Brevo -> SMTP & API -> API keys -> generate a new key |
+| Where | Type | Name | Value |
+|---|---|---|---|
+| Turnstile widget | - | hostname | Add `www.secureprospective.com` to the `SP Back Office` widget |
+| Pages, Production | Secret | `BREVO_PRIVATE_API_KEY` | Brevo -> SMTP & API -> API keys -> generate a new key |
+| Pages, Preview | Secret | `BREVO_PRIVATE_API_KEY` | the same key |
+| Pages, Preview | Secret | `PUBLIC_TURNSTILE_SITE_KEY` | copy from Production, or Turnstile -> `SP Back Office` |
+| Pages, Preview | Secret | `TURNSTILE_SECRET_KEY` | copy from Production, or Turnstile -> `SP Back Office` |
 
-Note: Preview currently has only `CF_API_TOKEN`, so it needs all three; Production has the back office's
-Turnstile pair already but those are a different widget and are not reused here.
+Production already has the Turnstile pair, so it needs only the Brevo key. Preview has just `CF_API_TOKEN`
+and needs all three before the form can be tested there.
 
 Once those are in, the remaining work is verification, and none of it has been done yet:
 
