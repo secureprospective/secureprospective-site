@@ -298,6 +298,20 @@ in half by the panel footer and scrolling does nothing. The advisor cannot see w
 service actually offers, which is the panel's only job. Evidence:
 `p02-s04-social-scrolled-20260910T035630Z.png`.
 
+**Reproduce - screens 07 and 08.** Confirmed 2026-09-10 in sweep P04, so this is not a
+screen-03 problem at all:
+
+- Screen 07 Optional tools: the tool list is taller than its container. Row `04 GNOME
+  BOXES` is sliced in half by the fixed footer and its `ADD GNOME BOXES` button is
+  unreachable. No scrollbar. Evidence:
+  `~/logs/sp-plus/testvm/shots/p04-screen07-20260910T052854Z.png`.
+- Screen 08 Ready to work: "You can reopen this any time from Applications > SP+ Welcome"
+  and the "Do not show this setup again" control are partly hidden behind the footer at the
+  default viewport. Evidence: `p04-screen08-initial-20260910T053554Z.png`.
+
+That is **five of eight Welcome screens** with the same fault, which is the argument for
+fixing the container rather than the screens.
+
 **Why it matters.** Screen 03 is where an advisor connects their email, and it is
 precisely the error paths - the ones a nervous advisor will hit - that destroy the layout.
 An advisor who cannot read the error and cannot reach the skip button is stuck on the
@@ -353,7 +367,10 @@ mechanism exists.
 Found 2026-09-10, Bee sweep P02, Alpha v0.10. **Fix in the next ISO.** Low severity.
 
 Observed in Welcome: "learn Linux", "leaving it mounted", "GVFS", "desktop wallet",
-"ENCRYPTED AT REST", "SEC Marketing Rule". Evidence:
+"ENCRYPTED AT REST", "SEC Marketing Rule". Screen 07 additionally prints raw Flatpak
+application ids next to every tool - `FLATHUB`, `US.ZOOM.ZOOM`, `COM.BITWARDEN.DESKTOP`,
+`ORG.SIGNAL.SIGNAL`, `ORG.GNOME.BOXES` (sweep P04,
+`~/logs/sp-plus/testvm/shots/p04-screen07-20260910T052854Z.png`). Evidence:
 `~/logs/sp-plus/testvm/shots/p02-final-screen1-20260910T040742Z.png`,
 `p02-s03-start-20260910T034717Z.png`, `p02-s04-social-back-20260910T035703Z.png`.
 
@@ -400,3 +417,19 @@ before. All eight themes applied and were visually verified. Panel, Kickoff, win
 and close worked after every apply. The Breeze Light -> Modern Light -> Breeze Light round
 trip completed **twice** with no breakage. Already-open windows keep their old look until
 reopened, which is what the advisor message promises.
+
+### P04 - what worked
+
+Recorded 2026-09-10, sweep P04, Alpha v0.10, so the next session does not retest it.
+
+- **Optional tools install end to end.** Zoom installed from Flathub, the button changed to
+  `ADDED`, it appeared in Kickoff and launched to its sign-in screen.
+- **Printer lane behaves.** Find printers showed a working state and returned in 2-3s. The
+  helper agreed with the UI: `discover` -> `{"ok": true, "printers": []}`, `list` ->
+  `{"ok": true, "queues": [], "default": ""}`. The messages are honest and actionable; only
+  their layout is wrong (T-20, T-22).
+- **Screen 06 Help is sound.** Topics, guides, paging, copy buttons, navigation and the
+  empty Ask-Fin validation all worked.
+- **Screen 05 Fin** explains itself clearly and opens to its login prompt. P08 owns login.
+- **Screen 08** update check, Back, Finish Setup and Open Desktop all worked.
+- Booted digest re-confirmed as the alpha3 digest.
