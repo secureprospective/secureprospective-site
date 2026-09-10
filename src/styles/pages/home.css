@@ -238,6 +238,7 @@
 */
 .home-page .sp-plus-flag {
   grid-column: 1;
+  text-transform: uppercase;
   grid-row: 1;
   align-self: end;
 }
@@ -573,7 +574,7 @@
 
 .home-page .closing-field h2 {
   max-width: 15ch;
-  font-size: clamp(var(--text-h1), 7vw, 88px);
+  font-size: clamp(var(--text-h1), 7vw, var(--text-display));
   line-height: 0.92;
 }
 
@@ -665,6 +666,11 @@
 }
 
 @media (max-width: 980px) {
+  .home-page .hero-sp-plus > strong {
+    max-width: 100%;
+    font-size: var(--text-h3);
+  }
+
   .home-page .identity-hero {
     min-height: 0;
   }
