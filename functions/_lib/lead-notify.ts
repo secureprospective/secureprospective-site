@@ -1,4 +1,4 @@
-// Lead notification over Cloudflare Email Sending.
+// Lead notification over Brevo's HTTP API.
 //
 // The R2 object written by /api/lead is the system of record. This is the
 // nudge that tells Christopher a record exists, so a campaign lead does not
@@ -6,22 +6,16 @@
 // reported to the caller so it can be logged, and never fails the visitor's
 // submission.
 //
+// Brevo rather than Cloudflare Email Sending: Pages Functions have no email
+// binding, and Cloudflare's Email Sending REST API requires the Workers Paid
+// plan. Brevo's free tier covers this volume and the account already has the
+// invite sender in functions/_lib/email.ts using the same API.
+//
 // FROM_ADDRESS lives on a dedicated subdomain. The root domain carries the
-// live Google Workspace mail for the business under DMARC p=reject, and
-// onboarding it to Email Sending would mean editing the SPF and DKIM records
-// that real business mail depends on. A subdomain gets its own records and
+// live Google Workspace mail for the business under DMARC p=reject, so
+// authenticating the root in Brevo would mean editing the SPF and DKIM records
+// that real business mail depends on. The subdomain gets its own records and
 // cannot break the root.
-
-export interface SendEmailBinding {
-  send(message: {
-    to: string;
-    from: { email: string; name?: string };
-    replyTo?: string;
-    subject: string;
-    html: string;
-    text: string;
-  }): Promise<unknown>;
-}
 
 const FROM_ADDRESS = "leads@notify.secureprospective.com";
 const FROM_NAME = "SecureProspective site";
@@ -67,7 +61,7 @@ function localTimestamp(iso: string): string {
 }
 
 export async function sendLeadNotification(
-  email: SendEmailBinding,
+  apiKey: string,
   lead: LeadRecord,
 ): Promise<{ ok: boolean; error?: string }> {
   const routeLabel = ROUTE_LABELS[lead.route] ?? lead.route;
@@ -117,14 +111,29 @@ export async function sendLeadNotification(
   `.trim();
 
   try {
-    await email.send({
-      to: TO_ADDRESS,
-      from: { email: FROM_ADDRESS, name: FROM_NAME },
-      replyTo: lead.email,
-      subject,
-      html,
-      text,
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: FROM_ADDRESS, name: FROM_NAME },
+        to: [{ email: TO_ADDRESS }],
+        // Answering the notification answers the lead, which is the whole
+        // point of routing it to a mailbox rather than a dashboard.
+        replyTo: { email: lead.email, name: lead.name },
+        subject,
+        htmlContent: html,
+        textContent: text,
+      }),
     });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      return { ok: false, error: `Brevo returned ${res.status}: ${detail.slice(0, 300)}` };
+    }
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

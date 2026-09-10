@@ -10,12 +10,12 @@
 // ever queries.
 
 import { verifyTurnstile } from "../_lib/turnstile";
-import { sendLeadNotification, type SendEmailBinding } from "../_lib/lead-notify";
+import { sendLeadNotification } from "../_lib/lead-notify";
 
 interface Env {
   SP_LEADS: R2Bucket;
   CONTACT_TURNSTILE_SECRET_KEY: string;
-  LEAD_EMAIL?: SendEmailBinding;
+  BREVO_PRIVATE_API_KEY?: string;
 }
 
 const ALLOWED_HOSTS = new Set([
@@ -138,13 +138,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // The lead is safely stored from here on, so nothing below may turn the
   // visitor's successful submission into a failure.
-  if (env.LEAD_EMAIL) {
-    const notified = await sendLeadNotification(env.LEAD_EMAIL, { ...lead, key });
+  if (env.BREVO_PRIVATE_API_KEY) {
+    const notified = await sendLeadNotification(env.BREVO_PRIVATE_API_KEY, { ...lead, key });
     if (!notified.ok) {
       console.error("lead: notification failed", notified.error, "stored as", key);
     }
   } else {
-    console.error("lead: no LEAD_EMAIL binding, stored only", key);
+    console.error("lead: no BREVO_PRIVATE_API_KEY, stored only", key);
   }
 
   return json({ ok: true });
