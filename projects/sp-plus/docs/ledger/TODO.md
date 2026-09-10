@@ -686,3 +686,63 @@ Brave Ad Block Updater. Prove it on the Dell, not on a VM.
 than eight hours after first run, and that no policy asserts Shields. Ads passing through
 during that window follows from it but was not itself watched happening - the VM was busy
 with another phase and could not be driven.
+
+## Sweep complete - P11 re-run and P12 consolidation, 2026-09-10
+
+The first P11 ran against a rig that had idle-suspended and every finding in it was
+worthless; that report is kept as `reports/P11-INVALID-suspended-rig.md` so it is not
+mistaken for evidence. The re-run below was done on an awake rig.
+
+### P11 re-run - the reboot is sound, with real timings
+
+- **Branded SP+ unlock screen displayed**, then unlocked. Restart to unlock **14.8s**,
+  unlock to login screen **18.4s**, login to usable desktop **13.9s** - about **47 seconds**
+  from restart to working desktop on the deliberately slow rig.
+- **Zero failed units.** Theme, resolution and home directory all persisted; the `.docx` and
+  `.xlsx` written in P08 survived.
+- **Security posture confirmed:** `/dev/vda3` and the active mapping are **LUKS2**; the
+  firewall is up; sshd is key-only and the key worked after reboot; writing to `/usr` was
+  refused with `Read-only file system`; bootc owns the OS and `rpm-ostree status --json`
+  reports `requested-packages: []` and `packages: []`, so nothing is layered.
+- Secure Boot remains unprovable in the VM (`/sys/firmware/efi` absent) - **a Dell question.**
+
+### T-37 - SP+ Welcome opens itself on every login
+
+Found in the P11 re-run. After logging in, `SP+ Welcome` auto-opened; it is registered as
+`org.secureprospective.spplus.welcome.desktop` in autostart.
+
+This connects to T-20 in a way worth noticing: the control that stops it doing so - "Do not
+show this setup again" on screen 08 - is **one of the controls clipped behind the footer**.
+So the advisor is shown a setup wizard every morning and the off switch is the thing they
+cannot reach. Fixing T-20 fixes this too, but the autostart rule deserves its own decision:
+Welcome should probably stop opening itself once setup has been completed once, rather than
+relying on the advisor finding a checkbox.
+
+### T-38 - Kickoff search shows stale results for ~14 seconds
+
+Found in P05C. Searching for Spectacle left unrelated results on screen for about 14
+seconds before the match appeared. Low severity on its own, but it lands on the surface
+whose entire purpose is that the advisor should not have to know the right word - a search
+that answers late with the wrong thing is worse than one that answers slowly.
+
+### P12 consolidation - and where its ranking is wrong
+
+Bee's consolidated verdict is DO NOT SHIP, with two CRITICALs at the top. **Both are
+corrected elsewhere in this ledger and neither should reach a fix list as written:**
+
+1. Its first CRITICAL is the Fin shell escape. That is T-33 - Christopher has already ruled
+   that safety comes from the immutable OS rather than from crippling Fin. The live
+   question is narrower and is recorded there.
+2. Its second CRITICAL is "sleep/resume leaves the graphical output black". That is T-26 -
+   one virtio-GPU symptom that produced three FAIL verdicts, with P09's own evidence
+   showing the session alive underneath and SSH answering 1.61s after wake. It is a Dell
+   question, not a defect.
+
+Its remaining ranking is sound and matches this ledger: the Welcome container overflow
+(T-20) at the top, then Help Center's missing documentation, Flameshot (T-34), Help's raw
+Markdown links (T-29), screens 07/08 clipping and the Social list.
+
+**The single most valuable thing the sweep produced is not in Bee's list at all**: three
+separate gates that pass while the thing they check is wrong - LibreOffice parity (T-31),
+the Brave policy gate (T-36), and, by omission, anything Shields-related. A gate that
+cannot fail is a false positive, and those have been shipping green.
