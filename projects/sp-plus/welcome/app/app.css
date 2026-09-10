@@ -645,6 +645,15 @@ body.service-panel-open{overflow:hidden}
   .tools-screen .tool-register,
   .done-screen .handoff-register{flex:1 1 auto;min-height:0;overflow-y:auto}
 
+  /* align-content:start is load-bearing, not tidying. The grid now has a
+     definite height from `flex:1 1 auto`, and a single-row grid stretches
+     its row to fill that -- which pins each lane to the container height
+     and puts its overflow outside its own border again, just into empty
+     space instead of onto the strip. Starting the row instead lets it size
+     to the tallest lane, so a card always contains what is in it and the
+     region scrolls when the row is taller than the screen. */
+  .office-screen .office-grid{align-content:start;align-items:start;grid-auto-rows:max-content}
+
   /* The lanes size to their content now, so the result and status
      paragraphs that used to escape simply make the card taller. */
   .office-lane{height:auto}
