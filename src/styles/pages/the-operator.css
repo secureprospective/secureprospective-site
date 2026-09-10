@@ -198,7 +198,11 @@
   display: inline-flex;
   align-items: center;
   gap: 18px;
+  /* Was 21px tall, under the 24px minimum target size. The rule stays where it
+     was; the space above the text is what grew. */
+  min-height: 26px;
   margin-top: 32px;
+  padding-top: 6px;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--yellow-accent);
   font-family: var(--font-display);

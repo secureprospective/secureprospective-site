@@ -5,21 +5,45 @@ import Footer from '../components/Footer.astro';
 import HeroTicker from '../components/HeroTicker.astro';
 ---
 
-<Layout title="SecureProspective" description="A revenue-producing IMO building its prospective form through SP+, the first AI-native deliverable.">
+<Layout title="SecureProspective: an IMO run by a producing agent" description="An independent marketing organization run by an agent who still writes business. Annuity and life wholesale, case design, and suitability for active producers.">
   <Nav />
 
   <main id="main" transition:name="page-card">
     <section class="identity-hero" aria-labelledby="identity-title">
       <HeroTicker />
       <div class="identity-lockup">
-        <h1 id="identity-title" data-stamp>SecureProspective</h1>
+        <!--
+          The wordmark keeps its stamp reveal but it is no longer the h1. A
+          visitor arriving from a recruiting ad landed on a logo and a phonetic
+          spelling and had to scroll to find a sentence. The heading is the
+          argument now; the mark identifies who is making it.
+        -->
+        <p class="identity-kicker">Operator to operator</p>
+        <p class="identity-mark" data-stamp>SecureProspective</p>
         <p class="pronunciation">/sɪˈkjʊr//prəˈspek.tɪv/</p>
-        <a class="hero-sp-plus" href="/the-work">
-          <span>SP+ // ACTIVE BUILD</span>
-          <strong>The safer advisor workstation.</strong>
-          <small>Access begins with a fit review and five production contracts. No software fee, no recurring SP+ subscription.</small>
-          <b>Explore SP+ →</b>
-        </a>
+
+        <h1 id="identity-title">
+          Most of what an advisor is sold was never used by the people selling it.
+        </h1>
+
+        <p class="identity-lede">
+          The pitch has not changed in twenty-five years. More products, more leads,
+          more tools, more training, more scale. Bring your license, bring your
+          ambition. Then Tuesday morning arrives, you have a case in front of you,
+          and there is nobody to ask.
+        </p>
+
+        <p class="identity-truth">
+          Christopher Campbell still writes business with real clients, and has spent
+          eight years inside IMOs and financial advisor offices. SecureProspective is
+          the operation he runs. SP+ is what that operation built for its own
+          producers. A broad promise is not an operating model.
+        </p>
+
+        <p class="identity-routes">
+          <a href="/services">See the operation →</a>
+          <a href="/the-work">See SP+ →</a>
+        </p>
       </div>
     </section>
 

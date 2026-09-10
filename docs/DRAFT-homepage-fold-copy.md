@@ -1,6 +1,12 @@
 # Draft: what the homepage fold should say
 
-For Christopher. Nothing here is implemented. P0-1 from `docs/IMPECCABLE-2026-09-10.md`.
+**RESOLVED 2026-09-10: Christopher chose Option B.** It shipped with the campaign
+material folded in: the twenty-five-year framing, the Tuesday morning, and the fact
+that he still writes business. The title and description below shipped too. The
+interior page titles were left alone, still pending his call. The rest of this file
+is kept as the record of what the three options were and what each one cost.
+
+For Christopher. P0-1 from `docs/IMPECCABLE-2026-09-10.md`.
 
 ## What is actually wrong
 

@@ -139,7 +139,7 @@
 
 /* The static h1 is the no-script fallback. Only the prepared, font-stable
    version receives the authored entrance. */
-.identity-lockup h1,
+.identity-mark,
 .pronunciation { animation: none; }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -152,9 +152,6 @@
   [data-motion-ready] .pronunciation {
     animation: sub-reveal 360ms var(--ease-deck) 320ms both;
   }
-  [data-motion-ready] .hero-sp-plus {
-    animation: hero-card-in 640ms var(--ease-deck) 450ms both;
-  }
 }
 
 @keyframes stamp-in {
@@ -164,48 +161,15 @@
   from { opacity: 0; transform: translate3d(0, 6px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-@keyframes hero-card-in {
-  from { opacity: 0; clip-path: inset(0 0 100% 0); }
-  to { opacity: 1; clip-path: inset(0); }
-}
 
 .pronunciation { position: relative; z-index: 2; }
 
 /* The SP+ card in the hero is the page's one promoted card: it sits highest
    on the table and answers the pointer with a real, tracked offset. */
-.hero-sp-plus {
-  position: relative;
-  z-index: 2;
-  overflow: clip;
-  box-shadow: var(--lift-2);
-  transition:
-    transform var(--dur-base) var(--ease-deck),
-    box-shadow var(--dur-base) var(--ease-deck);
-}
-.hero-sp-plus:hover,
-.hero-sp-plus:focus-visible {
-  transform: translate3d(-3px, -3px, 0);
-  box-shadow: var(--lift-3);
-}
 
 /* A single verification pass runs along the card's top edge after the
    identity has registered. It is a signal, not a decorative infinite loop. */
-.hero-sp-plus::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 22%;
-  height: 3px;
-  background: var(--yellow-accent);
-  opacity: 0;
-  transform: translate3d(-120%, 0, 0);
-  pointer-events: none;
-}
 @media (prefers-reduced-motion: no-preference) {
-  [data-motion-ready] .hero-sp-plus::before {
-    animation: verification-pass 900ms linear 520ms both;
-  }
 }
 @keyframes verification-pass {
   0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
@@ -503,8 +467,7 @@ p { text-wrap: pretty; }
   /* The paragraphs the detector named, guaranteed an inset of their own so
      they cannot bleed even if a parent's padding is overridden later. */
   .state-lede,
-  .build-proof,
-  .hero-sp-plus { max-width: 100%; }
+  .build-proof { max-width: 100%; }
 }
 
 @media (max-width: 360px) {
@@ -546,8 +509,6 @@ p { text-wrap: pretty; }
   .site-nav .site-link,
   .site-footer .footer-index a,
   .site-footer .footer-close > span,
-  .hero-sp-plus > span,
-  .hero-sp-plus > b,
   .state-field-head,
   .spine-steps > li > span,
   .proof-status,
