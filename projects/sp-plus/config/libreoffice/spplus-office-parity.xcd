@@ -53,6 +53,14 @@
       <prop oor:name="ShowDonation"><value>false</value></prop>
       <prop oor:name="CrashReport"><value>false</value></prop>
       <prop oor:name="ShowTipOfTheDay"><value>false</value></prop>
+      <!-- FirstRun=false stops LibreOffice treating an advisor's first
+           launch as a setup event. Added 2026-09-10 after Alpha v0.10 was
+           found opening Writer onto a "Welcome to LibreOffice! You are
+           running LibreOffice for the first time. Please take a moment to
+           personalize your settings." dialog. An advisor who has been told
+           this is their office suite should get a blank page, not a wizard
+           from a product they have never heard of. -->
+      <prop oor:name="FirstRun"><value>false</value></prop>
     </node>
 
     <node oor:name="Appearance">
@@ -238,6 +246,23 @@
       </node>
   </oor:component-data>
 
+  <!-- The 26.x "What's New" dialog is separate from FirstRun and survives
+       it; suppressing FirstRun alone still produced the wizard, verified on
+       the test VM 2026-09-10. Three keys are needed together: the dialog,
+       the infobar it falls back to, and the version it compares against. -->
+  <oor:component-data oor:name="Setup" oor:package="org.openoffice">
+    <node oor:name="Product">
+      <prop oor:name="WhatsNewDialog"><value>false</value></prop>
+      <prop oor:name="ooSetupLastVersion"><value>26.2</value></prop>
+    </node>
+  </oor:component-data>
+
+  <oor:component-data oor:name="Infobar" oor:package="org.openoffice.Office.UI">
+    <node oor:name="Enabled">
+      <prop oor:name="WhatsNew"><value>false</value></prop>
+    </node>
+  </oor:component-data>
+
   <oor:component-data oor:name="UI" oor:package="org.openoffice.Office">
     <node oor:name="ColorScheme">
       <prop oor:name="CurrentColorScheme">
@@ -248,20 +273,32 @@
 
   <!-- ================= Writer ================= -->
   <oor:component-data oor:name="Writer" oor:package="org.openoffice.Office">
-    <!-- Office 2021 bodies text at Calibri 11pt; LibreOffice's stock
-         template is Liberation Serif 12pt. Heights are twips, so 11pt is
-         220 and 14pt is 280. Verified by read-back on the test VM. -->
+    <!-- Heights here are **1/100 mm**, NOT twips. One point is 35.28 of
+         them, so 12pt is 423, 14pt is 494 and 10pt is 353.
+
+         This was wrong until 2026-09-10 and shipped in Alpha v0.10. The
+         values were written as twips (220 for "11pt"), and 220 hundredths
+         of a millimetre is 6.2pt. Christopher opened Writer on the Dell
+         and found the default size box reading "6.3 pt" on a blank
+         document. The old comment claimed "verified by read-back on the
+         test VM", and it had been: the probe read 220 and agreed it was
+         220. It never asked what 220 meant, which is why a gate reporting
+         58 passing checks sat on top of unreadable body text.
+
+         Christopher's call is that the default is **12pt**, which is also
+         LibreOffice's own stock body size, so a document SP+ creates opens
+         at a normal size anywhere it is sent. -->
     <node oor:name="DefaultFont">
       <prop oor:name="Standard"><value>Carlito</value></prop>
-      <prop oor:name="StandardHeight"><value>220</value></prop>
+      <prop oor:name="StandardHeight"><value>423</value></prop>
       <prop oor:name="Heading"><value>Caladea</value></prop>
-      <prop oor:name="HeadingHeight"><value>280</value></prop>
+      <prop oor:name="HeadingHeight"><value>494</value></prop>
       <prop oor:name="List"><value>Carlito</value></prop>
-      <prop oor:name="ListHeight"><value>220</value></prop>
+      <prop oor:name="ListHeight"><value>423</value></prop>
       <prop oor:name="Caption"><value>Carlito</value></prop>
-      <prop oor:name="CaptionHeight"><value>200</value></prop>
+      <prop oor:name="CaptionHeight"><value>353</value></prop>
       <prop oor:name="Index"><value>Carlito</value></prop>
-      <prop oor:name="IndexHeight"><value>220</value></prop>
+      <prop oor:name="IndexHeight"><value>423</value></prop>
     </node>
     <node oor:name="Layout">
       <!-- 8 = inch. A US advisor thinks in inches; the stock unit is

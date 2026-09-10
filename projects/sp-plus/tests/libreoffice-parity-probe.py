@@ -59,6 +59,9 @@ UNTOUCHED_GLOBAL = [("Q_MOD1", ".uno:Quit")]
 SETTINGS = [
     ("/org.openoffice.Office.Common/Misc", "SymbolStyle", "colibre"),
     ("/org.openoffice.Office.Common/Misc", "ShowDonation", False),
+    ("/org.openoffice.Office.Common/Misc", "FirstRun", False),
+    ("/org.openoffice.Setup/Product", "WhatsNewDialog", False),
+    ("/org.openoffice.Office.UI.Infobar/Enabled", "WhatsNew", False),
     ("/org.openoffice.Office.Common/Misc", "CrashReport", False),
     ("/org.openoffice.Office.Common/Appearance", "ApplicationAppearance", 1),
     ("/org.openoffice.Office.Common/Save/Document", "WarnAlienFormat", False),
@@ -66,7 +69,7 @@ SETTINGS = [
     ("/org.openoffice.Office.Common/Font/Substitution", "Replacement", True),
     ("/org.openoffice.Office.Common/Security/Scripting", "MacroSecurityLevel", 3),
     ("/org.openoffice.Office.Writer/DefaultFont", "Standard", "Carlito"),
-    ("/org.openoffice.Office.Writer/DefaultFont", "StandardHeight", 220),
+    ("/org.openoffice.Office.Writer/DefaultFont", "StandardHeight", 423),
     ("/org.openoffice.Office.Writer/Layout/Other", "MeasureUnit", 8),
     ("/org.openoffice.Office.Calc/Formula/Syntax", "Grammar", 1),
     ("/org.openoffice.Office.Calc/Formula/Syntax", "EnglishFunctionName", True),
@@ -196,6 +199,37 @@ def main():
             fails.append("CFG  %s/%s want %r got %r" % (path, prop, want, got))
         else:
             print("  ok  CFG  %s/%s = %r" % (path, prop, got))
+
+    # The default body size, checked in POINTS rather than in the stored
+    # integer. Reading 423 back and agreeing it is 423 proves only that the
+    # write landed; it cannot tell 12pt from 6.3pt, and that is exactly how
+    # Alpha v0.10 shipped a 6.3pt default under a gate reporting 58 passes.
+    # The unit is 1/100 mm, so one point is 2540/72 of them.
+    HUNDREDTHS_MM_PER_POINT = 2540.0 / 72.0
+    fonts = reader(ctx, "/org.openoffice.Office.Writer/DefaultFont")
+    for prop, want_pt in (("StandardHeight", 12.0), ("HeadingHeight", 14.0),
+                          ("ListHeight", 12.0), ("CaptionHeight", 10.0),
+                          ("IndexHeight", 12.0)):
+        checked += 1
+        raw = fonts.getPropertyValue(prop)
+        pt = raw / HUNDREDTHS_MM_PER_POINT
+        if abs(pt - want_pt) > 0.25:
+            fails.append("SIZE %s renders at %.1fpt, want %.0fpt (raw %r, 1/100mm)"
+                         % (prop, pt, want_pt, raw))
+        else:
+            print("  ok  SIZE %-14s %.1fpt" % (prop, pt))
+
+    # A guard against the specific mistake that caused this: writing the
+    # heights as twips. 20 twips make a point, so a twips value is about
+    # 43% of the right number and lands in an absurd range rather than
+    # failing loudly. Name it, so the next person sees why it is wrong.
+    checked += 1
+    standard = fonts.getPropertyValue("StandardHeight")
+    if standard < 200:
+        fails.append("SIZE StandardHeight %r looks like twips; this setting is "
+                     "1/100 mm and 12pt is 423" % standard)
+    else:
+        print("  ok  SIZE StandardHeight is not a twips value")
 
     facs = reader(ctx, "/org.openoffice.Setup/Office/Factories")
     for name, want in FACTORIES:

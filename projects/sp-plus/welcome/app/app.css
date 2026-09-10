@@ -25,7 +25,7 @@ h1,h2,p{margin:0}h1{font-family:'Noto Sans Condensed Black','Noto Sans Condensed
   .welcome-screen.active{grid-template-columns:minmax(390px,1.4fr) minmax(260px,.75fr);grid-template-rows:1fr auto;gap:18px}.welcome-copy h1{font-size:clamp(52px,5.6vw,82px)}.welcome-copy p{max-width:500px;margin-top:17px;font-size:17px;line-height:1.35}.welcome-manifest div{gap:5px;padding:14px}.welcome-manifest strong{font-size:15px}.welcome-side-note{padding-top:10px}.welcome-side-note p{font-size:10px}
   .theme-page-title{margin-bottom:9px}.theme-page-title p{max-width:610px}.theme-gallery{gap:10px}.theme-card img{height:104px}.theme-meta{padding:7px 8px}.theme-meta b{font-size:11px}.theme-meta small{font-size:9px}.choice-head h2{font-size:21px}.choice-head p{font-size:11px}.preview-note{margin-top:6px;font-size:9px}.theme-columns{gap:11px}.theme-column .theme-gallery{gap:6px}.theme-card .swatch{height:58px}.lead-gallery .theme-card .swatch{height:70px}.theme-meta em{font-size:8px}
   .map-stage{min-height:0;height:calc(100% - 156px)}.desktop-map{min-height:0;padding:24px}.map-window{gap:13px}.help-station{padding:18px}.ask-form{margin-top:9px}.ask-feedback{max-height:100px}.trail-card{min-height:69px;padding:9px}.trail-card small{margin-top:5px}.article-reader{max-height:210px}
-  .office-screen .page-title{margin-bottom:12px}.office-screen .page-title p{max-width:540px}.office-grid{gap:11px}.office-lane{min-height:0;height:317px;padding:13px}.office-lane p{margin:11px 0;font-size:12px}.form-grid{gap:4px}.form-grid label{grid-template-columns:102px 1fr;font-size:10px}.form-grid input{padding:5px;font-size:11px}.office-lane .checkline{margin:8px 0}.office-lane fieldset{gap:7px}.office-lane .text-button{margin-top:4px}.ledger-callout{margin-top:12px;padding:9px 0}.ledger-callout p{font-size:11px;line-height:1.35}
+  .office-screen .page-title{margin-bottom:12px}.office-screen .page-title p{max-width:540px}.office-grid{gap:11px}.office-lane{min-height:0;padding:13px}.office-lane p{margin:11px 0;font-size:12px}.form-grid{gap:4px}.form-grid label{grid-template-columns:102px 1fr;font-size:10px}.form-grid input{padding:5px;font-size:11px}.office-lane .checkline{margin:8px 0}.office-lane fieldset{gap:7px}.office-lane .text-button{margin-top:4px}.ledger-callout{margin-top:12px;padding:9px 0}.ledger-callout p{font-size:11px;line-height:1.35}
   .fin-screen .page-title{margin-bottom:12px}.fin-stage{height:390px}.fin-brief{min-height:0;padding:22px}.fin-brief h2{font-size:clamp(34px,3.6vw,52px)}.fin-brief p{margin:16px 0;font-size:13px}.fin-ledger{padding:22px}.fin-ledger div{padding:10px 0}.fin-ledger strong{font-size:15px}.fin-ledger p{padding-top:12px;font-size:11px}
   .tools-screen .page-title{margin-bottom:12px}.tool-row{min-height:76px;padding:12px 15px;gap:13px}.tool-row h2{font-size:24px}.tool-row p{font-size:12px}.discover-strip{min-height:114px;margin-top:13px;padding:16px}.discover-strip h2{font-size:29px}.discover-strip p{margin-top:6px;font-size:12px}.tools-screen .ledger-callout{margin-top:12px}
   .done-screen.active{padding-top:18px;padding-bottom:16px}.done-field{padding:17px 0}.done-mark{width:116px;height:116px;font-size:37px}.handoff-register{margin-top:17px}.handoff-register div{min-height:78px;padding:13px}.finish-line{margin-top:16px;padding-top:11px}
@@ -594,3 +594,71 @@ body.service-panel-open{overflow:hidden}
 .printer-found label small{display:block;font-weight:400;opacity:.75}
 .office-lane .lane-note{margin:0 0 9px;font-size:11px;font-weight:700}
 .office-lane .lane-note:empty{display:none}
+
+
+/* ------------------------------------------------------------------
+   T-20 - a card must never paint outside itself.
+
+   The bug this replaces: every card on these screens had a measured
+   pixel height (.office-lane was `height:317px`) and no overflow rule
+   at all. A card whose content grew past that number did not scroll,
+   did not grow and was not clipped at its own border -- it simply
+   painted over whatever sat below it, and was caught only much later
+   by `.screen{overflow:hidden}`. That is why a folder error landed on
+   top of the "A QUICK NOTE" strip, why OPEN EMAIL SIGN-IN escaped its
+   card, and why the printer skip button became unreachable.
+
+   The number 317 was the tell: it was tuned until one particular
+   content state fit, so every state with more content than that one --
+   which is every error path -- overflowed. Error paths are exactly
+   what a nervous advisor hits.
+
+   The contract, applied here once rather than per card:
+
+     * The screen is the frame. It is a flex column and it does not
+       scroll; the app is still one viewport with no page scrollbar.
+     * Fixed furniture (titles, callouts, footers) does not flex.
+     * Exactly ONE region per screen absorbs growth: it gets
+       `min-height:0` -- without which a flex child refuses to shrink
+       below its content and overflows anyway -- and `overflow-y:auto`.
+     * Cards inside that region size to their content. They cannot
+       overflow because nothing constrains them to a wrong height.
+
+   Scrolling the region rather than each card is deliberate: three
+   narrow cards with three separate scrollbars is worse to use, and
+   grid stretch keeps the row visually level either way.
+   ------------------------------------------------------------------ */
+@media (min-width:901px){
+  .office-screen.active,
+  .tools-screen.active,
+  .done-screen.active{display:flex;flex-direction:column;min-height:0}
+
+  .office-screen .page-title,
+  .office-screen .ledger-callout,
+  .tools-screen .page-title,
+  .tools-screen .discover-strip,
+  .tools-screen .ledger-callout,
+  .done-screen .done-field,
+  .done-screen .finish-line{flex:0 0 auto}
+
+  .office-screen .office-grid,
+  .tools-screen .tool-register,
+  .done-screen .handoff-register{flex:1 1 auto;min-height:0;overflow-y:auto}
+
+  /* The lanes size to their content now, so the result and status
+     paragraphs that used to escape simply make the card taller. */
+  .office-lane{height:auto}
+
+  /* Screen 08 keeps its update lane beside the register rather than
+     letting it be the thing that scrolls -- an advisor should not have
+     to scroll to find out whether the machine is up to date. */
+  .done-screen .update-lane{flex:0 0 auto}
+}
+
+/* The Social and File Portal detail panels had the same fault in a
+   different place: .service-panel-main clipped with overflow:hidden and
+   nothing inside it scrolled, so a capability list longer than the panel
+   was sliced in half by the footer -- with no scrollbar to say that more
+   existed. The list is the panel's whole reason to be open. */
+.service-panel-lede{min-height:0;overflow-y:auto}
+.service-panel-view{align-items:stretch}
