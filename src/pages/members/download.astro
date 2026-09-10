@@ -1,8 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
 ---
 
-<Layout title="Download SP+: SecureProspective">
+<Layout title="Download SP+: SecureProspective" description="Download the current SP+ alpha build. Members only." noindex>
+  <Nav />
   <main class="dl-shell" id="dl-shell" hidden>
     <header class="dl-head">
       <p class="eyebrow">Back Office</p>
@@ -97,6 +100,7 @@ import Layout from '../../layouts/Layout.astro';
       <a href="/members" class="btn btn--ink">← Back office</a>
     </div>
   </main>
+  <Footer />
 </Layout>
 
 <script>

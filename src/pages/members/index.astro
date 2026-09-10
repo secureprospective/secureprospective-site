@@ -1,9 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
 import HeroTicker from '../../components/HeroTicker.astro';
 ---
 
-<Layout title="Back Office: SecureProspective">
+<Layout title="Back Office: SecureProspective" description="Invite-only access to the SecureProspective back office." noindex>
+  <Nav />
   <main class="gate-shell" id="gate-shell" hidden>
     <!--
       The home page's ticker, reused rather than reinvented. It sits behind
@@ -34,6 +37,7 @@ import HeroTicker from '../../components/HeroTicker.astro';
       </div>
     </div>
   </main>
+  <Footer />
 </Layout>
 
 <script>

@@ -1,8 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
 ---
 
-<Layout title="Back Office Login: SecureProspective">
+<Layout title="Back Office Login: SecureProspective" description="Sign in to the invite-only SecureProspective back office." noindex>
+  <Nav />
   <main class="auth-shell">
     <div class="auth-card">
       <p class="eyebrow">Back Office</p>
@@ -31,6 +34,7 @@ import Layout from '../../layouts/Layout.astro';
       </form>
     </div>
   </main>
+  <Footer />
 </Layout>
 
 <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>

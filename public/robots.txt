@@ -1,0 +1,11 @@
+# secureprospective.com
+
+User-agent: *
+Allow: /
+
+# The back office is invite-only. These pages carry noindex as well; this is
+# the cheaper instruction that stops a crawler before it fetches them.
+Disallow: /members
+Disallow: /kit/
+
+Sitemap: https://secureprospective.com/sitemap.xml
