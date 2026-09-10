@@ -40,13 +40,17 @@ export interface Release {
 export const RELEASES: Release[] = [
   {
     id: "1.0-alpha",
-    label: "SP+ 1 Alpha",
+    label: "SP+ 1.0 Alpha",
     key: "sp-plus/sp-plus-1.0-alpha.iso",
     filename: "sp-plus-1.0-alpha.iso",
-    size: 0,
-    sha256: "",
-    released: "2026-09-04",
-    note: "First public build. Install to a spare machine, not your working laptop.",
+    size: 5452943360,
+    sha256: "5e10d090d07b28b6809003b12fa5f65a8a0b51630121349916ec2d95ecc8d221",
+    released: "2026-09-09",
+    note: "The first alpha release. Install it on a spare machine, not the one you run your practice on.",
+    // Stays false until the ISO is actually in the R2 bucket. Flipping it
+    // first would put a Download button in the back office that answers
+    // "That build is no longer available" -- a member cannot tell that
+    // apart from a build that was pulled.
     published: false,
   },
 ];
