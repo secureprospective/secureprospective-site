@@ -433,3 +433,146 @@ Recorded 2026-09-10, sweep P04, Alpha v0.10, so the next session does not retest
 - **Screen 05 Fin** explains itself clearly and opens to its login prompt. P08 owns login.
 - **Screen 08** update check, Back, Finish Setup and Open Desktop all worked.
 - Booted digest re-confirmed as the alpha3 digest.
+
+## Sweep phases P06 to P11 - 2026-09-10, Alpha v0.10
+
+### T-26 - The display never repaints after resume, and it is probably the VM
+
+Sweep P09, P10 and P11 all returned FAIL, and all three failed on the same thing: the
+screen stays black with `Display output is not active.` after a resume or a reboot.
+
+**Do not read those verdicts as three defects.** They are one symptom, and the evidence in
+P09's own report argues it is not SP+:
+
+- The guest logged `PM: suspend entry (s2idle)` and then `PM: suspend exit`.
+- **SSH answered 1.61 seconds after wake.**
+- KWin replied to a D-Bus ping; Plasma and the Wayland session were alive throughout.
+- No new failed units, network reconnected, guest clock still matched the host.
+
+So the machine sleeps and resumes correctly underneath. What did not come back is the
+framebuffer, and the component that owns it is QEMU's virtio-GPU, not SP+.
+
+The same artifact wasted P11 and P12 several hours later: the rig idle-suspended while
+unattended, and P11 graded "ship-blocking - the graphical console remained unusable after
+reboot". After a `virsh reset` the machine booted perfectly, showed the branded SP+ LUKS
+unlock prompt, unlocked, reached SDDM, logged in, and reported zero failed units.
+
+**Action: this is a question for the Dell, not for the VM.** Sleep the Dell, wake it, and
+look at the screen. That is a five-minute test on real hardware and it settles a question
+the VM cannot answer. Until then, resume-repaint is **unproven**, not broken.
+
+### T-27 - Hibernation is unavailable, and honest about it (decision needed)
+
+Sweep P10. Hibernation does not work on SP+ and cannot: the only swap is `/dev/zram0`
+(7.7G against 8.1G of RAM), there is no `resume=` or `resume_offset` on the kernel command
+line, and root is LUKS on LVM.
+
+The important half is that **nothing is broken or lying**. PowerDevil reports
+`isActionSupported Hibernate = false` and logind reports `CanHibernate = "na"`, and no
+Hibernate entry appears in the Kickoff power row. The capability is simply absent.
+
+**The decision:** does SP+ support hibernation? Supporting it means a persistent swap file
+at least the size of RAM inside the LUKS container plus a resume target, which costs disk
+and adds an unlock path to get right. Not supporting it is defensible for an advisor
+laptop that sleeps and shuts down. Either way the current state is coherent; what is not
+acceptable is leaving it undecided and undocumented. Christopher's call.
+
+### T-28 - Welcome offers DOWNLOAD IT NOW when there is no update
+
+Sweep P07. The update lane is otherwise sound - all three SP+ system timers are enabled,
+active and `Persistent=yes`, and every unit's last run completed and did what it should -
+but Welcome renders an inert `DOWNLOAD IT NOW` button while simultaneously reporting that
+no update is available. The guarded SP+ check itself is honest and raises no error dialog.
+
+An advisor who presses it gets nothing and has no way to tell whether the machine is
+broken or already current.
+
+**Acceptance:** with no update staged, no download control is shown at all.
+
+### T-29 - Help "Related pages" are raw Markdown and inert
+
+Sweep P06. At the bottom of a guide, related links render as literal source, e.g.
+`- [Bluetooth devices](bluetooth-devices.md)`, and clicking one navigates nowhere.
+Evidence: `~/logs/sp-plus/testvm/shots/p06-guide-wifi-related-20260910T074822Z.png`.
+
+This is the screen an advisor reaches when they are already stuck, and it shows them a file
+path. Everything else in Help is sound: live search suggestions returned the right guide
+for all six queries, the click-tree reached a guide without search, and search and guides
+kept working with the network disabled, showing the offline notice.
+
+**Acceptance:** related links render as titles and navigate. Also render image links, which
+P06 could not exercise because the corpus has no images.
+
+### T-30 - Two things called Help in the menu
+
+Sweep P06. KDE's `Help Center` and the SP+ `Help` entry sit together in the menu, and the
+SP+ one is labelled only "Help". An advisor who picks wrong lands in KDE documentation.
+This is the vocabulary problem again: the advisor should not have to know which Help is
+theirs. Evidence: `~/logs/sp-plus/testvm/shots/p06-help-menu-final-20260910T075237Z.png`.
+
+**Acceptance:** the SP+ entry is unambiguous, and KDE's Help Center does not compete with
+it in the menu an advisor uses.
+
+### T-31 - LibreOffice is not in Tabbed mode, and the gate says it is
+
+Sweep P08. Writer and Calc both open with `View > User Interface` set to **Standard
+Toolbar** and classic menus, not the Tabbed Office-style layout the parity layer promises.
+Windows and Office users do not get the familiar layout that is the entire point.
+
+**The worse half is the gate.** The headless parity check reports `LIBREOFFICE_PARITY_OK
+58 checks passed` against an interactive UI that contradicts it. A gate that passes while
+the thing it checks is wrong is a false positive, not evidence - so this is two fixes: set
+the interactive UI correctly, and make the gate able to fail when it is not set.
+
+Evidence: `~/logs/sp-plus/testvm/shots/p08-writer-ui-dialog-20260910T082902Z.png`,
+`p08-calc-ui-dialog-20260910T083018Z.png`.
+
+### T-32 - A Brave policy is deprecated, so its behaviour is not guaranteed
+
+Sweep P08. `brave://policy` shows all 24 managed values matching the shipped JSON, but
+`PromotionalTabsEnabled: false` is reported with status **Deprecated**. A deprecated policy
+may stop being honoured, and this is the one that keeps promotional tabs out of an
+advisor's browser. Replace it with the supported equivalent.
+
+### T-33 - Fin's shell escape can delete advisor files (decision needed)
+
+Sweep P08 graded Fin FAIL: `! rm -f /home/test/Documents/P08-fin-probe` executed with no
+warning and no approval prompt, and the file was gone.
+
+**Bee is grading against a criterion Christopher has already rejected.** The standing
+ruling is that safety on SP+ comes from the immutable bootc OS rather than from crippling
+the assistant, and Fin is meant to be an open Pi-style TUI agent. The guardrail source says
+as much in its own comment: "a sufficiently creative command will get past both."
+
+What makes it worth raising anyway is the target. The immutable OS protects the system; it
+does not protect `~/Documents`, which is exactly where an advisor's client files live. So
+the open question is narrow and is not "should Fin have a shell":
+
+**The decision:** should destructive commands against the advisor's own home directory ask
+first, even though the shell stays open? Christopher's call.
+
+### P07 to P11 - what passed
+
+- **Update schedulers are correct.** 13 timers enumerated. The three SP+ system timers are
+  enabled, active and `Persistent=yes`, so a machine that was off does not silently skip a
+  cycle. Every unit's last run completed successfully. The plain-English update
+  notification exists and renders.
+- **No shipped application was found without an update route** (P07 step 7).
+- **Brave is managed correctly** - all 24 policy values match the shipped JSON and there is
+  no first-run wizard.
+- **Help works offline** - search and guides kept working with the network down and showed
+  the offline notice.
+- **Dolphin, KeePassXC, Fin, Writer and Calc all launch and are usable** in 2-5 seconds on
+  a deliberately slow rig. Writer and Calc saved valid `.docx` and `.xlsx`.
+- **Sleep and resume work underneath the display problem** - see T-26.
+- **After a clean reboot: zero failed system units, correct alpha3 digest, branded LUKS
+  unlock prompt renders, SDDM login works.** Verified by Claude on 2026-09-10 after the
+  rig was restored.
+
+### Observation - the SDDM login screen is not SP+ branded
+
+Noticed 2026-09-10 while restoring the rig. The LUKS unlock prompt is fully SP+ branded,
+and the login screen immediately after it is stock Breeze blue with a generic avatar. The
+advisor sees the brand, then loses it, then gets it back on the desktop. Not logged as a
+defect because it may be deliberate for the alpha; raising it because the unlock sequence
+is the first thing an advisor sees every morning.
