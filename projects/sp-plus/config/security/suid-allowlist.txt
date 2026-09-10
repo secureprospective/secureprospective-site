@@ -1,0 +1,32 @@
+# SP+ SUID/SGID allowlist — T1.10.
+#
+# INVENTORY, NOT REMOVAL. Secureblue deletes sudo, su, pkexec, chsh and chfn.
+# That is exactly the class of change that breaks printing or mounting on a
+# machine nobody can support, so SP+ does not do it (doc 15 Tier 3). What SP+
+# does instead is know the list and notice when it changes. A new SUID root
+# binary arriving in the image is a build failure, not a discovery six months
+# later.
+#
+# Anything added here needs a reason in the commit that adds it.
+/usr/bin/chage
+/usr/bin/chfn
+/usr/bin/chsh
+/usr/bin/fusermount3
+/usr/bin/gpasswd
+/usr/bin/grub2-set-bootflag
+/usr/bin/lockdev
+/usr/bin/mount
+/usr/bin/mount.nfs
+/usr/bin/newgrp
+/usr/bin/pam_timestamp_check
+/usr/bin/passwd
+/usr/bin/pkexec
+/usr/bin/su
+/usr/bin/sudo
+/usr/bin/umount
+/usr/bin/unix_chkpwd
+/usr/bin/userhelper
+/usr/lib/opt/brave.com/brave/chrome-sandbox
+/usr/lib/polkit-1/polkit-agent-helper-1
+/usr/libexec/dbus-1/dbus-daemon-launch-helper
+/usr/libexec/utempter/utempter

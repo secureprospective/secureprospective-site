@@ -51,7 +51,7 @@ say "disk ok: $(free_gib /)G on /, $(free_gib "$SP")G on the repo volume"
 # ip_forward and `podman network reload --all` are both already ruled out.
 if [ "$SKIP_PAYLOAD" = 0 ]; then
   say "payload $PAYLOAD (context $SP)"
-  ( cd "$SP" && sudo -n podman build --network=host -t "$PAYLOAD" -f images/kde/Containerfile . ) \
+  ( cd "$SP" && sudo -n podman build --network=host --build-arg SPPLUS_BUILD="20260910" -t "$PAYLOAD" -f images/kde/Containerfile . ) \
     >>"$LOG" 2>&1 || { echo "PAYLOAD BUILD FAILED -- $LOG" >&2; tail -30 "$LOG" >&2; exit 4; }
 fi
 sudo -n podman image exists "$PAYLOAD" || { echo "no such image: $PAYLOAD" >&2; exit 4; }

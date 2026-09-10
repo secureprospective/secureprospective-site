@@ -2919,6 +2919,123 @@ RUN set -eux; \
     echo "STORE_GATE_OK stock Discover, backends flatpak+fwupd, no rpm-ostree, no PackageKit, Flathub shipped"
 
 # ============================================================================
+# TIER 1 -- the hardening an advisor cannot perceive
+#
+# Doc 15 §3. Everything in this block is invisible during normal use, which is
+# the entry requirement rather than a happy accident: doc 01 principle 1 says a
+# control that breaks printing gets uninstalled, at which point it protects
+# nothing. Anything with a perceptible cost is Tier 2 and ships one at a time.
+# ============================================================================
+
+# ------------------------------------------------- T1.1-T1.3, T1.8 sysctl
+COPY config/sysctl/55-sp-plus-hardening.conf   /usr/lib/sysctl.d/55-sp-plus-hardening.conf
+COPY config/coredump/60-sp-plus-coredump.conf  /usr/lib/systemd/coredump.conf.d/60-sp-plus-coredump.conf
+COPY config/limits/60-sp-plus-disable-coredump.conf /etc/security/limits.d/60-sp-plus-disable-coredump.conf
+
+RUN set -eux; \
+    chmod 0644 /usr/lib/sysctl.d/55-sp-plus-hardening.conf \
+               /usr/lib/systemd/coredump.conf.d/60-sp-plus-coredump.conf \
+               /etc/security/limits.d/60-sp-plus-disable-coredump.conf; \
+    grep -q '^kernel.yama.ptrace_scope = 1$' /usr/lib/sysctl.d/55-sp-plus-hardening.conf; \
+    grep -q '^kernel.core_pattern = |/bin/false$' /usr/lib/sysctl.d/55-sp-plus-hardening.conf; \
+    grep -q '^Storage=none$' /usr/lib/systemd/coredump.conf.d/60-sp-plus-coredump.conf; \
+    test ! -e /etc/sysctl.d/55-sp-plus-hardening.conf; \
+    echo "SYSCTL_GATE_OK hardening sysctls ship in /usr, coredumps disabled in both halves"
+
+# ---------------------------------------------------- T1.7 listening surface
+# open-vm-tools ships /usr/bin/vmware-user-suid-wrapper: a SETUID ROOT binary,
+# on a laptop that will never run under VMware. qemu-guest-agent gives a
+# hypervisor a command channel into the guest and is equally pointless on
+# advisor hardware. Neither is a dependency of anything SP+ needs -- a
+# `dnf remove --assumeno` dry run takes only themselves.
+RUN set -eux; \
+    for p in open-vm-tools qemu-guest-agent; do \
+        rpm -q "$p" >/dev/null 2>&1 && dnf remove -y --noautoremove "$p" || :; \
+    done; \
+    dnf clean all; \
+    test ! -e /usr/bin/vmware-user-suid-wrapper; \
+    rpm -q podman bootc flatpak brave-browser cups >/dev/null; \
+    echo "VMTOOLS_GATE_OK open-vm-tools and qemu-guest-agent gone, one SUID root binary with them"
+
+# systemd-homed and sssd are enabled by Fedora default. SP+ has one local user
+# and joins no domain, so both are daemons with no job. Masked rather than
+# disabled: masked cannot be socket- or dependency-activated back on.
+#
+# NOT masked, and each for a reason:
+#   cups, cups-browsed, avahi  -- printing and printer discovery are day-one
+#                                 job #4. This is a product boundary, not a gap.
+#   bluetooth                  -- day-one item.
+#   pcscd.socket               -- socket-activated, so it is not running unless
+#                                 something asks, and a smartcard reader is a
+#                                 plausible advisor peripheral.
+#   smartd                     -- reads local disks, opens no port, and warns
+#                                 about the failure an advisor cannot recover from.
+#   lvm2-monitor               -- the encrypted root sits on it.
+RUN set -eux; \
+    for u in systemd-homed.service systemd-homed-activate.service sssd.service sssd-kcm.socket; do \
+        systemctl mask "$u" || :; \
+    done; \
+    test -L /etc/systemd/system/systemd-homed.service; \
+    test -L /etc/systemd/system/sssd.service; \
+    systemctl is-enabled cups.service; \
+    systemctl is-enabled avahi-daemon.service; \
+    systemctl is-enabled bluetooth.service; \
+    echo "UNITS_GATE_OK homed and sssd masked; printing, discovery and bluetooth untouched"
+
+# --------------------------------------------------------------- T1.4 sshd
+# sshd is development convenience that has been shipping to production. It is
+# not part of any advisor workflow and SP+ has no remote support product that
+# uses it. Disabled, not removed: if remote support is ever built it is a
+# designed feature with its own gate, not an open port left behind.
+#
+# The QA lane is unaffected -- fleet/tests/spplus-testvm.sh re-enables sshd in
+# its own kickstart %post, so the test VM still answers and every runtime gate
+# still runs against a real install.
+RUN set -eux; \
+    systemctl disable sshd.service || :; \
+    systemctl is-enabled sshd.service 2>/dev/null | grep -qv '^enabled$' || \
+        { echo "SSHD GATE FAIL: sshd is still enabled" >&2; exit 1; }; \
+    test -x /usr/sbin/sshd; \
+    echo "SSHD_GATE_OK sshd installed but not enabled; the QA kickstart turns it on"
+
+# ------------------------------------------------- T1.10 SUID/SGID inventory
+# The list, not the removal. See the header of the allowlist for why.
+COPY config/security/suid-allowlist.txt /usr/share/sp-plus/security/suid-allowlist.txt
+RUN set -eux; \
+    chmod 0644 /usr/share/sp-plus/security/suid-allowlist.txt; \
+    grep -v '^#' /usr/share/sp-plus/security/suid-allowlist.txt | grep -v '^$' | sort > /tmp/allow; \
+    find / -xdev \( -path /sysroot -o -path /ostree \) -prune -o \
+        -perm /6000 -type f -print 2>/dev/null | sort > /tmp/found; \
+    if ! comm -13 /tmp/allow /tmp/found | grep -q . ; then \
+        echo "SUID_GATE_OK $(wc -l < /tmp/found) setuid/setgid files, all on the allowlist"; \
+    else \
+        echo "SUID GATE FAIL: setuid/setgid files not on the allowlist:" >&2; \
+        comm -13 /tmp/allow /tmp/found >&2; exit 1; \
+    fi; \
+    rm -f /tmp/allow /tmp/found
+
+# ----------------------------------------------------- T1.9 build provenance
+# The minimum that makes the Security Evidence Report say something checkable
+# instead of something reassuring: what packages are in this image, what it was
+# built from, and when. Not a full SBOM and not claimed to be one.
+RUN set -eux; \
+    mkdir -p /usr/share/sp-plus/security; \
+    rpm -qa --qf '%{NAME} %{EVR} %{ARCH}\n' | sort > /usr/share/sp-plus/security/rpm-manifest.txt; \
+    { echo "build_id=${SPPLUS_BUILD}"; \
+      echo "release=${SPPLUS_RELEASE}"; \
+      echo "base=quay.io/fedora/fedora-kinoite@sha256:1424b842708911553486cc4003526a138704fd44c4531d926b96b9340561dd92"; \
+      echo "brave=$(rpm -q --qf '%{EVR}' brave-browser)"; \
+      echo "kernel=$(rpm -q --qf '%{EVR}' kernel-core)"; \
+      echo "packages=$(wc -l < /usr/share/sp-plus/security/rpm-manifest.txt)"; \
+      echo "built_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
+    } > /usr/share/sp-plus/security/build-provenance.txt; \
+    chmod 0644 /usr/share/sp-plus/security/rpm-manifest.txt \
+               /usr/share/sp-plus/security/build-provenance.txt; \
+    test -s /usr/share/sp-plus/security/rpm-manifest.txt; \
+    grep -q '^base=quay.io/fedora/fedora-kinoite@sha256:' /usr/share/sp-plus/security/build-provenance.txt; \
+    echo "PROVENANCE_GATE_OK $(wc -l < /usr/share/sp-plus/security/rpm-manifest.txt) packages recorded with the base digest"
+
+# ============================================================================
 # PHASE S -- verify the signature on our own OS image
 #
 # SP+ has signed every image it publishes since 2026-09-01 and, until now, no

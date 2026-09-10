@@ -32,5 +32,42 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 IPAddressDeny=any
 IPAddressAllow=localhost
 
+# ------------------------------------------------------------ Tier 1: T1.5
+# systemd-analyze security scored this unit 7.7 EXPOSED. It is SP+'s own code,
+# so nothing upstream can break underneath these, and the advisor cannot
+# perceive any of them. Each line closes something this service demonstrably
+# does not need: it is a Python process that answers a loopback socket and talks
+# to CUPS over IPP. It touches no device, loads no module, and reads nothing
+# outside its own state directory.
+PrivateDevices=true
+DevicePolicy=closed
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete
+CapabilityBoundingSet=
+# World-readable by default was the last point on the score. Nothing this
+# service writes is anyone else's business.
+UMask=0077
+# NOT SET, and the reason matters more than the setting:
+#   MemoryDenyWriteExecute -- CPython does not need W+X, but a C extension
+#     loaded later might, and the failure is an unexplained crash at runtime
+#     rather than a build error. It goes in when there is a test that would
+#     catch it.
+#   PrivateUsers -- the service already runs as an unprivileged account. Adding
+#     a user namespace on top buys little and interacts with the namespace
+#     policy question that is still open in Tier 3.
+
 [Install]
 WantedBy=multi-user.target

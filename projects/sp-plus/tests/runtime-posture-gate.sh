@@ -159,6 +159,90 @@ tpmv="$(remote "cat /sys/class/tpm/tpm0/tpm_version_major 2>/dev/null")"
 if [ "$tpmv" = 2 ]; then record PASS "tpm 2.0 present" "tpm0 version $tpmv"
 else record FAIL "tpm 2.0 present" "${tpmv:-<no tpm0>}"; fi
 
+# ------------------------------------------------------------ Tier 1 (2026-09-10)
+# Every one of these is measured as an EFFECT on the running kernel or the
+# running service manager. None of them greps the file that was supposed to
+# produce it -- see the WSDD note at the top of this file for why.
+#
+# NOT asserted here, deliberately: sshd shipping disabled (D47). The QA
+# kickstart re-enables sshd so that this very gate can connect, so a runtime
+# assertion in this lane would measure the harness, not the image. It stays a
+# build-time gate in the Containerfile.
+
+# sysctls: key, expected value, human name
+while IFS='|' read -r key want name; do
+    [ -n "$key" ] || continue
+    got="$(remote "sudo sysctl -n $key 2>/dev/null" | tr -d '\r')"
+    if [ "$got" = "$want" ]; then record PASS "$name" "$key=$got"
+    else record FAIL "$name" "$key=${got:-<absent>} want $want"; fi
+done <<'SYSCTLS'
+kernel.yama.ptrace_scope|1|ptrace scope restricted
+kernel.kptr_restrict|2|kernel pointers hidden
+kernel.dmesg_restrict|1|dmesg restricted
+kernel.perf_event_paranoid|3|perf events restricted
+kernel.kexec_load_disabled|1|kexec load disabled
+kernel.unprivileged_bpf_disabled|1|unprivileged bpf disabled
+net.core.bpf_jit_harden|2|bpf jit hardened
+fs.suid_dumpable|0|suid dumps disabled
+fs.protected_symlinks|1|protected symlinks
+fs.protected_hardlinks|1|protected hardlinks
+kernel.sysrq|0|sysrq disabled
+vm.unprivileged_userfaultfd|0|unprivileged userfaultfd off
+SYSCTLS
+
+# core_pattern is a string, not a number, so it does not fit the loop above.
+cp_="$(remote "sudo sysctl -n kernel.core_pattern 2>/dev/null" | tr -d '\r')"
+if [ "$cp_" = '|/bin/false' ]; then record PASS "core dumps discarded" "core_pattern=$cp_"
+else record FAIL "core dumps discarded" "core_pattern=${cp_:-<absent>}"; fi
+
+# The limits.d drop-in is only real if a login shell inherits a zero hard limit.
+hardcore="$(remote "bash -lc 'ulimit -Hc'" | tr -d '\r')"
+if [ "$hardcore" = 0 ]; then record PASS "core rlimit zero in login shell" "ulimit -Hc = $hardcore"
+else record FAIL "core rlimit zero in login shell" "ulimit -Hc = ${hardcore:-<unknown>}"; fi
+
+# Identity services SP+ does not use. Masked, not merely disabled: masking is the
+# state that survives a package deciding to enable itself on upgrade.
+for unit in systemd-homed.service systemd-homed-activate.service sssd.service sssd-kcm.socket; do
+    st="$(remote "systemctl is-enabled $unit 2>&1" | head -1 | tr -d '\r')"
+    if [ "$st" = masked ]; then record PASS "$unit masked" "$st"
+    else record FAIL "$unit masked" "${st:-<unknown>}"; fi
+done
+
+# Hypervisor guest agents. Both shipped setuid-root helpers and neither has any
+# role on an advisor laptop. Their absence is measured on the filesystem.
+for f in /usr/bin/vmware-user-suid-wrapper /usr/bin/qemu-ga; do
+    if [ "$(remote "test -e $f && echo present || echo absent" | tr -d '\r')" = absent ]; then
+        record PASS "guest agent absent $(basename "$f")" "$f not installed"
+    else
+        record FAIL "guest agent absent $(basename "$f")" "$f still present"
+    fi
+done
+
+# SP+'s own unit is the one place upstream cannot break the sandboxing under us.
+# systemd-analyze scores 0.0 (perfect) to 10.0 (no sandboxing at all).
+sec="$(remote "systemd-analyze security sp-plus.service --no-pager 2>/dev/null | grep -i 'Overall exposure level'" | tr -d '\r')"
+score="$(printf '%s' "$sec" | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+if [ -n "$score" ] && awk -v s="$score" 'BEGIN{exit !(s < 5.0)}'; then
+    record PASS "sp-plus.service sandboxed" "exposure $score < 5.0"
+else
+    record FAIL "sp-plus.service sandboxed" "${sec:-<no score>}"
+fi
+
+# SUID inventory as evidence. This asserts the set has not GROWN behind us; it
+# does not claim the allowlisted entries are safe. Removal is Tier 3.
+suid_now="$(remote "find / /etc /var /var/home -xdev \\( -path /sysroot -o -path /ostree -o -path /var/lib/containers -o -path /var/lib/flatpak \\) -prune -o -perm /6000 -type f -print 2>/dev/null | sort -u" | tr -d '\r')"
+suid_allow="$(remote "grep -v '^#' /usr/share/sp-plus/security/suid-allowlist.txt 2>/dev/null | grep -v '^\$' | sort" | tr -d '\r')"
+if [ -z "$suid_allow" ]; then
+    record FAIL "suid set within allowlist" "allowlist not found in image"
+else
+    extra="$(comm -23 <(printf '%s\n' "$suid_now") <(printf '%s\n' "$suid_allow") | tr '\n' ' ')"
+    if [ -z "${extra// /}" ]; then
+        record PASS "suid set within allowlist" "$(printf '%s\n' "$suid_now" | grep -c . ) files, none unexpected"
+    else
+        record FAIL "suid set within allowlist" "unexpected: $extra"
+    fi
+fi
+
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then

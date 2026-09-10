@@ -1,1 +1,1 @@
-localhost/sp-plus-kde:phase-s
+localhost/sp-plus-kde:tier1
