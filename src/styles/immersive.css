@@ -56,9 +56,12 @@
    backbone. A hairline of signal yellow that fills as the deck is dealt.
    -------------------------------------------------------------------------- */
 
+/* On the nav's bottom edge, not across its top. Sitting at inset 0 it drew a
+   yellow line straight through the header, which read as a stray rule rather
+   than as the page's own progress. */
 .scroll-progress {
   position: fixed;
-  inset: 0 0 auto 0;
+  inset: calc(var(--nav-h) + 2px) 0 auto 0;
   z-index: 120;
   height: 3px;
   background: rgba(34, 34, 34, 0.1);

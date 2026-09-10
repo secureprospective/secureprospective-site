@@ -56,7 +56,17 @@ h3 {
 p { max-width: 70ch; }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.22em; }
 button, input, textarea, select { font: inherit; }
-:focus-visible { outline: 3px solid var(--yellow-accent); outline-offset: 4px; }
+/* Two rings, not one. A single yellow ring measures 1.10:1 against platinum and
+   1.40:1 against white, the two surfaces most of this site is built on, so
+   keyboard focus was effectively invisible everywhere except the ink and blue
+   bands. WCAG 2.4.11 asks for 3:1 against what sits next to it. An ink ring
+   outside a yellow one means whichever surface the element is on, one of the
+   two always reads: ink carries it on light ground, yellow on dark. */
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--yellow-accent);
+}
 
 .shell {
   width: min(100% - 48px, 1200px);
@@ -75,7 +85,6 @@ button, input, textarea, select { font: inherit; }
 .nav-main {
   display: flex;
   align-items: stretch;
-  justify-content: space-between;
   min-height: var(--nav-h);
 }
 
@@ -96,7 +105,10 @@ button, input, textarea, select { font: inherit; }
 }
 
 .wordmark:hover .wordmark-mark { fill: var(--blue-brand); }
-.site-links { display: flex; align-items: stretch; }
+/* The links sit against the glyph, and the member slot is pushed to the far
+   edge. The bar used to space-between a 50px glyph and the whole link run,
+   which left 408px of nothing in the middle of it. */
+.site-links { display: flex; flex: 1; align-items: stretch; }
 .site-link {
   position: relative;
   display: inline-flex;
@@ -115,6 +127,10 @@ button, input, textarea, select { font: inherit; }
 .site-link:hover,
 .site-link.active { background: var(--blue-brand); color: var(--white); }
 
+/* Hovering the page you are already on gave no response at all, because the
+   hover rule set the colour it already had. */
+.site-link.active:hover { background: var(--ink); }
+
 /* The current page is marked by the rule above it, the way the campaign boards
    mark a section. Every item used to carry a small outlined square whether or
    not it meant anything, so six of the seven were decoration and the one that
@@ -131,7 +147,8 @@ button, input, textarea, select { font: inherit; }
    visitor who will never sign in. It keeps its own slot and its own rule, set
    back rather than lit up. */
 .site-link--utility {
-  margin-left: 12px;
+  margin-left: auto;
+  padding-left: 28px;
   border-left: 1px solid rgba(34, 34, 34, 0.35);
   font-weight: 500;
 }
@@ -416,7 +433,15 @@ button, input, textarea, select { font: inherit; }
 .proof-status--active { background: var(--yellow-accent); }
 .proof-line--future { opacity: 0.68; }
 
-.closing-field { padding-block: clamp(88px, 12vw, 160px); background: var(--ink); color: var(--white); }
+/* The footer is the same ink, so without an edge the two ran together as one
+   800px slab and the 160px under the buttons read as the page trailing off
+   rather than as the band closing. */
+.closing-field {
+  padding-block: clamp(72px, 8vw, 112px) clamp(56px, 6vw, 80px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--ink);
+  color: var(--white);
+}
 
 /* One column, read top to bottom: kicker, statement, terms, then the action.
    This grid used to be two columns sized 0.5fr/1.5fr for a kicker that the

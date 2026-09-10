@@ -28,7 +28,11 @@ const isActive = (href: string) => path === href;
 
     <nav id="site-links" class="site-links" aria-label="Primary navigation">
       {links.map((link) => (
-        <a href={link.href} class:list={['site-link', { active: isActive(link.href) }]}>
+        <a
+          href={link.href}
+          class:list={['site-link', { active: isActive(link.href) }]}
+          aria-current={isActive(link.href) ? 'page' : undefined}
+        >
           {link.label}
         </a>
       ))}
