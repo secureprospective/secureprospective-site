@@ -208,13 +208,6 @@
   }
 }
 
-/* The SP+ card in the hero is the page's one promoted card: it sits highest
-   on the table and answers the pointer with a real, tracked offset. */
-
-/* A single verification pass runs along the card's top edge after the
-   identity has registered. It is a signal, not a decorative infinite loop. */
-@media (prefers-reduced-motion: no-preference) {
-}
 @keyframes verification-pass {
   0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
   12% { opacity: 1; }
