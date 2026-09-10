@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 
-const updated = 'September 9, 2026';
+const updated = 'September 10, 2026';
 ---
 
 <Layout
@@ -71,6 +71,14 @@ const updated = 'September 9, 2026';
         <p>
           If you fill in a form or email us, we receive what you send: typically your name,
           email address, phone number if you give one, and the content of your message.
+        </p>
+        <p>
+          The contact form also records which of the three lines you chose, the page you
+          sent it from, and the IP address, browser string and country the request arrived
+          with. Those last three are kept so we can tell a real enquiry from an automated
+          one. The form is protected by Cloudflare Turnstile, a spam check that looks at
+          how the request behaves rather than asking you to solve a puzzle, and that check
+          runs before anything is stored.
         </p>
 
         <h3>When you have an advisor account</h3>
@@ -201,6 +209,12 @@ const updated = 'September 9, 2026';
         <p>
           Our hosted services run on infrastructure we operate and administer ourselves,
           rather than on a third-party software vendor's platform.
+        </p>
+        <p>
+          Named plainly, the providers behind this website are Cloudflare, which hosts the
+          site, stores what you send through the contact form, and runs the spam check on
+          it, and Brevo, which delivers the notification email telling us your message
+          arrived. Neither uses your information for its own purposes.
         </p>
       </section>
 
