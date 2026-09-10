@@ -88,14 +88,6 @@
   min-width: 0;
 }
 
-.home-page .identity-kicker {
-  grid-column: 1 / -1;
-  padding-top: var(--space-2);
-  padding-right: var(--space-8);
-  border-top-width: var(--home-edge);
-  font-size: var(--text-caption);
-}
-
 .home-page .identity-mark {
   font-size: clamp(var(--text-h3), 3.4vw, var(--text-h1));
   line-height: 0.9;
@@ -729,12 +721,6 @@
   .home-identity-copy {
     grid-template-columns: 1fr;
     gap: var(--space-1);
-  }
-
-  .home-page .identity-kicker {
-    grid-column: 1;
-    padding-right: var(--space-6);
-    font-size: var(--text-caption);
   }
 
   .home-page .identity-mark {
