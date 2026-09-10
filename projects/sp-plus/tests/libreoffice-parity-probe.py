@@ -225,7 +225,11 @@ def main():
     # failing loudly. Name it, so the next person sees why it is wrong.
     checked += 1
     standard = fonts.getPropertyValue("StandardHeight")
-    if standard < 200:
+    # 300 hundredths of a millimetre is about 8.5pt -- below any sane body
+    # size. The threshold has to sit above the twips value for a normal point
+    # size (11pt is 220 twips), or the guard passes on the very bug it names.
+    # It did, on the first version of this check.
+    if standard < 300:
         fails.append("SIZE StandardHeight %r looks like twips; this setting is "
                      "1/100 mm and 12pt is 423" % standard)
     else:
