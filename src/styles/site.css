@@ -287,42 +287,41 @@ button, input, textarea, select { font: inherit; }
   color: var(--white);
 }
 
-.truth-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-  gap: clamp(40px, 6vw, 96px);
-  align-items: center;
+.truth-copy {
   padding-block: clamp(64px, 8vw, 112px);
 }
 
 .truth-copy h1 {
-  max-width: 22ch;
+  max-width: 26ch;
   font-family: var(--font-body);
   font-size: clamp(2.1rem, 4vw, 3.5rem);
   letter-spacing: -0.02em;
   line-height: 1.02;
 }
 
+/* The claim and the answer to it, set side by side. A single 62ch column in a
+   1200px band left about half the width empty; two columns use the band and
+   put the question and its answer in the reader's eye at the same time. */
+.truth-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(32px, 4vw, 72px);
+  margin-top: 38px;
+  padding-top: 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+}
+
 .truth-lede,
 .truth-answer {
-  max-width: 62ch;
+  max-width: 52ch;
   font-size: clamp(1rem, 1.15vw, 1.12rem);
   line-height: 1.6;
 }
 
-.truth-lede { margin-top: 30px; }
-
-/* The answer to the paragraph above it, so it carries weight the rest does not. */
-.truth-answer {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.55);
-  font-weight: 500;
-}
+.truth-answer { font-weight: 500; }
 
 .truth-copy .action { margin-top: 40px; }
 
-.truth-grid .evidence-ledger { margin: 0; }
 .truth-field-head {
   display: flex;
   justify-content: space-between;
@@ -333,17 +332,6 @@ button, input, textarea, select { font: inherit; }
   letter-spacing: 0.085em;
   text-transform: uppercase;
 }
-.evidence-ledger { width: 100%; margin: 42px 0 8px; border-top: 1px solid rgba(255,255,255,0.62); }
-.evidence-ledger > div {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.42fr) 1fr;
-  align-items: baseline;
-  gap: 20px;
-  padding: 16px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.38);
-}
-.evidence-ledger strong { font-family: var(--font-body); font-size: clamp(1.8rem, 3vw, 2.8rem); font-variant-numeric: tabular-nums; line-height: 1; }
-.evidence-ledger span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 .spine-copy { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end; }
 .spine-copy h2 { font-size: clamp(2.5rem, 3.9vw, 4rem); }
 .spine-copy p { font-size: 1.08rem; }
@@ -831,9 +819,9 @@ button, input, textarea, select { font: inherit; }
   .hero-sp-plus { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 40px; padding: 18px; }
   .hero-sp-plus > strong { margin-top: 8px; }
   .hero-sp-plus > b { margin-top: 12px; }
-  .truth-grid { grid-template-columns: 1fr; }
   .truth-copy h1 { max-width: none; font-size: clamp(1.7rem, 7.4vw, 2.7rem); }
-  .evidence-ledger > div { grid-template-columns: 116px 1fr; }
+  .truth-columns { grid-template-columns: 1fr; gap: 22px; }
+  .truth-answer { padding-top: 22px; border-top: 1px solid rgba(255, 255, 255, 0.55); }
   .method-spine { padding-block: 76px; }
   .spine-steps { grid-template-columns: 1fr; }
   .proof-line { grid-template-columns: 76px 1fr 24px; padding-block: 18px; }

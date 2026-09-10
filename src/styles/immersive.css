@@ -222,26 +222,6 @@
 
 .truth-lede { max-width: var(--measure-lede); }
 
-/* Ledger figures count up, and sit on a hairline that draws itself in. */
-.evidence-ledger > div { position: relative; }
-.evidence-ledger strong { display: inline-block; font-variant-numeric: tabular-nums; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .evidence-ledger > div::after {
-    content: '';
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.4;
-    transform: scaleX(0);
-    transform-origin: 0 50%;
-    transition: transform var(--dur-slow) var(--ease-deck);
-    transition-delay: calc(var(--ledger-index, 0) * 120ms);
-  }
-  .is-dealt .evidence-ledger > div::after { transform: scaleX(1); }
-}
-
 /* --------------------------------------------------------------------------
    Method spine. The five movements gain an actual spine: a vertical rail that
    fills as you scroll it, with each step lighting as the fill passes it.
@@ -398,19 +378,6 @@ p { text-wrap: pretty; }
    deployed build. They are grouped by finding so the reason survives the edit.
    ========================================================================== */
 
-/* [all-caps-body] — the ledger's descriptive lines were set in uppercase at
-   11px. "Total annuity production assisted over six years" is a sentence, not
-   a label, and all-caps strips the word shapes the eye reads by. The rest of
-   the stamped-label identity is untouched: only the long descriptive runs are
-   returned to sentence case, and they gain a pixel and lose the tracking that
-   was fighting them. */
-.evidence-ledger span {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  opacity: 0.88;
-}
 
 /* Same finding, same reasoning: the proof register's row titles are full
    phrases rather than labels. Kept bold and tight so they still read as
