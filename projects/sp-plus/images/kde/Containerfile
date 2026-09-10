@@ -1825,6 +1825,8 @@ COPY config/spplus-first-login         /usr/libexec/spplus-first-login
 COPY config/spplus-first-login.service /usr/lib/systemd/user/spplus-first-login.service
 COPY config/spplus-printscreen /usr/libexec/spplus-printscreen
 COPY config/spplus-printscreen.service /usr/lib/systemd/user/spplus-printscreen.service
+COPY config/spplus-brave-shields-warmup         /usr/libexec/spplus-brave-shields-warmup
+COPY config/spplus-brave-shields-warmup.service /usr/lib/systemd/user/spplus-brave-shields-warmup.service
 COPY config/kscreenlockerrc            /etc/xdg/kscreenlockerrc
 COPY config/kcminputrc                 /etc/xdg/kcminputrc
 
@@ -1834,8 +1836,14 @@ RUN chmod 0755 /usr/libexec/spplus-first-login /usr/libexec/spplus-printscreen \
       /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-first-login.service \
  && ln -sf ../spplus-printscreen.service \
       /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-printscreen.service \
+ && ln -sf ../spplus-brave-shields-warmup.service \
+      /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-brave-shields-warmup.service \
  && test -x /usr/libexec/spplus-first-login \
  && test -x /usr/libexec/spplus-printscreen \
+ && test -x /usr/libexec/spplus-brave-shields-warmup \
+ && bash -n /usr/libexec/spplus-brave-shields-warmup \
+ && test -L /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-brave-shields-warmup.service \
+ && systemd-analyze verify /usr/lib/systemd/user/spplus-brave-shields-warmup.service \
  && test -L /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-first-login.service \
  && test -L /usr/lib/systemd/user/plasma-workspace.target.wants/spplus-printscreen.service \
  && test -f /usr/lib/systemd/user/plasma-workspace.target \
@@ -2462,7 +2470,9 @@ RUN install -d -m 0755 /etc/brave/policies/managed \
       '  "BraveStatsPingEnabled": false,' \
       '  "BraveWebDiscoveryEnabled": false,' \
       '  "MetricsReportingEnabled": false,' \
-      '  "PromotionalTabsEnabled": false,' \
+      '  "PromotionsEnabled": false,' \
+      '  "ComponentUpdatesEnabled": true,' \
+      '  "BraveShieldsDisabledForUrls": [],' \
       '  "DefaultBrowserSettingEnabled": false,' \
       '  "PasswordManagerEnabled": true,' \
       '  "SafeBrowsingProtectionLevel": 1,' \
@@ -2473,7 +2483,10 @@ RUN install -d -m 0755 /etc/brave/policies/managed \
       '}' \
       > /etc/brave/policies/managed/sp-plus.json \
  && python3 -c "import json,sys; d=json.load(open('/etc/brave/policies/managed/sp-plus.json')); \
-assert d['BraveRewardsDisabled'] and d['PromotionalTabsEnabled'] is False, 'promotional surfaces are not suppressed'; \
+assert d['BraveRewardsDisabled'] and d['PromotionsEnabled'] is False, 'promotional surfaces are not suppressed'; \
+assert 'PromotionalTabsEnabled' not in d, 'PromotionalTabsEnabled is deprecated and reports Error at brave://policy (T-32); use PromotionsEnabled'; \
+assert d['ComponentUpdatesEnabled'] is True, 'component updates are off, so Shields would never get its filter lists (T-36)'; \
+assert d['BraveShieldsDisabledForUrls'] == [], 'Shields is switched off for some site; SP+ asserts it is off for none (T-36)'; \
 assert d['HomepageLocation'] == 'http://127.0.0.1:8766/', 'the home button does not go to Help'; \
 assert d['RestoreOnStartup'] == 4 and d['RestoreOnStartupURLs'] == ['http://127.0.0.1:8766/'], 'Brave does not open on Help'; \
 assert d['HomepageIsNewTabPage'] is False, 'the new tab page would win over Help'; \

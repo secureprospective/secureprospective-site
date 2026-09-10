@@ -1,0 +1,125 @@
+#!/usr/bin/bash
+# T-36: make Brave's ad and tracker blocking true BEFORE the advisor opens Brave.
+#
+# Brave ships no filter lists inside the package. Shields is enabled, but it has
+# nothing behind it until the component updater fetches the lists, and that only
+# starts once Brave itself has been started. Measured on the test rig from a cold
+# profile: the default adblock component landed 25s after first launch. That is a
+# small window, but it is exactly the window in which an advisor opens the browser
+# for the very first time and decides whether this computer was a good idea. On
+# the first page load they get the cookie banner and the ads; a minute later they
+# would not have.
+#
+# So this warms the lists in a THROWAWAY profile at first login and copies the
+# finished components into the advisor's real profile. It deliberately does not
+# warm the real profile directly: Brave is single-instance per user-data-dir, so
+# if the advisor clicked Brave while a headless warm-up held their real profile,
+# their click would open no window at all. A throwaway directory cannot do that.
+#
+# The component updater remains the update path afterwards, which is what the
+# standing rule that everything shipped can be updated requires.
+set -u
+
+BRAVE=/usr/bin/brave-browser-stable
+PROFILE="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Browser"
+WARM="${XDG_CACHE_HOME:-$HOME/.cache}/sp-plus/brave-shields-warmup"
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/sp-plus/brave-shields-warmed"
+DEADLINE=600
+
+# Match on the component's own declared name rather than its extension ID. The
+# IDs are opaque and upstream is free to change them; if the name ever stops
+# matching, this fails loudly at first login instead of quietly shipping an
+# advisor a browser with empty Shields.
+WANTED='Brave Default Adblock Filters'
+
+# Print the version of the wanted component inside a user-data-dir, or nothing.
+adblock_version() {
+    local root="$1" manifest name
+    [ -d "$root" ] || return 0
+    for manifest in "$root"/*/*/manifest.json; do
+        [ -f "$manifest" ] || continue
+        name=$(python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1])).get("name",""))
+except Exception: pass' "$manifest" 2>/dev/null)
+        case "$name" in
+            *"$WANTED"*) basename "$(dirname "$manifest")"; return 0 ;;
+        esac
+    done
+    return 0
+}
+
+if [ ! -x "$BRAVE" ]; then
+    echo "spplus-brave-shields-warmup: $BRAVE is not installed" >&2
+    exit 1
+fi
+
+have=$(adblock_version "$PROFILE")
+if [ -n "$have" ]; then
+    install -d "$(dirname "$STAMP")"
+    printf 'already present: %s %s\n' "$WANTED" "$have" > "$STAMP"
+    echo "spplus-brave-shields-warmup: Shields already has its filter lists ($have)"
+    exit 0
+fi
+
+rm -rf "$WARM"
+install -d "$WARM"
+
+# --headless=new because there is no window to show and the advisor must not see
+# a browser open by itself. --component-updater=fast-update skips the updater's
+# randomised start delay; without it the fetch is scheduled rather than immediate.
+setsid "$BRAVE" \
+    --user-data-dir="$WARM" \
+    --headless=new \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-gpu \
+    --component-updater=fast-update \
+    about:blank >/dev/null 2>&1 </dev/null &
+warm_pid=$!
+
+version=""
+waited=0
+while [ "$waited" -lt "$DEADLINE" ]; do
+    sleep 5
+    waited=$((waited + 5))
+    version=$(adblock_version "$WARM")
+    [ -n "$version" ] && break
+done
+
+# Ask the warm-up to finish, then insist. Killing the session leader takes the
+# renderer and utility children with it; a stray headless Brave left running in
+# an advisor's session would be a worse defect than the one being fixed.
+kill -TERM -"$warm_pid" 2>/dev/null || kill -TERM "$warm_pid" 2>/dev/null
+sleep 3
+kill -KILL -"$warm_pid" 2>/dev/null || true
+
+if [ -z "$version" ]; then
+    rm -rf "$WARM"
+    echo "spplus-brave-shields-warmup: no filter lists after ${DEADLINE}s -- probably no network yet; a later login retries" >&2
+    exit 1
+fi
+
+# Copy every downloaded component, not just the adblock one. The lists depend on
+# sibling components (the shared Resources bundle, the regional catalogue, the
+# cookie-notice list) and half a set would block less than the advisor expects.
+install -d "$PROFILE"
+copied=0
+for dir in "$WARM"/*/; do
+    name=$(basename "$dir")
+    ls "$dir"*/manifest.json >/dev/null 2>&1 || continue
+    [ -e "$PROFILE/$name" ] && continue
+    cp -a "$dir" "$PROFILE/$name" || continue
+    copied=$((copied + 1))
+done
+rm -rf "$WARM"
+
+confirmed=$(adblock_version "$PROFILE")
+if [ -z "$confirmed" ]; then
+    echo "spplus-brave-shields-warmup: copied $copied components but $WANTED is not readable in the profile" >&2
+    exit 1
+fi
+
+install -d "$(dirname "$STAMP")"
+printf 'warmed %s: %s %s (%s components, %ss)\n' \
+    "$(date -Is)" "$WANTED" "$confirmed" "$copied" "$waited" > "$STAMP"
+echo "spplus-brave-shields-warmup: Shields is armed -- $WANTED $confirmed, $copied components in ${waited}s"

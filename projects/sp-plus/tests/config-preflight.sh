@@ -930,6 +930,44 @@ done
 grep -q 'SPPLUS_HELP_PORT=8766' "$REPO/projects/sp-plus/config/spplus-help.service" \
   || { P16_OK=0; echo "       the Help service does not listen on the port Brave opens"; }
 
+# T-36 / T-32. Shields is the whole reason an advisor is safer in Brave than in
+# what they used before, and until 2026-09-10 nothing in the image asserted it:
+# the policy set 24 keys and not one of them concerned ad blocking. Measured on
+# the rig, a cold profile had no filter lists at all for the first ~25 seconds,
+# which is precisely when the advisor opens the browser for the first time.
+#
+# These checks are deliberately written so they can fail. The old gate only
+# asserted that keys already present were still present, which is not a gate.
+for key in '"ComponentUpdatesEnabled": true' \
+           '"BraveShieldsDisabledForUrls": []' \
+           '"PromotionsEnabled": false'; do
+  grep -qF "$key" "$CF" \
+    || { P16_OK=0; echo "       Brave policy does not set $key"; }
+done
+# Verified at brave://policy on the rig, 2026-09-10: PromotionalTabsEnabled
+# reports status "Error" (deprecated), PromotionsEnabled reports "OK".
+grep -qF '"PromotionalTabsEnabled"' "$CF" \
+  && { P16_OK=0; echo "       the deprecated PromotionalTabsEnabled is back; brave://policy reports it as an Error (T-32)"; }
+
+# The filter lists must be fetched before the advisor opens Brave, not after.
+WARMUP="$REPO/projects/sp-plus/config/spplus-brave-shields-warmup"
+[ -x "$WARMUP" ] \
+  || { P16_OK=0; echo "       the Brave Shields warm-up is missing or not executable"; }
+bash -n "$WARMUP" 2>/dev/null \
+  || { P16_OK=0; echo "       the Brave Shields warm-up does not parse"; }
+# It must warm a THROWAWAY profile. Warming the advisor's real profile would
+# hold Brave's single-instance lock, so a click on Brave during first login
+# would open no window at all.
+grep -qF 'user-data-dir="$WARM"' "$WARMUP" \
+  || { P16_OK=0; echo "       the warm-up does not run against a throwaway profile"; }
+grep -qF -- '--headless=new' "$WARMUP" \
+  || { P16_OK=0; echo "       the warm-up would open a visible browser window at first login"; }
+grep -qF 'ConditionPathExists=!%S/sp-plus/brave-shields-warmed' \
+  "$REPO/projects/sp-plus/config/spplus-brave-shields-warmup.service" \
+  || { P16_OK=0; echo "       the warm-up unit would run again on every login"; }
+grep -qF 'spplus-brave-shields-warmup.service' "$CF" \
+  || { P16_OK=0; echo "       the image does not install the Brave Shields warm-up"; }
+
 # Every guide must be reachable from the search bar. A corpus can be complete
 # and still be unreachable: an advisor only ever meets an article through the
 # search field, so one no query surfaces is, from where they sit, missing.

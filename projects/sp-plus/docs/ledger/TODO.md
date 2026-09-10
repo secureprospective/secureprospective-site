@@ -527,12 +527,18 @@ the interactive UI correctly, and make the gate able to fail when it is not set.
 Evidence: `~/logs/sp-plus/testvm/shots/p08-writer-ui-dialog-20260910T082902Z.png`,
 `p08-calc-ui-dialog-20260910T083018Z.png`.
 
-### T-32 - A Brave policy is deprecated, so its behaviour is not guaranteed
+### T-32 - FIXED 2026-09-10 - A Brave policy is deprecated, so its behaviour is not guaranteed
 
 Sweep P08. `brave://policy` shows all 24 managed values matching the shipped JSON, but
 `PromotionalTabsEnabled: false` is reported with status **Deprecated**. A deprecated policy
 may stop being honoured, and this is the one that keeps promotional tabs out of an
 advisor's browser. Replace it with the supported equivalent.
+
+**Fixed.** `PromotionalTabsEnabled` is replaced by `PromotionsEnabled`. Confirmed on the rig
+by putting both keys in front of a live browser and reading `brave://policy`:
+`PromotionalTabsEnabled` reports status **Error**, `PromotionsEnabled` reports **OK**.
+Evidence: `~/logs/sp-plus/testvm/shots/t32-policy-search-20260910T154033Z.png`. The preflight
+now fails if the deprecated key comes back.
 
 ### T-33 - Fin's shell escape can delete advisor files (decision needed)
 
@@ -629,27 +635,31 @@ re-verified. The desktop was clean afterwards with every tested process gone.
 **Discover at 18s and Firewall at 20s are the two slowest things an advisor can click.**
 Neither shows progress while it waits.
 
-### T-36 - Brave does not block ads on a freshly installed machine
+### T-36 - FIXED 2026-09-10 - Brave does not block ads on a freshly installed machine
 
 Reported by Christopher 2026-09-10 from hands-on testing of Alpha v0.10 on the Dell:
 "In testing the Dell I noticed Brave isnt blocking ads." Investigated on the test VM the
 same day. **This is a real defect and it is a first-impression defect.**
 
-**What is actually wrong.** Shields itself is fine - it is enabled, and per-site Shields
-metadata is being written for the sites the sweep visited. What is missing is the filter
-lists. Brave ships no lists inside the browser package; it downloads them after first run
-as components, on its own lazy schedule. On the test VM:
+**CORRECTION 2026-09-10 - the original evidence in this entry was wrong.** It was built on
+the timestamps of `Default/adblock_cache/engine0.dat` and `engine1.dat`, and concluded the
+filter lists took **8 hours 13 minutes** to arrive. Those files are a *serialization cache*
+of an engine that has already been built; they are not the filter lists and they are not
+what makes blocking work. Re-measured properly on the rig by watching for the component
+itself, from a genuinely cold profile:
 
-- `First Run` was stamped `2026-09-09 22:48`.
-- `Default/adblock_cache/engine1.dat` (2.2 MB) appeared at `2026-09-10 01:14`, **2h26m later**.
-- `Default/adblock_cache/engine0.dat` (8.6 MB, the full default list engine) appeared at
-  `2026-09-10 07:01` - **8 hours 13 minutes after first run.**
-- Components eventually present: `Brave Default Adblock Filters` 1.0.22179, `Brave First
-  Party Adblock Filters` 1.0.481, `Regional Catalog` 1.0.97.
+- **Brave Default Adblock Filters landed 25 seconds after first launch**, not 8 hours.
+- A cold profile at **45 seconds** showed **no Shields badge at all** and got AccuWeather's
+  notification prompt and cookie dialog. At **~2 minutes** the same profile showed
+  **5 trackers & ads blocked**.
 
-So for the whole of an advisor's first session on a new machine, Brave is running with
-Shields "up" and nothing behind it. That is precisely the window in which the advisor
-decides whether this computer was a good idea.
+So the defect is real but it is a **first-minute** defect, not an all-day one. That does not
+make it small: the first page an advisor loads on a brand-new machine falls inside that
+window, and Christopher hit it on the Dell. What he saw is reproduced and understood.
+
+**What is actually wrong.** Brave ships no filter lists inside the package, and it does not
+start fetching them until Brave itself is first started. Shields is up with nothing behind it
+until the components arrive.
 
 **Second, smaller problem.** The managed policy at `/etc/brave/policies/managed/sp-plus.json`
 sets 24 keys and **not one of them concerns ad blocking or Shields**. The whole feature
@@ -657,29 +667,41 @@ rests on an upstream default. Nothing in the image asserts it, and the `BRAVE_PO
 gate cannot catch a regression because it only asserts on keys that are already there -
 another gate that cannot fail in the direction that matters.
 
-**Confirm it on the Dell in one step:** open `brave://components` and read the version
+**Still to confirm on the Dell in one step:** open `brave://components` and read the version
 beside **Brave Ad Block Updater**. `0.0.0.0` means the lists have never been fetched and
 nothing is being blocked. That is the diagnostic, and it takes a few seconds.
 
-**Fix, at the rules level rather than per machine.** Preferred order:
+**Fix as shipped, at the rules level.**
 
-1. **Ship the filter lists in the image** so the engine is populated at first boot rather
-   than hours later. The component updater then remains the update path, which satisfies
-   the standing rule that everything shipped has one.
-2. Failing that, a first-login unit that forces a component update immediately instead of
-   waiting for Brave's schedule, with the advisor told nothing - it should simply be true
-   by the time they open the browser.
-3. Add explicit Shields policy keys so the setting is asserted by SP+ and not inherited,
-   and extend the policy gate to assert them so the gate can fail.
+1. `/usr/libexec/spplus-brave-shields-warmup`, run once by a first-login user unit, fetches
+   the filter lists into a **throwaway** profile with `--headless=new` and
+   `--component-updater=fast-update`, then copies the finished components into the advisor's
+   real profile and stamps itself. It is deliberately not run against the real profile:
+   Brave is single-instance per user-data-dir, so a warm-up holding the advisor's profile
+   would mean their click on Brave opened no window at all. It matches the component by its
+   declared name rather than its opaque extension ID, so an upstream rename fails loudly at
+   first login instead of quietly shipping empty Shields. No network at first login is not a
+   fault - the unit fails, leaves no stamp, and a later login retries.
+2. The managed policy now asserts what the feature rests on: `ComponentUpdatesEnabled: true`
+   and `BraveShieldsDisabledForUrls: []`. Previously the policy set 24 keys and **not one**
+   concerned Shields.
+3. The preflight gate checks all of it and was mutation-tested red before green.
+
+**Verified on the rig, 2026-09-10.** The warm-up seeded 21 components in 175s from a cold
+throwaway home. A GUI Brave started on that seeded profile was **blocking at 22 seconds**
+(`t36-seeded-22s-20260910T153953Z.png`), where the cold control had no badge at 45 seconds
+(`t36-cold-accuweather-20260910T153054Z.png`).
 
 **Acceptance:** on a machine installed from the ISO, open Brave for the first time and load
 a page carrying ads; they are blocked, and `brave://components` shows a real version for
 Brave Ad Block Updater. Prove it on the Dell, not on a VM.
 
-**Honest limit of this evidence:** what was proven is that the engine file was written more
-than eight hours after first run, and that no policy asserts Shields. Ads passing through
-during that window follows from it but was not itself watched happening - the VM was busy
-with another phase and could not be driven.
+**Honest limit of this evidence.** The fix is proven on the QEMU rig, not on the Dell. What
+is proven: a seeded profile blocks within 22 seconds of opening, a cold one does not at 45.
+What is not proven: that the warm-up completes on the Dell's slower disk and network before
+the advisor opens Brave, and that it survives a real first login rather than a simulated
+home directory. The Dell check is unchanged and takes seconds - open `brave://components` and
+read the version beside **Brave Ad Block Updater**; `0.0.0.0` means nothing is being blocked.
 
 ## Sweep complete - P11 re-run and P12 consolidation, 2026-09-10
 

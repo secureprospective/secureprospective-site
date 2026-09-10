@@ -1,0 +1,14 @@
+[Unit]
+Description=Fetch Brave's ad and tracker filter lists before the advisor opens Brave (T-36)
+PartOf=graphical-session.target
+After=plasma-workspace.target
+ConditionPathExists=!%S/sp-plus/brave-shields-warmed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/spplus-brave-shields-warmup
+# No network at first login is the ordinary case, not a fault. The unit fails,
+# leaves no stamp, and a later login retries; nothing is shown to the advisor.
+
+[Install]
+WantedBy=plasma-workspace.target
