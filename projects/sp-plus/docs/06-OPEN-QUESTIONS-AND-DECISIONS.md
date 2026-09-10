@@ -25,7 +25,7 @@ records what must be verified before anything is built.
 | D10 | Fedora install media is **`bootc-generic-iso` with a purpose-built SP+ installer container carrying Anaconda**. Debian install media is a separately gated graphical live installer | Anaconda remains Fedora's installer of record. Debian must prove its own live-installer path before it becomes product infrastructure. Document 11 | Yes |
 | D11 | **Podman is a prerequisite** on any build host; the Docker path is deleted | Document 5 Part I §3 | No |
 | D12 | Three channels: `edge`, `next`, `stable`, with a canary ring | Document 4 §2 | Yes |
-| D13 | Images are **cosign-signed** and a signature policy ships in the image | Supply-chain integrity | No |
+| D13 | Images are **cosign-signed** and a signature policy ships in the image. **CORRECTED 2026-09-10 — the second half was never built.** Publishing signs by digest and verifies, but the installed machine carries stock `insecureAcceptAnything`: no policy, no key in `/etc/pki/containers`, no ghcr.io entry in `registries.d`, and zero signature references in the 2,921-line Containerfile. Measured on alpha4; see `ledger/POSTURE-2026-09-10-alpha4.md` §2 and `14-THREAT-MODEL.md` §4. Phase S of `15-DEFENSE-IN-DEPTH-ROADMAP.md` closes it | Supply-chain integrity | No |
 | D14 | Telemetry is **off by default and opt-in** | Client PII, regulatory exposure | Yes |
 | D15 | **No compliance claims** on any surface | Legal exposure | No |
 | D16 | Eligibility is **never enforced inside the installed OS** | From the build brief; hostile and an operational liability otherwise | No |
@@ -55,6 +55,10 @@ records what must be verified before anything is built.
 | D40 | **A laptop model is "supported" only after it passes the §4.6 firmware gate and is recorded in the ledger** with its model, wireless chipset and firmware package | The plan names HP as the common advisor hardware but no SP+ document names a single model or chipset. Until the mapping exists the supported list is empty rather than broad, and untested must never be reported as supported. Document 12 §4.6, §5.8 | Yes, per model |
 | D41 | **The Debian lane keeps DN-30's cadence**: fortnightly staging on even ISO weeks (Friday 15:00) with the apply and conditional restart on the following Sunday (04:00) | Christopher's ruling, 2026-09-07. A draft of document 12 described a weekly schedule and called it a verbatim reuse of DN-30; it was neither. The one genuine Debian difference is the restart predicate: DN-30 conditions reboot on a staged bootc deployment, and Debian has no such object, so restart is conditional on the recorded APT result instead. Document 12 §3 | No |
 | D42 | **`sp-plus-fin` is `Architecture: amd64`, and the SP+ Debian edition targets amd64 only for now** | Christopher's ruling, 2026-09-07. Two reasons of different weight. The narrow one: `pi` needs Node >= 22.19.0 and upstream Node ships no architecture-independent binary, so a package embedding one runtime cannot honestly be `Architecture: all`. That alone is cheap to reverse. The binding reason is platform enablement — arm64 laptops boot per-device rather than through the generic UEFI/ACPI path, so there is no single arm64 ISO that installs across a class of machines; each model needs its own device tree and firmware, peripheral support is weakest exactly there, and Gate A's Secure Boot guarantee may not be achievable. The office SP+ is securing today is almost entirely x86. **Scoped to today's hardware, not to the architecture** — see Q20. Document 12 §2, §4.6 | Reviewable — see Q20 |
+| D43 | **The Fedora/KDE bootc lane is the sole target of security-architecture work. Debian is parked.** | Christopher's ruling, 2026-09-10. Secureblue, the closest reference implementation of every control SP+ wants, is Fedora Atomic — so the Fedora lane is where the work is cheapest as well as where the product is. Doc 11 named Debian the controlling long-term direction and the 2026-09-10 Beelink handoff called it parked; this ruling settles the contradiction. Documents 11-13 remain valid as a parked design, not as current direction | Yes, at cost |
+| D44 | **Nothing may break day one.** A security control that breaks printing, printer discovery, Wi-Fi, Brave, PWAs, audio, camera, microphone, suspend/resume, external display or Bluetooth is **rejected outright**, however strong it is | Christopher's ruling, 2026-09-10. This restates doc 01 principle 1 as a hard gate rather than a preference: a control that breaks printing gets uninstalled by the advisor, at which point it protects nothing. It is the rule that rejects five of Secureblue's controls outright. Document 15 §0 | No |
+| D45 | **Brave is fixed for the current lane**; security work hardens around it rather than replacing it | Christopher's ruling, 2026-09-10. Q1 and Q17 remain open on their own schedule and are not reopened by this. Document 15 §0 | Reviewable via Q1/Q17 |
+| D46 | **Every security control ships with an assertion in `tests/runtime-posture-gate.sh`, mutation-tested red before green.** A control without an assertion does not ship | The gate exists because a build gate grepped a config file, reported `WSDD_OK` on every build, and smbd was listening on `0.0.0.0:445` regardless. A control proven only by the text that configures it has not been proven. Document 15 §1 | No |
 
 ---
 
@@ -334,6 +338,36 @@ It is a statement about what has been tested — the same bar D40 applies to eve
 *Owner:* Christopher. *Deadline:* trigger-based, not scheduled.
 
 
+### Q21 — Does sshd ship enabled to advisors?
+
+**Open.** Measured on alpha4: sshd listens on `0.0.0.0:22` and firewalld's public zone permits
+the `ssh` service. No advisor workflow requires it; it is development convenience that has
+followed the image into the product. Advisors work on hotel and airport Wi-Fi, so this is an
+open port on a hostile network by default.
+
+The question is not only whether to close it but what replaces it. If remote support (support
+tier 3) later needs a way in, that is a designed feature with its own gate and its own consent
+model, not a port left open from development. See also Q7, Tailscale versus Headscale.
+
+*Owner:* Christopher. *Deadline:* before the first non-lab machine. *Evidence needed:* whether
+any current support workflow depends on it.
+
+### Q22 — What is the backup story?
+
+**Open, and currently unowned.** Snapshots and bootc rollback are not backups. A rollback
+restores the operating system; it does not restore a client file the advisor deleted, and it
+does not survive a disk failure or ransomware that reaches the user's home directory.
+
+`14-THREAT-MODEL.md` §6 item 7 records this as residual risk. Doc 01 §3 puts backup below the
+line for v1, which is a defensible scoping decision — but it is not currently *said* anywhere the
+advisor would see it, and an advisor who believes "immutable with rollback" means their files are
+safe has been misled by omission rather than by a claim.
+
+Two separable questions: what SP+ ships, and what SP+ tells the advisor it does not ship. The
+second has no cost and should not wait for the first.
+
+*Owner:* Christopher. *Deadline:* the second half before the pilot; the first is a v2 scope call.
+
 ## Part III — Facts to re-verify before building
 
 Every one of these was true on 2026-08-25 and every one can change.
@@ -376,3 +410,4 @@ Every one of these was true on 2026-08-25 and every one can change.
 | 2026-09-07 | D32-D37 recorded and Q16-Q19 opened, covering the Debian live installer, the fail-closed managed update path, the SP+ package set, and the release lane. See `12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`. |
 | 2026-09-07 | **D41** (DN-30 cadence stands for the Debian lane), **D42** (`sp-plus-fin` is `Architecture: amd64`; the Debian edition is amd64-only for now) and **Q20** (when arm64 becomes a supported target, with named review triggers) recorded after a second independent audit. **Q16 corrected**: its asserted dracut requirement was not established by any source and has been removed — an open question may not carry its own presumed answer. See `docs/ledger/AUDIT-2026-09-07-doc12-terra.md`. |
 | 2026-09-07 | **D32 corrected** after independent verification: Debian stock Calamares inherits upstream LUKS1/ext4 defaults and defines no Btrfs subvolumes, and the previously recorded `@rootfs` layout does not exist. D38 records the stable-base ruling; D39 and D40 record firmware carriage and the supported-hardware bar. See `docs/ledger/AUDIT-2026-09-07-doc12-bee.md`. |
+| 2026-09-10 | **D13 corrected** after direct measurement of an installed alpha4: the signature policy it records has never been built, so published images are signed and no machine verifies them. **D43-D46** recorded from Christopher's rulings (Fedora-only, nothing-breaks-day-one, Brave fixed, every control gated). **Q21** (sshd exposure) and **Q22** (backup story) opened. New documents 14 (threat model) and 15 (defense-in-depth roadmap); evidence in `ledger/POSTURE-2026-09-10-alpha4.md` and `ledger/SECUREBLUE-INVENTORY-2026-09-10.md`. |

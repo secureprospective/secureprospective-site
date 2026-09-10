@@ -29,8 +29,14 @@ Read in order. Each document assumes the ones before it.
 | 10 | [`docs/10-BUTTERKNIFE-CINNAMON-AUDIT.md`](docs/10-BUTTERKNIFE-CINNAMON-AUDIT.md) | The read-only audit of a real Butterknife Cinnamon install in a KVM guest — what its installer, Btrfs layout, and Timeshift integration actually do |
 | 11 | [`docs/11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md`](docs/11-PLATFORM-DIRECTION-AND-DEBIAN-ARCHITECTURE.md) | **The controlling direction.** Fedora/KDE as the immediate product, Debian Trixie/Cinnamon as the long-term distribution, the Debian architecture from base to user experience, and delivery Gates A–D. It does not authorize implementation |
 | 12 | [`docs/12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md`](docs/12-DEBIAN-LIVE-INSTALLER-AND-SUPPORT-PLAN.md) | How the Debian path gets built: what Fedora gave for free and Debian makes SP+ own, the six SP+ packages, the fail-closed managed update path, the Calamares and live-build configuration, and phases 0–E with their gates |
+| 13 | [`docs/13-DEBIAN-IMAGE-BASED-ALTERNATIVES.md`](docs/13-DEBIAN-IMAGE-BASED-ALTERNATIVES.md) | Whether Debian has a Silverblue equivalent. Research note; it did not change the Debian direction |
+| 14 | [`docs/14-THREAT-MODEL.md`](docs/14-THREAT-MODEL.md) | **What SP+ protects, from whom, and where it stops.** Assets, adversaries ranked by likelihood for this user, trust anchors, the boundaries SP+ deliberately does not defend, and the residual risk that remains after everything currently shipping |
+| 15 | [`docs/15-DEFENSE-IN-DEPTH-ROADMAP.md`](docs/15-DEFENSE-IN-DEPTH-ROADMAP.md) | **The security roadmap.** Phase S (the signature hole), Tier 1 (invisible to the advisor), Tier 2 (needs measurement), Tier 3 (rejected, with reopen triggers), and the test-lane gap that blocks any honest Secure Boot claim |
 
 Supporting records:
+
+- [`docs/ledger/POSTURE-2026-09-10-alpha4.md`](docs/ledger/POSTURE-2026-09-10-alpha4.md) — the deep security posture of alpha4, **measured on a booted machine, not read out of the Containerfile.** The evidence behind documents 14 and 15
+- [`docs/ledger/SECUREBLUE-INVENTORY-2026-09-10.md`](docs/ledger/SECUREBLUE-INVENTORY-2026-09-10.md) — 37 Secureblue controls with their exact mechanisms and documented usability costs, each marked VERIFIED or CLAIMED
 
 - [`docs/07-PARALLEL-REVIEW-AND-DEBATE.md`](docs/07-PARALLEL-REVIEW-AND-DEBATE.md) — the independent parallel research pass, where the two analyses agreed, the four places they disagreed, and how each was settled. **Read this before acting on documents 2 and 3; it changed both.**
 - [`docs/APPENDIX-BEE-RESEARCH-2026-08-25.md`](docs/APPENDIX-BEE-RESEARCH-2026-08-25.md) and [`docs/APPENDIX-BEE-BRIEF-2026-08-25.md`](docs/APPENDIX-BEE-BRIEF-2026-08-25.md) — the second pass's raw report and the brief it was given
