@@ -708,7 +708,9 @@ button, input, textarea, select { font: inherit; }
 .footer-index a { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .footer-index a:hover { color: var(--yellow-accent); }
 .footer-rule { height: 1px; background: rgba(255,255,255,0.25); }
-.footer-close { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+.footer-close { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 24px; align-items: center; }
+.footer-legal { font-size: 11px; text-underline-offset: 3px; }
+.footer-legal:hover { color: var(--yellow-accent); }
 .footer-close span { font-size: 11px; }
 .footer-close p { font-family: var(--font-body); font-size: 0.95rem; font-weight: 700; text-transform: uppercase; }
 
@@ -852,4 +854,76 @@ button, input, textarea, select { font: inherit; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+
+   The back office markup has always asked for .btn, .btn--ink and .btn--wide,
+   but the definitions lived in Layout.astro and were lost when the layout was
+   rewritten for the current site. Every button behind the member gate has been
+   rendering as a default browser control since. They belong in the shared
+   stylesheet, where a page cannot lose them again.
+   -------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 22px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-default);
+  background: var(--yellow-accent);
+  color: var(--ink);
+  font-family: var(--font-display, var(--font-body));
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--blue-brand);
+  outline-offset: 3px;
+}
+
+.btn[disabled],
+.btn[aria-disabled='true'] {
+  background: #d6d6d3;
+  color: #6b6c70;
+  border-color: #a9a9a6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* The secondary weight. Sign out and Back are not the action the page is for. */
+.btn--ink {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.btn--ink:hover {
+  background: var(--blue-brand);
+  border-color: var(--blue-brand);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn--wide {
+  width: 100%;
 }
