@@ -585,23 +585,17 @@ applications is 40**; the rest are `NoDisplay` entries that never appear in the 
 was re-cut as P05A/B/C with explicit named lists. Part A covered 15 applications in 23
 minutes.
 
-### T-34 - Flameshot cannot take a screenshot
+### T-34 - CLOSED, NOT A DEFECT - Flameshot works on real hardware
 
-Sweep P05A. Launching Flameshot leaves only a tray process; the capture overlay starts -
-the screen dims and the "Tool Settings" tab appears - and then the selection UI never
-paints and the capture aborts. Confirmed by looking at the evidence, not only the report:
-`~/logs/sp-plus/testvm/shots/p05a-flameshot-capture-20260910T113828Z.png` shows the dimmed
-overlay with nothing drawn on it.
+Logged 2026-09-10 from sweep P05A, **closed the same day by Christopher testing the Dell:
+"I just tested the list, Flameshot works perfect, keep as is."**
 
-Journal: `QPainter::begin: Paint device returned engine == 0, type: 2`, repeated
-`Painter not active`, then `flameshot: info: Screenshot aborted.`
+On the QEMU rig the capture overlay started - the screen dimmed, the Tool Settings tab
+appeared - and then the selection UI never painted and the capture aborted with
+`QPainter::begin: Paint device returned engine == 0`. That is real, and it is virtio-GPU.
+It is not real on hardware with a working GPU.
 
-This is a Wayland painting failure and may be virtio-GPU specific, so **it needs the Dell
-to confirm** - but note that SP+ also ships **Spectacle**, KDE's own screenshot tool, which
-is native to Wayland. If Flameshot cannot be made reliable, the cheaper fix is to drop it
-and leave one screenshot tool that works rather than two entries where one fails.
-
-**Acceptance:** an advisor can take and save a screenshot from the menu on the Dell.
+No action. Flameshot stays as shipped, alongside Spectacle.
 
 ### T-35 - Discover logs an SSL read error before loading
 
@@ -706,17 +700,13 @@ mistaken for evidence. The re-run below was done on an awake rig.
   reports `requested-packages: []` and `packages: []`, so nothing is layered.
 - Secure Boot remains unprovable in the VM (`/sys/firmware/efi` absent) - **a Dell question.**
 
-### T-37 - SP+ Welcome opens itself on every login
+### T-37 - CLOSED, NOT A DEFECT - Welcome autostart behaves correctly
 
-Found in the P11 re-run. After logging in, `SP+ Welcome` auto-opened; it is registered as
-`org.secureprospective.spplus.welcome.desktop` in autostart.
+Raised 2026-09-10 from the P11 re-run, which reported that `SP+ Welcome` auto-opened after
+login. **Closed the same day by Christopher on the Dell: "T-37 - works perfect, Luna messed
+up."**
 
-This connects to T-20 in a way worth noticing: the control that stops it doing so - "Do not
-show this setup again" on screen 08 - is **one of the controls clipped behind the footer**.
-So the advisor is shown a setup wizard every morning and the off switch is the thing they
-cannot reach. Fixing T-20 fixes this too, but the autostart rule deserves its own decision:
-Welcome should probably stop opening itself once setup has been completed once, rather than
-relying on the advisor finding a checkbox.
+The subordinate agent misread a first-run autostart as an every-login one. No action.
 
 ### T-38 - Kickoff search shows stale results for ~14 seconds
 
