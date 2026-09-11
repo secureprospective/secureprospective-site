@@ -445,12 +445,23 @@ else
 fi
 
 # An empty password must not authenticate anyone.
-nk="$(remote "sudo grep -hcE '^auth.*pam_unix\.so.*nullok' /etc/pam.d/system-auth /etc/pam.d/password-auth | paste -sd+ | bc" | tr -d '\r')"
-if [ "${nk:-1}" = 0 ]; then
-    record PASS "empty passwords not accepted" "no nullok in either common auth stack"
-else
-    record FAIL "empty passwords not accepted" "nullok present on ${nk} auth lines"
-fi
+#
+# This scans the WHOLE of /etc/pam.d, not just system-auth and password-auth.
+# The KDE greeter, which is the advisor's real login path, does not have its own
+# auth lines -- /etc/pam.d/kde substacks password-auth -- but checking only the
+# two common files would miss any service that grew its own pam_unix line.
+#
+# sssd-shadowutils is the one documented exception: it ships with nullok from
+# Fedora, it belongs to the sssd authselect profile which SP+ does not use, and
+# sssd.service and sssd-kcm.socket are both masked -- asserted separately above.
+# It is named here rather than skipped silently so that a second file appearing
+# with nullok turns this red instead of being absorbed into the exception.
+nkfiles="$(remote "sudo grep -rlE '^auth.*pam_unix\.so.*nullok' /etc/pam.d/ 2>/dev/null | xargs -r -n1 basename | sort | paste -sd, -" | tr -d '\r')"
+case "$nkfiles" in
+    "")                  record PASS "empty passwords not accepted" "no nullok anywhere in /etc/pam.d" ;;
+    sssd-shadowutils)    record PASS "empty passwords not accepted" "only in sssd-shadowutils, and sssd is masked" ;;
+    *)                   record FAIL "empty passwords not accepted" "nullok present in: $nkfiles" ;;
+esac
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then
