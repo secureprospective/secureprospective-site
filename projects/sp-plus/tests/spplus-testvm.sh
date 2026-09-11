@@ -87,6 +87,34 @@ make_ks_iso() {
   [ -f "$PUBKEY_FILE" ] && pubkey="$(cat "$PUBKEY_FILE")"
   # Ship the SHIPPED kickstart verbatim; only add what an unattended run needs.
   sed -e "s|^autopart .*|& --passphrase=${LUKS_PASS}|" "$SP_KS" > "$base"
+
+  # The shipped kickstart in the working tree names whichever payload was built
+  # LAST, not the one inside the ISO being installed. scripts/build-iso.sh drops
+  # a payload.env beside each ISO recording the ref it actually verified into
+  # that ISO, so follow the media rather than the tree. Without this an install
+  # of an older ISO silently deploys a newer payload and reports success.
+  local sidecar="$(dirname "$ISO")/payload.env"
+  if [ -f "$sidecar" ]; then
+    # shellcheck disable=SC1090
+    . "$sidecar"
+    [ -n "${SP_PAYLOAD:-}" ] || { echo "payload.env at $sidecar names no SP_PAYLOAD" >&2; exit 2; }
+    local treeref
+    treeref="$(grep -oE 'containers-storage:[^ ]+' "$base" | head -1)"
+    if [ "$treeref" != "containers-storage:${SP_PAYLOAD}" ]; then
+      say "kickstart ref follows the ISO: ${treeref:-<none>} -> containers-storage:${SP_PAYLOAD}"
+      sed -i -E "s|containers-storage:[^ ]+|containers-storage:${SP_PAYLOAD}|" "$base"
+    fi
+    grep -q "containers-storage:${SP_PAYLOAD}" "$base" \
+      || { echo "failed to pin the kickstart to ${SP_PAYLOAD}" >&2; exit 2; }
+  else
+    echo "REFUSING TO INSTALL: no payload.env beside $ISO." >&2
+    echo "That file is written by scripts/build-iso.sh once it has verified the" >&2
+    echo "ISO carries the payload it names. Without it this harness would take" >&2
+    echo "the payload ref from the working tree, which is rewritten by every" >&2
+    echo "build and may name an image this ISO does not contain. Rebuild the" >&2
+    echo "ISO with scripts/build-iso.sh <tag>." >&2
+    exit 2
+  fi
   {
     echo "# DELTA: non-interactive display mode + locale, required by an unattended run"
     echo "cmdline"

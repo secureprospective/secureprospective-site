@@ -284,6 +284,77 @@ else
     record FAIL "optional tools all resolve" "unresolvable:$tools_bad"
 fi
 
+
+# ------------------------------------------------------------ T2.4 (2026-09-11)
+# Kernel hardening arguments. The cmdline is read back, but a cmdline is
+# configuration text, so each argument that has an observable effect is also
+# measured by that effect. init_on_alloc and init_on_free have no sysfs or
+# procfs readback at all, so the cmdline is the only evidence available for
+# those two and this file says so rather than implying more.
+cmdline="$(remote "cat /proc/cmdline" | tr -d '\r')"
+for k in init_on_alloc=1 init_on_free=1 randomize_kstack_offset=on \
+         slab_nomerge vsyscall=none pti=on; do
+    case " $cmdline " in
+        *" $k "*) record PASS "karg $k" "on the installed cmdline" ;;
+        *)        record FAIL "karg $k" "absent from the installed cmdline" ;;
+    esac
+done
+
+# doc 15 section 4 rejects nosmt. A later edit that quietly reinstates it should
+# turn this gate red rather than pass unnoticed.
+case " $cmdline " in
+    *nosmt*|*mitigations=*) record FAIL "nosmt not reinstated" "cmdline carries a mitigations/nosmt argument" ;;
+    *)                      record PASS "nosmt not reinstated" "no mitigations= on the cmdline" ;;
+esac
+
+# vsyscall=none removes the fixed-address executable page from every process.
+# Measured in a real process map, not read back from the cmdline.
+vsys="$(remote "grep -c vsyscall /proc/self/maps" | tr -d '\r')"
+if [ "${vsys:-x}" = 0 ]; then
+    record PASS "no vsyscall mapping" "0 vsyscall lines in a live process map"
+else
+    record FAIL "no vsyscall mapping" "${vsys:-<no answer>} vsyscall lines present"
+fi
+
+# slab_nomerge stops distinct caches sharing backing memory, which removes a
+# route from a bug in one cache to objects in another.
+#
+# READ THIS BEFORE TRUSTING THE RESULT. This is a PROPERTY assertion, not
+# evidence that the karg did anything. Fedora 44's kernel already reports zero
+# aliases on every cache without slab_nomerge: measured on the pre-T2.4 t22
+# install, where all six karg assertions went red and this one still passed.
+# The karg's own evidence is the cmdline assertion above. What this guards is
+# the property itself, so that a future kernel default that reinstates merging
+# turns the gate red rather than passing quietly.
+#
+# The earlier version of this counted alias SYMLINKS under /sys/kernel/slab.
+# That kernel publishes every cache as a directory and no symlinks at all, so
+# it returned 0 on hardened and unhardened machines alike and could never fail.
+aliases="$(remote "sudo sh -c 'cat /sys/kernel/slab/*/aliases 2>/dev/null' | awk '{t+=\$1} END{print t+0}'" | tr -d '\r')"
+if [ "${aliases:-x}" = 0 ]; then
+    record PASS "no merged slab caches" "0 aliases summed across every cache"
+else
+    record FAIL "no merged slab caches" "${aliases:-<no answer>} cache aliases present"
+fi
+
+# pti=on forces page table isolation regardless of what the CPU claims about
+# its own errata.
+#
+# NOT measured by /sys/devices/system/cpu/vulnerabilities/meltdown. That file
+# reports whether the CPU carries the Meltdown *bug*, not whether the mitigation
+# is running: on a CPU without the bug it prints "Not affected" even with PTI
+# force-enabled, which is exactly the false negative this gate first produced on
+# an AMD Ryzen 9 6900HX whose dmesg said "force enabled on command line".
+#
+# The pti flag in /proc/cpuinfo is X86_FEATURE_PTI, which the kernel sets only
+# when page table isolation is actually turned on. That is the effect, so that
+# is what is measured.
+pti="$(remote "grep -c '^flags.*[[:space:]]pti[[:space:]]' /proc/cpuinfo" | tr -d '\r')"
+if [ "${pti:-0}" -gt 0 ] 2>/dev/null; then
+    record PASS "page table isolation active" "X86_FEATURE_PTI set on $pti cpus"
+else
+    record FAIL "page table isolation active" "no pti flag in /proc/cpuinfo"
+fi
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then

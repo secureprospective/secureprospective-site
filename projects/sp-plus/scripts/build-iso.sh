@@ -131,6 +131,30 @@ printf '%s\n' "$KS" | grep -q "$PAYLOAD" \
 printf '%s\n' "$IDS" | grep -q "^${PAYLOAD_ID}$" \
   || { echo "ID MISMATCH: ISO embeds $(printf '%s ' $IDS), payload is $PAYLOAD_ID" >&2; exit 7; }
 
+# Record what was just VERIFIED, next to the ISO it was verified against.
+# tests/spplus-testvm.sh builds its kickstart from the working tree, and the
+# working tree's payload ref is rewritten on every build. On 2026-09-11 that
+# made an install of the t22 ISO try to deploy localhost/sp-plus-kde:t24 --
+# it failed only because the t24 image happened not to be resolvable in that
+# storage. Had both images existed it would have installed the wrong payload
+# and reported success. The harness reads this file instead of guessing.
+# The ISO's directory is created by the rootful builder and is owned by root,
+# so this file is written the same way the artifacts around it were: through a
+# container with the directory bind-mounted, not by the unprivileged shell.
+SIDECAR_DIR="$(dirname "$ISO")"
+SIDECAR="$SIDECAR_DIR/payload.env"
+sudo -n podman run --rm -v "$SIDECAR_DIR:/a:z" docker.io/library/alpine:latest \
+  sh -c "printf '%s\\n' \
+    '# written by scripts/build-iso.sh after the ref and id checks passed' \
+    'SP_PAYLOAD=$PAYLOAD' \
+    'SP_PAYLOAD_ID=$PAYLOAD_ID' > /a/payload.env" >/dev/null \
+  || { echo "could not write the payload sidecar at $SIDECAR" >&2; exit 7; }
+grep -q "^SP_PAYLOAD=$PAYLOAD$" "$SIDECAR" \
+  || { echo "payload sidecar at $SIDECAR does not name $PAYLOAD" >&2; exit 7; }
+grep -q "^SP_PAYLOAD_ID=$PAYLOAD_ID$" "$SIDECAR" \
+  || { echo "payload sidecar at $SIDECAR does not name $PAYLOAD_ID" >&2; exit 7; }
+say "payload sidecar written: $SIDECAR"
+
 SHA="$(sha256sum "$ISO" | cut -d' ' -f1)"
 { echo
   echo "ISO      $ISO"

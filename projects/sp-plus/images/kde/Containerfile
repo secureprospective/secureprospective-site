@@ -2321,6 +2321,59 @@ RUN printf '%s\n' \
       /usr/lib/bootc/kargs.d/10-sp-plus-splash.toml \
  && echo "DN15_KARGS_OK rhgb quiet staged for the installed cmdline"
 
+# ---- T2.4 kernel argument hardening (doc 15 Tier 2) ----
+# A second kargs.d file rather than an edit to the splash one: these are a
+# security control with its own gate and its own reason to be reverted, and
+# keeping them separate means rolling one back never touches the other.
+#
+# What each one buys, and what it costs the advisor:
+#   init_on_alloc=1 init_on_free=1  zero heap and page allocations on both ends,
+#                                   which turns most use-after-free and
+#                                   uninitialised-memory bugs into a crash rather
+#                                   than an information leak. Costs a few percent
+#                                   of memory bandwidth. Invisible on a desktop.
+#   randomize_kstack_offset=on      randomises the kernel stack offset per syscall,
+#                                   defeating stack-layout-dependent exploits.
+#   slab_nomerge                    stops distinct slab caches sharing backing
+#                                   memory, which removes a widely used route from
+#                                   a bug in one cache to objects in another.
+#   vsyscall=none                   removes the last fixed-address executable page
+#                                   in every process, a classic ROP anchor. Only
+#                                   pre-2013 static binaries need it; SP+ ships none.
+#   pti=on                          forces page table isolation on rather than
+#                                   letting the kernel decide from CPU model, so
+#                                   the control does not silently disappear on
+#                                   hardware whose errata list is wrong.
+#
+# DELIBERATELY NOT SET: mitigations=auto,nosmt. Disabling SMT halves the usable
+# cores on the advisor's laptop, which is felt every day in the browser and in
+# LibreOffice, to defend against cross-thread side channels that require local
+# code execution SP+ already spends this whole tier preventing. Doc 15 section 4
+# rejects it and this file does not quietly reinstate it.
+RUN printf '%s\n' \
+      '# SP+ T2.4: kernel hardening arguments. Effects are asserted at runtime by' \
+      '# tests/runtime-posture-gate.sh, not merely by reading this file back.' \
+      '# mitigations=auto,nosmt is deliberately absent -- see doc 15 section 4.' \
+      'kargs = [' \
+      '  "init_on_alloc=1",' \
+      '  "init_on_free=1",' \
+      '  "randomize_kstack_offset=on",' \
+      '  "slab_nomerge",' \
+      '  "vsyscall=none",' \
+      '  "pti=on",' \
+      ']' \
+      > /usr/lib/bootc/kargs.d/20-sp-plus-hardening.toml \
+ && for k in init_on_alloc=1 init_on_free=1 randomize_kstack_offset=on \
+             slab_nomerge vsyscall=none pti=on; do \
+        grep -q "\"$k\"" /usr/lib/bootc/kargs.d/20-sp-plus-hardening.toml \
+          || { echo "T2.4 GATE FAIL: $k missing from the staged kargs" >&2; exit 1; }; \
+    done \
+ && if grep -h -v '^[[:space:]]*#' /usr/lib/bootc/kargs.d/*.toml \
+         | grep -q 'mitigations='; then \
+        echo "T2.4 GATE FAIL: mitigations= is rejected by doc 15 section 4" >&2; exit 1; \
+    fi \
+ && echo "T24_KARGS_OK six hardening arguments staged, nosmt absent"
+
 # ---- 11. default applications that actually exist ----
 # Measured, not assumed. Resolving each type in XDG order against the real image
 # BEFORE this layer gave:
