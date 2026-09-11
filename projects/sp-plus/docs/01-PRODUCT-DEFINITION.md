@@ -124,7 +124,7 @@ In priority order. Anything below the line is deferred.
 | 3 | Boot with Secure Boot enabled and unmodified | Removes an entire class of support failure and firmware-menu spelunking |
 | 4 | Connect to Wi-Fi, print, drive a second monitor, play audio, use a webcam | Failure here ends the trial in ten minutes |
 | 5 | Open a hardened, preconfigured Brave with the advisor's business apps as installed PWAs | This is where the work is |
-| 6 | Provide Bitwarden as the password manager, working, on day one | The single highest-leverage security control for this user |
+| 6 | Offer Bitwarden as a one-click install from Welcome, working on day one | The single highest-leverage security control for this user |
 | 7 | Update itself and roll back a bad update without being asked | Support cost |
 | 8 | Provide plain-English help and one guided, approval-gated repair workflow | Proves the assistant model |
 | 9 | Generate a Security Evidence Report | The second value proposition |

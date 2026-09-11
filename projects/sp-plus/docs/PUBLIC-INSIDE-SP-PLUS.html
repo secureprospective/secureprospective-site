@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Inside SP+: what the Secure Prospective advisor workstation protects, how every protection was tested, and where it stops.">
+<meta name="description" content="Inside SP+: a plain account of what SP+ is, what it protects against, how that is measured, and what it deliberately does not do.">
 <meta name="robots" content="index, follow">
-<style>
-html{color-scheme:light dark}
+<title>Inside SP+</title>
+<style>*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
 body{margin:0}
-img{max-width:100%}
-[hidden]{display:none!important}
-</style>
+img{max-width:100%}</style>
 <title>Inside SP+</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -246,6 +245,7 @@ footer.legal p{font-size:13.5px;line-height:1.55;color:var(--ink-soft);max-width
 }
 </style>
 
+
 </head>
 <body>
 <div class="wrap">
@@ -471,7 +471,7 @@ footer.legal p{font-size:13.5px;line-height:1.55;color:var(--ink-soft);max-width
     <p class="lead">This is the long section. Each layer says what it does, then says what it costs or where it stops, because a protection described without its limit is marketing.</p>
 
     <h3>The disk</h3>
-    <p>The entire disk is encrypted, and it is unlocked by something only you know, entered once when the machine starts. The scheme is chosen to be expensive to attack: each guess is made to consume roughly 592 MB of memory and real time, which is what defeats the racks of graphics cards that make ordinary password guessing cheap. <span class="tn">LUKS2, aes-xts-plain64, 512-bit key, argon2id</span></p>
+    <p>The entire disk is encrypted, and it is unlocked by something only you know, entered once when the machine starts. The scheme is chosen to be expensive to attack: every guess is made to consume a large amount of memory and real time, tuned to your own machine when the disk is first encrypted, which is what defeats the racks of graphics cards that make ordinary password guessing cheap. <span class="tn">LUKS2, aes-xts-plain64, 512-bit key, argon2id</span></p>
     <p>A recovery key is generated on your own machine the first time it starts, and never before, so nobody at Secure Prospective has ever seen it. You are asked to write it down and store it away from the computer, in a safe or a lockbox.</p>
     <div class="note">
       <span class="tag">The cost, stated</span>

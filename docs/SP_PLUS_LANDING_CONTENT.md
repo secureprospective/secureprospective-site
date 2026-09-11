@@ -61,7 +61,7 @@ Honesty is the differentiator. This block builds trust by saying plainly what we
 
 > - Full-disk encryption, unlocked with a PIN only you know
 > - Automatic updates that cannot corrupt your system, with a built-in way back if anything ever misbehaves
-> - A locked-down browser where only vetted extensions run, with Bitwarden password management built in
+> - A locked-down browser, with the password manager Bitwarden available in one click
 > - A built-in assistant that fixes problems only after you approve, and never reads your documents, email, or client records
 > - One-click Security Evidence Report: proof of encryption, updates, firewall status, and system history, ready for cyber insurance applications, carrier inquiries, or your own records
 
@@ -95,7 +95,7 @@ Publish this as the "How It Works" or "Getting Started" walkthrough. Each step s
 
 ### Step 6: Sign in to your work
 
-> Open the browser. Your bookmarks are already organized: Google Workspace or Microsoft 365, your CRM, e-signature, carrier portals. Sign in to your accounts, then sign in to Bitwarden, your password manager. From now on, passwords fill themselves, and this computer's own password saver stays off on purpose: one vault, encrypted, under your control.
+> Open the browser. Your bookmarks are already organized: Google Workspace or Microsoft 365, your CRM, e-signature, carrier portals. Sign in to your accounts. The browser offers to save your passwords and checks them against known breaches, and it will not store card numbers. If you would rather keep one encrypted vault, Welcome installs Bitwarden in a single click.
 
 ### Step 7: Daily driving
 
