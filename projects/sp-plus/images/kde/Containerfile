@@ -1658,6 +1658,92 @@ RUN set -eux; \
     [ "$m" = 644 ] || { echo "T2.7 GATE FAIL: $C is mode $m; NetworkManager must be able to read it" >&2; exit 1; }; \
     echo "T27_MAC_GATE_OK wifi stable-ssid, ethernet preserve, no randomization on wired"
 
+# ---- 5c-4. T2.5: glibc heap hardening, the half of it that is actually real --
+# Doc 15 Tier 2 names hardened_malloc. It is in NONE of the four repositories
+# SP+ ships. Secureblue builds it in their own COPR, which would make a fifth
+# trust root, their own tracker says the config that ENABLES the allocator is
+# not in the RPM, and the documented breakage class is Electron -- which here
+# means Brave, Zoom and Signal, most of an advisor's day. That decision was put
+# to Christopher and hardened_malloc was dropped from the roadmap. The ledger
+# entry PHASE-T25-2026-09-11-hardened-malloc.md carries the measurement.
+#
+# What we ship instead is smaller and honest. Disabling the per-thread cache
+# removes tcache poisoning, one of the most commonly used heap primitives, as an
+# option for an attacker who already has a use-after-free or a double free. It
+# gives NONE of hardened_malloc's guard pages, randomised allocation, isolated
+# size classes or delayed reuse. The Security Evidence Report must say so in
+# those words. Measured cost: 5.8% on two million malloc/free pairs, which is
+# the worst case that exists, and nothing measurable on Brave, LibreOffice or
+# Node 22.
+#
+# TWO TUNABLES ARE DELIBERATELY NOT HERE, and the gate below refuses them.
+# glibc.malloc.check and glibc.malloc.perturb are INERT on glibc 2.43. Their
+# implementation moved into libc_malloc_debug.so in glibc 2.34 and that library
+# is not in this image. ld.so --list-tunables still reports check as set to 3,
+# which is precisely what makes it dangerous: it is a control that reads as
+# applied, measures as applied, and does nothing. A deliberate heap overflow
+# behaved identically with it set and unset.
+#
+# THREE LAYERS, because one is not enough:
+#   /etc/environment              -> pam_env, so tty and ssh logins carry it
+#   /usr/lib/environment.d/       -> the systemd USER manager, which is what the
+#                                    Plasma session and therefore Brave inherit
+#   system.conf.d DefaultEnvironment -> system services
+# The middle one is the load-bearing one for the advisor. It works because this
+# image already ships 30-systemd-environment-d-generator; see DN17 above.
+RUN set -eux; \
+    T='GLIBC_TUNABLES=glibc.malloc.tcache_count=0'; \
+    install -d -m 0755 /usr/lib/environment.d /usr/lib/systemd/system.conf.d; \
+    grep -q '^GLIBC_TUNABLES=' /etc/environment 2>/dev/null \
+      || printf '%s\n' "$T" >> /etc/environment; \
+    printf '%s\n' "$T" > /usr/lib/environment.d/90-sp-plus-malloc.conf; \
+    printf '%s\n' '[Manager]' "DefaultEnvironment=$T" \
+      > /usr/lib/systemd/system.conf.d/90-sp-plus-malloc.conf; \
+    chmod 0644 /etc/environment \
+               /usr/lib/environment.d/90-sp-plus-malloc.conf \
+               /usr/lib/systemd/system.conf.d/90-sp-plus-malloc.conf; \
+    for f in /etc/environment \
+             /usr/lib/environment.d/90-sp-plus-malloc.conf \
+             /usr/lib/systemd/system.conf.d/90-sp-plus-malloc.conf; do \
+      grep -q 'glibc.malloc.tcache_count=0' "$f" \
+        || { echo "T2.5 GATE FAIL: tunable missing from $f" >&2; exit 1; }; \
+      m="$(stat -c %a "$f")"; \
+      [ "$m" = 644 ] || { echo "T2.5 GATE FAIL: $f is mode $m; a reader running as its own user cannot read it" >&2; exit 1; }; \
+    done; \
+    if grep -h -v '^[[:space:]]*#' /usr/lib/environment.d/90-sp-plus-malloc.conf \
+         /usr/lib/systemd/system.conf.d/90-sp-plus-malloc.conf \
+       | grep -qE 'glibc\.malloc\.(check|perturb)'; then \
+      echo "T2.5 GATE FAIL: malloc.check and malloc.perturb are inert without libc_malloc_debug.so; shipping them is a false green" >&2; exit 1; \
+    fi; \
+    test ! -e /usr/lib64/libc_malloc_debug.so; \
+    test -f /usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator; \
+    echo "T25_MALLOC_CONFIG_OK three layers, 0644, check and perturb refused"
+
+# The gate above proves the FILES say the right thing. This one proves the
+# allocator actually changed, because reading a tunable back is not evidence --
+# that is the exact trap glibc.malloc.check set. A double free aborts either
+# way; what differs is WHICH code path catches it, and the message names it.
+#   tcache on  -> "free(): double free detected in tcache 2"
+#   tcache off -> "double free or corruption (!prev)"
+# If glibc ever changes that wording this gate goes red on a working control,
+# which is the correct direction for it to fail in.
+RUN set -eux; \
+    P="import ctypes;l=ctypes.CDLL('libc.so.6');l.malloc.restype=ctypes.c_void_p;l.free.argtypes=[ctypes.c_void_p];p=l.malloc(32);l.free(ctypes.c_void_p(p));l.free(ctypes.c_void_p(p))"; \
+    base="$(python3 -c "$P" 2>&1 || true)"; \
+    hard="$(GLIBC_TUNABLES=glibc.malloc.tcache_count=0 python3 -c "$P" 2>&1 || true)"; \
+    echo "baseline: $base"; \
+    echo "hardened: $hard"; \
+    case "$base" in \
+      *tcache*) : ;; \
+      *) echo "T2.5 GATE FAIL: baseline double free did not name tcache; the control cannot be discriminated on this glibc" >&2; exit 1 ;; \
+    esac; \
+    case "$hard" in \
+      *tcache*) echo "T2.5 GATE FAIL: tcache still caught the double free; the tunable did nothing" >&2; exit 1 ;; \
+      *"double free or corruption"*) : ;; \
+      *) echo "T2.5 GATE FAIL: unrecognised abort path: $hard" >&2; exit 1 ;; \
+    esac; \
+    echo "T25_MALLOC_BEHAVIOUR_OK tcache genuinely disabled, proven by a changed abort path"
+
 # ---- 5d. GVFS + the SMB backend (DN-40) -------------------------------------
 # "Connect this computer to the office" is a headline advisor feature and it
 # COULD NOT WORK. Welcome checks the share through GIO and expects GVFS to carry

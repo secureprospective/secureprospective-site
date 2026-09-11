@@ -593,6 +593,63 @@ else
     esac
 fi
 
+
+# ------------------------------------------------------- T2.5 glibc heap policy
+# hardened_malloc was dropped from doc 15 on measurement; see
+# docs/ledger/PHASE-T25-2026-09-11-hardened-malloc.md. What ships is smaller:
+# the per-thread cache is disabled, which removes tcache poisoning as a
+# primitive and nothing else. These assertions deliberately do NOT read the
+# config back. glibc.malloc.check reports itself as set and does nothing, and
+# that trap is the reason this control is measured by behaviour instead.
+echo
+echo "--- T2.5: glibc heap policy ---"
+
+# Layer 1: pam_env, which is what a tty or ssh login gets.
+tun_login="$(remote "printf '%s' \"\${GLIBC_TUNABLES:-}\"" | tr -d '\r')"
+case "$tun_login" in
+    *tcache_count=0*) record PASS "heap tunable reaches a login shell" "GLIBC_TUNABLES=$tun_login" ;;
+    "")               record FAIL "heap tunable reaches a login shell" "GLIBC_TUNABLES is unset; /etc/environment did not reach pam_env" ;;
+    *)                record FAIL "heap tunable reaches a login shell" "carries $tun_login, which does not disable tcache" ;;
+esac
+
+# Layer 2: the systemd USER manager. This is the load-bearing one -- it is what
+# the Plasma session inherits, and therefore what Brave, LibreOffice and Fin get.
+tun_user="$(remote "systemctl --user show-environment 2>/dev/null | sed -n 's/^GLIBC_TUNABLES=//p'" | tr -d '\r')"
+case "$tun_user" in
+    *tcache_count=0*) record PASS "heap tunable reaches the desktop session" "systemd user manager exports $tun_user" ;;
+    "")               record FAIL "heap tunable reaches the desktop session" "the systemd user manager exports nothing; environment.d did not apply, so Brave would not get it" ;;
+    *)                record FAIL "heap tunable reaches the desktop session" "user manager exports $tun_user, which does not disable tcache" ;;
+esac
+
+# Layer 3: a real system service process, read out of its own /proc. Bee's
+# point, and the right one: reading a tunable back is not proof that a running
+# process honours it.
+svcenv="$(remote "p=\$(pgrep -x NetworkManager | head -1); [ -n \"\$p\" ] && sudo tr '\\0' '\\n' < /proc/\$p/environ | sed -n 's/^GLIBC_TUNABLES=//p'" | tr -d '\r')"
+case "$svcenv" in
+    *tcache_count=0*) record PASS "heap tunable reaches a system service" "NetworkManager's own environ carries $svcenv" ;;
+    "")               record FAIL "heap tunable reaches a system service" "NetworkManager's environ carries no GLIBC_TUNABLES; DefaultEnvironment did not apply" ;;
+    *)                record FAIL "heap tunable reaches a system service" "NetworkManager carries $svcenv, which does not disable tcache" ;;
+esac
+
+# The behavioural one. A double free aborts either way; which code path catches
+# it is what differs, and the message names the path. Run through the systemd
+# user manager so the environment under test is the DESKTOP's, not ssh's.
+MPROBE="import ctypes;l=ctypes.CDLL('libc.so.6');l.malloc.restype=ctypes.c_void_p;l.free.argtypes=[ctypes.c_void_p];p=l.malloc(32);l.free(ctypes.c_void_p(p));l.free(ctypes.c_void_p(p))"
+abort_msg="$(remote "systemd-run --user --quiet --wait --pipe --collect python3 -c \"$MPROBE\" 2>&1 | tr -d '\\r' | grep -iE 'double free|corruption' | head -1")"
+case "$abort_msg" in
+    *tcache*)                   record FAIL "tcache is genuinely disabled" "the tcache path still caught the double free: $abort_msg" ;;
+    *"double free or corruption"*) record PASS "tcache is genuinely disabled" "abort came from the non-tcache path: $abort_msg" ;;
+    "")                         record FAIL "tcache is genuinely disabled" "the probe produced no abort at all; it did not reach glibc" ;;
+    *)                          record FAIL "tcache is genuinely disabled" "unrecognised abort path: $abort_msg" ;;
+esac
+
+# And the negative: the inert tunables must not have been shipped. They read as
+# applied and do nothing, which is worse than absent.
+inert="$(remote "grep -rhoE 'glibc\\.malloc\\.(check|perturb)' /etc/environment /usr/lib/environment.d/ /usr/lib/systemd/system.conf.d/ 2>/dev/null | sort -u | paste -sd, -" | tr -d '\r')"
+case "$inert" in
+    "") record PASS "inert malloc tunables not shipped" "neither malloc.check nor malloc.perturb appears in any environment layer" ;;
+    *)  record FAIL "inert malloc tunables not shipped" "found $inert; these do nothing without libc_malloc_debug.so and read as green" ;;
+esac
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then
