@@ -2257,9 +2257,19 @@ assert c <= known, 'help category the Welcome screen has no blurb for: %s' % (c-
     done \
  && echo "WELCOME_HELP_OK search ships, the answer bar stays hidden, corpus intact" \
  && test -s /usr/share/sp-plus/theme/PREVIEW-CAPTURE-CONTRACT.md \
- && for preview in windows-light.png windows-dark.png breeze-light.png breeze-dark.png nordic-dark.png orchis-light.png catppuccin-latte.png catppuccin-mocha.png; do \
-      test -s "/usr/libexec/sp-plus/welcome/app/assets/theme-previews/$preview"; \
-    done \
+ && python3 -c "import pathlib,re,sys; \
+page=pathlib.Path('/usr/libexec/sp-plus/welcome/app/index.html').read_text(); \
+want=set(re.findall(r'data-preview=\"assets/theme-previews/([^\"]+)\"', page)); \
+assert want, 'no theme card declares a preview image; the gate would assert nothing'; \
+d=pathlib.Path('/usr/libexec/sp-plus/welcome/app/assets/theme-previews'); \
+have={f.name for f in d.glob('*.png')}; \
+missing=sorted(want-have); \
+assert not missing, 'a theme card points at a preview that does not ship: %s' % missing; \
+empty=sorted(n for n in want if (d/n).stat().st_size == 0); \
+assert not empty, 'a shipped preview is a zero-byte file: %s' % empty; \
+orphan=sorted(have-want); \
+assert not orphan, 'a preview ships that no theme card references: %s' % orphan; \
+print('THEME_PREVIEW_GATE_OK %d previews, every one referenced by a card' % len(want))" \
  && test -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
  && desktop-file-validate /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
  && desktop-file-validate /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
