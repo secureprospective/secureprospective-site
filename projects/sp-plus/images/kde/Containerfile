@@ -540,6 +540,7 @@ COPY config/fin-tips             /usr/libexec/sp-plus/fin-tips
 COPY config/fin-tip-catalogue/   /usr/share/sp-plus/fin/tips/
 COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
 COPY config/fin-extensions/      /usr/share/sp-plus/fin/extensions/
+COPY tests/fin-notebook-gate.sh   /usr/libexec/sp-plus/fin-notebook-gate
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
@@ -978,6 +979,34 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && test -f /usr/share/sp-plus/fin/skills/marketing/SKILL.md \
  && grep -q 'FINRA Rule 2210' /usr/share/sp-plus/fin/skills/marketing/SKILL.md \
  && echo "FIN_ORGANIZE_OK names-only promise is mechanical; marketing skill carries the review rule" \
+# The notebook is the advisor's own record, and the only part of SP+ that
+# ACCUMULATES. Everything else passes through; this builds up on disk inside a
+# Documents folder that may well sync somewhere. So the no-names rule is carried
+# by an extension and proved by a gate that runs here, at build time, against
+# the file that actually ships -- not by a sentence in a skill. The gate is also
+# installed, so the same proof can be re-run on a booted machine.
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && chmod 0755 /usr/libexec/sp-plus/fin-notebook-gate \
+ && bash -n /usr/libexec/sp-plus/fin-notebook-gate \
+# Loaded on BOTH paths: the interactive TUI and Welcome's bounded --ask call.
+# A guard that is only on one of them is a guard with a documented way round it.
+ && test "$(grep -c 'spplus-notebook' /usr/libexec/sp-plus/fin)" -eq 2 \
+# The two directories have to exist before Fin first runs, for the same reason
+# Documents/Fin does: a missing path fails as a broken tool, not as a rule.
+# Drafts is where a letter naming a client is SUPPOSED to go, and the guard's
+# refusal message sends Fin there by name.
+ && mkdir -p /etc/skel/Documents/Fin/Notebook /etc/skel/Documents/Fin/Drafts \
+ && test -d /etc/skel/Documents/Fin/Notebook \
+ && test -d /etc/skel/Documents/Fin/Drafts \
+ && grep -q 'Documents/Fin/Drafts' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+# Christopher, 2026-09-11: every page timestamped, and recording which model
+# wrote it. Stamped by the extension rather than asked of the model, because a
+# stamp the model has to remember is missing from the one page somebody later
+# needs to date.
+ && grep -q 'written_by' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && bash /usr/libexec/sp-plus/fin-notebook-gate \
+      /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && echo "FIN_NOTEBOOK_OK the notebook refuses names and personal detail, and stamps every page" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \

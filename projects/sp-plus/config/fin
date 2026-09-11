@@ -47,6 +47,7 @@ if [ "${1:-}" = "--ask" ]; then
         --extension "$EXTENSIONS/spplus-guardrails.ts" \
         --extension "$EXTENSIONS/spplus-workspace.ts" \
         --extension "$EXTENSIONS/spplus-organize.ts" \
+        --extension "$EXTENSIONS/spplus-notebook.ts" \
         --approve \
         "$1"
 fi
@@ -143,5 +144,6 @@ exec /usr/bin/pi \
     --extension "$EXTENSIONS/spplus-guardrails.ts" \
     --extension "$EXTENSIONS/spplus-workspace.ts" \
     --extension "$EXTENSIONS/spplus-organize.ts" \
+    --extension "$EXTENSIONS/spplus-notebook.ts" \
     --approve \
     "$@"
