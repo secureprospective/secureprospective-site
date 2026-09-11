@@ -2,7 +2,8 @@
 
 **Date:** 2026-09-11
 **Branch:** `session/sp-plus-defense-in-depth`
-**Status:** **not shipped.** Blocked on a trust-root decision that is Christopher's.
+**Status:** **resolved and shipped as a reduced control.** `hardened_malloc` dropped
+(D49); `glibc.malloc.tcache_count=0` ships in t29 and is measured in effect.
 **Evidence:** `~/logs/sp-plus/t25-malloc-20260911T113641Z/` on the Beelink — four probe
 scripts, their logs, and `results.txt`.
 
@@ -124,3 +125,72 @@ Not decided, and genuinely Christopher's:
    T2.5 from doc 15 with this ledger as the reason.
 2. Whether `glibc.malloc.tcache_count=0` ships on its own merits. It is cheap, measured, and
    honest, but it is **not** T2.5.
+
+---
+
+## 5. Resolution — what shipped, and what it measured
+
+Christopher delegated the call. `hardened_malloc` is dropped (D49) and
+`GLIBC_TUNABLES=glibc.malloc.tcache_count=0` ships across three layers:
+`/etc/environment` for `pam_env`, `/usr/lib/environment.d/` for the systemd user manager
+that the Plasma session and therefore Brave inherit, and `DefaultEnvironment` for system
+services.
+
+**Two build gates, both behavioural.** The second one runs a deliberate double free inside
+the build and asserts the abort came from a different code path:
+
+```
+baseline: free(): double free detected in tcache 2
+hardened: double free or corruption (!prev)
+T25_MALLOC_BEHAVIOUR_OK tcache genuinely disabled, proven by a changed abort path
+```
+
+Mutation-tested inside the t28 image across four arms before it was believed: green only
+for the real tunable, red for no tunable, red for `glibc.malloc.check=3`, red for
+`glibc.malloc.perturb=204`. The two inert tunables produce a red result, which is the
+whole point — they are what a config-reading gate would have called green.
+
+**Five runtime assertions, and two of them were wrong.** All five went red against the t28
+guest first, as required. On t29 three passed immediately and two failed **against a
+working image**:
+
+- The system-service assertion ran `sudo tr '\0' '\n' < /proc/PID/environ`. The shell
+  opens a redirect **before** `sudo` runs, so the read happened as the unprivileged user
+  and returned "Permission denied", which the assertion saw as an empty answer. Fixed by
+  making the privileged program the one that opens the file.
+- The login assertion asked an ssh session for the variable. Fedora does not stack
+  `pam_env` in `sshd` or `password-auth`, so it measured a stack that never reads
+  `/etc/environment`. `/etc/pam.d/su` does stack it, so it now measures through `su` and is
+  named for what it proves.
+
+Both were mutation-tested again after correction. Moving `/etc/environment` aside empties
+the `su` answer and restores on replacement; the service probe returns nothing for PID 1,
+which predates `DefaultEnvironment`, and the tunable for NetworkManager.
+
+**Result: 80 of 80 on a genuine first boot of t29, zero failed system units, zero failed
+user units.**
+
+## 6. Day-one check, which is the rule that governs all of this
+
+Run on t29 through the systemd user manager, so the environment under test is the
+desktop's and not ssh's — a plain ssh session does not carry the tunable and testing there
+would have proved nothing.
+
+| Workload | Result |
+|---|---|
+| Brave headless, 200,000 JavaScript objects | exit 0, DOM reports `alloc 200000` |
+| LibreOffice convert to PDF | exit 0, 912,628 byte PDF |
+| Node 22 allocation churn, 1.8M buffers | exit 0, `NODE_OK` |
+| Flatpak remote query | exit 0, 55,256 bytes listed |
+| CUPS status | exit 0 |
+| GIO / GVFS | exit 0 |
+| Failed units afterwards | 0 system, 0 user |
+
+The converting process was confirmed to be carrying
+`GLIBC_TUNABLES=glibc.malloc.tcache_count=0` at the time, so this is the hardened path and
+not an accidental baseline.
+
+**One harness note:** `systemd-run --user` does not inherit the working directory, so the
+first LibreOffice run failed with "source file could not be loaded" on a relative path. An
+absolute path converts fine. Recorded because a failure that resolves on retry still gets
+written down.

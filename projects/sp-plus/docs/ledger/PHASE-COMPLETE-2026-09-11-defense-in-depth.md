@@ -3,8 +3,11 @@
 **Date:** 2026-09-11
 **Branch:** `session/sp-plus-defense-in-depth`
 **Deliverable:** `~/Downloads/sp-plus-defense-in-depth-20260911.iso`
-sha256 `951fe34f667f14c7e4177f7dbe1f4ca80bef86e0a84476505dfb960aeab1b144`
-payload `localhost/sp-plus-kde:t28`, image id `b8311826c58d…`
+sha256 `038795fe96b734015d941967eca9b63a96318ab90ee5d9ece0b843be68016c94`
+payload `localhost/sp-plus-kde:t29`, image id `7d38a2ff4fc2…`
+
+**Superseded once.** The t28 build, sha256 `951fe34f…`, was the deliverable until T2.5
+was resolved. t29 is t28 plus the glibc heap policy and nothing else.
 
 ## Scorecard
 
@@ -14,7 +17,7 @@ payload `localhost/sp-plus-kde:t28`, image id `b8311826c58d…`
 | 2 | Phase S, signature policy | **Verified in the image, not shippable** — the published ghcr image needs re-signing in the readable format. Christopher's decision |
 | 3 | Tier 1 invisible hardening | **Done and verified.** T2.4 kernel arguments, T2.6 login policy |
 | 4 | T2.2 Flathub verified subset | **Done and verified**, re-verified on t28's first boot |
-| 5 | Tier 2 remainder, one control per build | **Two of four done.** T2.3 and T2.7 shipped and verified. T2.1 blocked on real carrier portals. T2.5 blocked on a trust-root decision |
+| 5 | Tier 2 remainder, one control per build | **Three of four shipped, the fourth deferred by decision.** T2.3, T2.7 and T2.5 shipped and verified. T2.5 ships as a reduced control under D49, and the scorecard says reduced, not done. T2.1 deferred under D50 with the prerequisite that reopens it named |
 
 **Move 5 was not one decision, and treating it as one was my error.** I first recorded
 all four of its controls blocked. Two of them were not. Measuring the baseline instead
@@ -31,6 +34,38 @@ of reasoning from the roadmap text is what separated them:
 
 Neither correction lowered the bar. Both controls are measured, mutation-tested, and
 carry an explicit statement of what they do **not** protect against.
+
+### What changed after this scorecard was first written
+
+Two of the five moves were still open when this file was first committed. Both were put to
+Christopher, who delegated the call. Both were then resolved, and both resolutions are
+recorded as register decisions rather than left in a ledger.
+
+**T2.5 — `hardened_malloc` dropped, a smaller control shipped (D49).** The named library is
+in none of the four repositories SP+ ships, Secureblue's own tracker says the config that
+enables the allocator is not in their RPM, and the documented breakage class is Electron,
+which here is Brave, Zoom and Signal. Before that went up, the in-repo alternative was
+measured, and most of it turned out to be a mirage: `glibc.malloc.check` and
+`glibc.malloc.perturb` are **inert** on glibc 2.43 because their implementation moved into
+`libc_malloc_debug.so`, which is not in the image — and `ld.so --list-tunables` still
+reports check as set to 3. Shipping it would have produced a green line for zero security.
+Only `glibc.malloc.tcache_count=0` is real, proven by a changed abort path rather than a
+config read. It ships across three layers and removes tcache poisoning as a primitive. It
+is **not** `hardened_malloc` and the evidence report says so in those words.
+
+**T2.1 — browser confinement deferred (D50).** Not abandoned: the mechanism is proven and
+the working CIL skeleton is preserved. Deferred because an enforcing domain built from
+three headless page loads breaks the advisor's day, which D44 forbids outright, and a
+permissive domain blocks nothing while looking like hardening in a scorecard. The single
+prerequisite is about an hour of ordinary browser use on real hardware with the audit log
+kept.
+
+**The gate grew 75 → 80** and caught two of its own new assertions measuring nothing. Both
+went red against a working t29. One ran `sudo tr '\0' '\n' < /proc/PID/environ`, where the
+shell opens the redirect before `sudo` runs, so the read happened unprivileged and returned
+"Permission denied" — read by the assertion as the control being absent. The other asked an
+ssh session for an environment variable that only `pam_env` sets, and Fedora does not stack
+`pam_env` in `sshd` or `password-auth`. **That is eleven and twelve in the list below.**
 
 ## The gate is the asset
 
