@@ -243,6 +243,47 @@ else
     fi
 fi
 
+# ------------------------------------------------------------ T2.2 (2026-09-11)
+# Flathub restricted to its verified subset, with a vouched exception remote.
+# The last assertion here is the one that matters: it resolves every application
+# SP+ offers on its Optional Tools screen from the remote SP+ will actually ask,
+# which is the difference between a control and a broken Install button. These
+# four reach the network, so they are slower than everything above and they fail
+# loudly rather than skipping if Flathub is unreachable.
+fp_subset="$(remote "flatpak remotes --columns=name,subset" | tr -d '\r' | awk '$1=="flathub"{print $2}')"
+if [ "$fp_subset" = verified ]; then record PASS "flathub restricted to verified" "subset=$fp_subset"
+else record FAIL "flathub restricted to verified" "subset=${fp_subset:-<none>}"; fi
+
+fp_opts="$(remote "flatpak remotes --columns=name,options" | tr -d '\r' | awk '$1=="flathub-vouched"{print $2}')"
+case "$fp_opts" in
+    *no-enumerate*) record PASS "vouched remote not browsable" "$fp_opts" ;;
+    *)              record FAIL "vouched remote not browsable" "${fp_opts:-<remote absent>}" ;;
+esac
+
+fp_count="$(remote "timeout 240 flatpak remote-ls flathub-vouched --app --columns=application 2>/dev/null | grep -c ." | tr -d '\r')"
+if [ -z "$fp_opts" ]; then
+    record FAIL "vouched remote enumerates nothing" "remote absent, so nothing was measured"
+elif [ "${fp_count:-x}" = 0 ]; then
+    record PASS "vouched remote enumerates nothing" "0 applications listed"
+else
+    record FAIL "vouched remote enumerates nothing" "${fp_count:-<no answer>} listed"
+fi
+
+# Day one: every Optional Tool still resolves from the remote Welcome will ask.
+tools_bad=""
+for pair in us.zoom.Zoom:flathub-vouched org.signal.Signal:flathub-vouched \
+            com.bitwarden.desktop:flathub org.gnome.Boxes:flathub; do
+    app="${pair%%:*}"; rem="${pair##*:}"
+    if ! remote "timeout 120 flatpak remote-info $rem $app >/dev/null 2>&1 && echo yes" | grep -q yes; then
+        tools_bad="$tools_bad $app"
+    fi
+done
+if [ -z "${tools_bad// /}" ]; then
+    record PASS "optional tools all resolve" "4 of 4 from their shipped remote"
+else
+    record FAIL "optional tools all resolve" "unresolvable:$tools_bad"
+fi
+
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then

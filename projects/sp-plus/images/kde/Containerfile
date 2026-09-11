@@ -3036,6 +3036,62 @@ RUN set -eux; \
     echo "PROVENANCE_GATE_OK $(wc -l < /usr/share/sp-plus/security/rpm-manifest.txt) packages recorded with the base digest"
 
 # ============================================================================
+# T2.2 -- Flathub restricted to its verified subset, with a vouched exception
+#
+# Doc 15 §4 rates layer 6 (application confinement) weak, and names Flathub
+# enabled with no allowlist as the reason. This is the cheap half of that: it
+# does not confine an application that is already installed, it reduces the set
+# of publishers an advisor can be talked into installing from in the first
+# place. Measured on a booted SP+ machine 2026-09-11: 3,458 applications before,
+# 2,186 after.
+#
+# WHAT IT COST, AND WHY THERE IS A SECOND REMOTE.
+#
+# The subset is not free. Flathub marks an application verified when the vendor
+# publishes it themselves, and four applications an advisor might plausibly
+# reach for are not: Zoom, Signal, Slack and VLC. Two of those four are on SP+'s
+# own Optional Tools screen. Shipping the subset alone would have quietly broken
+# the Zoom install button, and Zoom is how a stuck advisor lets someone they
+# trust see the screen -- the single most load-bearing recovery path the product
+# has. Day one is not negotiable (D44), so the control had to come with a way
+# through rather than instead of one.
+#
+# The way through is `flathub-vouched`: the same repository, the same signing
+# key, no subset, marked no-enumerate so Discover never shows it. SP+ Welcome
+# installs exactly the applications it vouches for from it, by name. The advisor
+# still browses a verified-only store and still gets a working Zoom button, and
+# the exception list is two lines of Python that read as what they are -- a
+# supply-chain decision, made by name, in the open.
+#
+# MEASURED, AND NOT CLAIMED: `flatpak remote-modify --filter`. It registers, it
+# shows in `flatpak remotes`, and it does not enforce. A filtered remote still
+# enumerated all 3,458 refs and still installed one the filter did not allow.
+# SP+ does not ship it, because shipping a control that cannot fail is the
+# WSDD mistake in a different costume.
+COPY config/flatpak/flathub-vouched.flatpakrepo /usr/share/flatpak/remotes.d/flathub-vouched.flatpakrepo
+COPY config/spplus-flatpak-remotes.service      /usr/lib/systemd/system/spplus-flatpak-remotes.service
+
+RUN set -eux; \
+    systemctl enable spplus-flatpak-remotes.service; \
+    test -L /etc/systemd/system/multi-user.target.wants/spplus-flatpak-remotes.service; \
+    systemd-analyze verify /usr/lib/systemd/system/spplus-flatpak-remotes.service; \
+    grep -q '^Subset=verified$' /usr/share/flatpak/remotes.d/flathub.flatpakrepo; \
+    grep -q '^Url=https://dl.flathub.org/repo/$' /usr/share/flatpak/remotes.d/flathub-vouched.flatpakrepo; \
+    grep -q '^GPGKey=' /usr/share/flatpak/remotes.d/flathub-vouched.flatpakrepo; \
+    if grep -q '^Subset=' /usr/share/flatpak/remotes.d/flathub-vouched.flatpakrepo; then \
+        echo "FLATHUB GATE FAIL: the vouched remote must carry no subset" >&2; exit 1; \
+    fi; \
+    grep -q "'flathub-vouched'" /usr/libexec/sp-plus/welcome/welcome.py; \
+    grep -q 'FLATPAK_APP_REMOTE' /usr/libexec/sp-plus/welcome/welcome.py; \
+    python3 -c "import ast,sys; \
+src=open('/usr/libexec/sp-plus/welcome/welcome.py').read(); \
+t=ast.parse(src); \
+d=[n for n in ast.walk(t) if isinstance(n,ast.Assign) and getattr(n.targets[0],'id','')=='FLATPAK_APP_REMOTE'][0].value; \
+m={k.value:v.value for k,v in zip(d.keys,d.values)}; \
+sys.exit(0 if m=={'us.zoom.Zoom':'flathub-vouched','org.signal.Signal':'flathub-vouched'} else 1)"; \
+    echo "FLATHUB_SUBSET_GATE_OK flathub=verified subset, flathub-vouched unsubsetted, two vouched apps"
+
+# ============================================================================
 # PHASE S -- verify the signature on our own OS image
 #
 # SP+ has signed every image it publishes since 2026-09-01 and, until now, no

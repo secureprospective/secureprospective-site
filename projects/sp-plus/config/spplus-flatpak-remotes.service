@@ -1,0 +1,74 @@
+[Unit]
+Description=Converge the SP+ Flatpak remotes onto their shipped policy (T2.2)
+Documentation=man:flatpak-remote-modify(1)
+ConditionPathExists=/usr/bin/flatpak
+
+# WHY THE ORDERING MATTERS, measured on a first boot 2026-09-11.
+# Fedora ships flatpak-add-fedora-repos.service, and on the very first boot
+# systemd started it in the same second as this unit. Both write
+# /var/lib/flatpak/repo/config. The Fedora unit wrote last and its copy did not
+# contain the flag this one had just set, so a freshly installed machine browsed
+# an unrestricted Flathub until its SECOND boot -- with both units reporting
+# success and nothing in `systemctl --failed`. Serialise against it.
+After=flatpak-add-fedora-repos.service
+
+# WHY THIS UNIT EXISTS.
+#
+# T2.2 restricts the browsable Flathub remote to Flathub's verified subset. That
+# part is pure image content: `Subset=verified` is a key the .flatpakrepo parser
+# honours, so it is present at first boot and survives `bootc rollback`.
+#
+# The vouched remote is the exception path, and it needs one property the
+# .flatpakrepo parser does NOT support. `Subset`, `Filter`, `NoDeps` and
+# `DefaultBranch` are the only keys flatpak reads from a repo file -- verified by
+# reading the strings in the shipped libflatpak on 2026-09-11. There is no
+# `NoEnumerate` key. Without no-enumerate the vouched remote is browsable, and a
+# browsable copy of the unrestricted Flathub defeats the entire control.
+#
+# So the remote itself ships as image content and only its no-enumerate flag is
+# converged here, idempotently, on every boot. `flatpak remote-modify` writes to
+# /var/lib/flatpak/repo/config, which is machine state: a reinstall recreates the
+# remote from the vendor file WITHOUT the flag, which is exactly the case this
+# unit exists to close.
+#
+# DO NOT "simplify" this by adding the remote with `flatpak remote-add` here. A
+# vendor remote is present before any unit runs, survives rollback, and cannot be
+# half-applied if this unit fails. That reasoning is the same one recorded above
+# the Flathub COPY in the Containerfile, and it still holds.
+#
+# NOT claimed as a control: `--filter`. It was measured on 2026-09-11 and it does
+# not enforce. A filtered remote still enumerated all 3,458 applications and
+# still installed one the filter did not allow. It is presentation, not a
+# boundary, and SP+ does not ship it as if it were.
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Set the flag, then READ IT BACK, and keep trying for twenty seconds if it did
+# not stick. The read-back is the point: the first version of this unit ran
+# `remote-modify` alone, logged "Modified remote flathub-vouched", exited 0 and
+# left the machine unprotected. An exit code is not evidence that a setting
+# took effect. If it never takes, this unit FAILS, which the posture gate's
+# zero-failed-units assertion turns into a visible defect.
+ExecStart=/bin/sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do /usr/bin/flatpak remote-modify --system --no-enumerate flathub-vouched 2>/dev/null; if /usr/bin/flatpak remotes --system --columns=name,options | grep -q "^flathub-vouched[[:space:]].*no-enumerate"; then exit 0; fi; sleep 2; done; echo "SP+ could not mark flathub-vouched no-enumerate; Discover would show unverified applications" >&2; exit 1'
+
+# This unit runs one short command against local configuration. It gets the same
+# sandboxing treatment as the rest of SP+'s own units.
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+PrivateNetwork=yes
+
+[Install]
+WantedBy=multi-user.target

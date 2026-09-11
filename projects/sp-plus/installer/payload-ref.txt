@@ -1,1 +1,1 @@
-localhost/sp-plus-kde:tier1
+localhost/sp-plus-kde:t22

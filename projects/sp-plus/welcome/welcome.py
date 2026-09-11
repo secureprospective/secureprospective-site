@@ -162,6 +162,27 @@ SERVICE_ENDPOINT_ENV = {
 SERVICE_CONNECT_TIMEOUT = 6
 SERVICE_TOTAL_TIMEOUT = 10
 SERVICE_MAX_BODY = 1024 * 1024
+# T2.2, 2026-09-11. The browsable Flathub remote ships restricted to Flathub's
+# verified subset, which is 2,186 applications rather than 3,458 -- both numbers
+# measured on a booted SP+ machine. Two of the tools offered below are not in it.
+# Flathub marks an application verified when the vendor themselves publishes it,
+# and neither the Zoom nor the Signal Flatpak is vendor-published.
+#
+# Dropping them was not an option: doc 15's day-one rule is not negotiable, and
+# Zoom in particular is how a stuck advisor lets someone they trust see the
+# screen. So SP+ vouches for these two by name and installs them from a second
+# remote that carries the same repository and the same signing key with no
+# subset. That remote is no-enumerate, so it never appears in Discover and the
+# advisor still browses a verified-only store.
+#
+# Adding a name here is a supply-chain decision, not a packaging one. It says
+# SP+ accepts a publisher Flathub has not verified.
+FLATPAK_DEFAULT_REMOTE = 'flathub'
+FLATPAK_APP_REMOTE = {
+    'us.zoom.Zoom': 'flathub-vouched',
+    'org.signal.Signal': 'flathub-vouched',
+}
+
 FLATPAK_APP_NAMES = {
     # Zoom moved here from the ISO's Flatpak preinstall on 2026-09-04. It is
     # first because it is not only meeting software: it is the practical way
@@ -662,8 +683,9 @@ class FlatpakInstallWorker(QThread):
             # sudoers-sp-plus argues against -- SP+ ships no account, the
             # password is chosen once by the first-boot wizard, and a
             # non-technical user does not reliably remember it months later.
+            remote = FLATPAK_APP_REMOTE.get(self.app_id, FLATPAK_DEFAULT_REMOTE)
             subprocess.run([SUDO, '-n', FLATPAK, 'install', '--system', '-y',
-                            'flathub', self.app_id],
+                            remote, self.app_id],
                            capture_output=True, text=True, timeout=1800)
             verified = subprocess.run([FLATPAK, 'info', '--system', self.app_id],
                                       capture_output=True, text=True, timeout=30)
