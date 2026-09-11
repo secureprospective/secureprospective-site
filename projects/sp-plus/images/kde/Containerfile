@@ -1004,6 +1004,13 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
 # stamp the model has to remember is missing from the one page somebody later
 # needs to date.
  && grep -q 'written_by' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+# "Well indexed" has to survive week three. An index the model updates by hand
+# is wrong quietly -- the page is still on disk, it just stops being findable,
+# which for a notebook is the same as losing it. So the index is regenerated
+# from the frontmatter of every page after every notebook write, and it is
+# written for the advisor to read rather than for a developer.
+ && grep -q 'rebuildIndex' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && grep -q 'rebuilt automatically whenever a page changes' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
  && bash /usr/libexec/sp-plus/fin-notebook-gate \
       /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
  && echo "FIN_NOTEBOOK_OK the notebook refuses names and personal detail, and stamps every page" \

@@ -42,7 +42,7 @@
 
 import { homedir } from "node:os";
 import { isAbsolute, resolve, sep } from "node:path";
-import { realpathSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 /** The notebook. Inside Documents/Fin so the workspace confinement in
@@ -237,6 +237,126 @@ function stamp(content: string, path: string, model: string): string {
 	return `---\n${header}\n---\n\n${body.replace(/^\n+/, "")}`;
 }
 
+
+/* ------------------------------------------------------------------ index -- */
+
+/**
+ * The index rebuilds itself.
+ *
+ * Christopher asked for the notebook to be "well indexed". An index a model has
+ * to remember to update is an index that is wrong by the third week, and wrong
+ * quietly -- the page is still on disk, it just stops being findable, which for
+ * a notebook is the same as losing it. So nothing here is asked of Fin: after
+ * any successful write into the notebook, the whole index is regenerated from
+ * the frontmatter of every page that exists.
+ *
+ * Regenerated, not appended. A deleted page has to leave the index too, and an
+ * append-only index cannot do that.
+ */
+
+const INDEX = resolve(NOTEBOOK, "README.md");
+
+type Page = {
+	rel: string;
+	title: string;
+	kind: string;
+	created: string;
+	updated: string;
+	writtenBy: string;
+};
+
+function allMarkdown(dir: string, base = dir): string[] {
+	const out: string[] = [];
+	let entries;
+	try {
+		entries = readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return out;
+	}
+	for (const e of entries) {
+		const full = resolve(dir, e.name);
+		if (e.isDirectory()) out.push(...allMarkdown(full, base));
+		else if (/\.md$/i.test(e.name) && full !== INDEX) out.push(full);
+	}
+	return out;
+}
+
+function readPage(file: string): Page | null {
+	let raw: string;
+	try {
+		raw = readFileSync(file, "utf8");
+	} catch {
+		return null;
+	}
+	const fm = raw.match(/^---\n([\s\S]*?)\n---/);
+	const get = (k: string) => fm?.[1]?.match(new RegExp(`^${k}:\\s*(.*)$`, "m"))?.[1]?.trim() ?? "";
+	const rel = file.slice(NOTEBOOK.length + 1).split(sep).join("/");
+	// A page written before this guard existed could carry anything in its
+	// title, so the index is held to the same rule as the pages it lists.
+	const title = get("title") || rel.replace(/\.md$/i, "");
+	return {
+		rel,
+		title: findPii(title).length > 0 ? "(title withheld)" : title,
+		kind: get("kind") || "note",
+		created: get("created"),
+		updated: get("updated"),
+		writtenBy: get("written_by"),
+	};
+}
+
+/** Plain language, because the advisor is the reader. Not a developer README. */
+const PREAMBLE = `# Your notebook
+
+This is where Fin keeps what you have worked on together, so that nothing has to
+be explained twice. Every page is a plain text file you can open, edit or delete
+yourself, and the list below is rebuilt automatically whenever a page changes.
+
+Fin deliberately keeps names and personal details out of these pages. Notes are
+written about roles -- "the client", "the carrier" -- so that a folder that may
+be backed up or synced somewhere does not slowly turn into a contact list.
+Letters and emails for a named person are kept in Documents/Fin/Drafts instead.
+`;
+
+const KIND_HEADINGS: Record<string, string> = {
+	profile: "How you like things written",
+	session: "What you have worked on",
+	note: "What you have learned and decided",
+};
+
+function rebuildIndex(): void {
+	const pages = allMarkdown(NOTEBOOK)
+		.map(readPage)
+		.filter((p): p is Page => p !== null)
+		.sort((a, b) => (b.updated || "").localeCompare(a.updated || ""));
+
+	let body = PREAMBLE;
+
+	if (pages.length === 0) {
+		body += `\nThere is nothing in the notebook yet. It fills up as you work.\n`;
+	} else {
+		const kinds = [
+			...Object.keys(KIND_HEADINGS).filter((k) => pages.some((p) => p.kind === k)),
+			...[...new Set(pages.map((p) => p.kind))].filter((k) => !(k in KIND_HEADINGS)),
+		];
+		for (const kind of kinds) {
+			const rows = pages.filter((p) => p.kind === kind);
+			if (rows.length === 0) continue;
+			body += `\n## ${KIND_HEADINGS[kind] ?? kind}\n\n`;
+			body += `| Page | Last changed | Written by |\n|---|---|---|\n`;
+			for (const p of rows) {
+				const day = (p.updated || p.created || "").slice(0, 10) || "unknown";
+				body += `| [${p.title}](${encodeURI(p.rel)}) | ${day} | ${p.writtenBy || "unknown"} |\n`;
+			}
+		}
+	}
+
+	const stampedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+	body += `\n---\n\nThis list was rebuilt on ${stampedAt} and covers ${pages.length} page`;
+	body += `${pages.length === 1 ? "" : "s"}. Fin rewrites it; there is no need to edit it by hand.\n`;
+
+	writeFileSync(INDEX, body, "utf8");
+}
+
 /* ------------------------------------------------------------- extension -- */
 
 export default function (pi: ExtensionAPI) {
@@ -315,6 +435,27 @@ export default function (pi: ExtensionAPI) {
 			event.input.content = stamp(text, target, model);
 		}
 
+		return undefined;
+	});
+
+	// The index is rebuilt AFTER the write lands, not before it: rebuilding from
+	// the directory before the file exists would produce an index missing the
+	// page that just triggered it. Wrapped so that a fault here can never turn a
+	// successful save into a failed tool call -- a stale index is a nuisance, a
+	// broken write is the advisor losing work.
+	pi.on("tool_result", async (event, ctx) => {
+		if (event.isError) return undefined;
+		if (event.toolName !== "write" && event.toolName !== "edit") return undefined;
+
+		const raw = String(event.input.path ?? "");
+		const target = isAbsolute(raw) ? resolve(raw) : resolve(ctx.cwd, raw);
+		if (!insideNotebook(target)) return undefined;
+
+		try {
+			rebuildIndex();
+		} catch {
+			/* a notebook with a stale index is still a notebook */
+		}
 		return undefined;
 	});
 }

@@ -38,9 +38,12 @@ import { join } from "node:path";
 import ext from "./ext.ts";
 
 const NB = join(homedir(), "Documents", "Fin", "Notebook");
-let handler = null;
-ext({ on: (name, fn) => { if (name === "tool_call") handler = fn; } });
+const hooks = {};
+ext({ on: (name, fn) => { hooks[name] = fn; } });
+const handler = hooks["tool_call"];
+const onResult = hooks["tool_result"];
 if (!handler) { console.log("FAIL: the extension registered no tool_call handler"); process.exit(1); }
+if (!onResult) { console.log("FAIL: the extension registered no tool_result handler"); process.exit(1); }
 
 const ctx = { cwd: homedir(), hasUI: false, model: { id: "claude-sonnet-5" } };
 const call = async (toolName, input) => {
@@ -138,9 +141,53 @@ check("ordinary shell commands are untouched",
   check("rewriting a page moves its updated time", !c2.includes(`updated: ${created}`));
 }
 
+// 15. The index rebuilds itself from what is on disk. The handler above only
+//     decides and stamps; the write tool is what actually creates the file, so
+//     the harness creates it the same way before firing the result event.
+{
+  const { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } = await import("node:fs");
+  const resultOf = async (path, content) => {
+    const w = await call("write", { path, content });
+    mkdirSync(join(path, ".."), { recursive: true });
+    writeFileSync(path, String(w.input.content), "utf8");
+    await onResult({ type: "tool_result", toolName: "write", input: { path }, isError: false, content: [] }, ctx);
+  };
+
+  await resultOf(join(NB, "sessions", "2026-09-11-printer.md"), "# Printer\n\nSorted out the printer.\n");
+  await resultOf(join(NB, "voice.md"), "---\nkind: profile\ntitle: How you like things written\n---\n\nShort sentences.\n");
+
+  const idx = join(NB, "README.md");
+  check("the index file is created", existsSync(idx));
+  const text = existsSync(idx) ? readFileSync(idx, "utf8") : "";
+  check("the index lists the session page", text.includes("sessions/2026-09-11-printer.md"), text.slice(0, 200));
+  check("the index lists the voice profile", text.includes("voice.md"));
+  check("the index groups pages under a plain-language heading", /## How you like things written/.test(text));
+  check("the index says who wrote each page", /claude-sonnet-5/.test(text));
+  check("the index is written for the advisor, not a developer", /This is where Fin keeps/.test(text));
+  check("the index counts the pages it covers", /covers 2 pages/.test(text), text.slice(-160));
+
+  // A deleted page must leave the index, which is why it is regenerated rather
+  // than appended to.
+  rmSync(join(NB, "voice.md"));
+  await resultOf(join(NB, "sessions", "2026-09-11-printer.md"), "# Printer\n\nSorted out the printer, again.\n");
+  const after = readFileSync(idx, "utf8");
+  check("a deleted page leaves the index", !after.includes("voice.md"), after.slice(0, 200));
+  check("the remaining page is still listed", after.includes("2026-09-11-printer.md"));
+
+  // The index must not become the hole in the guard. A page that predates the
+  // guard can carry anything in its title.
+  mkdirSync(join(NB, "notes"), { recursive: true });
+  writeFileSync(join(NB, "notes", "old.md"), "---\ntitle: Call with Robert Hartley\nkind: note\n---\n\nold page\n", "utf8");
+  await resultOf(join(NB, "sessions", "2026-09-11-printer.md"), "# Printer\n\nThird pass.\n");
+  const guarded = readFileSync(idx, "utf8");
+  check("a name in an older page's title is withheld from the index",
+    !guarded.includes("Robert Hartley") && guarded.includes("(title withheld)"), guarded.slice(0, 300));
+}
+
 console.log("");
 if (failures > 0) { console.log(`NOTEBOOK GATE FAIL: ${failures} assertion(s) red`); process.exit(1); }
 console.log("NOTEBOOK_GATE_OK the notebook refuses names and personal detail, and stamps every page");
 HARNESS
 
-node "$WORK/gate.mjs"
+mkdir -p "$WORK/home/Documents/Fin/Notebook" "$WORK/home/Documents/Fin/Drafts"
+HOME="$WORK/home" node "$WORK/gate.mjs"
