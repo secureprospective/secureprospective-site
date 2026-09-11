@@ -17,8 +17,13 @@ security architecture and evidence report for expert review.
 
 ## 2. NOTHING IS IN FLIGHT
 
-No builds, no dispatches, no agents. All three libvirt domains `shut off`. Filing gate
+No builds, no dispatches, no agents. Every SP+ domain is `shut off`. Filing gate
 PASS at 23 entries. 292 G on `/`, 127 G on `/home`. Nothing to recover.
+
+**`fedora-dnd-test` is CHRISTOPHER'S OWN VM. Confirmed by him 2026-09-11. Do not
+touch it, do not shut it down, do not count its 8 CPUs and 8 G against build
+headroom as if it were reclaimable.** The SP+ domains are `spplus-test`,
+`fedora-alpha-test` and `SP-Alpha-Rig`; those are the only ones this work may act on.
 
 ## 3. THE DELIVERABLES, BOTH IN PLACE
 
