@@ -604,12 +604,15 @@ fi
 echo
 echo "--- T2.5: glibc heap policy ---"
 
-# Layer 1: pam_env, which is what a tty or ssh login gets.
-tun_login="$(remote "printf '%s' \"\${GLIBC_TUNABLES:-}\"" | tr -d '\r')"
+# Layer 1: /etc/environment, which only pam_env reads. Fedora does NOT stack
+# pam_env in sshd or password-auth, so asking an ssh session measures a stack
+# that never loads the file and goes red against a working image. /etc/pam.d/su
+# does stack it, so su is where this layer can actually be measured.
+tun_login="$(remote "sudo -n su - root -c 'printf %s \"\$GLIBC_TUNABLES\"' 2>/dev/null" | tr -d '\r')"
 case "$tun_login" in
-    *tcache_count=0*) record PASS "heap tunable reaches a login shell" "GLIBC_TUNABLES=$tun_login" ;;
-    "")               record FAIL "heap tunable reaches a login shell" "GLIBC_TUNABLES is unset; /etc/environment did not reach pam_env" ;;
-    *)                record FAIL "heap tunable reaches a login shell" "carries $tun_login, which does not disable tcache" ;;
+    *tcache_count=0*) record PASS "heap tunable reaches a pam_env login" "su exports GLIBC_TUNABLES=$tun_login" ;;
+    "")               record FAIL "heap tunable reaches a pam_env login" "su exported nothing; /etc/environment did not reach pam_env" ;;
+    *)                record FAIL "heap tunable reaches a pam_env login" "su exported $tun_login, which does not disable tcache" ;;
 esac
 
 # Layer 2: the systemd USER manager. This is the load-bearing one -- it is what
@@ -624,7 +627,7 @@ esac
 # Layer 3: a real system service process, read out of its own /proc. Bee's
 # point, and the right one: reading a tunable back is not proof that a running
 # process honours it.
-svcenv="$(remote "p=\$(pgrep -x NetworkManager | head -1); [ -n \"\$p\" ] && sudo tr '\\0' '\\n' < /proc/\$p/environ | sed -n 's/^GLIBC_TUNABLES=//p'" | tr -d '\r')"
+svcenv="$(remote "p=\$(pgrep -x NetworkManager | head -1); [ -n \"\$p\" ] && sudo cat /proc/\$p/environ | tr '\\0' '\\n' | sed -n 's/^GLIBC_TUNABLES=//p'" | tr -d '\r')"
 case "$svcenv" in
     *tcache_count=0*) record PASS "heap tunable reaches a system service" "NetworkManager's own environ carries $svcenv" ;;
     "")               record FAIL "heap tunable reaches a system service" "NetworkManager's environ carries no GLIBC_TUNABLES; DefaultEnvironment did not apply" ;;
