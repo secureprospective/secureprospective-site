@@ -1167,7 +1167,7 @@ without understanding what it costs.
 
 | Not done | Why | What reopens it |
 |---|---|---|
-| **VM compartmentalization** (a Qubes-shaped boundary) | The strongest available answer to browser compromise, and incompatible with a non-technical advisor on a single laptop | SP+ ever shipping a managed second machine |
+| **VM compartmentalization** (a Qubes-shaped boundary) | The strongest available answer to browser compromise, and incompatible with a non-technical advisor on a single laptop. The compartment boundary here is the application sandbox instead, with the limits of that stated in §5.9 | SP+ ever shipping a managed second machine |
 | **USBGuard** | Collides head-on with D44. Docks, printers, keyboards and USB storage all arrive by insertion | Nothing currently |
 | **Disabling Xwayland** | Breaks NVIDIA paths and legacy applications | Nothing currently |
 | **SUID removal** | Secureblue deletes `sudo`, `su`, `pkexec`, `chsh`, `chfn`. Exactly the class of change that breaks printing or mounting on a machine nobody can support. SP+ inventories instead | Nothing currently |
@@ -1691,9 +1691,23 @@ allocator work in §5.8.
 ## Closing statement
 
 SP+ is strong in update integrity, recovery, disk encryption, kernel policy and the honesty of
-its own documentation. It is weak in application confinement, it has no compartmentalization,
-it trusts a single build host, and it ships passwordless `sudo` as a deliberate trade whose
-consequences are written down rather than hidden.
+its own documentation.
+
+It is weak in application confinement. Its compartment boundary is the application sandbox
+rather than a virtual machine, which is the only boundary of that kind available on a single
+laptop belonging to a non-technical user. Flatpak applications are confined by bubblewrap and
+reach the system through portals; the browser carries its own internal sandbox; and the browser
+ships as a native RPM, so it sits outside Flatpak confinement entirely. That last point is the
+weakest link in this layer and it is stated in §5.9 rather than buried.
+
+It trusts a single build host.
+
+And it grants passwordless `sudo` to every process running as the advisor, not only to the
+assistant the grant was written for. That is a deliberate trade, made so that an assistant can
+repair a machine whose owner has no support desk and often cannot recall a password. But it is
+the loss of a boundary and not merely the removal of a prompt, because malware running as the
+advisor inherits the grant without the advisor deciding anything. Writing that down is honesty,
+not mitigation.
 
 The claim this document makes is narrow and it is the only one worth making: **every control
 listed as shipping has been measured in effect on a booted machine, and every measurement has
