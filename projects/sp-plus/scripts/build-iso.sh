@@ -47,11 +47,24 @@ for m in / "$SP"; do
 done
 say "disk ok: $(free_gib /)G on /, $(free_gib "$SP")G on the repo volume"
 
+# THE DATED MILE MARKER. D-01: a mile marker must name exactly one set of bits,
+# which is the property promotion and rollback both depend on. This was a
+# literal "20260910" until 2026-09-11, so every ISO built after that day claimed
+# to be the same build as the one before it -- the precise failure the D-01 gate
+# in tests/config-preflight.sh exists to catch, committed in the one file that
+# gate never read. Overridable for a rebuild that must reproduce an older id.
+SPPLUS_BUILD="${SPPLUS_BUILD:-$(date -u +%Y%m%d)}"
+case "$SPPLUS_BUILD" in
+  [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) : ;;
+  *) echo "REFUSING TO BUILD: SPPLUS_BUILD='$SPPLUS_BUILD' is not a YYYYMMDD date" >&2; exit 3 ;;
+esac
+say "build id: $SPPLUS_BUILD"
+
 # --network=host is required: the default bridge has no egress on the Beelink.
 # ip_forward and `podman network reload --all` are both already ruled out.
 if [ "$SKIP_PAYLOAD" = 0 ]; then
   say "payload $PAYLOAD (context $SP)"
-  ( cd "$SP" && sudo -n podman build --network=host --build-arg SPPLUS_BUILD="20260910" -t "$PAYLOAD" -f images/kde/Containerfile . ) \
+  ( cd "$SP" && sudo -n podman build --network=host --build-arg SPPLUS_BUILD="$SPPLUS_BUILD" -t "$PAYLOAD" -f images/kde/Containerfile . ) \
     >>"$LOG" 2>&1 || { echo "PAYLOAD BUILD FAILED -- $LOG" >&2; tail -30 "$LOG" >&2; exit 4; }
 fi
 sudo -n podman image exists "$PAYLOAD" || { echo "no such image: $PAYLOAD" >&2; exit 4; }

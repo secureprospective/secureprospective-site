@@ -740,8 +740,18 @@ grep -qE 'VERSION_ID=[0-9]+\.[0-9]' "$D01CF" \
   && { D01_OK=0; echo "       VERSION_ID carries a minor version; D-01 is round integers only"; }
 grep -qE 'PRETTY_NAME="SP\+ [0-9]+\.[0-9]' "$D01CF" \
   && { D01_OK=0; echo "       PRETTY_NAME carries a minor version; D-01 is round integers only"; }
+# A build arg is only a build arg if its CALLER does not nail it down. The
+# Containerfile passed every check above while scripts/build-iso.sh handed it a
+# literal date, so the mile marker stopped naming one set of bits and the gate
+# never saw it. Checking the declaration and not the invocation is the same
+# mistake as reading a config file instead of the code that consumes it.
+D01BUILD="$REPO/projects/sp-plus/scripts/build-iso.sh"
+grep -qE -- '--build-arg SPPLUS_BUILD="?[0-9]{8}' "$D01BUILD" \
+  && { D01_OK=0; echo "       build-iso.sh hardcodes a BUILD_ID date; every build would claim to be the same one"; }
+grep -qE -- '--build-arg SPPLUS_RELEASE="?[0-9]' "$D01BUILD" \
+  && { D01_OK=0; echo "       build-iso.sh hardcodes the release number"; }
 [ "$D01_OK" -eq 1 ] \
-  && ok "D-01 release identity is a build arg, round integer, with a dated BUILD_ID" \
+  && ok "D-01 release identity is a build arg, round integer, dated BUILD_ID, not pinned by the caller" \
   || bad "D-01 release identity gate failed" "a mile marker that does not name exactly one build breaks promotion and rollback"
 
 # P-23  D-02 base images are pinned by digest. A floating :44 tag moves under us:
