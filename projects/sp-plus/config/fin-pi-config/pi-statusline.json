@@ -1,0 +1,77 @@
+{
+  "palettePreset": "custom",
+  "density": "cozy",
+  "separator": "powerline",
+  "segments": [
+    "cwd",
+    "provider",
+    "model"
+  ],
+  "segmentText": {
+    "model": {
+      "truncationLength": 24,
+      "truncationSymbol": "…",
+      "truncationDirection": "end"
+    }
+  },
+  "extensionStatusIcons": {
+    "session": "⏱",
+    "plan-mode": "📝",
+    "subagents": "🧑‍🤝‍🧑",
+    "usage": "📊"
+  },
+  "palette": {
+    "cwd": {
+      "fg": "#EEF0F3",
+      "bg": "#12325B"
+    },
+    "provider": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "model": {
+      "fg": "#12325B",
+      "bg": "#F5C542"
+    },
+    "brand": {
+      "fg": "#EEF0F3",
+      "bg": "#12325B"
+    },
+    "branch": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "thinking": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "context": {
+      "fg": "#12325B",
+      "bg": "#EEF0F3"
+    },
+    "tokens": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "turn": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "tools": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "cache": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "cost": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    },
+    "time": {
+      "fg": "#EEF0F3",
+      "bg": "#3A4048"
+    }
+  }
+}

@@ -542,6 +542,9 @@ COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
 COPY config/fin-extensions/      /usr/share/sp-plus/fin/extensions/
 COPY tests/fin-notebook-gate.sh   /usr/libexec/sp-plus/fin-notebook-gate
 COPY tests/fin-skills-gate.sh     /usr/libexec/sp-plus/fin-skills-gate
+COPY tests/fin-session-meter-gate.sh /usr/libexec/sp-plus/fin-session-meter-gate
+COPY config/fin-pi-config/pi-statusline.json /etc/skel/.pi/agent/pi-statusline.json
+COPY config/fin-pi-config/web-search.json    /etc/skel/.pi/web-search.json
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
@@ -899,6 +902,18 @@ assert max(len(l) for l in re.sub(chr(27)+r'[[0-9;]*m','',a).split(chr(10)))<=72
 # literal before anything uses it.
 ARG PI_VERSION=0.85.0
 
+# Fin's extension packages, pinned the same way and for the same reason. They
+# are installed in the SAME npm command as pi, which is not a tidiness choice:
+# installed together, npm hoists the dependencies pi and these five share, and
+# the whole tree measures SMALLER than pi on its own -- 61 MB against 88 MB,
+# measured 2026-09-11. Installed into a separate prefix instead, they cost an
+# extra 108 MB of duplicated dependency tree. The one command is the cheap one.
+ARG PI_WEB_ACCESS_VERSION=0.28.0
+ARG PI_SUBAGENTS_VERSION=0.67.0
+ARG PI_USAGE_VERSION=0.2.1
+ARG PI_STATUSLINE_VERSION=0.50.0
+ARG PI_PLAN_MODE_VERSION=0.58.0
+
 RUN set -eux; \
     case "$PI_VERSION" in \
         ''|*[!0-9.]*|*..*|.*|*.) echo "PI PIN GATE FAIL: '$PI_VERSION' is not a bare version" >&2; exit 1;; \
@@ -910,6 +925,11 @@ RUN set -eux; \
 RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18n \
  && HOME=/tmp/npmhome npm_config_cache=/tmp/npmcache \
     npm install -g --prefix /usr "@earendil-works/pi-coding-agent@${PI_VERSION}" \
+      "pi-web-access@${PI_WEB_ACCESS_VERSION}" \
+      "pi-subagents@${PI_SUBAGENTS_VERSION}" \
+      "@destiner/pi-usage@${PI_USAGE_VERSION}" \
+      "@narumitw/pi-statusline@${PI_STATUSLINE_VERSION}" \
+      "@narumitw/pi-plan-mode@${PI_PLAN_MODE_VERSION}" \
  && rm -rf /tmp/npmhome /tmp/npmcache \
  && dnf remove -y nodejs22-npm nodejs22-npm-bin \
  && dnf clean all \
@@ -923,6 +943,27 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && test ! -e /usr/bin/npm \
  && /usr/bin/node-22 -e 'new Intl.Segmenter("en",{granularity:"grapheme"}).segment("hello")' \
  && /usr/bin/pi --version | grep -qFx "$PI_VERSION" \
+# pi-subagents installs a command of its own. An advisor has no use for it and
+# /usr/bin is kept to what SP+ means somebody to type, the same rule that keeps
+# npm itself off the image.
+ && rm -f /usr/bin/pi-subagents \
+ && test ! -e /usr/bin/pi-subagents \
+# Every package is loaded by ABSOLUTE PATH from the launcher, because /usr is
+# read-only and pi's own discovery looks in the advisor's home, which the image
+# cannot write to. So the paths are the contract, and a missing one has to fail
+# the build rather than fail silently at the advisor's first launch.
+ && test -f /usr/lib/node_modules/pi-web-access/index.ts \
+ && test -f /usr/lib/node_modules/pi-subagents/index.ts \
+ && test -f /usr/lib/node_modules/@destiner/pi-usage/index.ts \
+ && test -f /usr/lib/node_modules/@narumitw/pi-statusline/dist/index.ts \
+ && test -f /usr/lib/node_modules/@narumitw/pi-plan-mode/dist/index.ts \
+# ONE copy of pi. pi-subagents depends on pi-server, which pulls pi-coding-agent
+# through a caret range; left alone that resolves to a NEWER pi than the pin and
+# ships a second 80 MB agent that the launcher never runs. Installing in one
+# command lets npm resolve it to the pinned copy instead. If this count is ever
+# 2, the pin has stopped meaning anything.
+ && test "$(find /usr/lib/node_modules -path '*@earendil-works/pi-coding-agent/package.json' | wc -l)" -eq 1 \
+ && echo "FIN_PACKAGES_OK web access, subagents, usage, status bar and plan mode, one pi" \
  && echo "NODE_INTL_OK node-22 Intl.Segmenter" \
  && chmod 0755 /usr/libexec/spplus-fix \
  && bash -n /usr/libexec/spplus-fix \
@@ -1038,6 +1079,46 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && bash -n /usr/libexec/sp-plus/fin-skills-gate \
  && bash /usr/libexec/sp-plus/fin-skills-gate /usr/share/sp-plus/fin/skills \
  && echo "FIN_SKILLS_OK 6 skills, each saying when to use it, none in developer words" \
+# The status bar, in the Secure Prospective palette: INK #12325B, BODY #3A4048,
+# GROUND #EEF0F3, ACCENT #F5C542. The brand rule is that yellow is an accent and
+# never type, so the accent may be a field colour behind navy text and must
+# never be a foreground. That is asserted rather than trusted, because it is
+# exactly the kind of rule that gets lost in a later edit.
+ && test -s /etc/skel/.pi/agent/pi-statusline.json \
+ && node -e 'const c=require("/etc/skel/.pi/agent/pi-statusline.json"); \
+const fg=Object.entries(c.palette).filter(([,v])=>String(v.fg).toUpperCase()==="#F5C542"); \
+if(fg.length) throw new Error("the accent is used as type on: "+fg.map(e=>e[0])); \
+if(!c.segments.includes("model")) throw new Error("the bar does not say what is answering"); \
+console.log("SPPLUS_STATUSLINE_OK "+c.segments.length+" segments, accent never used as type")' \
+# Web access ships, web SEARCH does not. Christopher, 2026-09-11: an advisor has
+# no search-provider key and never will, so Fin can open a link they give it and
+# says plainly that it cannot go looking. Shipping search switched on would mean
+# every search failing on a missing credential, which reads as a broken product.
+ && test -s /etc/skel/.pi/web-search.json \
+ && node -e 'const c=require("/etc/skel/.pi/web-search.json"); \
+if(c.webSearch.enabled!==false) throw new Error("web search is enabled without a key"); \
+console.log("SPPLUS_WEB_FETCH_ONLY_OK Fin can open a link, and cannot search")' \
+# The spend timer. Deliberately NOT a port of Bee's burn-rate extension, which
+# reports tokens per minute and a projected time to a full context window --
+# the right readout for a dispatch, and meaningless to an advisor who has never
+# heard of a token. Same measurement, said as elapsed time, a percentage, and
+# what to do about it, which is a skill that exists.
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-session-meter.ts \
+ && chmod 0755 /usr/libexec/sp-plus/fin-session-meter-gate \
+ && bash -n /usr/libexec/sp-plus/fin-session-meter-gate \
+ && bash /usr/libexec/sp-plus/fin-session-meter-gate \
+      /usr/share/sp-plus/fin/extensions/spplus-session-meter.ts \
+# Every package is loaded on the INTERACTIVE path only. Welcome's --ask call is
+# a bounded one-shot whose stdout a web page renders; a status bar, a plan mode
+# and a subagent runner have nothing to contribute there and a footer written
+# into that stdout would corrupt the answer.
+ && grep -q 'pi-statusline/dist/index.ts' /usr/libexec/sp-plus/fin \
+ && grep -q 'pi-plan-mode/dist/index.ts' /usr/libexec/sp-plus/fin \
+ && grep -q 'pi-web-access/index.ts' /usr/libexec/sp-plus/fin \
+ && grep -q 'pi-usage/index.ts' /usr/libexec/sp-plus/fin \
+ && grep -q 'pi-subagents/index.ts' /usr/libexec/sp-plus/fin \
+ && test "$(grep -c 'spplus-session-meter' /usr/libexec/sp-plus/fin)" -eq 1 \
+ && echo "FIN_FOOTER_OK status bar, plan mode, web fetch, usage, subagents and the session meter" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \

@@ -15,6 +15,7 @@ PROMPT=/usr/share/sp-plus/fin/system-prompt.md
 SKILLS=/usr/share/sp-plus/fin/skills
 PROMPTS=/usr/share/sp-plus/fin/prompts
 EXTENSIONS=/usr/share/sp-plus/fin/extensions
+PKG=/usr/lib/node_modules
 SYSTEM_ENV=/etc/sp-plus/fin.env
 USER_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/sp-plus/fin.env"
 
@@ -137,6 +138,14 @@ fi
 # SCOPE, stated plainly: these gate the bash, write and edit TOOLS. Fin holds
 # unprompted root, so they stop accidents and casual mistakes, NOT a determined
 # or hijacked model. They are a floor, not a boundary.
+# The five packages below come from the pinned npm install rather than from
+# config/fin-extensions, and they are what turn Fin from a chat box into a tool:
+# a status bar, a read-only plan mode, the ability to open a link the advisor
+# gives it, a usage readout, and delegation. They load by absolute path for the
+# same reason the SP+ extensions do -- /usr is read-only and pi's own discovery
+# looks in the advisor's home. Web SEARCH is switched off in the seeded
+# ~/.pi/web-search.json: there is no search key on an advisor's machine, and a
+# search that always fails is worse than one that says it cannot.
 exec /usr/bin/pi \
     --append-system-prompt "$PROMPT" \
     --skill "$SKILLS" \
@@ -145,5 +154,11 @@ exec /usr/bin/pi \
     --extension "$EXTENSIONS/spplus-workspace.ts" \
     --extension "$EXTENSIONS/spplus-organize.ts" \
     --extension "$EXTENSIONS/spplus-notebook.ts" \
+    --extension "$EXTENSIONS/spplus-session-meter.ts" \
+    --extension "$PKG/@narumitw/pi-statusline/dist/index.ts" \
+    --extension "$PKG/@narumitw/pi-plan-mode/dist/index.ts" \
+    --extension "$PKG/pi-web-access/index.ts" \
+    --extension "$PKG/@destiner/pi-usage/index.ts" \
+    --extension "$PKG/pi-subagents/index.ts" \
     --approve \
     "$@"
