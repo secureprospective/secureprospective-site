@@ -391,7 +391,8 @@ RUN set -eux; \
     sed -i 's/pam_oddjob_mkhomedir.so/pam_mkhomedir.so umask=0077 silent/g' \
         /etc/authselect/custom/sp-plus/system-auth \
         /etc/authselect/custom/sp-plus/password-auth; \
-    authselect select custom/sp-plus with-silent-lastlog with-mdns4 with-mkhomedir --force; \
+    authselect select custom/sp-plus with-silent-lastlog with-mdns4 with-mkhomedir \
+        with-faillock without-nullok --force; \
     authselect check
 
 # ---- 3c. DN-29 Layer 2: first-boot home creation -----------------------------
@@ -422,6 +423,79 @@ RUN set -eux; \
     grep -q '^Before=.*sddm.service' /usr/lib/systemd/system/spplus-mkhomedir.service; \
     authselect check; \
     echo "DN29_HOME_GATE_OK pam_mkhomedir, console+plasmalogin PAM, first-boot unit enabled"
+
+# ---- T2.6 login and password hardening (doc 15 Tier 2) ----
+# The whole difficulty here is that every one of these controls can lock out a
+# non-technical advisor, and a locked-out advisor is a support call SP+ pays for.
+# So each is tuned for a short, self-clearing way back through the threshold
+# rather than for the strongest number available.
+#
+#   faillock deny=10, unlock_time=120
+#     Ten attempts, then a two minute wait that clears itself. Nobody has to be
+#     phoned. Contrast the common deny=3 unlock_time=0, which needs an
+#     administrator and is exactly the shape SP+ cannot ship.
+#     root is deliberately NOT locked: even_deny_root is absent, so a lockout
+#     can always be cleared from a console.
+#
+#   pwquality minlen=12 with no character-class rules
+#     Length is the property that matters; forcing an uppercase, a digit and a
+#     symbol produces Summer2026! and a sticky note. The credit values are set
+#     to 0 so no class is required, and dictionary, username and GECOS checks
+#     stay on because those catch the passwords that actually get guessed.
+#     enforce_for_root is absent for the same reason faillock spares root.
+#
+#   UMASK 027
+#     New files are unreadable to other local accounts. SP+ is single-user in
+#     practice, so this costs nothing and closes group and world read.
+#
+#   without-nullok
+#     The stock stack carries nullok on pam_unix, which permits an account with
+#     an empty password to authenticate. SP+ has no such account and never
+#     should, so the capability itself is removed.
+RUN set -eux; \
+    printf '%s\n' \
+      '# SP+ T2.6. Ten tries, then a two minute wait that clears itself.' \
+      '# Deliberately no even_deny_root: a lockout must always be clearable.' \
+      'deny = 10' \
+      'fail_interval = 900' \
+      'unlock_time = 120' \
+      'audit' \
+      > /etc/security/faillock.conf; \
+    printf '%s\n' \
+      '# SP+ T2.6. Length over composition -- see the Containerfile for why.' \
+      'minlen = 12' \
+      'dcredit = 0' \
+      'ucredit = 0' \
+      'lcredit = 0' \
+      'ocredit = 0' \
+      'minclass = 1' \
+      'maxrepeat = 3' \
+      'usercheck = 1' \
+      'gecoscheck = 1' \
+      'dictcheck = 1' \
+      > /etc/security/pwquality.conf; \
+    sed -i -E 's/^UMASK[[:space:]]+.*/UMASK\t\t027/' /etc/login.defs; \
+    grep -Eq '^UMASK[[:space:]]+027$' /etc/login.defs; \
+    grep -q '^deny = 10$' /etc/security/faillock.conf; \
+    grep -q '^unlock_time = 120$' /etc/security/faillock.conf; \
+    if grep -v '^#' /etc/security/faillock.conf | grep -q 'even_deny_root'; then \
+        echo "T2.6 GATE FAIL: even_deny_root would make a lockout unclearable" >&2; exit 1; \
+    fi; \
+    grep -q '^minlen = 12$' /etc/security/pwquality.conf; \
+    if grep -v '^#' /etc/security/pwquality.conf | grep -q 'enforce_for_root'; then \
+        echo "T2.6 GATE FAIL: enforce_for_root is not shipped" >&2; exit 1; \
+    fi; \
+    for f in /etc/pam.d/system-auth /etc/pam.d/password-auth; do \
+        grep -q 'pam_faillock.so' "$f" \
+          || { echo "T2.6 GATE FAIL: pam_faillock missing from $f" >&2; exit 1; }; \
+        grep -q 'pam_pwquality.so' "$f" \
+          || { echo "T2.6 GATE FAIL: pam_pwquality missing from $f" >&2; exit 1; }; \
+        if grep -qE '^auth.*pam_unix\.so.*nullok' "$f"; then \
+            echo "T2.6 GATE FAIL: nullok still permits empty passwords in $f" >&2; exit 1; \
+        fi; \
+    done; \
+    authselect check; \
+    echo "T26_LOGIN_GATE_OK faillock 10/120s, pwquality minlen 12, umask 027, nullok removed"
 
 # ---- 3b. standard system groups must exist in /etc/group ----
 # Runs AFTER the spplus account is created: an earlier placement asserted on a group

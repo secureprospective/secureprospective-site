@@ -355,6 +355,102 @@ if [ "${pti:-0}" -gt 0 ] 2>/dev/null; then
 else
     record FAIL "page table isolation active" "no pti flag in /proc/cpuinfo"
 fi
+
+# ------------------------------------------------------------ T2.6 (2026-09-11)
+# Login and password policy. Six of these seven assertions measure behaviour on
+# the running machine. The seventh is labelled POLICY READ where it sits, and is
+# not evidence that the policy took effect. The T2.2 lesson applies directly --
+# a config file is not behaviour, so do not add a config-read here unlabelled.
+
+# umask in a real login shell, and the mode a file actually lands with.
+um="$(remote "bash -lc umask" | tr -d '\r')"
+if [ "$um" = 0027 ]; then record PASS "login shell umask 027" "umask=$um"
+else record FAIL "login shell umask 027" "umask=${um:-<no answer>}"; fi
+
+fmode="$(remote "rm -f /tmp/sp-umask-probe && bash -lc 'touch /tmp/sp-umask-probe' && stat -c %a /tmp/sp-umask-probe && rm -f /tmp/sp-umask-probe" | tr -d '\r' | head -1)"
+if [ "$fmode" = 640 ]; then record PASS "new files group-read only" "mode $fmode"
+else record FAIL "new files group-read only" "mode ${fmode:-<no answer>} want 640"; fi
+
+# pwquality, measured by asking the live library to score real passwords rather
+# than by reading minlen out of the file it was configured with.
+have_pwscore="$(remote "command -v pwscore >/dev/null && echo yes || echo no" | tr -d '\r')"
+weak="$(remote "echo 'short1' | pwscore 2>&1 >/dev/null | head -1" | tr -d '\r')"
+case "$have_pwscore:$weak" in
+    yes:*[Pp]assword*) record PASS "weak password rejected" "pwscore: $weak" ;;
+    yes:) record FAIL "weak password rejected" "pwscore accepted a 6 character password" ;;
+    no:*) record FAIL "weak password rejected" "pwscore is not installed, so nothing was measured" ;;
+    *) record FAIL "weak password rejected" "unrecognised pwscore output: ${weak:-<none>}" ;;
+esac
+
+# This is the assertion that can tell T2.6 apart from the image before it.
+# "short1" is rejected by STOCK Fedora pwquality too -- measured on the t24
+# install, where the weak-password assertion above passed on an image that had
+# never seen T2.6. It guards that pwquality is live, not that minlen was raised.
+# An 11 character password is the discriminator: stock scores it 81 and accepts
+# it, minlen = 12 must refuse it.
+mid="$(remote "echo 'quilt-harb9' | pwscore 2>&1 >/dev/null | head -1" | tr -d '\r')"
+case "$mid" in
+    *[Pp]assword*) record PASS "minlen 12 enforced" "an 11 character password is refused" ;;
+    "")            record FAIL "minlen 12 enforced" "an 11 character password was accepted; minlen is stock, not 12" ;;
+    *)             record FAIL "minlen 12 enforced" "unrecognised pwscore output: $mid" ;;
+esac
+
+strong="$(remote "echo 'quilted-harbour-ledger' | pwscore 2>/dev/null" | tr -d '\r')"
+if [ -n "$strong" ] && [ "$strong" -gt 0 ] 2>/dev/null; then
+    record PASS "long passphrase accepted" "pwscore $strong, no class rules imposed"
+else
+    record FAIL "long passphrase accepted" "pwscore refused a 22 character passphrase"
+fi
+
+# faillock, measured by actually locking a throwaway account.
+#
+# READ THIS BEFORE CHANGING IT. Three earlier shapes of this probe measured
+# nothing and still passed:
+#   1. "sudo faillock --user X | grep -c ':'" counts the "X:" header line, so it
+#      returned 1 on an account with zero recorded failures.
+#   2. "sudo -k -S -u X true" authenticates the INVOKING user, never X, so it
+#      never reaches X's auth stack.
+#   3. "script -qec 'su X -c true'" exits 127: the image does not ship script(1).
+# The working shape is su(1) under a real pty from python3, and the assertion is
+# that exactly "deny" failures get recorded -- the count stops at the threshold
+# because the account is locked, which is the effect, not the configuration.
+#
+# The probe travels as base64 so that no ssh, heredoc or shell quoting layer
+# between here and the guest can mangle a backslash. Decode it to read it:
+#   sed -n 's/^FAILLOCK_PROBE_B64=//p' this-file | base64 -d
+FAILLOCK_PROBE_B64=IyEvYmluL2Jhc2gKIyBEcml2ZSByZWFsIGF1dGhlbnRpY2F0aW9uIGZhaWx1cmVzIGFnYWluc3QgYSB0aHJvd2F3YXkgYWNjb3VudCBhbmQgcmVwb3J0IGhvdwojIG1hbnkgcGFtX2ZhaWxsb2NrIGFjdHVhbGx5IHJlY29yZGVkLgojCiMgV0hZIE5PVCBgc3VkbyAtdSBYYDogaXQgYXV0aGVudGljYXRlcyB0aGUgSU5WT0tJTkcgdXNlciwgbmV2ZXIgWCwgc28gaXQgbmV2ZXIKIyByZWFjaGVzIFgncyBhdXRoIHN0YWNrIGFuZCByZWNvcmRzIG5vdGhpbmcuCiMgV0hZIE5PVCBgc2NyaXB0YDogdGhlIFNQKyBpbWFnZSBkb2VzIG5vdCBzaGlwIHV0aWwtbGludXgncyBzY3JpcHQoMSkuCiMgYHN1IFhgIGRvZXMgYXV0aGVudGljYXRlIGFzIFggdGhyb3VnaCAvZXRjL3BhbS5kL3N1IC0+IHN5c3RlbS1hdXRoIC0+CiMgcGFtX2ZhaWxsb2NrLCBhbmQgcGFtX3VuaXggcmVhZHMgdGhlIHBhc3N3b3JkIGZyb20gYSB0ZXJtaW5hbCwgbmV2ZXIgc3RkaW4sCiMgc28gdGhlIGF0dGVtcHQgaGFzIHRvIHJ1biB1bmRlciBhIHJlYWwgcHR5LiBweXRob24zIHNoaXBzIGluIHRoZSBpbWFnZS4KVT1zcC1mYWlsbG9jay1wcm9iZQpzdWRvIHVzZXJkZWwgLXIgIiRVIiA+L2Rldi9udWxsIDI+JjEKc3VkbyB1c2VyYWRkIC1NIC1zIC9iaW4vYmFzaCAiJFUiID4vZGV2L251bGwgMj4mMSB8fCB7IGVjaG8gIkZBSUxMT0NLX1JFQ09SREVEPS0xIjsgZXhpdCAxOyB9CnN1ZG8gdXNlcm1vZCAtcCAnJDYkc3Bwcm9iZSRpbnZhbGlkaGFzaHZhbHVlaGVyZScgIiRVIiA+L2Rldi9udWxsIDI+JjEKc3VkbyBmYWlsbG9jayAtLXVzZXIgIiRVIiAtLXJlc2V0ID4vZGV2L251bGwgMj4mMQoKcHl0aG9uMyAtICIkVSIgPDwnUFknCmltcG9ydCBvcywgcHR5LCBzeXMsIHRpbWUKdXNlciA9IHN5cy5hcmd2WzFdCmZvciBfIGluIHJhbmdlKDEyKToKICAgIHBpZCwgZmQgPSBwdHkuZm9yaygpCiAgICBpZiBwaWQgPT0gMDoKICAgICAgICBvcy5leGVjdnAoInN1IiwgWyJzdSIsIHVzZXIsICItYyIsICJ0cnVlIl0pCiAgICB0cnk6CiAgICAgICAgdGltZS5zbGVlcCgwLjMpCiAgICAgICAgb3Mud3JpdGUoZmQsIGIid3JvbmdwYXNzd29yZFxuIikKICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICBpZiBub3Qgb3MucmVhZChmZCwgMTAyNCk6CiAgICAgICAgICAgICAgICBicmVhawogICAgZXhjZXB0IE9TRXJyb3I6CiAgICAgICAgcGFzcwogICAgb3Mud2FpdHBpZChwaWQsIDApClBZCgojIENvdW50IG9ubHkgcmVhbCByZWNvcmQgcm93czogZHJvcCB0aGUgIjx1c2VyPjoiIGhlYWRlciBhbmQgdGhlIGNvbHVtbiBoZWFkZXIuCm49JChzdWRvIGZhaWxsb2NrIC0tdXNlciAiJFUiIDI+L2Rldi9udWxsIFwKICAgIHwgZ3JlcCAtdkUgIl4ke1V9OlwkfF5XaGVuW1s6c3BhY2U6XV0rVHlwZSIgfCBncmVwIC1jICdbMC05XScpCmVjaG8gIkZBSUxMT0NLX1JFQ09SREVEPSRuIgo=
+fl="$(remote "echo IyEvYmluL2Jhc2gKIyBEcml2ZSByZWFsIGF1dGhlbnRpY2F0aW9uIGZhaWx1cmVzIGFnYWluc3QgYSB0aHJvd2F3YXkgYWNjb3VudCBhbmQgcmVwb3J0IGhvdwojIG1hbnkgcGFtX2ZhaWxsb2NrIGFjdHVhbGx5IHJlY29yZGVkLgojCiMgV0hZIE5PVCBgc3VkbyAtdSBYYDogaXQgYXV0aGVudGljYXRlcyB0aGUgSU5WT0tJTkcgdXNlciwgbmV2ZXIgWCwgc28gaXQgbmV2ZXIKIyByZWFjaGVzIFgncyBhdXRoIHN0YWNrIGFuZCByZWNvcmRzIG5vdGhpbmcuCiMgV0hZIE5PVCBgc2NyaXB0YDogdGhlIFNQKyBpbWFnZSBkb2VzIG5vdCBzaGlwIHV0aWwtbGludXgncyBzY3JpcHQoMSkuCiMgYHN1IFhgIGRvZXMgYXV0aGVudGljYXRlIGFzIFggdGhyb3VnaCAvZXRjL3BhbS5kL3N1IC0+IHN5c3RlbS1hdXRoIC0+CiMgcGFtX2ZhaWxsb2NrLCBhbmQgcGFtX3VuaXggcmVhZHMgdGhlIHBhc3N3b3JkIGZyb20gYSB0ZXJtaW5hbCwgbmV2ZXIgc3RkaW4sCiMgc28gdGhlIGF0dGVtcHQgaGFzIHRvIHJ1biB1bmRlciBhIHJlYWwgcHR5LiBweXRob24zIHNoaXBzIGluIHRoZSBpbWFnZS4KVT1zcC1mYWlsbG9jay1wcm9iZQpzdWRvIHVzZXJkZWwgLXIgIiRVIiA+L2Rldi9udWxsIDI+JjEKc3VkbyB1c2VyYWRkIC1NIC1zIC9iaW4vYmFzaCAiJFUiID4vZGV2L251bGwgMj4mMSB8fCB7IGVjaG8gIkZBSUxMT0NLX1JFQ09SREVEPS0xIjsgZXhpdCAxOyB9CnN1ZG8gdXNlcm1vZCAtcCAnJDYkc3Bwcm9iZSRpbnZhbGlkaGFzaHZhbHVlaGVyZScgIiRVIiA+L2Rldi9udWxsIDI+JjEKc3VkbyBmYWlsbG9jayAtLXVzZXIgIiRVIiAtLXJlc2V0ID4vZGV2L251bGwgMj4mMQoKcHl0aG9uMyAtICIkVSIgPDwnUFknCmltcG9ydCBvcywgcHR5LCBzeXMsIHRpbWUKdXNlciA9IHN5cy5hcmd2WzFdCmZvciBfIGluIHJhbmdlKDEyKToKICAgIHBpZCwgZmQgPSBwdHkuZm9yaygpCiAgICBpZiBwaWQgPT0gMDoKICAgICAgICBvcy5leGVjdnAoInN1IiwgWyJzdSIsIHVzZXIsICItYyIsICJ0cnVlIl0pCiAgICB0cnk6CiAgICAgICAgdGltZS5zbGVlcCgwLjMpCiAgICAgICAgb3Mud3JpdGUoZmQsIGIid3JvbmdwYXNzd29yZFxuIikKICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICBpZiBub3Qgb3MucmVhZChmZCwgMTAyNCk6CiAgICAgICAgICAgICAgICBicmVhawogICAgZXhjZXB0IE9TRXJyb3I6CiAgICAgICAgcGFzcwogICAgb3Mud2FpdHBpZChwaWQsIDApClBZCgojIENvdW50IG9ubHkgcmVhbCByZWNvcmQgcm93czogZHJvcCB0aGUgIjx1c2VyPjoiIGhlYWRlciBhbmQgdGhlIGNvbHVtbiBoZWFkZXIuCm49JChzdWRvIGZhaWxsb2NrIC0tdXNlciAiJFUiIDI+L2Rldi9udWxsIFwKICAgIHwgZ3JlcCAtdkUgIl4ke1V9OlwkfF5XaGVuW1s6c3BhY2U6XV0rVHlwZSIgfCBncmVwIC1jICdbMC05XScpCmVjaG8gIkZBSUxMT0NLX1JFQ09SREVEPSRuIgo= | base64 -d | bash" | sed -n 's/^FAILLOCK_RECORDED=//p' | tr -d '\r')"
+if [ "${fl:-x}" = 10 ]; then
+    record PASS "faillock locks after 10 tries" "$fl failures recorded, then the account stopped counting"
+elif [ "${fl:-x}" = 0 ]; then
+    record FAIL "faillock locks after 10 tries" "pam_faillock recorded nothing; the module is inert"
+else
+    record FAIL "faillock locks after 10 tries" "recorded ${fl:-<no answer>} failures, want exactly 10"
+fi
+
+# POLICY READ, NOT A MEASUREMENT. Waiting out a real 120 second unlock is not
+# something a gate should do, so this pair reads the shipped policy instead.
+# The behavioural half of faillock is the probe directly above, which does fail
+# on a machine where the module is present but inert. A deny with no
+# unlock_time, or even_deny_root, is a support call SP+ pays for.
+# The even_deny_root count strips comments first: the shipped file carries a
+# comment explaining why even_deny_root is absent, and an unstripped grep would
+# match that comment and fail every time.
+ul="$(remote "grep -E '^unlock_time' /etc/security/faillock.conf | tr -d ' '" | tr -d '\r')"
+edr="$(remote "grep -v '^#' /etc/security/faillock.conf | grep -c even_deny_root" | tr -d '\r')"
+if [ "$ul" = "unlock_time=120" ] && [ "${edr:-1}" = 0 ]; then
+    record PASS "lockout policy clears itself (policy read)" "$ul, root not locked"
+else
+    record FAIL "lockout policy clears itself (policy read)" "${ul:-<none>}, even_deny_root count ${edr:-?}"
+fi
+
+# An empty password must not authenticate anyone.
+nk="$(remote "sudo grep -hcE '^auth.*pam_unix\.so.*nullok' /etc/pam.d/system-auth /etc/pam.d/password-auth | paste -sd+ | bc" | tr -d '\r')"
+if [ "${nk:-1}" = 0 ]; then
+    record PASS "empty passwords not accepted" "no nullok in either common auth stack"
+else
+    record FAIL "empty passwords not accepted" "nullok present on ${nk} auth lines"
+fi
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then
