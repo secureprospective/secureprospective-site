@@ -985,7 +985,7 @@ defensible.
   it should own.
 - **No direct `bootc upgrade`.** A build gate fails if the staging script calls it directly,
   because that path has no downgrade guard.
-- **Rollback.** Every change lands in a new deployment. A bad state is one rollback away.
+- **Rollback, and its limit.** A bad *image* is one rollback away. The claim this line used to make, that every change lands in a new deployment, is false and is corrected here: `/etc` is mutable and `/var` is shared across deployments. Rollback reorders deployments. It does not merge `/etc` edits back and it restores nothing the advisor owns. It is an image undo, not a backup.
 - **A health check** (`spplus-update-health`) runs daily and can mark the state `BROKEN`.
 - **Polkit rules** let the advisor *finish* an update in all three lanes without a password,
   while a build gate refuses the build if those rules grant `rpm-ostree`
@@ -1702,12 +1702,28 @@ weakest link in this layer and it is stated in §5.9 rather than buried.
 
 It trusts a single build host.
 
-And it grants passwordless `sudo` to every process running as the advisor, not only to the
-assistant the grant was written for. That is a deliberate trade, made so that an assistant can
-repair a machine whose owner has no support desk and often cannot recall a password. But it is
-the loss of a boundary and not merely the removal of a prompt, because malware running as the
-advisor inherits the grant without the advisor deciding anything. Writing that down is honesty,
-not mitigation.
+And it grants passwordless `sudo` to every *unconfined* process running as the advisor, not
+only to the assistant the grant was written for. The qualifier is load-bearing and was added on
+2026-09-11: a Flatpak under bubblewrap, a unit with `NoNewPrivileges`, and anything SELinux
+confines are materially different from an unconfined shell, so "every process at the advisor's
+UID" would overstate the exposure. What is not overstated is that the grant is written on
+`%wheel` while its justification is written about the assistant, and those are not the same set.
+
+That is a deliberate trade, made so that an assistant can repair a machine whose owner has no
+support desk and often cannot recall a password. But it is the loss of a boundary and not merely
+the removal of a prompt, because malware running as the advisor inherits the grant without the
+advisor deciding anything. Writing that down is honesty, not mitigation.
+
+Since 2026-09-11 there is one control in front of it, and its scope is narrow enough to state in
+a sentence. Fin's bash guardrail shows the advisor any command that would **outlive the
+conversation** — a new software source, a signing key, a service that starts by itself, another
+administrator, a different place to get updates — and they can decline. That is not a defence
+against malware holding the advisor's UID: external source review on 2026-09-11 demonstrated
+five separate ways to synthesise a click on this desktop, one of which carries a literal
+`// TODO: make secure` upstream, and this document does not claim otherwise. It is a check on
+instructions smuggled into content the assistant reads, where the attacker is text and text
+cannot answer a prompt. A boundary rather than a check needs an approval path outside the
+advisor's session. That is recorded as the target and it is not built.
 
 The claim this document makes is narrow and it is the only one worth making: **every control
 listed as shipping has been measured in effect on a booted machine, and every measurement has

@@ -29,6 +29,29 @@
  *      sends. An advisor's regulatory exposure sits on what leaves the account.
  *   4. Anything that destroys the ability to boot or to decrypt the disk.
  *
+ *   5. Anything that OUTLIVES the conversation it was asked for: a new software
+ *      source, a signing key, a service that starts by itself, another
+ *      administrator, a different place to get updates. Added 2026-09-11.
+ *
+ * WHY 5 IS HERE, AND WHAT IT IS NOT. An external source review on 2026-09-11
+ * showed that a click cannot be a boundary against malware already running as
+ * the advisor: KWin's fake_input, portal preauthorization, XWayland XTEST via
+ * libei, KWin's EIS D-Bus interface and AT-SPI DoAction each synthesise one, and
+ * the first of those carries a literal `// TODO: make secure` upstream. That
+ * verdict is accepted. It is why this is NOT described as a defence against
+ * malware, and why nothing here claims to prove a human is present.
+ *
+ * The adversary class 5 does answer is different: instructions smuggled into
+ * content Fin reads -- a log line, a filename, a web page, a document an advisor
+ * was sent. There the attacker is TEXT, and text cannot answer this prompt. It
+ * can only ask Fin to. Persistence is what such an instruction needs in order to
+ * matter beyond the moment, so persistence is what gets shown to the advisor.
+ *
+ * Frequency is the design constraint, not coverage. A control the advisor is
+ * shown too often is one they stop reading, and then we would be relying on
+ * something that is no longer there. Installing a font stays silent. Installing
+ * a timer asks. Package installation is deliberately NOT in this class.
+ *
  * FAILS CLOSED. With no UI there is nobody present to approve, so a match is
  * blocked outright rather than waved through.
  *
@@ -51,6 +74,14 @@ interface Rule {
 	 * refusal into a correction it can act on in one step.
 	 */
 	fix?: string;
+	/**
+	 * Why the rule exists, which decides what the advisor is actually asked.
+	 * "irreversible" is the default and means their own work cannot be brought
+	 * back. "persistence" means the command IS undoable but outlives this
+	 * conversation, so the question is about what keeps running afterwards.
+	 * Asking the wrong question trains people to stop reading the right one.
+	 */
+	kind?: "irreversible" | "persistence";
 }
 
 export default function (pi: ExtensionAPI) {
@@ -132,6 +163,41 @@ export default function (pi: ExtensionAPI) {
 			label: "changes a saved password, key or mail store",
 			pattern: /(>{1,2}|\btee\b|\bdd\b|\bcp\b|\bmv\b|\brm\b|\bln\b|\bchmod\b|\bchown\b)[^\n]*(\/etc\/sp-plus\/|\.ssh\/|\.thunderbird|\.mozilla|kwalletd|\.kdbx|fin\.env|shadow\b)/i,
 		},
+
+		// --- 5. Things that outlive the conversation. 2026-09-11 -------------
+		// Ordered last on purpose: `rules.find` returns the FIRST match, so a
+		// command that is both destructive and persistent keeps its stronger
+		// label. `crontab -r` stays "removes every scheduled task at once".
+		//
+		// Each of these is reversible. None is shown because it is dangerous;
+		// they are shown because an instruction hidden in something Fin read
+		// would need one of them to still be there tomorrow. Read-only forms
+		// are excluded by construction -- `systemctl is-enabled` and
+		// `bootc upgrade` must never reach this list.
+
+		// New software sources and the keys that make them trusted.
+		{ label: "adds a new place this computer installs software from", pattern: /\bdnf5?\b[^\n]*\bconfig-manager\b[^\n]*(--add-repo|\baddrepo\b)/i, kind: "persistence" },
+		{ label: "adds a new place this computer installs software from", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\bln\b)[^\n]*\/etc\/yum\.repos\.d\//i, kind: "persistence" },
+		{ label: "adds a new app source", pattern: /\bflatpak\b[^\n]*\bremote-add\b/i, kind: "persistence" },
+		{ label: "trusts a new software signing key", pattern: /\b(rpm|rpmkeys)\b[^\n]*--import\b/i, kind: "persistence", fix: "Install from a source SP+ already trusts instead. Say which key and who issued it before asking again." },
+
+		// Things that start by themselves from now on.
+		{ label: "installs a background service that starts by itself", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\bln\b)[^\n]*\/etc\/systemd\/(system|user)\//i, kind: "persistence" },
+		{ label: "installs a background service that starts by itself", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\bln\b)[^\n]*\.config\/systemd\//i, kind: "persistence" },
+		{ label: "sets something to start automatically from now on", pattern: /\bsystemctl\b[^\n]*\b(re)?enable\b/i, kind: "persistence", fix: "If the advisor only needs it working now, use `systemctl start` and leave boot alone." },
+		{ label: "sets something to start automatically from now on", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\bln\b)[^\n]*\.config\/autostart\//i, kind: "persistence" },
+		{ label: "schedules something to run again later", pattern: /\bcrontab\b(?![^\n]*\s-[lr]\b)/i, kind: "persistence" },
+
+		// Who may administer the machine.
+		{ label: "changes who is allowed to administer this computer", pattern: /\bvisudo\b/i, kind: "persistence" },
+		{ label: "changes who is allowed to administer this computer", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\bln\b)[^\n]*\/etc\/(sudoers|pam\.d\/)/i, kind: "persistence" },
+		{ label: "creates another account on this computer", pattern: /\b(useradd|adduser|groupadd)\b/i, kind: "persistence" },
+		{ label: "gives an account administrator rights", pattern: /\b(usermod|gpasswd)\b[^\n]*\b(wheel|sudo)\b/i, kind: "persistence" },
+
+		// Where the operating system itself comes from, and what it will accept.
+		{ label: "changes where this computer gets its system updates", pattern: /\bbootc\b[^\n]*\bswitch\b/i, kind: "persistence", fix: "`bootc upgrade` updates from the source SP+ already uses and does not need this." },
+		{ label: "changes where this computer gets its system updates", pattern: /\brpm-ostree\b[^\n]*\brebase\b/i, kind: "persistence" },
+		{ label: "changes which system updates this computer will trust", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\brm\b|\bln\b)[^\n]*\/etc\/(containers\/policy\.json|pki\/containers\/)/i, kind: "persistence" },
 	];
 
 	pi.on("tool_call", async (event, ctx) => {
@@ -151,8 +217,14 @@ export default function (pi: ExtensionAPI) {
 			return { block: true, reason: `${reason}. Blocked: nobody is here to approve it.${guidance}` };
 		}
 
+		// A persistence rule that said "cannot be undone" would be lying, and an
+		// advisor who notices that once discounts every later warning.
+		const consequence = matched.kind === "persistence"
+			? "and it keeps working after this conversation ends"
+			: "which cannot be undone";
+
 		const choice = await ctx.ui.select(
-			`⚠️  ${reason}, which cannot be undone.\n\n  ${command}\n\nAllow it?`,
+			`⚠️  ${reason}, ${consequence}.\n\n  ${command}\n\nAllow it?`,
 			["No", "Yes"],
 		);
 

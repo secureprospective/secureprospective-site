@@ -10,14 +10,45 @@
 # turns every genuine repair into a dead end at the exact moment the advisor
 # needs help.
 #
-# WHAT THIS COSTS, stated plainly. Anyone at an unlocked session is effectively
-# root. SP+ accepts that deliberately: the containment here is architectural
-# rather than a permission wall. /usr is read-only, every change lands in a new
-# deployment, a bad state is one `bootc rollback` away, and the disk is LUKS
-# encrypted so an unattended machine is protected by being locked, not by sudo.
-# A password prompt the user cannot answer buys no real security -- it only
-# stops the assistant from helping.
+# WHAT THIS COSTS, stated plainly. Any unconfined process running as the advisor
+# is effectively root, not only Fin, and not only a person sitting at the
+# machine. The wording matters: a Flatpak under bubblewrap, a unit with
+# NoNewPrivileges, or anything confined by SELinux is materially different from
+# an unconfined shell, so "anything with the advisor's UID" would overstate it.
+# What is true is that the grant is written on %wheel while the justification
+# above is written about Fin, and those are not the same set.
 #
-# This grants nothing that the advisor, as the owner of the machine, does not
-# already have the right to do. It removes a prompt, not a boundary.
+# WHAT DOES AND DOES NOT CONTAIN THIS. /usr is read-only and a bad image is one
+# `bootc rollback` away. Three corrections to what this comment used to claim,
+# all from an external source review on 2026-09-11:
+#
+#   - "Every change lands in a new deployment" was false. /etc is mutable and
+#     /var is SHARED across deployments. Rollback reorders deployments; it does
+#     not merge /etc edits back and it restores nothing the advisor owns. It is
+#     an image undo, not a backup and not a general state restore.
+#   - LUKS protects data AT REST. Locking the screen does not close an unlocked
+#     mapping, so encryption is not a boundary against something already running
+#     in the advisor's live session.
+#   - "It removes a prompt, not a boundary" was false, and was the most
+#     misleading line in this file. Authorization and intent are different
+#     things. The advisor has every right to become root; malware running as the
+#     advisor inherits that right without the advisor deciding anything. Saying
+#     so is honesty, not mitigation.
+#
+# WHAT ACTUALLY GATES ANYTHING, and its honest scope. The control is in Fin's
+# tool path, in `fin-extensions/spplus-guardrails.ts`, not here. It gates
+# irreversibility and, since 2026-09-11, persistence: a new software source, a
+# signing key, a service that starts by itself, another administrator, a
+# different place to get updates. The advisor is shown those and can decline.
+#
+# That is NOT a defence against malware holding the advisor's UID. The same
+# review demonstrated five ways to synthesise a click on this desktop, one of
+# which carries a literal "TODO: make secure" upstream. It IS a check on
+# instructions smuggled into content Fin reads, because there the attacker is
+# text, and text can ask Fin to do something but cannot answer the advisor's
+# prompt. A stronger boundary needs an approval path outside the advisor's
+# session, which is recorded as the target and is not built.
+#
+# A password prompt the user cannot answer buys none of this -- it only stops
+# the assistant from helping.
 %wheel ALL=(ALL) NOPASSWD: ALL

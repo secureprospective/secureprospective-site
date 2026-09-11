@@ -940,7 +940,21 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-workspace' /usr/libexec/sp-plus/fin \
  && grep -q 'sends an email' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
- && echo "FIN_GUARDRAILS_OK 3 extensions loaded by path; sudo deliberately NOT gated" \
+# The persistence class, added 2026-09-11. PRIVILEGE IS STILL DELIBERATELY NOT
+# GATED: blocking sudo leaves an assistant that diagnoses everything and repairs
+# nothing, which is the failure this product exists to remove. What is gated is
+# what OUTLIVES the conversation -- a new software source, a signing key, a
+# service that starts by itself, another administrator, a different place to get
+# updates -- because that is what an instruction smuggled into content Fin read
+# would need in order to matter tomorrow. The last assertion is the wording
+# shown to the advisor: a persistence warning that said "cannot be undone" would
+# be false, and a warning caught being false once is not read again.
+ && grep -q 'kind: "persistence"' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && grep -q 'sets something to start automatically from now on' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && grep -q 'changes where this computer gets its system updates' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && grep -q 'changes who is allowed to administer this computer' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && grep -q 'keeps working after this conversation ends' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+ && echo "FIN_GUARDRAILS_OK 3 extensions by path; privilege deliberately NOT gated, persistence IS" \
  && grep -q 'image-mode' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \
