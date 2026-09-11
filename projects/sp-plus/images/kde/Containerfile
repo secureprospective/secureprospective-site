@@ -541,6 +541,7 @@ COPY config/fin-tip-catalogue/   /usr/share/sp-plus/fin/tips/
 COPY config/fin-prompts/         /usr/share/sp-plus/fin/prompts/
 COPY config/fin-extensions/      /usr/share/sp-plus/fin/extensions/
 COPY tests/fin-notebook-gate.sh   /usr/libexec/sp-plus/fin-notebook-gate
+COPY tests/fin-skills-gate.sh     /usr/libexec/sp-plus/fin-skills-gate
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
@@ -1014,6 +1015,29 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && bash /usr/libexec/sp-plus/fin-notebook-gate \
       /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
  && echo "FIN_NOTEBOOK_OK the notebook refuses names and personal detail, and stamps every page" \
+# The skill set an advisor actually gets. Four were added 2026-09-11 on top of
+# printer and marketing: the notebook and the session note that make Fin
+# remember, the voice interview that makes its writing sound like the advisor,
+# and the email drafting that uses it.
+#
+# Christopher's rule for all of them: "Unlike Bee, our explainations of the
+# skills and extentions and tips should be plain language and well defined."
+# Bee's skill descriptions are written for somebody who knows what a context
+# compaction is. An advisor types /skills and has to tell from one line whether
+# the thing is for them, so the gate below checks that every skill says WHEN to
+# reach for it and that none of them say it in developer words.
+ && test -f /usr/share/sp-plus/fin/skills/notebook/SKILL.md \
+ && test -f /usr/share/sp-plus/fin/skills/voice/SKILL.md \
+ && test -f /usr/share/sp-plus/fin/skills/email/SKILL.md \
+ && test -f /usr/share/sp-plus/fin/skills/save-this-session/SKILL.md \
+# save-this-session is Bee's compact-safe, renamed. "Compact-safe" names a
+# context window, which an advisor has never heard of and never needs to; the
+# skill list is the one place the product is read cold.
+ && grep -q 'name: save-this-session' /usr/share/sp-plus/fin/skills/save-this-session/SKILL.md \
+ && chmod 0755 /usr/libexec/sp-plus/fin-skills-gate \
+ && bash -n /usr/libexec/sp-plus/fin-skills-gate \
+ && bash /usr/libexec/sp-plus/fin-skills-gate /usr/share/sp-plus/fin/skills \
+ && echo "FIN_SKILLS_OK 6 skills, each saying when to use it, none in developer words" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \
