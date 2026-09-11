@@ -1625,6 +1625,39 @@ RUN set -eux; \
     systemd-analyze cat-config systemd/resolved.conf >/dev/null; \
     echo "T23_DOT_GATE_OK opportunistic DoT, allow-downgrade, world-readable 0644"
 
+# ---- 5c-3. T2.7: MAC address policy, deliberately asymmetric ----------------
+# The conf file carries the reasoning. Short version: Wi-Fi gets a per-SSID
+# stable MAC, which Fedora already defaults to and SP+ has shipped by
+# inheritance since day one without incident; restating it here makes the
+# property SP+'s own and lets the posture gate assert it. Ethernet is left
+# strictly alone, because Secureblue documents USB Ethernet adapters failing to
+# associate under randomization and doc 15 already names the dock as the reason
+# USBGuard is rejected outright. A broken dock is a broken desk.
+#
+# "preserve" rather than "permanent" on the wired side is deliberate: many USB
+# Ethernet adapters have no EEPROM and are given a kernel-assigned MAC at probe
+# time, so they have no permanent address and "permanent" could fail to bring
+# them up. "Preserve" declines to act and therefore cannot fail.
+COPY config/networkmanager/23-spplus-mac-policy.conf /usr/lib/NetworkManager/conf.d/23-spplus-mac-policy.conf
+
+RUN set -eux; \
+    chmod 0644 /usr/lib/NetworkManager/conf.d/23-spplus-mac-policy.conf; \
+    C=/usr/lib/NetworkManager/conf.d/23-spplus-mac-policy.conf; \
+    grep -q '^wifi.cloned-mac-address=stable-ssid$' "$C"; \
+    grep -q '^ethernet.cloned-mac-address=preserve$' "$C"; \
+    grep -q '^match-device=type:wifi$' "$C"; \
+    grep -q '^match-device=type:ethernet$' "$C"; \
+    if grep -v '^#' "$C" | grep -q 'random'; then \
+        echo "T2.7 GATE FAIL: random MAC is rejected; it breaks docks and USB Ethernet" >&2; exit 1; \
+    fi; \
+    if grep -v '^#' "$C" | grep -q '^ethernet.cloned-mac-address=permanent$'; then \
+        echo "T2.7 GATE FAIL: permanent can fail on a USB NIC with no EEPROM; use preserve" >&2; exit 1; \
+    fi; \
+    test ! -e /etc/NetworkManager/conf.d/23-spplus-mac-policy.conf; \
+    m="$(stat -c %a "$C")"; \
+    [ "$m" = 644 ] || { echo "T2.7 GATE FAIL: $C is mode $m; NetworkManager must be able to read it" >&2; exit 1; }; \
+    echo "T27_MAC_GATE_OK wifi stable-ssid, ethernet preserve, no randomization on wired"
+
 # ---- 5d. GVFS + the SMB backend (DN-40) -------------------------------------
 # "Connect this computer to the office" is a headline advisor feature and it
 # COULD NOT WORK. Welcome checks the share through GIO and expects GVFS to carry

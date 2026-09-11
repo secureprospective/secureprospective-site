@@ -511,6 +511,88 @@ else
     record FAIL "a real query is encrypted" "resolvectl reports plaintext; DoT is configured but not working"
 fi
 
+# ------------------------------------------------------------ T2.7 (2026-09-11)
+# MAC address policy. The control is deliberately asymmetric and the assertions
+# below are asymmetric to match: the WIRED half is the one that can break an
+# advisor's dock, so it is measured on the live link rather than read from a
+# file, while the Wi-Fi half is an effective-config read because a VM has no
+# Wi-Fi radio to measure.
+
+# TAKE THE FIRST MATCHING LINE, NOT A COUNT AND NOT THE LAST.
+#
+# Two earlier shapes of these two assertions passed on a mutated machine:
+#   1. Counting occurrences of the wanted value stayed green while a
+#      higher-priority conf.d section overrode it to random.
+#   2. Taking the LAST matching line was exactly backwards.
+# NetworkManager --print-config emits connection sections in DESCENDING
+# precedence: a 99- file appears above a 23- file, and the first section that
+# matches the device and sets the property is the one that takes effect.
+# Verified by reading the live output with a 99- override in place. Both wrong
+# shapes were found only because the mutation below was actually run.
+nmwifi="$(remote "sudo NetworkManager --print-config 2>/dev/null | grep '^wifi.cloned-mac-address=' | head -1" | tr -d '\r')"
+if [ "$nmwifi" = "wifi.cloned-mac-address=stable-ssid" ]; then
+    record PASS "wifi mac is per-network stable (config)" "effective value is stable-ssid"
+else
+    record FAIL "wifi mac is per-network stable (config)" "effective value is '${nmwifi:-<unset>}'"
+fi
+
+nmeth="$(remote "sudo NetworkManager --print-config 2>/dev/null | grep '^ethernet.cloned-mac-address=' | head -1" | tr -d '\r')"
+if [ "$nmeth" = "ethernet.cloned-mac-address=preserve" ]; then
+    record PASS "wired mac left alone (config)" "effective value is preserve"
+else
+    record FAIL "wired mac left alone (config)" "effective value is '${nmeth:-<unset>}'"
+fi
+
+# Randomized WIRED addressing is what breaks docks and USB Ethernet adapters.
+# Nothing in the effective configuration may ask for it.
+nmrand="$(remote "sudo NetworkManager --print-config 2>/dev/null | grep -cE '^(ethernet|wifi)\.cloned-mac-address=random$'" | tr -d '\r')"
+if [ "${nmrand:-1}" = 0 ]; then
+    record PASS "no random mac anywhere" "nothing in the effective config asks for a random address"
+else
+    record FAIL "no random mac anywhere" "${nmrand} connection defaults request a random MAC"
+fi
+
+# THE BEHAVIOURAL ONE. If the wired link is running on anything other than its
+# own hardware address, the dock-breaking failure mode is already live on this
+# machine. Measured on the link, not read from a policy file.
+#
+# TWO EARLIER SHAPES OF THIS WERE WRONG, both in ways that looked like a failing
+# control rather than a failing test:
+#   1. nmcli GENERAL.PERM-HWADDR is not a field that exists in NetworkManager
+#      1.56. The query errored, the empty result compared unequal, and the
+#      assertion went red on a machine where the control was working. A check
+#      that can NEVER pass is as useless as one that can never fail.
+#   2. Treating "no permanent address" as a failure is wrong on exactly the
+#      hardware this control protects. Many USB Ethernet adapters carry no
+#      EEPROM and report none, and so does virtio. The absence of a permanent
+#      address is a property of the device, not a fault in the policy.
+# ethtool -P is the interface that actually reports it, and the profile's own
+# cloned-mac-address is the fallback measurement when the device has none.
+ethdev="$(remote "nmcli -t -f DEVICE,TYPE device status 2>/dev/null | grep ':ethernet$' | cut -d: -f1 | head -1" | tr -d '\r')"
+if [ -z "$ethdev" ]; then
+    record FAIL "wired link uses its own hardware address" "no ethernet device found, so nothing was measured"
+else
+    cur="$(remote "cat /sys/class/net/$ethdev/address 2>/dev/null" | tr -d '\r')"
+    perm="$(remote "sudo ethtool -P $ethdev 2>/dev/null | cut -d' ' -f3" | tr -d '\r')"
+    cloned="$(remote "nmcli -g 802-3-ethernet.cloned-mac-address connection show $ethdev 2>/dev/null" | tr -d '\r')"
+    case "$perm" in
+        ""|00:00:00:00:00:00)
+            # The device reports no permanent address. Fall back to asserting
+            # that no cloned address was applied, and SAY that is what happened.
+            case "$cloned" in
+                ""|preserve) record PASS "wired link uses its own hardware address" "$ethdev has no permanent address to compare; no cloned MAC applied, running $cur" ;;
+                *)           record FAIL "wired link uses its own hardware address" "$ethdev carries cloned-mac-address=$cloned" ;;
+            esac
+            ;;
+        "$cur")
+            record PASS "wired link uses its own hardware address" "$ethdev is on its own $cur"
+            ;;
+        *)
+            record FAIL "wired link uses its own hardware address" "$ethdev running $cur, hardware address $perm"
+            ;;
+    esac
+fi
+
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then

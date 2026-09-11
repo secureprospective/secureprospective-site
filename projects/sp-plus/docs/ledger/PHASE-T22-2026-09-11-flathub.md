@@ -6,6 +6,30 @@
 **Image:** `localhost/sp-plus-kde:t22` (`ad2a1f2cfc2b`)
 **ISO:** `artifacts/t22-iso/.../bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
 `sha256 83c6b16243857147fe098641145d2602c6fb51db8bcf84d63eeaca0a243e4686`
+
+> **Artifact reconciliation, added 2026-09-11.** That checksum names an ISO that no
+> longer exists, and it is not the artifact anything ships from. Three t22 ISOs were
+> built:
+>
+> | Build | ISO sha256 | Payload image id |
+> |---|---|---|
+> | 00:08 | `92413e07…` | `ad2a1f2c…` |
+> | 00:46 | `83c6b162…` | `c8a708b8…` |
+> | 02:36 | `9347752c…` | `c8a708b8…` |
+>
+> **Builds two and three carry the same payload image id**, so the OS content is
+> identical and only the ISO wrapper differs; build three exists solely because it is
+> the first t22 ISO carrying a `payload.env` sidecar. ISO builds are not byte
+> reproducible, so the same image yields a different ISO checksum each time.
+>
+> The first-boot race described below was found on **build one** (`ad2a1f2c`) and fixed
+> in the image that became `c8a708b8`. Both t22 ISOs have since been reaped.
+>
+> **The control does not rest on any of them.** It is re-verified on the shipped t28
+> artifact, on a genuine first boot (`journalctl --list-boots` showing index 0 only):
+> `After=flatpak-add-fedora-repos.service` is present in the shipped unit, the unit
+> exited 0 on that boot, `xa.noenumerate=true` is set, and the ordering dependency is
+> live. Read the t28 entry as the artifact of record; read this checksum as history.
 **Roadmap row:** doc 15 §7 move 4, Tier 2 control T2.2
 
 ## What the control does
