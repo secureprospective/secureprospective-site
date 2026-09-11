@@ -462,6 +462,55 @@ case "$nkfiles" in
     sssd-shadowutils)    record PASS "empty passwords not accepted" "only in sssd-shadowutils, and sssd is masked" ;;
     *)                   record FAIL "empty passwords not accepted" "nullok present in: $nkfiles" ;;
 esac
+# ------------------------------------------------------------ T2.3 (2026-09-11)
+# DNS over TLS, opportunistic. Measured through resolved's own D-Bus property
+# and through a real query, never by reading the drop-in back.
+#
+# The drop-in being present proves nothing at all. systemd-resolved runs as its
+# own user and SILENTLY IGNORES a drop-in it cannot read -- no log line, the old
+# setting simply persists. That is why the mode is asserted here as well as in
+# the build, and why the live property is the thing that decides this assertion.
+
+dot="$(remote "sudo busctl get-property org.freedesktop.resolve1 /org/freedesktop/resolve1 org.freedesktop.resolve1.Manager DNSOverTLS 2>/dev/null | awk '{print \$NF}' | tr -dc 'a-z-'" | tr -d '\r')"
+if [ "$dot" = opportunistic ]; then
+    record PASS "DNS over TLS opportunistic" "resolved reports DNSOverTLS=$dot"
+else
+    record FAIL "DNS over TLS opportunistic" "resolved reports '${dot:-<no answer>}', want opportunistic"
+fi
+
+dsec="$(remote "sudo busctl get-property org.freedesktop.resolve1 /org/freedesktop/resolve1 org.freedesktop.resolve1.Manager DNSSEC 2>/dev/null | awk '{print \$NF}' | tr -dc 'a-z-'" | tr -d '\r')"
+if [ "$dsec" = allow-downgrade ]; then
+    record PASS "DNSSEC allow-downgrade" "resolved reports DNSSEC=$dsec"
+else
+    record FAIL "DNSSEC allow-downgrade" "resolved reports '${dsec:-<no answer>}', want allow-downgrade"
+fi
+
+# DNSOverTLS=yes would close the downgrade and break every captive portal. It is
+# rejected by the day-one rule, so a machine that has acquired it must go red.
+case "$dot" in
+    yes|true) record FAIL "captive portals still usable" "DNSOverTLS=$dot fails closed on a portal" ;;
+    *)        record PASS "captive portals still usable" "DoT is downgradeable, so a portal can still be reached" ;;
+esac
+
+# The drop-in must be readable by the daemon that needs it. A 0640 file here is
+# the silent-disable failure described above, so this is a real control.
+dm="$(remote "stat -c %a /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf 2>/dev/null" | tr -d '\r')"
+dd="$(remote "stat -c %a /usr/lib/systemd/resolved.conf.d 2>/dev/null" | tr -d '\r')"
+if [ "$dm" = 644 ] && [ "$dd" = 755 ]; then
+    record PASS "resolved drop-in readable by resolved" "file $dm, dir $dd"
+else
+    record FAIL "resolved drop-in readable by resolved" "file ${dm:-<missing>}, dir ${dd:-<missing>}; resolved runs as its own user"
+fi
+
+# And a real query has to come back encrypted. This is the only assertion here
+# that proves the control is doing work rather than merely being switched on.
+enc="$(remote "resolvectl query --cache=no fedoraproject.org 2>&1 | grep -c 'encrypted transport: yes'" | tr -d '\r')"
+if [ "${enc:-0}" -gt 0 ] 2>/dev/null; then
+    record PASS "a real query is encrypted" "resolvectl reports encrypted transport"
+else
+    record FAIL "a real query is encrypted" "resolvectl reports plaintext; DoT is configured but not working"
+fi
+
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then

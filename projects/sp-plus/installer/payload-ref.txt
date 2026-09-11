@@ -1,1 +1,1 @@
-localhost/sp-plus-kde:t26
+localhost/sp-plus-kde:t27

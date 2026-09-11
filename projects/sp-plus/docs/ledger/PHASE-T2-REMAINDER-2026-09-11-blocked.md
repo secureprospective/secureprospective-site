@@ -24,6 +24,16 @@ guest: `dnf repoquery hardened_malloc hardened-malloc` returns nothing across `f
 `updates`, `updates-archive` and `fedora-cisco-openh264`. Secureblue obtains it from
 their own build, not from Fedora.
 
+**Where Secureblue gets it, confirmed:** their own Fedora COPR at
+`copr.fedorainfracloud.org/coprs/secureblue/`. There is no official Fedora package.
+The unofficial alternatives are third-party GitHub spec files, `divestedcg/rpm-hardened_malloc`
+and a fork of it, both self-described as unofficial micro-architecture optimized builds.
+Upstream is GrapheneOS `hardened_malloc`. A COPR is a personal build service repository:
+it is not part of Fedora, carries no Fedora signing guarantee, and is maintained at one
+project's discretion. Noted separately: Secureblue's own issue tracker records that the
+config file which actually enables the allocator is **not** part of the RPM, so adopting
+the package is not the whole job.
+
 Shipping it therefore requires one of:
 
 1. **Adding an external repository.** That is a second trust root in layer 1, which is
@@ -33,6 +43,14 @@ Shipping it therefore requires one of:
    and maintainer of a memory allocator, with its own upstream to track.
 
 Both are standard-setting decisions. **Christopher's call, with a panel, not mine.**
+
+**The reason to think hard before saying yes.** Secureblue documents Electron
+applications dying with `fatal allocator error` under global preload. SP+ is
+Electron-heavy by design: Brave is a native Chromium RPM, and Zoom and Signal are the
+two applications SP+ vouches for by name under D48. The scoped shape doc 15 asks for
+would have to exclude most of what an advisor actually runs, which leaves a small
+protected surface bought with a new trust root and a new upstream to track. That trade
+looks poor from here, but the call is not mine to make.
 
 Its named real-world test, unchanged and still required afterwards: Brave, every
 installed PWA, Fin's Node runtime, and LibreOffice. Secureblue documents Electron

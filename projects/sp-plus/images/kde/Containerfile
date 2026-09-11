@@ -1589,6 +1589,42 @@ RUN test -s /usr/lib/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
  && test ! -e /etc/NetworkManager/conf.d/90-spplus-wifi-powersave.conf \
  && echo "DN36_WIFI_POWERSAVE_OK shipped in /usr/lib, value 2 = disable"
 
+# ---- 5c-2. T2.3: DNS over TLS, opportunistic -------------------------------
+# The drop-in carries the full reasoning and the measured captive-portal
+# numbers. Short version: opportunistic encrypts DNS wherever the resolver
+# supports it and falls back to plaintext where it does not, so a hotel portal
+# still works. DNSOverTLS=yes would close the downgrade and break the hotel; it
+# is rejected under the day-one rule, and the gate below refuses it.
+#
+# The mode checks in the gate are not cosmetic. systemd-resolved runs as its own
+# user, not as root, and silently ignores a drop-in it cannot read: the daemon
+# keeps its previous setting and logs nothing. A 0640 file here would disable
+# this control invisibly. That is not hypothetical -- it happened while
+# measuring T2.3, because a root shell under SP+'s own UMASK 027 creates
+# exactly that, and systemd-analyze cat-config runs as root so the config looked
+# applied while the daemon had never seen it.
+COPY config/systemd/90-sp-plus-dot.conf /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf
+
+RUN set -eux; \
+    chmod 0755 /usr/lib/systemd/resolved.conf.d; \
+    chmod 0644 /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf; \
+    grep -q '^DNSOverTLS=opportunistic$' /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf; \
+    grep -q '^DNSSEC=allow-downgrade$' /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf; \
+    if grep -v '^#' /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf \
+         | grep -qE '^DNSOverTLS=(yes|true)$'; then \
+        echo "T2.3 GATE FAIL: DNSOverTLS=yes breaks captive portals" >&2; exit 1; \
+    fi; \
+    if grep -v '^#' /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf \
+         | grep -qE '^DNSSEC=(yes|true)$'; then \
+        echo "T2.3 GATE FAIL: DNSSEC=yes fails closed on a portal's forged answers" >&2; exit 1; \
+    fi; \
+    m="$(stat -c %a /usr/lib/systemd/resolved.conf.d/90-sp-plus-dot.conf)"; \
+    [ "$m" = 644 ] || { echo "T2.3 GATE FAIL: drop-in is mode $m; resolved cannot read it" >&2; exit 1; }; \
+    d="$(stat -c %a /usr/lib/systemd/resolved.conf.d)"; \
+    [ "$d" = 755 ] || { echo "T2.3 GATE FAIL: drop-in dir is mode $d; resolved cannot traverse it" >&2; exit 1; }; \
+    systemd-analyze cat-config systemd/resolved.conf >/dev/null; \
+    echo "T23_DOT_GATE_OK opportunistic DoT, allow-downgrade, world-readable 0644"
+
 # ---- 5d. GVFS + the SMB backend (DN-40) -------------------------------------
 # "Connect this computer to the office" is a headline advisor feature and it
 # COULD NOT WORK. Welcome checks the share through GIO and expects GVFS to carry
