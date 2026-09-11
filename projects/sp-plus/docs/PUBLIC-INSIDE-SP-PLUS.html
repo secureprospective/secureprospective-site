@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Inside SP+: what the Secure Prospective advisor workstation protects, how every protection was tested, and where it stops.">
+<meta name="robots" content="index, follow">
+<style>
+html{color-scheme:light dark}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Inside SP+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --silver:#E5E4E2;
+  --paper:#FFFFFF;
+  --ink:#222222;
+  --ink-soft:#55565a;
+  --ink-faint:#7b7c80;
+  --blue:#0033A0;
+  --blue-ink:#FFFFFF;
+  --gold:#D4AF37;
+  --yellow:#FFD700;
+  --rule:#c9c8c5;
+  --rule-hair:#dcdbd8;
+  --tint:#f4f4f2;
+  --stamp-bg:#0033A0;
+  --band:#222222;
+  --band-ink:#E5E4E2;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --silver:#141414;
+    --paper:#1c1c1c;
+    --ink:#E7E6E3;
+    --ink-soft:#a9a8a4;
+    --ink-faint:#8a8985;
+    --blue:#6B93E8;
+    --blue-ink:#0d0d0d;
+    --gold:#D4AF37;
+    --yellow:#FFD700;
+    --rule:#3a3a38;
+    --rule-hair:#2b2b29;
+    --tint:#232322;
+    --stamp-bg:#1b3670;
+    --band:#0d0d0d;
+    --band-ink:#E7E6E3;
+  }
+}
+:root[data-theme="dark"]{
+  --silver:#141414;
+  --paper:#1c1c1c;
+  --ink:#E7E6E3;
+  --ink-soft:#a9a8a4;
+  --ink-faint:#8a8985;
+  --blue:#6B93E8;
+  --blue-ink:#0d0d0d;
+  --gold:#D4AF37;
+  --yellow:#FFD700;
+  --rule:#3a3a38;
+  --rule-hair:#2b2b29;
+  --tint:#232322;
+  --stamp-bg:#1b3670;
+  --band:#0d0d0d;
+  --band-ink:#E7E6E3;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--silver);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:960px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+
+/* ---------- masthead ---------- */
+.masthead{background:var(--band);color:var(--band-ink);margin-inline:-20px;padding:56px 20px 40px}
+.masthead .inner{max-width:920px;margin:0 auto}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--gold);margin:0 0 20px
+}
+h1{
+  font-size:clamp(40px,7vw,68px);font-weight:700;line-height:1;letter-spacing:-.03em;
+  margin:0 0 18px;text-wrap:balance
+}
+.deck{font-size:clamp(17px,2.2vw,21px);line-height:1.5;max-width:34em;color:var(--band-ink);opacity:.92;margin:0}
+.masthead .meta{
+  margin-top:32px;padding-top:18px;border-top:1px solid rgba(229,228,226,.22);
+  display:flex;flex-wrap:wrap;gap:10px 36px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;opacity:.72
+}
+.actions{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px}
+button.print{
+  font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:.02em;
+  background:var(--yellow);color:#222222;border:0;border-radius:2px;padding:14px 26px;cursor:pointer
+}
+button.print:hover{background:var(--gold)}
+button.print:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.print-note{font-size:13px;color:var(--band-ink);opacity:.6;align-self:center;margin:0}
+
+/* ---------- contents ---------- */
+nav.toc{background:var(--paper);border:1px solid var(--rule);margin-top:32px}
+nav.toc h2{
+  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  margin:0;padding:14px 20px;border-bottom:1px solid var(--rule-hair);color:var(--ink-soft)
+}
+nav.toc ol{list-style:none;margin:0;padding:8px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+nav.toc li{padding:0}
+nav.toc a{
+  display:flex;gap:12px;padding:9px 20px;text-decoration:none;color:var(--ink);font-size:15px
+}
+nav.toc a:hover{background:var(--tint);color:var(--blue)}
+nav.toc .n{font-family:var(--mono);font-size:12px;color:var(--ink-faint);padding-top:3px}
+
+/* ---------- cards ---------- */
+.card{background:var(--paper);border:1px solid var(--rule);margin-top:28px;break-inside:avoid}
+.card > .bar{
+  background:var(--stamp-bg);color:#FFFFFF;
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:13px 20px
+}
+.card > .bar h2{
+  font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0;line-height:1.3
+}
+.card > .bar .n{font-family:var(--mono);font-size:12px;opacity:.75;letter-spacing:.06em}
+.body{padding:26px 24px 30px}
+.body > *:first-child{margin-top:0}
+.body > *:last-child{margin-bottom:0}
+
+p{margin:0 0 16px;max-width:68ch}
+.lead{font-size:18px;line-height:1.55}
+h3{
+  font-size:19px;font-weight:700;letter-spacing:-.01em;margin:32px 0 10px;text-wrap:balance
+}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px}
+strong{font-weight:600}
+a{color:var(--blue)}
+hr{border:0;border-top:1px solid var(--rule-hair);margin:28px 0}
+
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:68ch}
+li{margin-bottom:8px}
+li::marker{color:var(--ink-faint)}
+
+/* technical-name tag */
+.tn{
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+  background:var(--tint);border:1px solid var(--rule-hair);border-radius:2px;
+  padding:1px 6px;white-space:nowrap
+}
+
+code{
+  font-family:var(--mono);font-size:13.5px;background:var(--tint);
+  border:1px solid var(--rule-hair);border-radius:2px;padding:1px 5px
+}
+.pull{
+  border-left:3px solid var(--gold);padding:4px 0 4px 18px;margin:24px 0;
+  font-size:18px;line-height:1.5;max-width:60ch
+}
+
+.note{background:var(--tint);border:1px solid var(--rule-hair);padding:18px 20px;margin:24px 0}
+.note p:last-child{margin-bottom:0}
+.note .tag{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--blue);display:block;margin-bottom:8px;font-weight:500
+}
+
+.tablewrap{overflow-x:auto;margin:22px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:460px}
+caption{
+  text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);padding-bottom:8px
+}
+th,td{text-align:left;vertical-align:top;padding:10px 14px 10px 0;border-bottom:1px solid var(--rule-hair)}
+th{
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);border-bottom:1px solid var(--rule)
+}
+td:first-child{font-weight:600;padding-right:24px}
+table.plain td:first-child{font-weight:400}
+tbody tr:last-child td{border-bottom:0}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 0;margin:22px 0;border-top:1px solid var(--rule-hair)}
+.cell{padding:18px 20px 18px 0;border-bottom:1px solid var(--rule-hair)}
+.cell h4{margin:0 0 6px;font-size:15px}
+.cell p{margin:0;font-size:15px;color:var(--ink-soft)}
+
+.ledger{margin:22px 0;border-top:1px solid var(--rule)}
+.ledger .row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:0 24px;border-bottom:1px solid var(--rule-hair);padding:14px 0}
+.ledger .k{font-weight:600}
+.ledger .v{color:var(--ink-soft)}
+@media (max-width:560px){.ledger .row{grid-template-columns:1fr;gap:4px}}
+
+.stamp{
+  display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--gold);color:var(--ink);padding:3px 9px;border-radius:2px;margin-bottom:14px
+}
+
+.closing{background:var(--band);color:var(--band-ink);margin-top:28px;padding:40px 24px 44px}
+.closing h2{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 16px}
+.closing p{max-width:62ch;opacity:.9}
+.closing p:last-child{margin-bottom:0}
+
+footer.legal{margin-top:28px;padding-top:22px;border-top:1px solid var(--rule)}
+footer.legal h3{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:22px 0 8px}
+footer.legal p{font-size:13.5px;line-height:1.55;color:var(--ink-soft);max-width:74ch}
+.colophon{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:28px;line-height:1.7}
+
+@media print{
+  :root{--silver:#fff;--paper:#fff;--band:#fff;--band-ink:#222;--stamp-bg:#fff}
+  body{font-size:11pt;background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  .masthead{margin:0;padding:0 0 18pt;border-bottom:2pt solid #000;color:#000}
+  .masthead .meta{border-top:1px solid #999;opacity:1}
+  .eyebrow{color:#000}
+  .actions,nav.toc{display:none}
+  .card{border:0;border-top:1.5pt solid #000;margin-top:20pt;page-break-inside:auto}
+  .card > .bar{background:#fff;color:#000;padding:8pt 0;border-bottom:1px solid #999}
+  .card > .bar h2{font-size:12pt}
+  .body{padding:10pt 0 0}
+  .closing{padding:18pt 0 0;border-top:1.5pt solid #000}
+  .note{border:1px solid #999;background:#fff}
+  a{color:#000;text-decoration:none}
+  h3{page-break-after:avoid}
+  table{page-break-inside:auto}
+  tr{page-break-inside:avoid}
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="inner">
+    <p class="eyebrow">Secure Prospective &middot; SP+ &middot; Reference edition</p>
+    <h1>Inside SP+</h1>
+    <p class="deck">A complete account of the computer we give to advisors: what it protects, how every protection was tested, and the places where it stops. Written to be read before you talk to anyone.</p>
+    <div class="actions">
+      <button class="print" id="printbtn">Print or save as PDF</button>
+      <p class="print-note">Or use your browser's own Print command and choose "Save as PDF".</p>
+    </div>
+    <div class="meta">
+      <span>Edition 0.11</span>
+      <span>Fedora KDE lane</span>
+      <span>Measured 11 September 2026</span>
+      <span>Free to eligible members</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>What is in here</h2>
+  <ol>
+    <li><a href="#s1"><span class="n">01</span><span>The plain statement</span></a></li>
+    <li><a href="#s2"><span class="n">02</span><span>Who it is for, and who it is not for</span></a></li>
+    <li><a href="#s3"><span class="n">03</span><span>The four things it exists to do</span></a></li>
+    <li><a href="#s4"><span class="n">04</span><span>What is actually on the machine</span></a></li>
+    <li><a href="#s5"><span class="n">05</span><span>The protections, one layer at a time</span></a></li>
+    <li><a href="#s6"><span class="n">06</span><span>How we know any of this is true</span></a></li>
+    <li><a href="#s7"><span class="n">07</span><span>What SP+ deliberately does not do</span></a></li>
+    <li><a href="#s8"><span class="n">08</span><span>What is still true after all of it</span></a></li>
+    <li><a href="#s9"><span class="n">09</span><span>A day with it</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>Questions advisors actually ask</span></a></li>
+    <li><a href="#s11"><span class="n">11</span><span>Things we will never say to you</span></a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section class="card" id="s1">
+  <div class="bar"><h2>The plain statement</h2><span class="n">01</span></div>
+  <div class="body">
+    <p class="lead">SP+ is a complete computer system, free to eligible Secure Prospective members, built for one job: making the laptop your client records live on hard to compromise, hard to break, and easy to account for. It arrives already set up. There is nothing to configure and no command line, and if you can use a web browser you can use it.</p>
+
+    <p>It is not Windows and it is not a Mac, but it is not meant to feel like a change of career either. You get a familiar desktop, a familiar browser, and the same websites you already work in: your carrier portals, your CRM, e-signature, quoting, Google Workspace or Microsoft 365, video calls. One edition is laid out like Windows, another like a Mac. You pick by answering one question, and we never guess from your hardware.</p>
+
+    <div class="pull">Everything underneath is different. Almost nothing on top of it is. That is the design goal, not a shortcoming.</div>
+
+    <p>This document goes further than a product page would, on purpose. An advisor deciding whether to put their practice on an unfamiliar computer deserves the real account, including the parts that are unflattering. Section 7 lists protections we chose not to build and why. Section 8 lists what remains risky after everything we did build. Section 6 explains how each claim in between was tested, and includes a register of our own tests that failed to test anything.</p>
+
+    <div class="note">
+      <span class="tag">The one paragraph everything here must survive</span>
+      <p>SP+ protects client information using strong encryption and careful defaults, and it produces records you can show to anyone who asks about your security practices. It does not make you compliant with any law or regulation, it does not replace your own responsibility for protecting client data, and it does not promise that every printer, camera, or gadget will work. It helps you do the right things and prove you did them. The rest is up to you, as it always has been.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="card" id="s2">
+  <div class="bar"><h2>Who it is for, and who it is not for</h2><span class="n">02</span></div>
+  <div class="body">
+    <p>SP+ was built for one person in particular, and every decision in it was made for that person rather than for a general audience.</p>
+
+    <h3>The advisor we built it for</h3>
+    <p>An independent insurance or financial advisor running a one-person business, or a principal with a member of staff or two. A career built on relationships rather than technology. Almost certainly on Windows today. Working nearly all day inside a browser. And holding, on an ordinary laptop, some of the most sensitive information in civilian commerce: names, dates of birth, Social Security numbers, health disclosures from life and long-term care applications, bank and routing numbers for premium drafts, beneficiary designations, income and asset statements. Usually sitting in a downloads folder, in plain form, on a disk that is not encrypted.</p>
+
+    <p>Behind that advisor there is no IT department, no managed service provider, no device management, and no written security program. When something breaks, the options today are a relative, a local shop, or nobody. Tolerance for disruption is close to zero, because a day lost to a computer problem is a day of lost commission.</p>
+
+    <p>Two things follow from that, and they run through every page of this document.</p>
+
+    <div class="grid2">
+      <div class="cell">
+        <h4>A protection that breaks your workday is worse than no protection</h4>
+        <p>Anything that breaks printing, printer discovery, Wi-Fi, the browser, your web apps, sound, camera, microphone, sleep and wake, a second monitor, or Bluetooth is rejected outright, however strong it is. An advisor who cannot print reinstalls Windows, and then the protection guards nothing at all.</p>
+      </div>
+      <div class="cell">
+        <h4>There is nobody to absorb complexity for you</h4>
+        <p>Anything that depends on a decision you have no way to make is not a security feature. That is why the password rule sets a length instead of demanding symbols, why a lockout clears itself in two minutes instead of needing an administrator, and why several choices in section 5 look unusual until you read the reason.</p>
+      </div>
+    </div>
+
+    <h3>Who it is not for, stated before you spend an evening on it</h3>
+    <ul>
+      <li><strong>Anyone with a Windows-only desktop program they cannot work without</strong> and that has no web version. Illustration software, an old agency package, a carrier tool that only runs installed. SP+ replaces the operating system, so that program does not come with you.</li>
+      <li><strong>Anyone who wants to tinker.</strong> The system is deliberately closed to modification. That is the point of it, and a technical user will find it restrictive.</li>
+      <li><strong>Firms with a managed Windows fleet and a security team.</strong> They already have what this replaces.</li>
+    </ul>
+
+    <p>We would rather lose you at this paragraph than at the end of a difficult week.</p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="card" id="s3">
+  <div class="bar"><h2>The four things it exists to do</h2><span class="n">03</span></div>
+  <div class="body">
+    <p>An advisor does not want an operating system. They want four outcomes, and SP+ was only worth building if it delivers all four.</p>
+
+    <h3>1. If this laptop is stolen, I am not the subject of a breach notification</h3>
+    <p>This is the strongest reason to do any of it. The whole disk is encrypted, and the encryption is not optional, not a setting, and not something you have to remember to turn on. A stolen encrypted laptop is an insurance claim for a laptop. A stolen unencrypted laptop is a legal event with notification costs, credit monitoring, and a conversation with every client whose file was on it.</p>
+
+    <h3>2. I can answer the security questionnaire</h3>
+    <p>Cyber insurance applications, carrier and IMO onboarding, broker-dealer supervision, RIA due diligence. These ask you to attest to your security posture, and most advisors answer from memory and hope. SP+ is built so the honest answer is a strong one, and so that the machine can describe its own state in plain language rather than leaving you to guess.</p>
+
+    <h3>3. It does not break, and when it does, something explains it to me</h3>
+    <p>The system files cannot be altered while the machine is running, so a bad install or a half-finished download cannot degrade it over time. Updates apply as a whole or not at all, and the previous version stays on the disk. A built-in assistant diagnoses problems in plain English and fixes them only after you say yes. This is not a philosophy. It is how the program survives without a support desk.</p>
+
+    <h3>4. It costs nothing and my life did not change</h3>
+    <p>Free to eligible members. No licence fee, no seat count, no premium tier, no upsell waiting behind it. Eligibility is checked once, when you download. It is never enforced inside the computer: if your membership status ever changes, your machine keeps working and keeps receiving updates. Building a licence check into someone's operating system would be both hostile and a liability.</p>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="card" id="s4">
+  <div class="bar"><h2>What is actually on the machine</h2><span class="n">04</span></div>
+  <div class="body">
+    <p>The figures below were read off a real installed machine on 11 September 2026, not copied from a plan. The technical names are included in small type for anyone you might forward this to.</p>
+
+    <div class="ledger">
+      <div class="row"><div class="k">The foundation</div><div class="v">Fedora KDE, a mainstream and heavily reviewed Linux system, taken exactly as published and locked to one specific published version. <span class="tn">fedora-kinoite, pinned by digest</span></div></div>
+      <div class="row"><div class="k">How it is delivered</div><div class="v">The whole operating system is one sealed image. Your machine runs a copy of it rather than a collection of parts assembled on your desk. <span class="tn">bootc image mode</span></div></div>
+      <div class="row"><div class="k">System files</div><div class="v">Read-only while the machine is running. Not locked by permission, but genuinely not writable. <span class="tn">composefs, /usr read-only</span></div></div>
+      <div class="row"><div class="k">The engine</div><div class="v">Stock Fedora, unmodified. No custom parts and no third-party drivers bolted in, which is what keeps secure startup working with no menus to navigate. <span class="tn">kernel 7.1.13, no out-of-tree modules</span></div></div>
+      <div class="row"><div class="k">Software inventory</div><div class="v">2,004 components, every one of them listed inside the image itself so the machine can account for what it is made of.</div></div>
+      <div class="row"><div class="k">Browser</div><div class="v">Brave, locked to one exact version, configured before you ever open it.</div></div>
+      <div class="row"><div class="k">Internal separation</div><div class="v">On and enforcing, which is the stronger of the two available settings. <span class="tn">SELinux enforcing</span></div></div>
+      <div class="row"><div class="k">Disk</div><div class="v">Encrypted with a modern, deliberately slow-to-guess scheme. Details in section 5. <span class="tn">LUKS2, argon2id</span></div></div>
+      <div class="row"><div class="k">Updates</div><div class="v">Prepared quietly on a daily schedule and finished when you shut down. The machine never restarts itself while you are working.</div></div>
+      <div class="row"><div class="k">Where it is built</div><div class="v">On one machine that Secure Prospective owns and controls. That is a real limitation and it is named again in section 8.</div></div>
+    </div>
+
+    <p>Every build stamps its own identity inside the image it produces: the build date, the exact foundation version it came from, the browser version, the engine version, the component count. An installed machine can therefore say what it is without asking anyone. A build that fails to record that is refused and never becomes an image.</p>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="card" id="s5">
+  <div class="bar"><h2>The protections, one layer at a time</h2><span class="n">05</span></div>
+  <div class="body">
+    <p class="lead">This is the long section. Each layer says what it does, then says what it costs or where it stops, because a protection described without its limit is marketing.</p>
+
+    <h3>The disk</h3>
+    <p>The entire disk is encrypted, and it is unlocked by something only you know, entered once when the machine starts. The scheme is chosen to be expensive to attack: each guess is made to consume roughly 592 MB of memory and real time, which is what defeats the racks of graphics cards that make ordinary password guessing cheap. <span class="tn">LUKS2, aes-xts-plain64, 512-bit key, argon2id</span></p>
+    <p>A recovery key is generated on your own machine the first time it starts, and never before, so nobody at Secure Prospective has ever seen it. You are asked to write it down and store it away from the computer, in a safe or a lockbox.</p>
+    <div class="note">
+      <span class="tag">The cost, stated</span>
+      <p>That recovery key is a second thing that opens your disk. Where you keep it decides whether the encryption still means what it says. Taped inside the laptop bag, it means nothing. In a safe at home, it means everything. This is the single most important thing you personally control.</p>
+    </div>
+    <p>The small startup area of the disk is not encrypted, which is normal and necessary. Its integrity is carried by secure startup instead.</p>
+
+    <h3>Startup</h3>
+    <p>SP+ uses the startup verification your laptop already shipped with, untouched, with the manufacturer's own keys. We add no keys of our own and ask you to approve nothing at a firmware screen. This is deliberate: every custom key is a screen that an advisor would have to navigate alone, in a menu that can render the machine unbootable. The trade is that we inherit trust in your hardware vendor, which is stated plainly in section 8. <span class="tn">Secure Boot, no MOK enrolment</span></p>
+
+    <h3>A system that cannot be worn down</h3>
+    <p>On a normal computer, damage accumulates. Half-finished installers, a bad driver, an update that lands on top of a modified file, five years of well-meant changes. SP+ removes that entire category.</p>
+    <ul>
+      <li><strong>The system files cannot be written to while the machine runs.</strong> Not by you, not by a program, not by something malicious that gets in.</li>
+      <li><strong>An update is a complete new copy, prepared alongside the current one.</strong> It either applies whole or it does not apply. There is no half-updated state to be stranded in.</li>
+      <li><strong>The previous version stays on the disk.</strong> If a release ever misbehaves, the machine goes back to the one before it.</li>
+      <li><strong>Updates never interrupt you.</strong> They are prepared on a daily schedule and finished when you shut down. Our build process actively refuses to produce an image whose updater is capable of restarting the machine on its own.</li>
+      <li><strong>There is one update path, not three.</strong> The ability to install system packages by hand has been removed from the software centre, so the machine cannot be led into a state its own updater cannot repair. The software centre keeps the things it should own: sandboxed applications and firmware.</li>
+      <li><strong>A daily health check</strong> can mark the system as needing attention rather than leaving a problem to be discovered later.</li>
+    </ul>
+    <div class="note">
+      <span class="tag">The limit, stated</span>
+      <p>Going back to the previous version is an undo for the system, not a backup of your work. It restores the operating system. It does not restore your files, and it does not protect you from ransomware or a failed disk. SP+ ships no backup system in this version. Keep your documents in cloud storage, on an external drive, or both. This is the most important gap in the product for an ordinary bad day.</p>
+    </div>
+
+    <h3>The browser, which is where your work actually happens</h3>
+    <p>Brave arrives configured rather than merely installed, and the configuration is managed by the system rather than being a set of preferences you have to find.</p>
+    <ul>
+      <li>Tracker and ad blocking is armed before the first page ever loads, not after you notice it.</li>
+      <li>Known-dangerous site warnings and stolen-password detection are on and cannot be quietly switched off.</li>
+      <li>The browser's own password saver is deliberately turned off, and Bitwarden is provided instead. One encrypted vault under your control beats passwords scattered between a browser, a notebook, and memory. For this user, a password manager is the single highest-value security change available, ahead of anything else on this page.</li>
+      <li>Your business tools are set up as proper applications in the taskbar rather than as a wall of tabs, so the CRM is a thing you click and not a bookmark you hunt for.</li>
+      <li>Only vetted extensions can run.</li>
+    </ul>
+    <p>Additional applications come from a catalogue restricted to publisher-verified entries, plus a short list Secure Prospective vouches for by name. Those applications run inside their own sandbox and reach the rest of the system only through controlled doors. <span class="tn">Flathub verified subset, Flatpak/bubblewrap, portals</span></p>
+    <div class="note">
+      <span class="tag">The weakest link, named</span>
+      <p>The browser itself is installed the traditional way rather than sandboxed like those applications, so it sits outside that particular boundary and relies on its own internal sandbox, which is strong but is not the same thing. On one laptop belonging to one non-technical person, the strongest available answer would be to run the browser inside a separate virtual machine, and that is not compatible with this user. We chose the user. Section 7 records the trigger that would reopen the decision.</p>
+    </div>
+
+    <h3>Signing in</h3>
+    <p>The password rule asks for length, not punctuation. Twelve characters minimum, no requirement for a capital or a symbol or a digit. <code>harbour ledger spring</code> is accepted. <code>Passw0rd!</code> is not, because it is a dictionary word with predictable decoration. Passwords containing your own name or username are refused.</p>
+    <p>This is not us being relaxed. Composition rules are the reason people write <code>Password1!</code> on a sticky note. Length is what actually resists guessing, and a passphrase is something a human can remember without a note. <span class="tn">pwquality minlen 12, no class credits</span></p>
+    <p>Ten wrong attempts in fifteen minutes locks the account, and the lock clears itself after two minutes. We specifically refuse to build an image where the lock is permanent or where it can lock out the administrator, because there is nobody for you to call and a mistyped password should never turn a working laptop into a paperweight.</p>
+
+    <h3>The network you are sitting on</h3>
+    <p>Hotel Wi-Fi, airport Wi-Fi, and the coffee shop are the everyday hostile network for an advisor who travels.</p>
+    <ul>
+      <li>The firewall is on and set to its untrusted profile by default.</li>
+      <li>Remote access is installed but switched off, so the machine is not listening for anyone.</li>
+      <li>Look-ups of website addresses are encrypted where the network allows it, so the operator of the café Wi-Fi does not get a readable list of the carrier sites you visited. <span class="tn">DNS over TLS, opportunistic</span></li>
+      <li>Printer discovery is left on. It is a small exposure on a shared network, and we accept it openly because a computer that cannot find a printer is a computer that gets replaced.</li>
+    </ul>
+    <p>Address-lookup encryption is described as opportunistic for an honest reason: an attacker who controls the network can block the encrypted path and force it back to the ordinary one. It defeats the passive observer and it does not defeat an active one.</p>
+
+    <h3>The assistant</h3>
+    <p>SP+ includes an assistant called Fin. Fin's job is to take a sentence like "my printer stopped working" and actually fix it, rather than hand you a list of steps to type.</p>
+    <ul>
+      <li><strong>It explains before it acts and asks before it changes anything.</strong> Nothing autonomous, and it tells you afterwards what happened, in your words.</li>
+      <li><strong>It cannot read your business.</strong> It works on the machine's own technical state. Your documents, email, browsing history, passwords, vault, and client records are not its material.</li>
+      <li><strong>What leaves the machine is limited by code, not by policy.</strong> When Fin needs online help to diagnose something, the request passes through a filter that permits only technical facts: hardware model, software versions, service status, error codes with personal details stripped, network state without credentials, printer status. Documents, email, calendar, contacts, CRM records, passwords, cookies, clipboard contents, client names, policy information and file names are blocked from leaving. A screenshot is sent only if you approve that individual screenshot.</li>
+      <li><strong>Anything that would outlive the conversation gets shown to you.</strong> Added in this release: if a step would add a new source of software, install a signing key, create a service that starts by itself, add another administrator, or change where the machine gets its updates, Fin stops and shows you in plain words, and you can decline. Those are the changes that persist after the problem is solved, so they are the ones worth a question.</li>
+    </ul>
+    <div class="note">
+      <span class="tag">The honest boundary</span>
+      <p>That last confirmation is a check, not a wall. It is a strong defence against instructions hidden in something Fin reads, because text cannot answer a prompt. It is not a defence against malicious software already running as you, which could in principle answer the prompt itself. We tested that specifically rather than assuming it, and we describe the control as what it is. A true wall requires an approval that happens outside your session, and that is on the roadmap and not built.</p>
+    </div>
+
+    <h3>How the system itself is built and delivered</h3>
+    <p>There is no golden machine that somebody configured by hand and photographed. The entire operating system is defined by a recipe held in version control, and every image is produced by running that recipe from the published Fedora foundation, locked to one exact version so that a build today and a build next week start from the same place.</p>
+    <ul>
+      <li>Nothing is repackaged or rebuilt from source by us, so Fedora's own signing remains the chain of trust for the software you run.</li>
+      <li>Images are signed with a key held on the build machine that has never left it. The matching public half ships inside the image so a machine can check what it is given.</li>
+      <li>Every image carries its own inventory and provenance, described in section 4.</li>
+      <li>Making verification mandatory on every installed machine is the current piece of work, and until it is finished end to end we describe it as being switched on rather than as done.</li>
+    </ul>
+    <p>We also trust a second software publisher directly, which is Brave, so that you get the browser the business runs on. That is a deliberate second dependency rather than an accident, and it is listed with the others in section 8.</p>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="card" id="s6">
+  <div class="bar"><h2>How we know any of this is true</h2><span class="n">06</span></div>
+  <div class="body">
+    <p class="lead">This is the part we would want to read first if somebody handed us this document. Every security product says it has encryption and updates and a firewall. The question is whether anyone checked, and whether the check was capable of failing.</p>
+
+    <h3>Two independent layers of checking</h3>
+    <p>SP+ carries 74 checks that run while the image is being built. Any one of them failing stops the build, so there is no way to produce an image that skipped one. They cover the things that can only be examined while the system is still being assembled.</p>
+    <p>It then carries 80 further checks that run against a real machine that has actually been installed from the finished USB stick and started up for the first time. These measure effect rather than intent. A build check can confirm that a setting ships in the right file. Only a running machine can confirm that the setting is in force.</p>
+
+    <h3>The rule that makes a check mean something</h3>
+    <div class="pull">Before any check is believed, it is run against a machine that deliberately lacks the protection. If it does not fail there, it is not evidence. It is decoration.</div>
+    <p>Every protection described in section 5 ships with a check that has been proven capable of returning a failure. A protection without one does not ship. This sounds obvious and it is the discipline most often skipped, including by us, which brings us to the uncomfortable part.</p>
+
+    <h3>The register of our own failures</h3>
+    <p>SP+ keeps a written register of twelve checks that passed while measuring nothing at all. Not bugs in the product: bugs in our own testing, each caught by the rule above and each written down rather than quietly corrected.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Four families of check that proved nothing</caption>
+        <thead><tr><th>What went wrong</th><th>Why it passed anyway</th></tr></thead>
+        <tbody>
+          <tr><td>A check matched its own explanation</td><td>It searched a file for a phrase, and found the phrase in the comment written above the check describing what it was looking for.</td></tr>
+          <tr><td>A check that could not fail</td><td>Written so that every possible result counted as success. It reported green for weeks without examining anything.</td></tr>
+          <tr><td>A probe that never arrived</td><td>It tested something, correctly, but not the thing it was aimed at, so the real setting was never observed.</td></tr>
+          <tr><td>Reading that quietly corrupted the value</td><td>The value was parsed wrongly on the way in, so a correct machine and an incorrect one produced the same answer.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The most instructive one: a check confirmed a file sharing service was configured off, and printed a pass on every build, while that service was in fact listening to the network on the running machine. The configuration was right and the posture was wrong. The rule that came out of it now governs the whole suite, and it is the reason for the second layer of checking described above: <strong>measure the effect, never the text of the setting.</strong></p>
+    <p>We publish that register because a security document listing only successes tells you about its authors' confidence rather than about the system. If you are evaluating SP+ with help from someone technical, that register is the right place for them to start.</p>
+
+    <h3>What was measured on a real machine, not read off a plan</h3>
+    <p>Encryption scheme and strength. Startup verification. That the engine's own protections are in force. That the file sharing service is not listening. That the password rule rejects an eleven-character password and accepts a long plain phrase. That exactly ten failed sign-ins trigger a lockout and the eleventh is not counted twice. That the updater cannot restart the machine on its own. That the software centre can no longer install system packages. That the assistant's notifier cannot escalate its own privileges. That a newly created file is readable by its owner and not by everyone.</p>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="card" id="s7">
+  <div class="bar"><h2>What SP+ deliberately does not do</h2><span class="n">07</span></div>
+  <div class="body">
+    <p>Each of these is a decision with a recorded reason and a recorded trigger that would reopen it. They are listed so that their absence is not mistaken for an oversight, and so that nobody later "fixes" one without understanding what it costs you.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Rejected protections and the reason</caption>
+        <thead><tr><th>Not done</th><th>Why not</th></tr></thead>
+        <tbody>
+          <tr><td>Running the browser in a separate virtual machine</td><td>The strongest answer to a browser compromise, and incompatible with one laptop belonging to one non-technical person. Reopens if SP+ ever ships a managed second machine.</td></tr>
+          <tr><td>Blocking unknown USB devices</td><td>Docks, printers, keyboards, headsets and memory sticks all arrive by being plugged in. This breaks the workday on day one.</td></tr>
+          <tr><td>Removing the classic administrator tools</td><td>Some hardened systems delete them outright. That is exactly the class of change that breaks printing or mounting a drive on a machine nobody can support. SP+ keeps an exact inventory of them instead, and a new one appearing fails the build.</td></tr>
+          <tr><td>Turning off printer discovery</td><td>Printing is the fourth thing SP+ must do on day one. A hardened system that cannot find a printer gets replaced with an unhardened one.</td></tr>
+          <tr><td>Requiring a password for administrative actions</td><td>The assistant cannot answer a prompt, the advisor often cannot either, and it stops nobody who is already sitting at an unlocked machine. See the first item in section 8, where this cost is stated in full.</td></tr>
+          <tr><td>Disabling a decade-old chip vulnerability class</td><td>Costs up to 40% of the machine's speed, permanently, against a threat this user does not face. Reopens only if that changes.</td></tr>
+          <tr><td>Replacing the browser</td><td>A settled decision. Security work hardens around Brave rather than relitigating it.</td></tr>
+          <tr><td>Rebuilding every component with extra hardening</td><td>That turns SP+ into a Linux distribution rather than a careful layer on a well-reviewed one, and a small team maintaining its own distribution is a worse security outcome, not a better one.</td></tr>
+          <tr><td>Any claim of compliance, ever</td><td>See section 11. Reopens only with an actual audit, by actual auditors.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="card" id="s8">
+  <div class="bar"><h2>What is still true after all of it</h2><span class="n">08</span></div>
+  <div class="body">
+    <p class="lead">Every product has this list. Most do not publish it. Read it as the counterweight to everything above, and bring it to whoever advises you on risk.</p>
+    <ol>
+      <li><strong>A laptop stolen while open and unlocked is fully compromised.</strong> The lock screen is the boundary, and it is the only boundary in that situation. Whoever is sitting at your unlocked machine has everything you have. Lock the screen when you stand up. The machine locks itself when the lid closes.</li>
+      <li><strong>If your browser is compromised, the whole machine follows.</strong> Code running as you reaches every client document and every saved credential. This is the strongest argument for the confinement work recorded in section 7, and the reason we say plainly that application confinement is this product's weakest layer.</li>
+      <li><strong>Encrypted address lookups can be forced back to plain ones</strong> by an attacker who controls the network you joined.</li>
+      <li><strong>Your hardware, its firmware and its startup keys are trusted and unverified by us.</strong> SP+ starts by trusting the machine you already own.</li>
+      <li><strong>Going back a version is not a backup.</strong> There is no backup system in this release. A failed disk or ransomware means lost files. This is the gap most likely to affect an ordinary advisor in an ordinary year, and the one you should close yourself this week.</li>
+      <li><strong>SP+ is built on one machine, with no second party watching the process.</strong> A compromise of that machine reaches everything downstream of it. Moving the build to an independent, audited pipeline is recorded work and is not done.</li>
+      <li><strong>Any program running as you can inspect any other program running as you</strong>, including the browser. Some of this is reduced in this release and none of it is eliminated.</li>
+      <li><strong>Hostile documents are addressed only by the defaults of the office software</strong>, with nothing specific added.</li>
+      <li><strong>There is no formal machine-readable bill of materials</strong> in an industry-standard format, and no claim that our build is bit-for-bit reproducible. There is a complete component inventory and an exactly pinned foundation.</li>
+      <li><strong>You are part of the system.</strong> Phishing resistance rests on the browser's policy, the warning lists, and your own judgement on the day. No operating system changes that.</li>
+      <li><strong>SP+ does not defend against someone who has chosen you specifically</strong> and has time and budget to spend on it. It raises the cost of opportunistic compromise, which is what almost every real incident actually is.</li>
+    </ol>
+    <div class="note">
+      <span class="tag">Not yet built</span>
+      <p>A one-click Security Evidence Report, a readable summary of your machine's encryption, firewall, update history and significant events that you could attach to a cyber insurance application, is a designed and intended feature of SP+ and is not shipping yet. We mention it because you will hear about it, and because this document would be dishonest if it let you assume otherwise.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section class="card" id="s9">
+  <div class="bar"><h2>A day with it</h2><span class="n">09</span></div>
+  <div class="body">
+    <h3>Getting it</h3>
+    <p>Answer one question in the member portal: does Windows or a Mac feel more familiar? That decides your edition. Download it, and put it on any USB stick of 8 GB or more using our instructions. If you would rather not, it is a five-minute job for any capable helper.</p>
+
+    <h3>Installing it</h3>
+    <p>About twenty minutes, mostly unattended. You start the computer from the USB stick and answer prompts. You choose the code that unlocks the disk and the password you sign in with. You are shown the recovery key and asked to write it down, once. Then you remove the stick and restart onto a desktop that is already set up.</p>
+    <p>Plan this like any computer change. Your web applications come across by signing in. Your files come from cloud storage or a backup. Anything Windows-only stays where it is. Keep your old machine or your old drive until you have confirmed everything you need is available.</p>
+
+    <h3>The first hour</h3>
+    <p>The assistant opens by itself and walks you through the handful of things that differ: where files go, how the browser is arranged, how to add a printer, what the lock screen does. Nothing is changed without your approval, including during the tour. Then you sign in to your accounts, sign in to Bitwarden, and add your printer.</p>
+
+    <h3>Every day after</h3>
+    <p>You work the way you already do. Email, calendar, proposals, illustrations, applications, e-signature, client video calls, all in the browser. Files save to your home folder, your cloud drives, or a USB drive. Close the lid and the screen locks.</p>
+
+    <h3>When something goes wrong</h3>
+    <p>Click the assistant and describe it in your own words. It checks the machine, tells you what it found in plain English, proposes a fix, and waits for you. It confirms afterwards that the fix worked. If it wants to make a change that would still be there next month, it says so first and you can decline.</p>
+
+    <h3>Updates</h3>
+    <p>They prepare themselves quietly and finish when you shut down. Restart whenever it suits: coffee, lunch, end of day. If a release ever misbehaves, the previous one is on the disk and the machine goes back to it. Your files are untouched in either direction.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="card" id="s10">
+  <div class="bar"><h2>Questions advisors actually ask</h2><span class="n">10</span></div>
+  <div class="body">
+    <h4>Is it really free? What is the catch?</h4>
+    <p>Free to eligible members, verified once through the member portal. No licence fee, no seat count, no premium tier. It is a member benefit, not a funnel into paid software. The catch, if you want one, is that it is a member benefit, so it goes away as a benefit if you leave, although your installed machine keeps working.</p>
+
+    <h4>I have only ever used Windows. Will I be lost?</h4>
+    <p>No. Choose the Windows-familiar edition and you get a taskbar, a start menu, and the click paths you know. Your work happens in the same websites as today.</p>
+
+    <h4>What happens to my existing files and programs?</h4>
+    <p>SP+ replaces the operating system, so treat it as a computer change. Web applications carry over by signing in, files come from cloud storage or a backup, and anything Windows-only that cannot move should stay on a machine that still runs Windows. Do not wipe your only computer on a Monday.</p>
+
+    <h4>Can it read my client files?</h4>
+    <p>The assistant works on the machine's technical state, not your documents, email, browsing history, passwords or client records, and what it may send for online diagnosis is limited by code to a list of technical facts. Screenshots go only with your approval, one at a time. Every request is recorded in the machine's own history where you can see it.</p>
+
+    <h4>Will my printer work?</h4>
+    <p>Almost certainly. Printers made in roughly the last decade speak a common standard that SP+ uses directly, with no driver hunting. Very old or unusual models are the exception. Test your printer during setup, before you rely on it.</p>
+
+    <h4>What if an update breaks something?</h4>
+    <p>The previous version is still on the disk and the machine goes back to it. Your files are unaffected either way.</p>
+
+    <h4>Does this satisfy my compliance obligations?</h4>
+    <p>No, and nothing else does either. SP+ gives you real controls and the ability to describe them honestly. Whether any particular requirement applies to you depends on your entity, your activities, your registrations and your regulators. Compliance stays yours. See section 11.</p>
+
+    <h4>Who fixes it if something goes badly wrong?</h4>
+    <p>Start with the built-in assistant. If the machine ever asks for your recovery key at startup, the guide explains exactly what happened and what to do, which is why we ask you to store that key properly on day one. Support sessions, where needed, are time-limited and require your approval.</p>
+
+    <h4>What if Secure Prospective stops making it?</h4>
+    <p>Your machine keeps running. It is built on a mainstream Linux foundation rather than anything proprietary to us, and there is a written plan for discontinuation rather than an assumption that the question will not come up.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="card" id="s11">
+  <div class="bar"><h2>Things we will never say to you</h2><span class="n">11</span></div>
+  <div class="body">
+    <p>This is an internal rule we publish on purpose. Each phrase below is banned from every Secure Prospective page, email and conversation about SP+, and the right-hand column is what we say instead. If you ever hear one of the phrases on the left from us, we got it wrong and we would like to know.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Banned language and its replacement</caption>
+        <thead><tr><th>Never</th><th>Because</th><th>Instead</th></tr></thead>
+        <tbody>
+          <tr><td>"Compliant", "keeps you compliant"</td><td>We are not your auditor and cannot certify anything.</td><td>"Controls and records for your own compliance program"</td></tr>
+          <tr><td>"Meets FTC, NAIC or SEC requirements"</td><td>Whether a rule applies depends on your entity and registrations, not on your laptop.</td><td>Describe the control itself</td></tr>
+          <tr><td>"Bank-grade", "military-grade", "unhackable"</td><td>Unverifiable superlatives.</td><td>"Strong encryption", "hardened defaults"</td></tr>
+          <tr><td>"Guaranteed to work with your devices"</td><td>No universal hardware guarantee exists before testing.</td><td>"Works with the vast majority of modern devices"</td></tr>
+          <tr><td>"Autonomous repair", "AI-approved fixes"</td><td>Overstates the assistant. Your approval is mandatory.</td><td>"Fixes only after you approve"</td></tr>
+          <tr><td>"We protect your client data"</td><td>We protect the computer. You protect the data.</td><td>"Built to reduce client-data risk"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="closing">
+  <h2>The narrow claim we are actually making</h2>
+  <p>Every protection listed in this document as shipping has been measured working on a real machine that was installed from a real USB stick and started up for the first time, and every one of those measurements has been shown capable of failing. Where a protection is absent, its absence is a decision with a written reason. Where a risk remains, it is in section 8.</p>
+  <p>That is the whole claim. It is narrower than most security marketing and it is the only one worth making to someone who is about to trust us with the machine their clients' Social Security numbers live on.</p>
+  <p>If you want to go deeper before you talk to anyone, ask for the security architecture report. It is the full technical version of this document, including the register of our own failed tests, and we hand it out on request rather than on qualification.</p>
+</section>
+
+<footer class="legal">
+  <h3>Product nature</h3>
+  <p>SP+ is software and documentation, not professional advice. It does not provide legal, regulatory, tax, investment, compliance, audit, or insurance advice. Consult your own qualified professionals about your obligations. No advisory or fiduciary relationship is created by downloading, installing, or using SP+.</p>
+
+  <h3>No compliance certification</h3>
+  <p>SP+ provides security controls and describes the state of your own computer. It does not certify compliance with any law, regulation, framework, contract, or standard, and nothing it produces constitutes proof of compliance. Applicability of requirements such as the FTC Safeguards Rule, state insurance data security laws modelled on the NAIC model law, SEC Regulation S-P, and state breach notification statutes depends on your entity, activities, registrations, and regulators. Compliance remains your responsibility.</p>
+
+  <h3>Warranty</h3>
+  <p>SP+ is provided "as is" and "as available", without warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that it will be uninterrupted, error-free, or secure against all threats.</p>
+
+  <h3>Hardware compatibility</h3>
+  <p>SP+ targets mainstream x86-64 personal computers and common peripherals, and prioritises driverless standards for printing and standard protocols for audio, storage, networking and displays. Compatibility with any specific computer, printer, scanner, multifunction device, webcam, headset or dock is not guaranteed. Validate the equipment you depend on before relying on SP+ in production, and keep fallback access during any transition.</p>
+
+  <h3>Third-party services and eligibility</h3>
+  <p>Services such as Google Workspace, Microsoft 365, CRM platforms, e-signature providers, carrier portals and Bitwarden are governed by their own terms, availability and pricing, and Secure Prospective is not responsible for them. SP+ is available at no charge to members meeting current eligibility requirements, verified at download. Eligibility is never enforced inside the installed operating system, and installed systems continue to function and receive updates regardless of later membership changes.</p>
+
+  <h3>Backup and data responsibility</h3>
+  <p>No computer is a backup plan. You remain responsible for backing up your files. Store your disk recovery key safely and away from the computer: if it is lost, recovery of data from an encrypted disk may be impossible.</p>
+
+  <p class="colophon">
+    Inside SP+ &middot; reference edition, release 0.11 &middot; Fedora KDE lane<br>
+    Figures measured on an installed machine, 11 September 2026. Superseded by later editions as the product changes.<br>
+    Secure Prospective. Fedora is a trademark of Red Hat, Inc. SP+ is not a Fedora product and is not endorsed by or affiliated with the Fedora Project or Red Hat.
+  </p>
+</footer>
+
+</div>
+
+<script>
+document.getElementById('printbtn').addEventListener('click', function () {
+  window.print();
+});
+</script>
+
+</body>
+</html>
