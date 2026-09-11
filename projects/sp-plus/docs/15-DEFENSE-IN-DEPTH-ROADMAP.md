@@ -112,9 +112,43 @@ then a Dell test before it enters the plan of record.
 | T2.2 | Flathub `--subset=verified` and a permission baseline | T3, T4 | Nothing is installed today, so this is cheap now and expensive later. Prove every application SP+ intends to ship is available in the verified subset **before** switching the remote |
 | T2.3 | System DNS over TLS with DNSSEC | T6 | Brave already does DoH; the rest of the machine is plaintext. The blocker is captive portals — hotel and airport Wi-Fi is where advisors work. A tested captive-portal path is the gate, not an afterthought |
 | T2.4 | Kernel argument hardening | T3, T8 | Secureblue's `init_on_alloc`, `init_on_free`, `randomize_kstack_offset`, `slab_nomerge`, `vsyscall=none`, `pti=on`. **Exclude `mitigations=auto,nosmt`**, which Secureblue documents as costing up to about 40% on parallel work. Test suspend and resume, Wi-Fi, audio, external display and boot time |
-| T2.5 | `hardened_malloc`, scoped | T3 | Secureblue documents Electron applications crashing with `fatal allocator error`. Global preload is the risky shape. Test Brave, every PWA, Fin's Node runtime and LibreOffice |
+| T2.5 | ~~`hardened_malloc`, scoped~~ **superseded 2026-09-11 — see §4a** | T3 | Dropped on measurement. It is in none of the four repositories SP+ ships. What ships instead is `glibc.malloc.tcache_count=0`, which is smaller and honest |
 | T2.6 | Login and password hardening | T9 | `faillock`, `pwquality`, `UMASK 027`. Weigh against a non-technical advisor locking themselves out, which is a support call SP+ pays for |
 | T2.7 | MAC randomization | T6 | Secureblue documents USB Ethernet adapters failing to connect. Test the Dell's built-in adapter and any dock |
+
+### 4a. T2.5 superseded — what was measured and what ships instead
+
+Decided 2026-09-11. Full measurement in `docs/ledger/PHASE-T25-2026-09-11-hardened-malloc.md`.
+
+`hardened_malloc` is in **none of the four repositories SP+ ships.** Secureblue builds it in
+their own COPR, so taking it means trusting a fifth repository — a statement about what SP+
+vouches for, not an implementation detail. Two further facts weigh against it. Secureblue's own
+tracker records that the configuration which *enables* the allocator is not inside their RPM, so
+installing the package does not turn it on. And the documented breakage class is Electron, which
+here means Brave, Zoom and Signal: most of an advisor's working day.
+
+Before that went up for decision, the in-repo alternative was measured on a booted image at
+glibc 2.43. Two of the three candidate tunables are **inert**:
+
+| Tunable | Verdict |
+|---|---|
+| `glibc.malloc.check=3` | Inert. `ld.so --list-tunables` reports it as set. The implementation moved into `libc_malloc_debug.so` in glibc 2.34 and that library is not in the image. A deliberate heap overflow behaved identically set and unset |
+| `glibc.malloc.perturb` | Inert, same reason |
+| `glibc.malloc.tcache_count=0` | **Real**, proven by a changed abort path rather than a config read |
+
+**What ships is `glibc.malloc.tcache_count=0`, across three layers** — `/etc/environment` for
+pam_env logins, `/usr/lib/environment.d/` for the systemd user manager that the Plasma session
+and therefore Brave inherit, and `DefaultEnvironment` for system services.
+
+**Say what it is, and is not.** It removes the per-thread cache, and with it tcache poisoning,
+one of the most commonly used heap primitives against an attacker who already has a
+use-after-free or a double free. It gives **none** of `hardened_malloc`'s guard pages,
+randomised allocation, isolated size classes or delayed reuse. The Security Evidence Report must
+carry that sentence, not a feature name. Measured cost is 5.8% on two million malloc/free pairs,
+which is the worst case that exists, and nothing measurable on Brave, LibreOffice or Node 22.
+
+**The trigger that reopens `hardened_malloc`:** SP+ deciding it is willing to vendor and build
+the allocator from source inside its own build, so that no new repository enters the trust set.
 
 **T2.2 has a deadline that the others do not.** Filtering Flathub while zero applications are
 installed costs nothing. Filtering it after advisors depend on an unverified application is a
