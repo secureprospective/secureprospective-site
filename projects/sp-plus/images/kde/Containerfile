@@ -543,6 +543,7 @@ COPY config/fin-extensions/      /usr/share/sp-plus/fin/extensions/
 COPY tests/fin-notebook-gate.sh   /usr/libexec/sp-plus/fin-notebook-gate
 COPY tests/fin-skills-gate.sh     /usr/libexec/sp-plus/fin-skills-gate
 COPY tests/fin-session-meter-gate.sh /usr/libexec/sp-plus/fin-session-meter-gate
+COPY tests/fin-opening-gate.sh    /usr/libexec/sp-plus/fin-opening-gate
 COPY config/fin-pi-config/pi-statusline.json /etc/skel/.pi/agent/pi-statusline.json
 COPY config/fin-pi-config/web-search.json    /etc/skel/.pi/web-search.json
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
@@ -1119,6 +1120,22 @@ console.log("SPPLUS_WEB_FETCH_ONLY_OK Fin can open a link, and cannot search")' 
  && grep -q 'pi-subagents/index.ts' /usr/libexec/sp-plus/fin \
  && test "$(grep -c 'spplus-session-meter' /usr/libexec/sp-plus/fin)" -eq 1 \
  && echo "FIN_FOOTER_OK status bar, plan mode, web fetch, usage, subagents and the session meter" \
+# The opening page. It is the first thing an advisor sees and, for many of them,
+# the only place they will ever learn what Fin can do -- so it lists the skills
+# in their words and offers something to try, with the voice interview pinned as
+# THE suggestion until a voice profile exists. A rotation that might show the
+# interview on the fourth launch is a rotation nobody sees it in.
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-opening.ts \
+ && test "$(grep -c 'spplus-opening' /usr/libexec/sp-plus/fin)" -eq 1 \
+# The launcher must NOT also print the shoal, or it appears twice: once above
+# the interface and once inside it.
+ && ! grep -qE '^\[ -x "\$BANNER" \] && "\$BANNER"' /usr/libexec/sp-plus/fin \
+ && grep -q 'fin-banner' /usr/share/sp-plus/fin/extensions/spplus-opening.ts \
+ && chmod 0755 /usr/libexec/sp-plus/fin-opening-gate \
+ && bash -n /usr/libexec/sp-plus/fin-opening-gate \
+ && bash /usr/libexec/sp-plus/fin-opening-gate \
+      /usr/share/sp-plus/fin/extensions/spplus-opening.ts \
+ && echo "FIN_OPENING_OK the shoal, what Fin can do in plain words, and what to try" \
  && ! grep -rqE 'sk-ant-[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && ! grep -rqE 'ANTHROPIC_API_KEY=[A-Za-z0-9_-]{8}' /usr/libexec/sp-plus/fin /usr/share/sp-plus/fin \
  && test ! -e /etc/sp-plus/fin.env \
