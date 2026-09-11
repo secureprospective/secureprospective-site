@@ -30,3 +30,8 @@ pnpm-debug.log*
 .impeccable/live/sessions/
 .impeccable/live/accept-receipts/
 .impeccable/live/pending-manual-edits.json
+
+# Impeccable ships a 16MB platform binary per harness. The launcher falls back
+# to the home cache or PATH, so the binary is fetched per machine, not versioned.
+.claude/skills/impeccable/scripts/bin/
+.pi/skills/impeccable/scripts/bin/
