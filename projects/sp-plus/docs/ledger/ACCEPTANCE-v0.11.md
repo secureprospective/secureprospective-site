@@ -1,6 +1,21 @@
 # SP+ v0.11 — acceptance sheet
 
 **Image:** `localhost/sp-plus-kde:v0.11`, os-release `SP+ 1`, `BUILD_ID=20260911`.
+
+**The artifact this sheet accepts.** Built 2026-09-11, verified by `build-iso.sh` to embed the
+payload its kickstart names, which is the check the 2026-09-04 alpha1 crash lacked.
+
+```
+ISO      ~/Downloads/SP-PLUS-v0.11.iso
+bytes    5497520128
+sha256   8e5df67271fd073302c71603c59370cef6202b336942f5abd5fdcadc46d3816e
+payload  localhost/sp-plus-kde:v0.11  (ba98a7f8fdea)
+log      ~/logs/sp-plus/build-v0.11-20260911T164606Z.log
+```
+
+Confirmed present in this image before it was handed over: all five persistence assertions,
+46 guardrail rules, and the corrected sudoers comment. The only occurrence of the old false
+line is inside the sentence that refutes it.
 **Method:** this sheet does not replace `TESTING-ON-HARDWARE.md`. That document says how to
 test cheaply; this one says what must be true before v0.11 is published to the fleet.
 **Traps still apply**, in particular TRAP 3 (the IP changes across reboots) and TRAP 4 (never
