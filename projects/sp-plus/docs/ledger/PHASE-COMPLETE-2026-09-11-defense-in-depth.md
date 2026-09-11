@@ -120,9 +120,43 @@ verification-integrity defect.
    argument against is in the blocked ledger: SP+ is Electron-heavy and that is exactly
    what `hardened_malloc` is documented to break.
 
-## The one control genuinely left undone
+## The one control genuinely left undone, now blocked on a number
 
-**T2.1, SELinux confinement for Brave.** It needs real carrier portals, a real upload and
-a print from inside the browser. A VM has no carrier account and no printer. A
-confinement policy that passes on a VM and blocks a carrier's document upload costs an
-advisor a submission, which is the worst failure SP+ can produce.
+**T2.1, SELinux confinement for Brave.** Investigated properly rather than assumed. See
+`PHASE-T21-2026-09-11-brave-selinux.md`.
+
+**The mechanism is proven and is not the hard part.** A CIL module loads on the running
+image with no reference-policy headers, the domain transition works — Brave was confirmed
+running as `brave_t` via `ps -eZ` — and it kept working inside the domain, loading three
+real pages. Every tool needed is already in the image. The working skeleton is preserved
+so the next attempt starts from code that runs.
+
+**What blocks it is the policy content, and the cost is measured.** A permissive domain
+with no baseline produced **2,163 AVC denials from three headless page loads**, 145
+distinct triples, one of them repeated 1,896 times. That is a journal flood on a machine
+nobody can support, so a bare permissive domain is rejected on measurement rather than on
+taste.
+
+The flood is suppressible — 145 triples is a tractable baseline and `audit2allow`
+generates it — but a baseline derived from three headless pages covers a small fraction
+of the real surface. The rest is GUI, GPU, audio, camera, printing, upload and download,
+PWAs and carrier portals.
+
+**So the block is not "we lack a test", it is "we lack the workload the policy must be
+derived from."** Those are different claims and the second is the true one. What unblocks
+it is one session of real Brave use on the Dell under a permissive domain, with the AVC
+log kept. Everything after that is ordinary work.
+
+## Honest final position
+
+**Four of five moves are complete. Move 5 is two of four.** T2.3 and T2.7 shipped and are
+verified; T2.1 and T2.5 are not, and neither can be closed here without breaking a rule
+that matters more than the scorecard:
+
+- **T2.1 enforcing without the real workload** is exactly what the day-one rule forbids,
+  and shipping it permissive floods the log at a measured 2,163 denials per three pages.
+- **T2.5 requires adding a trust root**, which Christopher reserved to himself with a
+  panel. It is not an engineer's call to make on a fleet OS image.
+
+Marking either green would make the scorecard say five while the machine says something
+else. The ISO in Downloads carries exactly what this document lists and nothing more.
