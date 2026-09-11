@@ -1,0 +1,13 @@
+[Desktop Entry]
+# The LOGIN copy of the Welcome launcher, installed into the advisor home.
+# It differs from the menu entry in exactly one way: --autostart, which is what
+# makes "do not show this setup again" apply to this launch and to no other.
+# The two files must never be made identical again.
+Type=Application
+Name=SP+ Welcome
+Comment=Set up your Secure Prospective work computer
+Exec=/usr/bin/spplus-welcome --autostart
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=Office;Utility;Settings;
+StartupNotify=true

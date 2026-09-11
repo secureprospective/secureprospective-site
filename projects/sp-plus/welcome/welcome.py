@@ -2330,6 +2330,16 @@ def main():
     parser.add_argument('--screenshots', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--reset-no-show', action='store_true')
+    # ONLY the login launch is silenced by "do not show this setup again".
+    # The advisor asked not to be interrupted at every login; they did not ask
+    # for the application to be taken away from them. Without this flag the
+    # menu entry ran the same bare command as autostart, read the same
+    # preference, and exited before building a window -- so clicking SP+
+    # Welcome in the menu flashed a startup cursor and did nothing at all,
+    # with no error and no way back in. Measured on the v0.11 install,
+    # 2026-09-11. The autostart entry passes this flag; nothing else does.
+    parser.add_argument('--autostart', action='store_true',
+                        help='launched by the login session, so honour "do not show again"')
     parser.add_argument('--self-test', action='store_true',
                         help='drive the bridge verbs headlessly and print a QC report')
     parser.add_argument('--self-test-ask', action='store_true',
@@ -2375,13 +2385,20 @@ def main():
         # anything is.
         write_no_show(False)
     force = args.force or args.screenshots or args.self_test_close or args.self_test
-    # Honour "do not show this setup again" BEFORE building a window. This used
-    # to happen in loadFinished, which meant Welcome opened, loaded the whole
-    # page, and only then closed itself -- a visible flash at every login for
-    # someone who asked not to see it, and no opt-out at all on any launch where
-    # the page failed to load, because loadFinished(ok=False) returns early.
-    # Nothing about this decision needs the page, so it no longer waits for it.
-    if not force and read_no_show():
+    # Honour "do not show this setup again" BEFORE building a window, and only
+    # on the launch the preference is actually about -- the one the login
+    # session makes. This used to happen in loadFinished, which meant Welcome
+    # opened, loaded the whole page, and only then closed itself -- a visible
+    # flash at every login for someone who asked not to see it, and no opt-out
+    # at all on any launch where the page failed to load, because
+    # loadFinished(ok=False) returns early. Nothing about this decision needs
+    # the page, so it no longer waits for it.
+    #
+    # The `args.autostart` condition is the second half of the same fix. The
+    # preference silences the interruption, never the application: a launch the
+    # advisor made on purpose -- the menu, a terminal, Fin opening it for them --
+    # always opens, whatever the preference says.
+    if args.autostart and not force and read_no_show():
         return 0
     window = WelcomeWindow(force, args.screen, args.screenshots, args.help_depth)
     if instance is not None:

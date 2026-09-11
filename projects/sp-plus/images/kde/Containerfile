@@ -2205,6 +2205,13 @@ assert m['icons'], 'an installable app needs an icon'" \
 
 COPY welcome/org.secureprospective.spplus.welcome.desktop \
      /usr/share/applications/org.secureprospective.spplus.welcome.desktop
+# The login launcher is a SEPARATE file, not a copy of the menu entry. It carries
+# --autostart, which is what confines "do not show this setup again" to the login
+# launch. When the two were the same file, ticking the box also removed the menu
+# entry's ability to open anything: the advisor clicked SP+ Welcome, saw a startup
+# cursor, and got nothing, forever, with no error to act on.
+COPY welcome/org.secureprospective.spplus.welcome-autostart.desktop \
+     /usr/share/sp-plus/welcome-autostart.desktop
 
 RUN printf '%s\n' \
       '#!/usr/bin/bash' \
@@ -2213,8 +2220,17 @@ RUN printf '%s\n' \
       > /usr/bin/spplus-welcome \
  && chmod 0755 /usr/bin/spplus-welcome \
  && install -d /etc/skel/.config/autostart \
- && cp /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
+ && cp /usr/share/sp-plus/welcome-autostart.desktop \
        /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
+ && grep -q '^Exec=/usr/bin/spplus-welcome --autostart$' \
+       /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
+ && grep -q '^Exec=/usr/bin/spplus-welcome$' \
+       /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
+ && ! cmp -s /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
+             /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
+ && grep -q "args.autostart and not force and read_no_show" \
+       /usr/libexec/sp-plus/welcome/welcome.py \
+ && echo "WELCOME_LAUNCH_OK the menu entry always opens; only the login entry honours do-not-show" \
  && test -x /usr/bin/spplus-welcome \
  && test -f /usr/libexec/sp-plus/welcome/app/index.html \
  && test -f /usr/libexec/sp-plus/welcome/app/help-data.json \
@@ -2246,6 +2262,7 @@ assert c <= known, 'help category the Welcome screen has no blurb for: %s' % (c-
     done \
  && test -f /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
  && desktop-file-validate /usr/share/applications/org.secureprospective.spplus.welcome.desktop \
+ && desktop-file-validate /etc/skel/.config/autostart/org.secureprospective.spplus.welcome.desktop \
  && chmod 0755 /usr/libexec/sp-plus/welcome/welcome-close-gate.sh \
  && python3 -m py_compile /usr/libexec/sp-plus/welcome/welcome.py \
  && grep -q 'def closeEvent' /usr/libexec/sp-plus/welcome/welcome.py \

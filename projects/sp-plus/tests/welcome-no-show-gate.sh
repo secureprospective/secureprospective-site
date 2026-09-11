@@ -14,10 +14,20 @@
 # and it autostarted again at every single login with no way to stop it. The
 # preference now lives in QSettings, which the shell owns.
 #
+# THE SECOND DEFECT, FOUND ON THE v0.11 INSTALL (2026-09-11).
+# The fix above was applied to the launcher itself, and the menu entry and the
+# autostart entry were the same command. So the preference silenced BOTH. The
+# advisor ticked the box, and from then on clicking SP+ Welcome in the
+# application menu produced a startup cursor for a second and nothing else --
+# no window, no error, no way back in. The preference now applies ONLY to the
+# launch that carries --autostart, which is the login one.
+#
 # WHAT THIS GATE CHECKS. The round trip, through the real launcher, not a copy:
-# set the preference and Welcome must close itself on the next launch; clear it
-# and Welcome must stay open. Both directions are asserted, so the gate fails if
-# the preference stops being read AND if it starts hiding Welcome from everyone.
+# with the preference set, the login launch must close itself and the menu
+# launch must stay open; with it clear, the login launch must stay open too.
+# Every direction is asserted, so the gate fails if the preference stops being
+# read, if it starts hiding Welcome from everyone, and if it ever again takes
+# the application away from an advisor who only asked not to be interrupted.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -59,24 +69,37 @@ PY
 
 fail=0
 
-# --- 1. Preference SET: Welcome must close itself, and quickly. --------------
+# --- 1. Preference SET, LOGIN launch: Welcome must close itself, quickly. ----
 set_no_show true || { echo 'WELCOME_NO_SHOW_FAIL: could not write the preference' >&2; exit 1; }
 start=$(date +%s)
-timeout 40s python3 "$WELCOME" >/dev/null 2>&1
+timeout 40s python3 "$WELCOME" --autostart >/dev/null 2>&1
 rc=$?
 elapsed=$(( $(date +%s) - start ))
 if [ "$rc" = 124 ]; then
-    echo "WELCOME_NO_SHOW_FAIL: opted out, but Welcome stayed open past 40s" >&2
+    echo "WELCOME_NO_SHOW_FAIL: opted out, but the login launch stayed open past 40s" >&2
     fail=1
 else
-    echo "WELCOME_NO_SHOW_OPTED_OUT_OK: exited in ${elapsed}s"
+    echo "WELCOME_NO_SHOW_OPTED_OUT_OK: login launch exited in ${elapsed}s"
 fi
 
-# --- 2. Preference CLEAR: Welcome must stay open. ----------------------------
+# --- 1b. Preference SET, MENU launch: Welcome must STILL open. ---------------
+# The whole punch item. "Do not show this setup again" is about the login
+# interruption. An advisor who then goes looking for Welcome in the menu must
+# get Welcome, not a startup cursor and silence.
+timeout 20s python3 "$WELCOME" >/dev/null 2>&1
+rc=$?
+if [ "$rc" = 124 ]; then
+    echo 'WELCOME_NO_SHOW_MENU_OK: opted out, and the menu launch still opened'
+else
+    echo "WELCOME_NO_SHOW_FAIL: opted out took the menu entry away too (rc=$rc)" >&2
+    fail=1
+fi
+
+# --- 2. Preference CLEAR: the login launch must stay open. -------------------
 # This is the half that stops a "fix" which simply always closes. Without it the
 # gate would pass for an app no advisor could ever use.
 set_no_show false || { echo 'WELCOME_NO_SHOW_FAIL: could not clear the preference' >&2; exit 1; }
-timeout 20s python3 "$WELCOME" >/dev/null 2>&1
+timeout 20s python3 "$WELCOME" --autostart >/dev/null 2>&1
 rc=$?
 if [ "$rc" = 124 ]; then
     echo 'WELCOME_NO_SHOW_OPTED_IN_OK: stayed open until the gate stopped it'
@@ -113,5 +136,18 @@ else
     echo 'WELCOME_NO_SHOW_SOURCE_OK: the page does not store this preference itself'
 fi
 
+# --- 5. The two launchers must not be the same file. ------------------------
+# They were, and that is what caused the menu entry to die silently. A future
+# edit that copies one over the other reintroduces the defect exactly.
+MENU=$ROOT/welcome/org.secureprospective.spplus.welcome.desktop
+AUTO=$ROOT/welcome/org.secureprospective.spplus.welcome-autostart.desktop
+if grep -q '^Exec=/usr/bin/spplus-welcome --autostart$' "$AUTO" 2>/dev/null \
+   && grep -q '^Exec=/usr/bin/spplus-welcome$' "$MENU" 2>/dev/null; then
+    echo 'WELCOME_NO_SHOW_LAUNCHERS_OK: only the login entry passes --autostart'
+else
+    echo 'WELCOME_NO_SHOW_FAIL: the menu and login launchers no longer differ' >&2
+    fail=1
+fi
+
 [ "$fail" = 0 ] || exit 1
-echo 'WELCOME_NO_SHOW_OK: 4/4'
+echo 'WELCOME_NO_SHOW_OK: 6/6'
