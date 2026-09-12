@@ -30,9 +30,9 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const BANNER = "/usr/libexec/sp-plus/fin-banner";
@@ -105,25 +105,160 @@ const SKILL_BLURBS: Record<string, [string, string]> = {
 };
 
 /**
- * Things worth trying. Written as the advisor would say them, because the point
- * is that they can be said straight back to Fin without being translated first.
+ * TRY THIS -- a different one every time Fin opens.
+ *
+ * Christopher, 2026-09-12: the tips should cover "the commands, skills,
+ * extentions, tips on addressing the things 'what i can do' actually can be
+ * worked on", and each one should say what the advisor gets out of it -- his
+ * example ended "Next Time Fin will be better."
+ *
+ * So every tip is two lines: something to DO, and what it BUYS. A tip without
+ * the second line is a feature list, and an advisor has no reason to act on a
+ * feature list.
+ *
+ * TWO RULES ABOUT WHAT MAY BE NAMED HERE.
+ *
+ * 1. A slash command named here must exist. This page is the only place many
+ *    advisors will ever learn a command, so one that does nothing costs more
+ *    trust than the tip could ever earn. The gate checks every command named
+ *    below against COMMANDS, and COMMANDS was read off the agent's own list.
+ * 2. Skills are NOT slash commands. The agent loads them on its own when the
+ *    conversation calls for one, so a skill is reached by asking in a sentence.
+ *    Telling an advisor to type "/save-this-session" would send them to an
+ *    error, which is why the gate refuses any tip that does it.
  */
-const SUGGESTIONS: string[] = [
-	"Teach me how you write, so my drafts sound like you.",
-	"My printer has stopped working. Can you sort it out?",
-	"Here are my notes from a meeting. Turn them into a follow-up email.",
-	"Make me a one-page handout for a seminar next month.",
-	"Explain this letter in plain English and tell me what it does not answer.",
-	"Tidy up my Downloads folder, by file name only.",
-	"What did we work on last time?",
-	"Save this conversation so we can pick it up tomorrow.",
-	"Read this page for me and pull out the three things that matter.",
-	"Turn this long document into a one-page summary I can discuss.",
+type Tip = { act: string; pays: string };
+
+/** Slash commands that exist. Anything named in a tip must appear here. */
+const COMMANDS = [
+	"/login", "/model", "/thinking", "/new", "/resume", "/export",
+	"/copy", "/compact", "/plan", "/hotkeys", "/settings", "/quit",
+] as const;
+
+const TIPS: Tip[] = [
+	// --- the notebook, which is the thing that compounds ------------------
+	{
+		act: "Ask me to save this session before you stop for the day.",
+		pays: "It goes in your notebook, so tomorrow I already know what we did and you explain it once.",
+	},
+	{
+		act: "Ask me what we worked on last time.",
+		pays: "I read my own notes back, so a job you started on Monday can be finished on Thursday.",
+	},
+	{
+		act: "Tell me something about how your business runs, and ask me to note it down.",
+		pays: "Renewal timing, which carrier portal is awkward, how you file things. I stop asking.",
+	},
+	// --- voice, which every piece of writing depends on --------------------
+	{
+		act: "Teach me how you write, so everything I draft sounds like you.",
+		pays: "Worth doing once. Every email and handout I write afterwards starts in your voice.",
+	},
+	{
+		act: "Tell me when a draft does not sound like you, and say what was off.",
+		pays: "I change how I write for you permanently, rather than fixing that one draft.",
+	},
+	// --- the work itself ---------------------------------------------------
+	{
+		act: "Hand me your notes from a meeting and ask for the follow-up email.",
+		pays: "You get a draft to edit instead of a blank page. I never send anything; that stays yours.",
+	},
+	{
+		act: "Ask me to make a one-page handout for a seminar.",
+		pays: "I lay it out and turn it into a PDF you can print or attach.",
+	},
+	{
+		act: "Tell me your printer has stopped and let me look at it myself.",
+		pays: "I can read the settings and fix them. Describing the problem is usually enough.",
+	},
+	{
+		act: "Paste a long letter and ask what it does not answer.",
+		pays: "The gaps are the part worth a phone call, and they are the easiest part to miss.",
+	},
+	// --- commands ----------------------------------------------------------
+	{
+		act: "Type /plan before a big job.",
+		pays: "I lay out what I intend to do and wait for your yes before I touch anything.",
+	},
+	{
+		act: "Type /thinking to change how hard I think.",
+		pays: "Turn it up for something knotty, down for something quick. The level shows in the bar below.",
+	},
+	{
+		act: "Type /new when you change subject.",
+		pays: "A fresh start beats a long conversation that has drifted, and nothing saved is lost.",
+	},
+	{
+		act: "Type /resume to go back to an earlier conversation.",
+		pays: "Yesterday's is still there, exactly where you left it.",
+	},
+	{
+		act: "Type /copy to put my last answer on your clipboard.",
+		pays: "Faster than selecting it, and it keeps the formatting.",
+	},
+	{
+		act: "Type /export to save this conversation as a file.",
+		pays: "Useful when you want the whole thread somewhere else rather than a summary.",
+	},
+	{
+		act: "Type /model to change which model I use.",
+		pays: "Whichever one you pick shows in the bar below, so you always know who you are talking to.",
+	},
+	{
+		act: "Type /hotkeys to see the keyboard shortcuts.",
+		pays: "A minute now, and you stop reaching for the mouse.",
+	},
+	// --- what Fin can reach ------------------------------------------------
+	{
+		act: "Give me a web address and ask me to read the page.",
+		pays: "I can pull out the three things that matter so you do not read all of it.",
+	},
+	{
+		act: "Ask me to tidy a folder by file name.",
+		pays: "I sort and rename without opening anything, so nothing private is read to do it.",
+	},
 ];
 
-/** The suggestion that is always right when it is true. */
-const FIRST_RUN_SUGGESTION =
-	"Teach me how you write, so everything I draft sounds like you.";
+/**
+ * The first run is not a rotation. Until Fin knows how the advisor writes,
+ * everything it drafts is a guess, so that tip is THE tip rather than one of
+ * nineteen.
+ */
+const FIRST_RUN_TIP: Tip = TIPS.find((t) => t.act.startsWith("Teach me how you write"))!;
+
+/** Where the rotation keeps its place. One number; no advisor detail. */
+const TIP_STATE = join(homedir(), ".pi", "agent", "fin-tip.json");
+
+/**
+ * Advance the rotation by one and remember where it got to.
+ *
+ * Picking at random would show the same tip twice in a row often enough to look
+ * broken, and would leave some tips unseen for months. Stepping through in order
+ * means an advisor who opens Fin every morning meets all nineteen inside a
+ * month. A state file that cannot be read or written costs the rotation and
+ * nothing else.
+ */
+function nextTip(): Tip {
+	let i = 0;
+	try {
+		const raw = JSON.parse(readFileSync(TIP_STATE, "utf8")) as { next?: number };
+		if (typeof raw.next === "number" && Number.isFinite(raw.next)) i = raw.next;
+	} catch {
+		/* first run, or a file we cannot read: start at the beginning */
+	}
+	i = ((i % TIPS.length) + TIPS.length) % TIPS.length;
+	try {
+		// The directory is created first. pi makes it on its own first run, so on
+		// an advisor's machine it is already there -- but when it is not, the
+		// write fails, the catch swallows it, and the rotation silently shows tip
+		// one forever. The gate found exactly that.
+		mkdirSync(dirname(TIP_STATE), { recursive: true });
+		writeFileSync(TIP_STATE, JSON.stringify({ next: (i + 1) % TIPS.length }));
+	} catch {
+		/* a read-only home means the same tip every time, which is still a tip */
+	}
+	return TIPS[i]!;
+}
 
 function bannerLines(): string[] {
 	try {
@@ -228,9 +363,7 @@ export default function opening(pi: ExtensionAPI) {
 		const book = notebookState();
 		const skills = installedSkills();
 		const hasVoice = existsSync(VOICE);
-		const suggestion = hasVoice
-			? SUGGESTIONS[Math.floor(Math.random() * SUGGESTIONS.length)]!
-			: FIRST_RUN_SUGGESTION;
+		const tip = hasVoice ? nextTip() : FIRST_RUN_TIP;
 
 		ctx.ui.setHeader((_tui, theme) => ({
 			render(termWidth: number): string[] {
@@ -347,11 +480,13 @@ export default function opening(pi: ExtensionAPI) {
 				/* ---------------------------------------------- suggestion -- */
 
 				heading("TRY THIS");
-				const lines = wrap(suggestion, Math.max(24, width - 10));
-				rows.push(PAD + " " + bold(gold("»")) + "  " + val(lines[0]!));
-				for (const l of lines.slice(1)) rows.push(PAD + "    " + val(l));
-				if (!hasVoice) {
-					rows.push(PAD + "    " + quiet("worth doing once; everything I write afterwards uses it"));
+				const actLines = wrap(tip.act, Math.max(24, width - 10));
+				rows.push(PAD + " " + bold(gold("»")) + "  " + val(actLines[0]!));
+				for (const l of actLines.slice(1)) rows.push(PAD + "    " + val(l));
+				// The payoff is the half that makes the tip worth acting on, so it
+				// always renders, wrapped like the rest rather than clipped.
+				for (const l of wrap(tip.pays, Math.max(24, width - 10))) {
+					rows.push(PAD + "    " + quiet(l));
 				}
 				rows.push("");
 

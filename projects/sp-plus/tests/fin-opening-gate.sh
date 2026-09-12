@@ -47,6 +47,14 @@ WORK=$(mktemp -d) || exit 1
 trap 'rm -rf "$WORK"' EXIT
 cp "$EXT" "$WORK/ext.ts"
 
+# The page reads the advisor's notebook and remembers where the tip rotation
+# got to, both under $HOME. Pointing HOME at the scratch directory keeps the
+# gate from depending on whoever runs it, and from leaving a state file in a
+# real home. It also lets the harness below turn the voice profile on and off,
+# which is the only way to exercise the rotation at all.
+mkdir -p "$WORK/home"
+export HOME="$WORK/home"
+
 cat > "$WORK/gate.mjs" <<'HARNESS'
 import ext from "./ext.ts";
 
@@ -119,7 +127,7 @@ check("it offers something to try", /TRY THIS/.test(text));
 check("with no voice profile it offers the interview first",
   /Teach me how you write/.test(text), "the first-run suggestion is not the interview");
 check("and says why the interview is worth doing",
-  /worth doing once/.test(text));
+  /worth doing once/i.test(text));
 
 // Plain language. This is the whole difference from Bee's panel.
 check("nothing on the page is said in developer words",
@@ -144,6 +152,64 @@ check("nothing on the page is said in developer words",
   check("a suggestion wraps rather than truncating",
     plain.includes("Teach me how you write, so everything I draft sounds like you."),
     plain.slice(plain.indexOf("Teach me"), plain.indexOf("Teach me") + 80));
+}
+
+// Christopher, 2026-09-12: the tips cover the commands, the skills and the work
+// itself, and each says what the advisor gets out of it. These assertions are
+// about the two ways a tip can actively mislead someone.
+{
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./ext.ts", import.meta.url), "utf8");
+  const tips = [...src.matchAll(/\bact:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  const pays = [...src.matchAll(/\bpays:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  check("there is a rotation to rotate through", tips.length >= 8, tips.length + " tips");
+  check("every tip says what it buys the advisor", pays.length === tips.length,
+    tips.length + " tips but " + pays.length + " payoff lines");
+
+  // A command that does not exist is worse than no tip: this page is the only
+  // place many advisors will ever learn one, and typing it lands on an error.
+  const known = new Set([...src.matchAll(/"(\/[a-z-]+)"/g)].map((m) => m[1]));
+  const named = new Set(tips.concat(pays).flatMap((t) => [...t.matchAll(/\/[a-z-]+/g)].map((m) => m[0])));
+  const unknown = [...named].filter((c) => !known.has(c));
+  check("every command a tip names is a real command", unknown.length === 0,
+    "not in the command list: " + unknown.join(", "));
+
+  // Skills are loaded by the agent when the conversation calls for one. They
+  // are not slash commands, and telling an advisor to type one sends them to an
+  // error rather than to the skill.
+  const { readdirSync } = await import("node:fs");
+  const skills = readdirSync(process.env.SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory()).map((e) => "/" + e.name);
+  const asCommand = skills.filter((c) => named.has(c));
+  check("no tip tells the advisor to type a skill as a command", asCommand.length === 0,
+    "typed as commands: " + asCommand.join(", "));
+}
+
+// The rotation has to actually move, or "a different tip every time" is a claim
+// rather than a behaviour. It only runs once Fin knows how the advisor writes,
+// because until then the interview is deliberately the only tip -- so the voice
+// profile goes in first and comes back out afterwards.
+{
+  const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const nb = process.env.HOME + "/Documents/Fin/Notebook";
+  mkdirSync(nb, { recursive: true });
+  writeFileSync(nb + "/voice.md", "kind: profile\n");
+
+  const strip = (l) => l.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  const shown = async () => {
+    const line = (await page()).map(strip).find((l) => l.includes("\u00bb"));
+    return (line ?? "").split("\u00bb")[1]?.trim() ?? "";
+  };
+  const seen = new Set();
+  for (let i = 0; i < 4; i++) seen.add(await shown());
+
+  check("the tip changes from one launch to the next", seen.size === 4,
+    "four launches showed " + seen.size + " distinct tip(s): " + [...seen].join(" | "));
+  check("a rotated tip still says what it buys",
+    (await page()).map(strip).join("\n").split("\u00bb")[1]?.trim().split("\n").length >= 2,
+    "the payoff line is missing once the rotation starts");
+
+  rmSync(nb + "/voice.md");
 }
 
 // Colour has to come from the theme or the page is unreadable on whichever Look

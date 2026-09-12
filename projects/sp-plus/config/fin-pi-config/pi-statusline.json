@@ -5,13 +5,17 @@
   "segments": [
     "cwd",
     "provider",
-    "model"
+    "model",
+    "thinking"
   ],
   "segmentText": {
     "model": {
       "truncationLength": 24,
       "truncationSymbol": "…",
       "truncationDirection": "end"
+    },
+    "thinking": {
+      "prefix": "🧠 "
     }
   },
   "extensionStatusIcons": {
