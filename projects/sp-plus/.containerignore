@@ -32,3 +32,21 @@ scripts/
 # excluded wholesale above, and that exclusion silently failed the build on
 # 2026-09-01 at STEP 54 with "no items matching glob ... (1 filtered out)".
 !tests/update-guard-gate.sh
+
+# The five Fin gates and the permissions probe. Four of the five gates run at
+# build time AND ship, so an advisor's machine can be checked against the same
+# assertions later; the probe is data the permissions gate executes.
+#
+# This is the THIRD time tests/ being excluded wholesale has failed a build at a
+# COPY -- 2026-09-01 at STEP 54 (update-guard-gate, recorded above) and again on
+# 2026-09-12 at STEP 39 building v0.11.1, which is what added these six lines.
+# The pattern is not that people forget: it is that adding a COPY and adding the
+# negation are two edits in two files, and only the second one is invisible until
+# a twenty-minute build dies. tests/config-preflight.sh now applies this file to
+# every COPY source so the failure arrives in two seconds instead.
+!tests/fin-notebook-gate.sh
+!tests/fin-skills-gate.sh
+!tests/fin-session-meter-gate.sh
+!tests/fin-opening-gate.sh
+!tests/fin-permissions-gate.sh
+!tests/fin-permissions-probe.cjs

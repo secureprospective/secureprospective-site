@@ -40,27 +40,67 @@ case "$BR" in
   *)           bad "on branch '$BR'" "build from a session/<name> branch" ;;
 esac
 
-# P-2  every COPY source in the Containerfile must exist in the build context
+# P-2  every COPY source must exist in the build context AND survive
+#      .containerignore. Existing on disk is not enough and never was: whole
+#      directories are excluded wholesale, so a COPY of a file that is right
+#      there dies at the COPY with "no items matching glob ... (1 filtered out)".
+#      That has now killed three builds -- 2026-09-01 at STEP 54, and 2026-09-12
+#      at STEP 39, twenty minutes into the v0.11.1 release build. This check
+#      passed on both, because it asked the easy half of the question.
 if python3 - "$CF" "$REPO/projects/sp-plus" <<'PY'
-import sys, os, shlex
+import sys, os, shlex, fnmatch
+
 cf, ctx = sys.argv[1], sys.argv[2]
+
+# Apply the ignore file the way the builder does: patterns in order, the LAST
+# one that matches wins, and a leading '!' re-includes. Only the subset of
+# syntax this project actually uses is implemented, and anything unrecognised is
+# treated as NOT ignored, so this gate can only ever be too permissive -- it
+# will not invent a failure, and a real exclusion it cannot parse still shows up
+# as a build error rather than as a false PASS here.
+def load_ignore(path):
+    pats = []
+    if not os.path.exists(path):
+        return pats
+    for line in open(path):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        neg = line.startswith('!')
+        pats.append((line[1:] if neg else line, neg))
+    return pats
+
+def ignored(rel, pats):
+    verdict = False
+    for pat, neg in pats:
+        p = pat.rstrip('/')
+        if fnmatch.fnmatch(rel, p) or rel.startswith(p + '/'):
+            verdict = not neg
+    return verdict
+
+pats = load_ignore(os.path.join(ctx, '.containerignore'))
+bad = []
 raw = open(cf).read().replace('\\\n', ' ')
-missing = []
 for line in raw.splitlines():
     s = line.strip()
     if not s.upper().startswith('COPY '):
         continue
     parts = [p for p in shlex.split(s)[1:] if not p.startswith('--')]
     for src in parts[:-1]:
-        if not os.path.exists(os.path.join(ctx, src)):
-            missing.append(src)
+        rel = src.rstrip('/')
+        if not os.path.exists(os.path.join(ctx, rel)):
+            bad.append(src)
             print('       missing COPY source:', src)
-sys.exit(1 if missing else 0)
+        elif ignored(rel, pats):
+            bad.append(src)
+            print('       COPY source excluded by .containerignore:', src)
+            print('              add  !%s  to projects/sp-plus/.containerignore' % rel)
+sys.exit(1 if bad else 0)
 PY
 then
-  ok "every Containerfile COPY source exists in the build context"
+  ok "every Containerfile COPY source exists AND survives .containerignore"
 else
-  bad "a Containerfile COPY source is missing" "the build will fail late; fix the path or add the file"
+  bad "a Containerfile COPY source will not reach the build" "fix the path, add the file, or negate it in .containerignore"
 fi
 
 # P-3  shell helpers must parse
