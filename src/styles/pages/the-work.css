@@ -314,15 +314,24 @@
   text-transform: uppercase;
 }
 
+/*
+  Flex rather than three fixed columns. An equal-thirds grid sizes the buttons
+  without reference to the words in them, and at narrow widths ENCRYPTED,
+  IMMUTABLE and CONTAINED are each wider than the third they are given and
+  spill through their own borders. Here each control is at least as wide as its
+  label, the spare width is shared evenly, and if the row genuinely cannot fit
+  it wraps instead of overflowing.
+*/
 .foundation-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 13px;
 }
 
 .foundation-tabs button {
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: max-content;
   min-height: 46px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.74);
@@ -521,22 +530,49 @@
   margin-top: 21px;
 }
 
+/*
+  Two rows, labels over values, with the connector living in the value row.
+  Each field used to be its own flex column and the arrow was centred against
+  the whole field, which put it in the gap between the label and the value it
+  was meant to join: it pointed at nothing. The fields open into the shared
+  grid so the labels align with each other, the values align with each other,
+  and the arrow sits on the line it connects.
+*/
 .starting-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
+  gap: 10px 14px;
   margin-top: 54px;
   padding-block: 23px;
   border-block: 1px solid rgba(255, 255, 255, 0.62);
 }
 
 .starting-line-field {
-  display: flex;
-  flex-direction: column;
-  min-height: 88px;
-  justify-content: space-between;
+  display: contents;
   text-transform: none;
+}
+
+.starting-line-field > span {
+  grid-row: 1;
+}
+
+.starting-line-field > strong {
+  grid-row: 2;
+  align-self: center;
+}
+
+.starting-line-field:not(.starting-line-field--new) > * {
+  grid-column: 1;
+}
+
+.starting-line-field--new > * {
+  grid-column: 3;
+}
+
+.starting-line-rule {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .starting-line-field > span {
@@ -1074,21 +1110,29 @@
   line-height: 1.58;
 }
 
+/*
+  Three lists divided by rules, the same device as the access status row above
+  them. site.css carried a second, older set of rules for this block that drew
+  each column as a bordered box; the two sheets each won different properties,
+  which is why the first column's bullets sat hard against its own border while
+  the other two were inset. Those rules are gone and this is the only
+  definition. Every column is padded alike so the bullets line up.
+*/
 .access-terms {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 25px;
+  gap: 0;
   margin-top: 55px;
   border-top: 1px solid rgba(255, 255, 255, 0.56);
 }
 
 .access-terms section {
-  padding: 23px 25px 24px 0;
+  min-width: 0;
+  padding: 23px 25px 24px;
 }
 
 .access-terms section + section {
   border-left: 1px solid rgba(255, 255, 255, 0.56);
-  padding-left: 25px;
 }
 
 .access-terms h3 {
@@ -1331,18 +1375,44 @@
 
   .starting-line {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 10px;
     margin-top: 42px;
   }
 
-  .starting-line-field {
-    min-height: 70px;
+  /* Stacked, the two fields and the connector between them simply follow
+     document order, so the desktop row/column placement is released. */
+  .starting-line-field > span,
+  .starting-line-field > strong,
+  .starting-line-rule {
+    grid-column: auto;
+    grid-row: auto;
   }
 
+  .starting-line-field > strong {
+    margin-bottom: 6px;
+  }
+
+  /*
+    Stacked, the connector has to run downward between the two fields. It was
+    being drawn as a full-width horizontal rule and then rotated a quarter
+    turn, which makes its length the full width of the column: a line taller
+    than the fields it joins, struck through the copy on either side. Drawn
+    as a short vertical rule instead, using the same arrow idiom as the plate
+    connector below.
+  */
   .starting-line-rule {
-    width: 100%;
-    transform: rotate(90deg);
-    transform-origin: center;
+    width: 1px;
+    height: 34px;
+    margin-inline: auto;
+    transform: none;
+  }
+
+  .starting-line-rule::after {
+    top: auto;
+    right: auto;
+    bottom: -1px;
+    left: -4px;
+    transform: rotate(135deg);
   }
 
   .security-manifest {
@@ -1534,7 +1604,6 @@
   .access-terms section + section {
     border-top: 1px solid rgba(255, 255, 255, 0.56);
     border-left: 0;
-    padding-left: 0;
   }
 
   .access-close {
@@ -1575,13 +1644,17 @@
     transform: rotate(135deg);
   }
 
+  /* Tightened so the three labels still hold a single row at this width
+     rather than taking the wrap fallback. */
   .foundation-tabs {
-    gap: 8px;
+    gap: 6px;
   }
 
   .foundation-tabs button {
-    padding-inline: 7px;
-    font-size: 12px;
+    padding-inline: 8px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-align: center;
   }
 }
 

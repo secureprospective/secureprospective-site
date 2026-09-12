@@ -643,37 +643,6 @@ button, input, textarea, select { font: inherit; }
   line-height: 1.55;
 }
 
-.access-terms {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 48px;
-}
-
-/* Three columns in one grid row already match each other's height. The 280px
-   floor on top of that left 100px of empty space under the shortest list. */
-.access-terms section {
-  min-width: 0;
-  padding: 22px;
-  border: 1px solid currentColor;
-  transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
-}
-
-.access-terms h3 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.access-terms ul {
-  margin-top: 28px;
-  padding-left: 18px;
-}
-
-.access-terms li {
-  margin-top: 10px;
-  line-height: 1.45;
-}
-
 .access-strip > div {
   min-height: 175px;
 }
@@ -716,7 +685,6 @@ button, input, textarea, select { font: inherit; }
   .proof-line--future:hover,
   .offer-item:hover,
   .status-strip > div:hover,
-  .access-terms section:hover,
   .workflow-node:hover {
     border-color: var(--blue-brand);
     background: var(--white);
@@ -854,10 +822,8 @@ button, input, textarea, select { font: inherit; }
   .record-margin strong { margin: 0; }
   .record-body { padding: 66px 0; }
   .record-body h2 { font-size: clamp(2.35rem, 9.5vw, 4rem); }
-  .status-strip,
-  .access-terms { grid-template-columns: 1fr; }
+  .status-strip { grid-template-columns: 1fr; }
   .status-strip > div { min-height: 110px; }
-  .access-terms section { min-height: 0; }
   .access-path li { grid-template-columns: 40px minmax(0, 1fr); gap: 16px; }
   .assurance-list li,
   .sp-method li { grid-template-columns: 36px 1fr; }

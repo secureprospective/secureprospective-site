@@ -129,6 +129,15 @@
 .method-loop {
   position: relative;
   min-width: 0;
+  /*
+    The centre line of the number column, measured from the loop's padding
+    edge: the box's inline padding plus half a number box. The spine and the
+    return arrow are both drawn from it, so a breakpoint that changes the
+    padding or the number size restates this one value instead of restating
+    two positions that then drift apart from each other. They had: the spine
+    sat 2.5px to the right of every number it was supposed to thread.
+  */
+  --loop-spine: 38px;
   padding: 26px 24px 22px;
   border: 1px solid var(--ink);
   background: var(--blue-brand);
@@ -140,7 +149,7 @@
   position: absolute;
   top: 73px;
   bottom: 68px;
-  left: 40px;
+  left: calc(var(--loop-spine) - 0.5px);
   width: 1px;
   background: rgba(255, 255, 255, 0.52);
   content: '';
@@ -276,7 +285,7 @@
 
 .method-loop-return {
   justify-content: flex-start;
-  margin: 16px 0 0 40px;
+  margin: 16px 0 0 var(--loop-spine);
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.5);
 }
@@ -749,22 +758,18 @@
   }
 
   .method-loop {
+    --loop-spine: 30px;
     padding: 22px 16px 18px;
   }
 
   .method-loop::before {
     top: 69px;
     bottom: 62px;
-    left: 32px;
   }
 
   .method-loop-link {
     margin-inline: -8px;
     padding-inline: 8px;
-  }
-
-  .method-loop-return {
-    margin-left: 32px;
   }
 
   .method-cycle-heading-index {
@@ -947,6 +952,10 @@
     grid-template-columns: 28px minmax(0, 1fr) auto;
     gap: 10px;
     min-height: 64px;
+  }
+
+  .method-loop {
+    --loop-spine: 29px;
   }
 
   .method-loop-number {

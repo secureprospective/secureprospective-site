@@ -50,8 +50,28 @@
   text-transform: uppercase;
 }
 
-.contact-hero-index span {
+.contact-hero-index > span {
   max-width: 9ch;
+}
+
+/*
+  The rail mark carries a caption, the same way the one on The Method does.
+  Uncaptioned it was an ornament with nothing to say, sitting alone under the
+  labels; the caption is what makes it a legend for the rail it closes.
+*/
+.contact-hero-index-note {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.contact-hero-index-note small {
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1.25;
+  text-transform: uppercase;
 }
 
 .contact-hero-index-mark {
@@ -60,13 +80,14 @@
   width: 34px;
   height: 34px;
   border: 1px solid var(--yellow-accent);
+  background: var(--yellow-accent);
 }
 
 .contact-hero-index-mark::before,
 .contact-hero-index-mark::after {
   position: absolute;
   content: '';
-  background: var(--yellow-accent);
+  background: var(--ink);
 }
 
 .contact-hero-index-mark::before {
@@ -248,14 +269,18 @@
   margin-top: 26px;
 }
 
+/* Where the route rail starts, below the ROUTE label. The rule and the
+   travelling marker both hang off it so the marker can never ride up over
+   the label, which is what it was doing at rest. */
 .contact-route-gutter {
+  --route-rail-top: 62px;
   position: relative;
   min-height: 100%;
 }
 
 .contact-route-gutter::before {
   position: absolute;
-  top: 30px;
+  top: var(--route-rail-top);
   bottom: 30px;
   left: 50%;
   width: 1px;
@@ -264,23 +289,33 @@
   opacity: 0.42;
 }
 
+/*
+  One centring translate, then the rotation. There were two translateX steps,
+  one either side of the rotation, and the second was applied in the rotated
+  frame: it moved the label along its own vertical axis instead of centring it,
+  leaving the word off the route line and struck across the top of the rule it
+  labels. Centring first and rotating about the centre keeps the word on the
+  line, and the rule now starts below it.
+*/
 .contact-route-gutter-label {
   position: absolute;
-  top: 0;
+  top: 14px;
   left: 50%;
   color: var(--blue-brand);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: translateX(-50%) rotate(-90deg) translateX(-50%);
+  transform: translateX(-50%) rotate(-90deg);
   transform-origin: center;
   white-space: nowrap;
 }
 
+/* The floor lives here rather than in the script, so the rail's start is
+   stated once and the marker cannot be positioned above it. */
 .contact-route-marker {
   position: absolute;
-  top: var(--contact-route-y, 30px);
+  top: max(var(--route-rail-top), var(--contact-route-y, var(--route-rail-top)));
   left: 50%;
   width: 13px;
   height: 13px;

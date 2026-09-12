@@ -27,7 +27,8 @@ function boot() {
     const lineRect = line.getBoundingClientRect();
     const gutterRect = gutter.getBoundingClientRect();
     const y = lineRect.top + lineRect.height / 2 - gutterRect.top;
-    root.style.setProperty('--contact-route-y', `${Math.max(30, y)}px`);
+    // Floored against the rail's start in CSS, via --route-rail-top.
+    root.style.setProperty('--contact-route-y', `${y}px`);
   };
 
   const setActive = (line) => {
