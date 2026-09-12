@@ -152,6 +152,40 @@ check("the page takes its colours from the theme", used.size >= 4, [...used].joi
 check("it uses a distinct colour for labels and for values",
   used.has("accent") && used.has("text") && used.has("muted"), [...used].join(","));
 
+// A maximised terminal is 200 columns or more. Letting the layout grow to fill
+// it turns the section rules into stray lines running off into the dark and
+// pushes the two skill columns so far apart they stop reading as a pair, so the
+// composition stops growing and the rest of the terminal is left empty.
+{
+  const strip = (l) => l.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  const wide = await page({ width: 200 });
+  const art = wide.filter((l) => /[\u2800-\u28ff><]/.test(strip(l)));
+  const panel = wide.filter((l) => !art.includes(l)).map(strip);
+  const widest = panel.reduce((n, l) => Math.max(n, l.trimEnd().length), 0);
+  check("the panel stops growing on a very wide terminal", widest <= 110,
+    "widest composed line is " + widest + " columns");
+  check("and still fills a normal one", (await page({ width: 96 }))
+    .map(strip).some((l) => l.trimEnd().length > 70),
+    "the panel collapsed at 96 columns");
+}
+
+// The bar and the number beside it have to mean the same thing. An earlier
+// version filled the bar with what had been USED while labelling it with what
+// was LEFT, so a fresh conversation showed an empty bar reading "100%", which
+// an advisor reads as a fault rather than as good news.
+{
+  const strip = (l) => l.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  const bar = async (percent) => {
+    const line = (await page({ percent })).map(strip).find((l) => /room left/.test(l)) ?? "";
+    return { full: (line.match(/\u2588/g) ?? []).length, empty: (line.match(/\u2591/g) ?? []).length, line };
+  };
+  const fresh = await bar(0);
+  const tired = await bar(95);
+  check("an empty conversation shows a full bar", fresh.full > 0 && fresh.empty === 0, fresh.line);
+  check("a nearly full conversation shows a nearly empty bar", tired.full < fresh.full && tired.empty > 0, tired.line);
+  check("the bar and its label agree", fresh.full > tired.full, fresh.line + " vs " + tired.line);
+}
+
 // Outside the interactive interface there is no header to set, and trying is a
 // crash rather than a cosmetic problem.
 check("it does nothing outside the interactive interface", (await page({ mode: "print" })) === null);

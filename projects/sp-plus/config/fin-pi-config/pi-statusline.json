@@ -15,9 +15,9 @@
     }
   },
   "extensionStatusIcons": {
-    "session": "⏱",
+    "session": "🕒",
     "plan-mode": "📝",
-    "subagents": "🧑‍🤝‍🧑",
+    "subagents": "👥",
     "usage": "📊"
   },
   "palette": {

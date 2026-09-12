@@ -212,6 +212,12 @@ function clip(s: string, max: number): string {
 	return out + "\x1b[39m\x1b[22m";
 }
 
+/** Pad to a visible width, ignoring the colour codes inside. */
+function padTo(s: string, w: number): string {
+	const gap = w - visible(s);
+	return gap > 0 ? s + " ".repeat(gap) : s;
+}
+
 export default function opening(pi: ExtensionAPI) {
 	pi.on("session_start", async (event, ctx) => {
 		if (ctx.mode !== "tui") return;
@@ -227,7 +233,13 @@ export default function opening(pi: ExtensionAPI) {
 			: FIRST_RUN_SUGGESTION;
 
 		ctx.ui.setHeader((_tui, theme) => ({
-			render(width: number): string[] {
+			render(termWidth: number): string[] {
+				// The panel is a composed block, not a stretched one. Beyond this
+				// the rules turn into stray lines and the columns drift so far
+				// apart they stop reading as a pair, so the layout stops growing
+				// and the rest of the terminal is simply left empty.
+				const MAX = 98;
+				const width = Math.min(termWidth, MAX);
 				// Semantic, so the panel stays legible on a light Look and a dark
 				// one, and re-tints if the advisor changes theme.
 				const key = (t: string) => theme.fg("accent", t);
@@ -236,68 +248,114 @@ export default function opening(pi: ExtensionAPI) {
 				const quiet = (t: string) => theme.fg("muted", t);
 
 				const rows: string[] = [];
-				const KEY = 12;
-				const row = (label: string, value: string) =>
-					rows.push("  " + key(label.padEnd(KEY)) + value);
-				const rule = (name: string) => {
-					const bar = "─".repeat(Math.max(4, Math.min(46, width - 10 - name.length)));
+				const PAD = "  ";
+
+				// A heading is a gold word with a rule running to the right edge.
+				// The rule is what makes the panel read as designed rather than
+				// as a list, and it costs one line instead of the three a box
+				// would cost.
+				const heading = (name: string) => {
+					const used = visible(PAD + name) + 2;
 					rows.push("");
-					rows.push("  " + dim("── ") + quiet(name) + dim(" " + bar));
+					rows.push(PAD + bold(gold(name)) + " " + dim("─".repeat(Math.max(3, width - used - 2))));
 				};
 
-				rows.push("");
-				rows.push("  " + bold(gold(TITLE)) + dim("   //   ") + val(SUBTITLE));
-				rows.push("  " + quiet(TAGLINE));
+				/* ------------------------------------------------ identity -- */
 
-				rule("THIS COMPUTER");
+				rows.push("");
+				rows.push(
+					PAD + bold(gold(TITLE)) + dim("  ·  ") + val(SUBTITLE),
+				);
+				rows.push(PAD + dim(TAGLINE));
+				rows.push("");
+
+				/* -------------------------------------------------- status -- */
+				// No heading here on purpose. These four facts are about the
+				// machine the advisor is sitting at, and a label over them only
+				// tells them what they can already see.
+
+				const LBL = 12;
+				const row = (label: string, value: string) =>
+					rows.push(PAD + key(label.padEnd(LBL)) + value);
 
 				const m = ctx.model;
-				row(
-					"Connected",
-					m
-						? val(m.name || m.id) + dim("  ·  ") + quiet(m.provider)
-						: key("not yet") + dim("  ·  type ") + val("/login") + quiet(" to sign in"),
-				);
+				const connected = m
+					? val(m.name || m.id) + dim("  ·  ") + quiet(m.provider)
+					: key("not yet") + dim("  ·  type ") + val("/login") + quiet(" to sign in");
 
+				// The meter fills with what is LEFT, because the number beside it
+				// counts what is left. An earlier version filled with what was
+				// used, so a fresh conversation showed an empty bar labelled
+				// "100%", which reads as broken.
 				const pct = ctx.getContextUsage?.()?.percent ?? null;
+				let meter = "";
 				if (pct !== null) {
-					const FILL = 14;
-					const n = Math.min(FILL, Math.round((pct / 100) * FILL));
-					const bar =
-						(pct >= 88 ? theme.fg("warning", "█".repeat(n)) : theme.fg("success", "█".repeat(n))) +
-						dim("░".repeat(FILL - n));
-					row("Room left", bar + quiet("  " + Math.round(100 - pct) + "% of this conversation"));
+					const FILL = 12;
+					const left = Math.max(0, Math.min(100, 100 - pct));
+					const n = Math.max(0, Math.min(FILL, Math.round((left / 100) * FILL)));
+					const bar = left <= 15 ? theme.fg("warning", "█".repeat(n)) : theme.fg("success", "█".repeat(n));
+					meter = bar + dim("░".repeat(FILL - n)) + quiet("  " + Math.round(left) + "% room left");
 				}
 
-				row(
-					"Notebook",
+				// Wide terminals get the model and the meter on one line. Narrow
+				// ones stack, because a clipped meter is worse than a second row.
+				if (meter && width >= 86) {
+					rows.push(PAD + key("Connected".padEnd(LBL)) + padTo(connected, 34) + meter);
+				} else {
+					row("Connected", connected);
+					if (meter) row("Room left", meter);
+				}
+
+				const notebook =
 					book.pages === 0
 						? quiet("empty for now · I will start it as we go")
 						: val(String(book.pages)) +
 							quiet(book.pages === 1 ? " page" : " pages") +
-							(book.latest ? dim("  ·  last changed " + book.latest) : ""),
-				);
+							(book.latest ? dim("  ·  last changed " + book.latest) : "");
+				row("Notebook", notebook);
 				row("Your files", quiet("everything I write goes in ") + val("Documents/Fin"));
 
+				/* -------------------------------------------------- skills -- */
+
 				if (skills.length > 0) {
-					rule("WHAT I CAN DO");
-					for (const [label, blurb] of skills) {
-						rows.push("  " + val(label.padEnd(KEY)) + quiet(blurb));
+					heading("WHAT I CAN DO");
+
+					// Two columns when there is genuinely room for two full
+					// sentences side by side. The threshold is measured against
+					// the longest blurb rather than guessed, so a long new blurb
+					// pushes the panel back to one column instead of truncating.
+					const widest = skills.reduce((n, [, b]) => Math.max(n, b.length), 0);
+					const colWidth = 2 + LBL + widest + 2;
+					const twoUp = width >= colWidth * 2;
+
+					if (twoUp) {
+						const half = Math.ceil(skills.length / 2);
+						for (let i = 0; i < half; i++) {
+							const L = skills[i]!;
+							let line = PAD + " " + val(L[0].padEnd(LBL)) + dim(L[1]);
+							const R = skills[i + half];
+							if (R) line = padTo(line, colWidth) + val(R[0].padEnd(LBL)) + dim(R[1]);
+							rows.push(line);
+						}
+					} else {
+						for (const [label, blurb] of skills) {
+							rows.push(PAD + " " + val(label.padEnd(LBL)) + dim(blurb));
+						}
 					}
 				}
 
-				rule("TRY THIS");
-				const lines = wrap(suggestion, Math.max(24, width - 8));
-				rows.push("  " + gold("»") + "  " + val(lines[0]!));
-				for (const l of lines.slice(1)) rows.push("     " + val(l));
+				/* ---------------------------------------------- suggestion -- */
+
+				heading("TRY THIS");
+				const lines = wrap(suggestion, Math.max(24, width - 10));
+				rows.push(PAD + " " + bold(gold("»")) + "  " + val(lines[0]!));
+				for (const l of lines.slice(1)) rows.push(PAD + "    " + val(l));
 				if (!hasVoice) {
-					rows.push(
-						"     " + quiet("worth doing once; everything I write afterwards uses it"),
-					);
+					rows.push(PAD + "    " + quiet("worth doing once; everything I write afterwards uses it"));
 				}
 				rows.push("");
 
-				const out = [...art, ...rows].map((l) => clip(l, width));
+				const out = [...art, ...rows].map((l) => clip(l, termWidth));
 				return ["", ...out];
 			},
 			invalidate() {},

@@ -546,6 +546,7 @@ COPY tests/fin-session-meter-gate.sh /usr/libexec/sp-plus/fin-session-meter-gate
 COPY tests/fin-opening-gate.sh    /usr/libexec/sp-plus/fin-opening-gate
 COPY config/fin-pi-config/pi-statusline.json /etc/skel/.pi/agent/pi-statusline.json
 COPY config/fin-pi-config/web-search.json    /etc/skel/.pi/web-search.json
+COPY config/fin-pi-config/settings.json      /etc/skel/.pi/agent/settings.json
 COPY config/sudoers-sp-plus       /etc/sudoers.d/sp-plus
 COPY config/spplus-grant-admin         /usr/libexec/spplus-grant-admin
 COPY config/spplus-grant-admin.service /usr/lib/systemd/system/spplus-grant-admin.service
@@ -1096,6 +1097,10 @@ console.log("SPPLUS_STATUSLINE_OK "+c.segments.length+" segments, accent never u
 # says plainly that it cannot go looking. Shipping search switched on would mean
 # every search failing on a missing credential, which reads as a broken product.
  && test -s /etc/skel/.pi/web-search.json \
+ && test -s /etc/skel/.pi/agent/settings.json \
+ && node -e 'const c=require("/etc/skel/.pi/agent/settings.json"); \
+    if (c.quietStartup !== true) { console.error("settings.json does not quiet the startup block"); process.exit(1); }' \
+ && echo "FIN_QUIET_STARTUP_OK pi prints no developer summary under the opening page" \
  && node -e 'const c=require("/etc/skel/.pi/web-search.json"); \
 if(c.webSearch.enabled!==false) throw new Error("web search is enabled without a key"); \
 console.log("SPPLUS_WEB_FETCH_ONLY_OK Fin can open a link, and cannot search")' \

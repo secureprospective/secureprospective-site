@@ -10,6 +10,14 @@
 # kept as a skill rather than as the whole of the product.
 set -u
 
+# Fin updates with the image, not from the internet. pi's startup version
+# check prints an "Update Available" banner naming `pi update`, a command
+# that cannot work on a read-only /usr, and the subagents extension shells
+# out to npm, which the image deliberately does not ship. Offline mode stops
+# both. It is set before the --ask branch as well, because Welcome displays
+# that stdout and a stray shell error would land inside the answer.
+export PI_OFFLINE=1
+
 BANNER=/usr/libexec/sp-plus/fin-banner
 PROMPT=/usr/share/sp-plus/fin/system-prompt.md
 SKILLS=/usr/share/sp-plus/fin/skills
@@ -125,9 +133,11 @@ if have_key; then
     export ANTHROPIC_API_KEY
     set -- --provider anthropic --model "${FIN_MODEL:-claude-sonnet-5}" "$@"
 else
-    printf '\n  %sFin is not connected to a provider yet.%s\n' "$BOLD" "$OFF"
-    printf '  %sType %s/login%s%s in Fin and pick a provider to sign in to.%s\n\n' \
-        "$DIM" "$OFF$BOLD" "$OFF" "$DIM" "$OFF"
+    # Nothing is printed here on purpose. The opening page inside Fin carries
+    # this same message on its "Connected" row, where it sits beside everything
+    # else about the machine instead of scrolling past above the artwork. Two
+    # copies of one instruction read as a fault.
+    :
 fi
 
 # --approve is deliberate: without it Fin asks about trusting project files in a
