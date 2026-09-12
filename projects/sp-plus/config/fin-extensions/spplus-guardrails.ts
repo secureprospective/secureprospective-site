@@ -200,7 +200,30 @@ export default function (pi: ExtensionAPI) {
 		// Losing a LUKS keyslot on a machine whose owner cannot recite the
 		// passphrase is unrecoverable, and the data is client records.
 		{ label: "changes the disk encryption keys", pattern: /\bcryptsetup\b[^\n]*\b(luksErase|luksKillSlot|luksFormat|luksRemoveKey|erase)\b/i },
-		{ label: "removes an installed system version", pattern: /\bostree\b[^\n]*\badmin\b[^\n]*\bundeploy\b|\brpm-ostree\b[^\n]*\bcleanup\b[^\n]*-\w*[rp]/i },
+
+		/*
+		 * HELP IS NOT AN ACTION. Measured on the v0.11.2 VM, 2026-09-12: asked to
+		 * reinstall the file manager, Fin ran three `rpm-ostree ... --help`
+		 * commands to find out how, and the advisor was shown "This step changes
+		 * where this computer gets its system updates, and it keeps working after
+		 * this conversation ends." Reading help text changes nothing. The warning
+		 * was simply false.
+		 *
+		 * That is worse than a missing rule. This file's own reasoning says an
+		 * advisor who catches one warning lying stops believing the next one, and
+		 * the next one may be about their client folder. dnf, flatpak and
+		 * systemctl never had this problem -- their rules key off a target, and
+		 * `--help` is not a target. Only the rpm-ostree family matched the verb
+		 * alone, so only it is excluded here.
+		 *
+		 * THE BYPASS, AND WHY IT IS ACCEPTABLE. This does mean `rpm-ostree
+		 * override remove dolphin --help` no longer matches THESE rules. It is
+		 * safe in two independent ways: rpm-ostree short-circuits on --help and
+		 * performs no action, and the desktop-protection rule above deliberately
+		 * carries NO help exclusion, so anything naming an app the advisor
+		 * depends on is still blocked whatever flags follow it.
+		 */
+		{ label: "removes an installed system version", pattern: /\bostree\b[^\n]*\badmin\b[^\n]*\bundeploy\b|\brpm-ostree\b(?![^\n]*(?:--help|--version|\s-h\b))[^\n]*\bcleanup\b[^\n]*-\w*[rp]/i },
 		{ label: "changes how this computer starts up", pattern: /\b(grub2-install|bootctl\s+install|efibootmgr\b[^\n]*-B)\b/i },
 		{ label: "removes a user account", pattern: /\buserdel\b|\bpasswd\b[^\n]*\s-d\b/i },
 
@@ -249,7 +272,7 @@ export default function (pi: ExtensionAPI) {
 
 		// Where the operating system itself comes from, and what it will accept.
 		{ label: "changes where this computer gets its system updates", pattern: /\bbootc\b[^\n]*\bswitch\b/i, kind: "persistence", fix: "`bootc upgrade` updates from the source SP+ already uses and does not need this." },
-		{ label: "changes where this computer gets its system updates", pattern: /\brpm-ostree\b[^\n]*\brebase\b/i, kind: "persistence" },
+		{ label: "changes where this computer gets its system updates", pattern: /\brpm-ostree\b(?![^\n]*(?:--help|--version|\s-h\b))[^\n]*\brebase\b/i, kind: "persistence" },
 
 		// The rest of the rpm-ostree family. Until 2026-09-12 only `cleanup -r|-p`
 		// and `rebase` were named here, which left `install`, `uninstall`,
@@ -265,7 +288,7 @@ export default function (pi: ExtensionAPI) {
 		//
 		// Named as a family rather than verb by verb, because enumerating the
 		// verbs somebody thought of is what failed the first time.
-		{ label: "changes the software that is built into this computer", pattern: /\brpm-ostree\b[^\n]*\b(install|uninstall|override|reset|initramfs)\b/i, kind: "persistence", fix: "Prefer a Flatpak from a source SP+ already trusts; it installs for the advisor alone and never blocks system updates." },
+		{ label: "changes the software that is built into this computer", pattern: /\brpm-ostree\b(?![^\n]*(?:--help|--version|\s-h\b))[^\n]*\b(install|uninstall|override|reset|initramfs)\b/i, kind: "persistence", fix: "Prefer a Flatpak from a source SP+ already trusts; it installs for the advisor alone and never blocks system updates." },
 
 		// The same door with a different handle. `dnf install <a web address>`
 		// fetches and installs a package nobody vetted; it is how a repository
@@ -304,7 +327,7 @@ export default function (pi: ExtensionAPI) {
 		// only the modifying flags ask.
 		{
 			label: "removes one of this computer's safety settings",
-			pattern: /\brpm-ostree\b[^\n]*\bkargs\b[^\n]*(--delete|--replace|--append|--editor)/i,
+			pattern: /\brpm-ostree\b(?![^\n]*(?:--help|--version|\s-h\b))[^\n]*\bkargs\b[^\n]*(--delete|--replace|--append|--editor)/i,
 			kind: "persistence",
 			fix: "Do not change the kernel settings. These are the hardening SP+ ships. Say which one is causing a problem and why.",
 		},

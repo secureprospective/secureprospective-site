@@ -40,6 +40,12 @@ const mustBlock = [
   // out of the base image, again with no prompt. Every line below is a command
   // that actually ran that day.
   ['sudo rpm-ostree install -y https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm', 'adds a repo as a package, from a URL'],
+  // 2026-09-12, live on the v0.11.2 VM. Excluding `--help` from the rpm-ostree
+  // rules must not hand anyone a way to dress a removal up as a question. It
+  // does not: the desktop-protection rule carries no help exclusion on purpose.
+  ['sudo rpm-ostree override remove dolphin --help', 'a removal with a help flag stapled on'],
+  ['sudo rpm-ostree uninstall konsole --help', 'the same trick on the terminal'],
+  ['sudo dnf remove keepassxc --help', 'and on the password manager'],
   ['sudo dnf5 -y install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-1.noarch.rpm', 'installs straight from a web address'],
   ['sudo rpm-ostree override remove dolphin dolphin-plugins', 'deletes the file manager from the image'],
   ['sudo rpm-ostree uninstall dolphin', 'removes the file manager'],
@@ -111,6 +117,16 @@ const mustAllow = [
   ['bootc upgrade --check', 'ask whether an update is waiting'],
   ['bootc upgrade', 'take the update SP+ already points at'],
   ['rpm-ostree status', 'read what version is installed'],
+  // 2026-09-12, live on the v0.11.2 VM: asked to reinstall the file manager,
+  // Fin read `rpm-ostree ... --help`, and the advisor was warned that this
+  // "changes where this computer gets its system updates". It changes nothing.
+  // A warning that is false teaches the advisor to click through the true ones.
+  ['rpm-ostree install --help', 'read how a command works'],
+  ['rpm-ostree override --help 2>&1 | head -100', 'read help and page it'],
+  ['rpm-ostree kargs --help', 'read help for a command that IS gated when used'],
+  ['rpm-ostree rebase --help', 'read help for the update-source command'],
+  ['rpm-ostree --version', 'ask which version is installed'],
+  ["rpm-ostree --help | grep -E 'install|uninstall|override|rebase' -A2 | head -80", 'grep help text for the verb names'],
   ['flatpak install flathub org.gimp.GIMP', 'install an app the normal way'],
   ['sudo systemctl restart cups', 'restart the print service'],
   ['sudo lpadmin -p Office -E -v ipp://printer.local/ipp/print -m everywhere', 'add a printer'],
