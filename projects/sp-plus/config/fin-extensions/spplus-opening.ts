@@ -308,13 +308,24 @@ function nextTip(): Tip {
  * sentence on this page an advisor might actually rely on, and D15 rules out
  * any claim of that shape on any SP+ surface.
  *
- * It is also the shortest wording that still carries all three ideas, because a
+ * It is also the shortest wording that still carries every idea, because a
  * disclaimer nobody finishes reading is decoration.
+ *
+ * THE PII LINE, added 2026-09-12 at Christopher's instruction, is the one
+ * sentence here addressed to the advisor's conduct rather than to Fin's. It
+ * stands alone and shouts, because it is the only instruction on this page that
+ * protects somebody who is not in the room. It also agrees with what the machine
+ * already does: the notebook refuses to record a name, an email address, a phone
+ * number, an address, a date of birth or an account number, so the page and the
+ * guard now say the same thing. He asked for it in place of the sentence about
+ * changes that cannot be undone; that sentence was kept, because it is the only
+ * place the page says Fin can do permanent damage and "at your own risk" means
+ * nothing without it. Total length is unchanged.
  */
 const DISCLAIMER =
 	"Fin has guardrails set up for you and your business, but they are a floor, not a fence. " +
-	"Fin can change this computer, and some changes cannot be undone. Read the question " +
-	"whenever Fin asks to do something. Use Fin at your own risk.";
+	"Fin can change this computer in ways that cannot be undone. NEVER share PII with Fin. " +
+	"Read the question whenever Fin asks to do something. Use Fin at your own risk.";
 
 function bannerLines(): string[] {
 	try {

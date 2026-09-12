@@ -273,6 +273,11 @@ if (process.env.SKILLS_INSTALLED === "1") {
   check("it tells the advisor to read the question",
     /read the question/i.test(between), between.slice(0, 90));
   check("it says use at your own risk", /at your own risk/i.test(between), between.slice(0, 90));
+  // The only line here aimed at the advisor's conduct rather than Fin's, and the
+  // only one protecting somebody who is not in the room. It shouts on purpose;
+  // lower-casing it is a real weakening, so the case is checked too.
+  check("it warns against sharing personal information",
+    /NEVER share PII with Fin/.test(between), between.slice(0, 90));
   // D15. Nothing on any SP+ surface may claim compliance, and a disclaimer is
   // exactly where such a sentence would look at home.
   check("it makes no compliance claim",
