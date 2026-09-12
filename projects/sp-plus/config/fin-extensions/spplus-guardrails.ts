@@ -112,6 +112,39 @@ export default function (pi: ExtensionAPI) {
 		{ label: "deletes work that was never saved to the project's history", pattern: /\bgit\s+clean\b[^\n]*\s-\w*[dx]/i },
 		{ label: "removes every scheduled task at once", pattern: /\bcrontab\b[^\n]*\s-r\b/i },
 
+		// --- 1c. The desktop the advisor depends on. Christopher's ruling,
+		// 2026-09-12: "We need Fin to treat key desktop components like Dolphin
+		// and other system utilities like it does root."
+		//
+		// MEASURED, not theorised. Asked to remove Dolphin, Fin escalated through
+		// three commands in one turn -- `rpm-ostree uninstall dolphin`, then
+		// `rpm-ostree override remove dolphin`, then, when a dependency refused,
+		// `rpm-ostree override remove dolphin dolphin-plugins` -- and deleted the
+		// advisor's FILE MANAGER out of the base image. No rule matched, and no
+		// permission question was asked. Fin's system prompt does say "confirm
+		// first if it would remove software they use"; it obeyed that fifteen
+		// minutes earlier for a different command and ignored it here. DN-31
+		// decision 7 demonstrating itself on a live machine.
+		//
+		// WHY THIS IS ITS OWN CLASS AND NOT PART OF SECTION 5. Section 5 is about
+		// persistence, and its question is "this keeps working after this
+		// conversation ends" -- true here, but far too mild. An advisor who loses
+		// their file manager has lost a way to reach their own documents, and the
+		// honest question is the irreversible one. So this sits ABOVE the generic
+		// rpm-ostree rule below and takes the stronger label, because `rules.find`
+		// returns the first match.
+		//
+		// WHY IT IS NOT COVERED BY "the OS is read-only". That assumption is what
+		// let this through. rpm-ostree never touches the running system: it writes
+		// a NEW deployment, so every destructive verb succeeds quietly and only
+		// bites on the next restart. Nothing visibly breaks at the moment of the
+		// mistake, which is precisely why nothing caught it.
+		{
+			label: "removes part of the desktop this computer needs to work",
+			pattern: /\b(rpm-ostree\b[^\n]*\boverride\b[^\n]*\b(remove|replace)|rpm-ostree\b[^\n]*\buninstall\b|dnf5?\b[^\n]*\b(remove|erase|autoremove)\b|flatpak\b[^\n]*\buninstall\b)[^\n]*\b(dolphin|konsole|plasma-workspace|plasma-desktop|plasma-nm|kwin|kwin-wayland|sddm|systemsettings|kde-cli-tools|kscreen|kwallet\w*|xdg-desktop-portal-kde|polkit\w*|NetworkManager\w*|firewalld|cups\w*|pipewire|wireplumber|udisks2|brave-browser|sp-plus\w*|spplus\w*)\b/i,
+			fix: "Do not remove it. This is part of the desktop or a service SP+ needs. If it is misbehaving, repair or restart it instead, and say what is actually wrong.",
+		},
+
 		// Christopher's original rule, 2026-08-28: the advisor must be safe from
 		// "a 1 off application written into a .env directory or something crazy".
 		// spplus-workspace.ts holds that for the write and edit TOOLS -- but bash
@@ -197,6 +230,27 @@ export default function (pi: ExtensionAPI) {
 		// Where the operating system itself comes from, and what it will accept.
 		{ label: "changes where this computer gets its system updates", pattern: /\bbootc\b[^\n]*\bswitch\b/i, kind: "persistence", fix: "`bootc upgrade` updates from the source SP+ already uses and does not need this." },
 		{ label: "changes where this computer gets its system updates", pattern: /\brpm-ostree\b[^\n]*\brebase\b/i, kind: "persistence" },
+
+		// The rest of the rpm-ostree family. Until 2026-09-12 only `cleanup -r|-p`
+		// and `rebase` were named here, which left `install`, `uninstall`,
+		// `override`, `reset` and `initramfs` completely open. Asked for a codec,
+		// Fin installed the RPM Fusion release packages STRAIGHT FROM A URL with
+		// `rpm-ostree install` -- walking round all four of the repo rules above,
+		// which only describe `config-manager --add-repo`, writes into
+		// /etc/yum.repos.d, `flatpak remote-add` and `rpm --import`. The audit log
+		// recorded `key_enforce=0 gpg_res=0`: it went on unsigned. Seventeen
+		// seconds, no prompt, and `bootc upgrade` then refused to run at all --
+		// "Deployment contains local rpm-ostree modifications" -- so the machine
+		// could no longer receive ANY future version of SP+.
+		//
+		// Named as a family rather than verb by verb, because enumerating the
+		// verbs somebody thought of is what failed the first time.
+		{ label: "changes the software that is built into this computer", pattern: /\brpm-ostree\b[^\n]*\b(install|uninstall|override|reset|initramfs)\b/i, kind: "persistence", fix: "Prefer a Flatpak from a source SP+ already trusts; it installs for the advisor alone and never blocks system updates." },
+
+		// The same door with a different handle. `dnf install <a web address>`
+		// fetches and installs a package nobody vetted; it is how a repository
+		// gets added as a package rather than as a repo file.
+		{ label: "installs software straight from a web address", pattern: /\bdnf5?\b[^\n]*\binstall\b[^\n]*https?:\/\//i, kind: "persistence", fix: "Install from a source SP+ already trusts instead, and say who published this one before asking again." },
 		{ label: "changes which system updates this computer will trust", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\brm\b|\bln\b)[^\n]*\/etc\/(containers\/policy\.json|pki\/containers\/)/i, kind: "persistence" },
 	];
 
