@@ -986,6 +986,21 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q -- '--extension' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-guardrails' /usr/libexec/sp-plus/fin \
  && grep -q 'spplus-workspace' /usr/libexec/sp-plus/fin \
+# The client-data boundary, added 2026-09-12. spplus-workspace.ts confines WRITES
+# and says in its own header that reads are not its job; this is the read side.
+# Until it shipped, the only thing between a client statement and the cloud
+# service that answers for Fin was the model choosing well -- and on 2026-09-12
+# the same model chose well once and deleted the file manager fifteen minutes
+# later. The THIRD assertion is the one that matters most: the file shipping is
+# not the file running. The permissions gate shipped for weeks without ever
+# being wired in, which is exactly this failure, and it is why the count is
+# asserted on the --extension lines rather than anywhere in the launcher.
+ && test -f /usr/share/sp-plus/fin/extensions/spplus-data-boundary.ts \
+ && grep -q 'heldKind' /usr/share/sp-plus/fin/extensions/spplus-data-boundary.ts \
+ && test "$(grep -c -- '--extension .*spplus-data-boundary' /usr/libexec/sp-plus/fin)" = 2 \
+ && grep -q 'SECRET_ROOTS' /usr/share/sp-plus/fin/extensions/spplus-data-boundary.ts \
+ && grep -q 'nobody is here to approve' /usr/share/sp-plus/fin/extensions/spplus-data-boundary.ts \
+ && echo "FIN_DATA_BOUNDARY_OK reads held on both launch paths; ask-by-default, refuses with no UI" \
  && grep -q 'sends an email' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
 # The persistence class, added 2026-09-11. PRIVILEGE IS STILL DELIBERATELY NOT
 # GATED: blocking sudo leaves an assistant that diagnoses everything and repairs

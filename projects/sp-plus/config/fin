@@ -57,6 +57,7 @@ if [ "${1:-}" = "--ask" ]; then
         --extension "$EXTENSIONS/spplus-workspace.ts" \
         --extension "$EXTENSIONS/spplus-organize.ts" \
         --extension "$EXTENSIONS/spplus-notebook.ts" \
+        --extension "$EXTENSIONS/spplus-data-boundary.ts" \
         --approve \
         "$1"
 fi
@@ -166,6 +167,7 @@ exec /usr/bin/pi \
     --extension "$EXTENSIONS/spplus-workspace.ts" \
     --extension "$EXTENSIONS/spplus-organize.ts" \
     --extension "$EXTENSIONS/spplus-notebook.ts" \
+    --extension "$EXTENSIONS/spplus-data-boundary.ts" \
     --extension "$EXTENSIONS/spplus-session-meter.ts" \
     --extension "$EXTENSIONS/spplus-opening.ts" \
     --extension "$PKG/@narumitw/pi-statusline/dist/index.ts" \
