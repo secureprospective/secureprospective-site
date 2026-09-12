@@ -291,7 +291,7 @@ export default function (pi: ExtensionAPI) {
 		// returns on reboot and restarting IS the repair Fin is for. `disable` and
 		// `mask` do not come back, so they ask.
 		{
-			label: "switches off something this computer needs to work",
+			label: "turns off something this computer needs to work",
 			pattern: /\bsystemctl\b[^\n]*\b(disable|mask)\b[^\n]*\b(sddm|NetworkManager\w*|cups\w*|avahi\w*|pipewire\w*|wireplumber|polkit\w*|udisks2|plasma\w*|dbus\w*|systemd-resolved|rpm-ostreed\w*|bootc\w*|sp-plus\w*|spplus\w*)\b/i,
 			kind: "persistence",
 			fix: "If it is misbehaving, restart it instead with `systemctl restart <name>`. Leave disable and mask alone.",
@@ -338,7 +338,7 @@ export default function (pi: ExtensionAPI) {
 
 		// Loosening a kernel setting at runtime. Not persistent, but it weakens
 		// the machine now and nothing in a repair needs it. Reading is fine.
-		{ label: "weakens a safety setting while the computer is running", pattern: /\bsysctl\b[^\n]*(\s-w\b|\b\w+\.\w+\s*=)/i, fix: "Do not change kernel settings to make something work. Say what is failing instead." },
+		{ label: "changes a safety setting the computer relies on while it is running", pattern: /\bsysctl\b[^\n]*(\s-w\b|\b\w+\.\w+\s*=)/i, fix: "Do not change kernel settings to make something work. Say what is failing instead." },
 		{ label: "changes which system updates this computer will trust", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\brm\b|\bln\b)[^\n]*\/etc\/(containers\/policy\.json|pki\/containers\/)/i, kind: "persistence" },
 	];
 
