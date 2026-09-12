@@ -103,7 +103,9 @@ rmSync(resolve(NB, 'sessions'), { recursive: true, force: true });
 const real = 'We built a seminar flyer for the March retirement workshop and set the type. '.repeat(4);
 await fire(h, 'session_compact',
   { type: 'session_compact', compactionEntry: { summary: real }, reason: 'threshold' },
-  { model: 'gpt-5.6-luna' });
+  // The shape pi really sends is an OBJECT. This fixture said 'a string' and
+  // the gate passed while production wrote '[object Object]' into every page.
+  { model: { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' } });
 let saved = existsSync(resolve(NB, 'sessions')) ? readdirSync(resolve(NB, 'sessions')) : [];
 is(saved.length === 1, 'a real conversation is written down with nobody asking');
 if (saved.length === 1) {

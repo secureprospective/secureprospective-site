@@ -637,8 +637,23 @@ export default function (pi: ExtensionAPI) {
 	// Compaction has already paid for a summary. Keep it.
 	pi.on("session_compact", async (event, ctx) => {
 		try {
-			const rel = autoSaveSession(event.compactionEntry.summary, String(ctx.model ?? "unknown"));
-			if (rel) forgetPrimer();
+			// ctx.model is an object; String() on it yields "[object Object]", and
+			// that string was landing in the page's written_by stamp. Measured
+			// 2026-09-12. Same idiom the stamp helper above already uses.
+			// pi hands this over as an object. The recall gate used to hand over a
+			// plain string, which is why the gate was green while every real page
+			// was stamped "[object Object]" -- the fixture did not match the thing
+			// it stood in for. Accept both shapes and let the gate prove it.
+			const m: any = ctx.model;
+			const model =
+				(typeof m === "string" ? m : m?.id || m?.name) || "an unknown model";
+			const rel = autoSaveSession(event.compactionEntry.summary, model);
+			// A page the index does not list is a page recall cannot reach, so the
+			// index has to be rebuilt before the primer is dropped.
+			if (rel) {
+				rebuildIndex();
+				forgetPrimer();
+			}
 		} catch {
 			/* never let bookkeeping break a compaction */
 		}
