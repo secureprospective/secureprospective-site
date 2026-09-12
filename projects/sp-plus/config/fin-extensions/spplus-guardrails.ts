@@ -121,10 +121,10 @@ export default function (pi: ExtensionAPI) {
 		// --- 2. The machine's own protection ---
 		// SELinux and the firewall are not tuning knobs. Turning either off to
 		// make something work is the documented wrong answer in this project.
-		{ label: "turns off SELinux protection", pattern: /\bsetenforce\s+0\b|\bselinux\s*=\s*0\b|SELINUX\s*=\s*(disabled|permissive)/i },
+		{ label: "turns off one of this computer's built-in protections", pattern: /\bsetenforce\s+0\b|\bselinux\s*=\s*0\b|SELINUX\s*=\s*(disabled|permissive)/i },
 		{ label: "turns off the firewall", pattern: /\bsystemctl\b[^\n]*\b(stop|disable|mask)\b[^\n]*\bfirewalld\b|\bfirewall-cmd\b[^\n]*(--set-default-zone\s*=\s*trusted|--zone\s*=\s*trusted)/i },
 		{ label: "makes files readable by everyone on the machine", pattern: /\b(chmod|chown)\b[^\n]*777/i },
-		{ label: "changes permissions on a whole folder tree", pattern: /\b(chmod|chown)\b[^\n]*(\s-R\b|--recursive)/i },
+		{ label: "changes who can open a folder and everything inside it", pattern: /\b(chmod|chown)\b[^\n]*(\s-R\b|--recursive)/i },
 		{ label: "runs a script downloaded from the internet", pattern: /\b(curl|wget)\b[^\n]*\|\s*(sudo\s+)?(ba|z|k)?sh\b/i },
 
 		// --- 3. Outgoing mail. Fin drafts; the advisor sends. DN-31 decision 10 ---
@@ -148,7 +148,7 @@ export default function (pi: ExtensionAPI) {
 		// passphrase is unrecoverable, and the data is client records.
 		{ label: "changes the disk encryption keys", pattern: /\bcryptsetup\b[^\n]*\b(luksErase|luksKillSlot|luksFormat|luksRemoveKey|erase)\b/i },
 		{ label: "removes an installed system version", pattern: /\bostree\b[^\n]*\badmin\b[^\n]*\bundeploy\b|\brpm-ostree\b[^\n]*\bcleanup\b[^\n]*-\w*[rp]/i },
-		{ label: "reinstalls the boot loader", pattern: /\b(grub2-install|bootctl\s+install|efibootmgr\b[^\n]*-B)\b/i },
+		{ label: "changes how this computer starts up", pattern: /\b(grub2-install|bootctl\s+install|efibootmgr\b[^\n]*-B)\b/i },
 		{ label: "removes a user account", pattern: /\buserdel\b|\bpasswd\b[^\n]*\s-d\b/i },
 
 		// --- Process control. `pkill -F` reads a pidfile and is the safe form ---

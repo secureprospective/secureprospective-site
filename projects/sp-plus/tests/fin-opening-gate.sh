@@ -212,6 +212,40 @@ check("nothing on the page is said in developer words",
   rmSync(nb + "/voice.md");
 }
 
+// The disclaimer. Christopher asked for it below the tips between two solid
+// lines, and for it to carry three ideas: guardrails exist, Fin can do damage,
+// read the question when it asks. Each is checked separately, because losing
+// any one of them turns a warning into reassurance.
+{
+  const strip = (l) => l.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  const rendered = (await page()).map(strip);
+  const joined = rendered.join("\n");
+  const ruleAt = rendered.map((l, i) => [l, i]).filter(([l]) => /^\s*\u2501{10,}\s*$/.test(l)).map(([, i]) => i);
+
+  check("the disclaimer sits between two solid lines", ruleAt.length === 2,
+    ruleAt.length + " solid rule(s) found");
+  check("it comes after the tip", ruleAt.length === 2 && ruleAt[0] > joined.split("\n").findIndex((l) => l.includes("\u00bb")),
+    "the disclaimer is above the tip");
+  // The disclaimer wraps, and every line carries the panel's own indent, so
+  // the text has to be reflowed before a phrase can be matched across a
+  // line break.
+  const between = ruleAt.length === 2
+    ? rendered.slice(ruleAt[0] + 1, ruleAt[1]).join(" ").replace(/\s+/g, " ").trim()
+    : "";
+  check("it says guardrails are set up", /guardrail/i.test(between), between.slice(0, 90));
+  check("it does not claim they make Fin safe",
+    !/\b(safe|secure|protected|cannot be harmed|will prevent)\b/i.test(between), between.slice(0, 90));
+  check("it says Fin can do things that cannot be undone",
+    /cannot be undone/i.test(between), between.slice(0, 90));
+  check("it tells the advisor to read the question",
+    /read the question/i.test(between), between.slice(0, 90));
+  check("it says use at your own risk", /at your own risk/i.test(between), between.slice(0, 90));
+  // D15. Nothing on any SP+ surface may claim compliance, and a disclaimer is
+  // exactly where such a sentence would look at home.
+  check("it makes no compliance claim",
+    !/complian|regulat|approved by|meets the requirements/i.test(between), between.slice(0, 90));
+}
+
 // Colour has to come from the theme or the page is unreadable on whichever Look
 // the advisor did not choose.
 check("the page takes its colours from the theme", used.size >= 4, [...used].join(","));

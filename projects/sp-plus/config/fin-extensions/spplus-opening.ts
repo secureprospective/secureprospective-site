@@ -208,6 +208,22 @@ const TIPS: Tip[] = [
 		act: "Type /hotkeys to see the keyboard shortcuts.",
 		pays: "A minute now, and you stop reaching for the mouse.",
 	},
+	{
+		act: "Type /login if I am ever signed out.",
+		pays: "Takes a few seconds, and nothing you have saved is lost while you are signed out.",
+	},
+	{
+		act: "Type /compact when a long conversation starts to drag.",
+		pays: "I keep the thread but shorten it, so we carry on instead of starting over.",
+	},
+	{
+		act: "Type /settings to change how I look and behave.",
+		pays: "The colours and the bar along the bottom are yours to set, not mine.",
+	},
+	{
+		act: "Type /export before a conversation you might need on paper.",
+		pays: "You get the whole thread as a file, rather than my summary of it.",
+	},
 	// --- what Fin can reach ------------------------------------------------
 	{
 		act: "Give me a web address and ask me to read the page.",
@@ -259,6 +275,30 @@ function nextTip(): Tip {
 	}
 	return TIPS[i]!;
 }
+
+/**
+ * The disclaimer, below the tips and between two solid lines.
+ *
+ * Christopher, 2026-09-12, asked for this in roughly these words: Fin is
+ * configured with guardrails for the advisor and their business; use at your
+ * own risk, because Fin is a powerful agent capable of destructive actions;
+ * read its questions when it asks for permission.
+ *
+ * WHAT IT DELIBERATELY DOES NOT SAY. It does not say Fin is safe, and it does
+ * not say the guardrails will stop anything in particular. They gate the bash,
+ * write and edit tools and they stop accidents, which the guardrail file itself
+ * describes as "a floor, not a boundary". Claiming more here would be the one
+ * sentence on this page an advisor might actually rely on, and D15 rules out
+ * any claim of that shape on any SP+ surface.
+ *
+ * It is also the shortest wording that still carries all three ideas, because a
+ * disclaimer nobody finishes reading is decoration.
+ */
+const DISCLAIMER =
+	"Fin is set up with guardrails chosen for you and your business. They are a floor, not a fence. " +
+	"Fin is a powerful assistant that can change this computer, and some changes cannot be undone. " +
+	"When Fin asks before doing something, read the question. That is the last check before it " +
+	"happens. Use Fin at your own risk.";
 
 function bannerLines(): string[] {
 	try {
@@ -488,6 +528,17 @@ export default function opening(pi: ExtensionAPI) {
 				for (const l of wrap(tip.pays, Math.max(24, width - 10))) {
 					rows.push(PAD + "    " + quiet(l));
 				}
+				rows.push("");
+
+				// Two solid rules, so the disclaimer reads as a notice rather than
+				// as one more section of the panel. It is the last thing on the
+				// page because it is about everything above it.
+				const solid = "━".repeat(Math.max(10, width - 4));
+				rows.push(PAD + dim(solid));
+				for (const l of wrap(DISCLAIMER, Math.max(24, width - 6))) {
+					rows.push(PAD + quiet(l));
+				}
+				rows.push(PAD + dim(solid));
 				rows.push("");
 
 				const out = [...art, ...rows].map((l) => clip(l, termWidth));
