@@ -110,6 +110,17 @@ check("it says what is in the notebook", /Notebook/.test(text));
   const undescribed = installed.filter((n) => !new RegExp(`["']?${n}["']?:`).test(table));
   check("every skill has a plain-language description", undescribed.length === 0,
     "no description for: " + undescribed.join(", "));
+
+  // Three rows are deliberately off the panel and carried by the tips instead.
+  // They must still be INSTALLED and still be DESCRIBED -- the check above
+  // covers the description -- and the panel must not collapse to nothing.
+  const hiddenBlock = src.slice(src.indexOf("PANEL_HIDDEN"), src.indexOf(")", src.indexOf("PANEL_HIDDEN")));
+  const hidden = [...hiddenBlock.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]);
+  check("the hidden skills are still installed",
+    hidden.every((h) => installed.includes(h)),
+    "hidden but not installed: " + hidden.filter((h) => !installed.includes(h)).join(", "));
+  check("something is still left on the panel", installed.length > hidden.length,
+    installed.length + " skills, " + hidden.length + " hidden");
 }
 
 // The rendered section can only appear where the skills are actually installed.
@@ -210,6 +221,28 @@ check("nothing on the page is said in developer words",
     "the payoff line is missing once the rotation starts");
 
   rmSync(nb + "/voice.md");
+}
+
+// A row cut from the panel has to be gone from the page, not merely intended to
+// be. The labels are checked rather than the skill names, because the label is
+// what the advisor would see.
+if (process.env.SKILLS_INSTALLED === "1") {
+  const strip = (l) => l.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  const { readFileSync } = await import("node:fs");
+  const src2 = readFileSync(new URL("./ext.ts", import.meta.url), "utf8");
+  const hb = src2.slice(src2.indexOf("PANEL_HIDDEN"), src2.indexOf(")", src2.indexOf("PANEL_HIDDEN")));
+  const hidden = [...hb.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]);
+  const blurbs = src2.slice(src2.indexOf("SKILL_BLURBS"), src2.indexOf("};", src2.indexOf("SKILL_BLURBS")));
+  const labelOf = (n) => (blurbs.match(new RegExp(`["']?${n}["']?:\\s*\\["([^"]+)"`)) ?? [])[1];
+
+  const body = (await page()).map(strip);
+  const start = body.findIndex((l) => /WHAT I CAN DO/.test(l));
+  const end = body.findIndex((l, i) => i > start && /TRY THIS/.test(l));
+  const section = body.slice(start + 1, end).join("\n");
+  const leaked = hidden.map(labelOf).filter((l) => l && new RegExp("\\b" + l + "\\b").test(section));
+  check("a row cut from the panel does not appear on it", leaked.length === 0,
+    "still listed: " + leaked.join(", "));
+  check("the panel still lists something", /\S/.test(section), "the section is empty");
 }
 
 // The disclaimer. Christopher asked for it below the tips between two solid

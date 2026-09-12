@@ -95,6 +95,23 @@ function wrap(text: string, max: number): string[] {
  * which looks wrong on purpose: a new skill should get a sentence written for
  * it rather than quietly inherit a developer's word.
  */
+/**
+ * Skills that are installed and working but not listed on the panel.
+ *
+ * Christopher, 2026-09-12: "Cut these lines: Printer, writing, Saving."
+ *
+ * They are not removed, disabled or hidden from Fin -- ask for any of them and
+ * they run exactly as before. They are only off THIS list, which is a list of
+ * six things competing for the same glance. All three are carried by the
+ * rotating tips instead, where they arrive one at a time with a reason attached,
+ * which is a better place to learn something than a column of labels.
+ *
+ * Their descriptions stay in the table below on purpose: the gate holds every
+ * INSTALLED skill to having one, so a skill that comes back onto the panel later
+ * cannot come back under its directory name.
+ */
+const PANEL_HIDDEN = new Set(["printer", "email", "save-this-session"]);
+
 const SKILL_BLURBS: Record<string, [string, string]> = {
 	printer: ["Printing", "Fix a printer that has stopped working"],
 	marketing: ["Design", "Make a flyer or handout and turn it into a PDF"],
@@ -295,10 +312,9 @@ function nextTip(): Tip {
  * disclaimer nobody finishes reading is decoration.
  */
 const DISCLAIMER =
-	"Fin is set up with guardrails chosen for you and your business. They are a floor, not a fence. " +
-	"Fin is a powerful assistant that can change this computer, and some changes cannot be undone. " +
-	"When Fin asks before doing something, read the question. That is the last check before it " +
-	"happens. Use Fin at your own risk.";
+	"Fin has guardrails set up for you and your business, but they are a floor, not a fence. " +
+	"Fin can change this computer, and some changes cannot be undone. Read the question " +
+	"whenever Fin asks to do something. Use Fin at your own risk.";
 
 function bannerLines(): string[] {
 	try {
@@ -357,7 +373,7 @@ function installedSkills(): [string, string][] {
 		const ib = ORDER.indexOf(b);
 		return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
 	});
-	return names.map((n) => SKILL_BLURBS[n] ?? [n, n]);
+	return names.filter((n) => !PANEL_HIDDEN.has(n)).map((n) => SKILL_BLURBS[n] ?? [n, n]);
 }
 
 /* ------------------------------------------------------------- rendering -- */
