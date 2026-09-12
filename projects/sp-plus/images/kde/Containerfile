@@ -755,6 +755,38 @@ RUN set -eux; \
     case "$(basename "$R")" in [0-4]*) : ;; *) echo "DN47 GATE FAIL: rules file sorts after 50-default" >&2; exit 1;; esac; \
     echo "DN47_POLKIT_GATE_OK the advisor can finish an update in all three lanes"
 
+# ---- the partition editor asks every time ----------------------------------
+# Bee's v0.11.3 desktop sweep flagged "Reformat or Edit with Partition Manager",
+# reachable from System Settings, as an unguarded path to erasing the disk. Half
+# of that was already false: kpmcore's own policy is auth_admin_keep, so the
+# privileged helper always demanded an administrator password, and section 9
+# hides the menu entry with NoDisplay=true. What was true is the `_keep`: one
+# password then covered a whole session of privileged partition operations.
+# 48-sp-plus-partition.rules drops the caching and nothing else. The rationale
+# is in the file; it is deliberately the narrowest possible change.
+COPY config/48-sp-plus-partition.rules /usr/share/polkit-1/rules.d/48-sp-plus-partition.rules
+
+RUN set -eux; \
+    R=/usr/share/polkit-1/rules.d/48-sp-plus-partition.rules; \
+    chmod 0644 "$R"; \
+    # The action id is the entire point of the file. kpmcore renaming it upstream
+    # must break the build rather than silently restore session-wide caching.
+    test -e /usr/share/polkit-1/actions/org.kde.kpmcore.externalcommand.policy \
+      || { echo "PARTITION GATE FAIL: kpmcore policy file is gone; this rule now guards nothing" >&2; exit 1; }; \
+    grep -q 'org.kde.kpmcore.externalcommand.init' \
+      /usr/share/polkit-1/actions/org.kde.kpmcore.externalcommand.policy \
+      || { echo "PARTITION GATE FAIL: action id not found in kpmcore policy; upstream renamed it" >&2; exit 1; }; \
+    grep -q 'org.kde.kpmcore.externalcommand.init' "$R"; \
+    grep -q 'polkit.Result.AUTH_ADMIN' "$R"; \
+    # AUTH_ADMIN_KEEP contains AUTH_ADMIN, so a plain grep cannot tell them apart
+    # and would pass on exactly the string this file exists to remove.
+    if grep -q 'AUTH_ADMIN_KEEP' "$R"; then \
+        echo "PARTITION GATE FAIL: rule returns AUTH_ADMIN_KEEP; the caching is what we are removing" >&2; exit 1; \
+    fi; \
+    # Must sort before the stock 50-default.rules or it never gets a say.
+    case "$(basename "$R")" in [0-4]*) : ;; *) echo "PARTITION GATE FAIL: rules file sorts after 50-default" >&2; exit 1;; esac; \
+    echo "PARTITION_POLKIT_GATE_OK every privileged partition action needs a fresh password"
+
 # ---- ONE UPDATE LANE, AND IT REFUSES DOWNGRADES ----------------------------
 # Christopher, 2026-09-01: "I need the system/application/Pi updates to be user
 # controlled to work like a fresh install of any distro ... seemless, no issues,
@@ -942,6 +974,10 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && node --check /tmp/polkit-rules-check.js \
  && rm -f /tmp/polkit-rules-check.js \
  && echo "DN47_POLKIT_SYNTAX_OK the update rules file parses as JavaScript" \
+ && cp /usr/share/polkit-1/rules.d/48-sp-plus-partition.rules /tmp/polkit-partition-check.js \
+ && node --check /tmp/polkit-partition-check.js \
+ && rm -f /tmp/polkit-partition-check.js \
+ && echo "PARTITION_POLKIT_SYNTAX_OK the partition rule parses as JavaScript" \
  && test -x /usr/bin/node-22 \
  && test -x /usr/bin/pi \
  && test ! -e /usr/bin/npm \
@@ -2771,6 +2807,41 @@ RUN for d in org.kde.partitionmanager \
             grep -q '^Exec=' "$f" && echo x; \
           done | grep -c .); \
     echo "MENU_OK visible_entries=$vis"
+
+# ---- 9b. the menu favourites an advisor actually sees ----------------------
+# The favourites were right in source and wrong on screen for all of v0.11.3.
+# The look-and-feel layout declares the six advisor applications in
+# `spplusMenuFavorites` and theme-phase2-source-gate.sh checks that list, so
+# every gate we had was green. The list still never reached the menu, because
+# the applet key it is written to is a MIGRATION SEED that Plasma reads only
+# while the KActivities favourites model is empty -- and Plasma ports its own
+# stock defaults first. Measured on the v0.11.3 VM 2026-09-12: the advisor was
+# offered Konsole (which this image hides from All Applications one section
+# above), Discover and System Settings (which PINNED-APPS-AND-FAVOURITES-RESTORE
+# .md rules out by name as maintenance surfaces), and Kontact, which is not
+# installed at all.
+#
+# Seeding the database in /etc/skel makes the model non-empty before first login,
+# so the stock port never runs. The taskbar was never affected -- icontasks
+# `launchers` is durable config -- and is left exactly as it is.
+#
+# This is the second time a gate on this build passed while the product was
+# broken, for the same reason both times: the gate checked the value we WRITE,
+# not the value Plasma READS. The seed script therefore reads its own database
+# back and compares it to the layout script before it will exit 0.
+COPY config/seed-kickoff-favorites.py /usr/libexec/sp-plus/seed-kickoff-favorites.py
+
+RUN set -eux; \
+    D=/etc/skel/.local/share/kactivitymanagerd/resources/database; \
+    L=/usr/share/plasma/look-and-feel/org.secureprospective.spplus.modern.light/contents/layouts/org.kde.plasma.desktop-layout.js; \
+    test -s "$L" \
+      || { echo "FAVOURITES GATE FAIL: layout script missing at $L" >&2; exit 1; }; \
+    chmod 0755 /usr/libexec/sp-plus/seed-kickoff-favorites.py; \
+    python3 /usr/libexec/sp-plus/seed-kickoff-favorites.py "$D" "$L"; \
+    test -s "$D" \
+      || { echo "FAVOURITES GATE FAIL: no database was written" >&2; exit 1; }; \
+    stat -c '%a' "$D" | grep -qx 600 \
+      || { echo "FAVOURITES GATE FAIL: seeded database is not mode 600" >&2; exit 1; }
 
 # ---- 10. DN-15: give plymouth a reason to take over the panel ----
 # The real cause of the black screen at the LUKS passphrase prompt, found on the

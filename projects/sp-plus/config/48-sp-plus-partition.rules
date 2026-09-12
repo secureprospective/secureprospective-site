@@ -1,0 +1,40 @@
+// SP+ : the partition editor asks for a password EVERY time.
+//
+// WHAT WAS ALREADY TRUE, and why this file is small.
+// kpmcore ships its own policy and it is not lax:
+//
+//     org.kde.kpmcore.externalcommand.init
+//        <allow_inactive>no</allow_inactive>
+//        <allow_active>auth_admin_keep</allow_active>
+//
+// So a destructive partition operation ALREADY required an administrator
+// password before this file existed. Read on the v0.11.3 test VM 2026-09-12.
+// The menu entry is hidden too -- section 9 of the Containerfile sets
+// NoDisplay=true on org.kde.partitionmanager -- so it is not something an
+// advisor meets by browsing the application list.
+//
+// WHAT WAS WRONG is the suffix. `auth_admin_keep` caches the authorisation for
+// the rest of the session (polkit's default retention is five minutes, and the
+// agent may hold it longer). One password therefore covers a whole sequence of
+// privileged partition operations. For every other tool that trade is a
+// kindness. For the one tool that can erase the advisor's disk and every client
+// document on it, a single password should authorise a single action, and the
+// second destructive step should have to ask again.
+//
+// AUTH_ADMIN is the same prompt without the caching. It is a deliberate,
+// one-line narrowing of an upstream default, not a new restriction: anyone who
+// could repartition the disk yesterday still can, they are simply asked each
+// time rather than once.
+//
+// This does NOT contradict 49-sp-plus-updates.rules. That file exists because a
+// non-technical advisor must be able to finish a routine UPDATE without a
+// password they may not remember. Repartitioning a disk is not routine, is not
+// reversible, and is not something SP+ ever asks an advisor to do. The two files
+// are the same judgement applied to opposite risks.
+//
+// Sorts at 48 so it is consulted before the stock 50-default.rules.
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.kde.kpmcore.externalcommand.init") {
+        return polkit.Result.AUTH_ADMIN;
+    }
+});
