@@ -1,120 +1,147 @@
-# RESUME — secureprospective.com fit-and-consistency pass
+# SecureProspective front-page pass — RESUME
 
-Written 2026-09-12 before a context compaction. **The session continues.** Resume at
-NEXT ACTIONS item 1; do not re-derive what is below.
+Written 2026-09-12. Supersedes the earlier `docs/SITE-FIT-RESUME.md` from the
+screenshot-defect pass; that document's history is still accurate, this one
+carries the current state.
 
-## 1. What we are doing
+## 1. WHAT WE ARE DOING
 
-Christopher supplied ten annotated screenshots (four mobile, six desktop) of
-secureprospective.com and asked for fit issues and corrections, to his standard of
-"consistency, clarity, and excellence is the standard, not the goal." That first phase is
-**done, pushed and live**. He framed it as two phases: fixes first, then improvements once
-the fixes are in. Phase two has not started.
+Christopher is walking the live site and handing over annotated screenshots of
+things he wants changed. I reproduce each at the width that shows it, fix it,
+verify it rendered, and push when he says to. Phase one (his ten original fit
+defects) is finished and live. This session was a second round: hero motion,
+the homepage truth card, and a batch of copy edits.
 
-- Repo: `/home/chris/work/secureprospective-site` (Beelink clone)
-- Branch: `main`, at `557a8d6`, pushed to `origin/main`
-- Live: https://secureprospective.com (Cloudflare Pages auto-deploy from `main`)
+- Repo: `/home/chris/work/secureprospective-site` on Beelink, branch `main`.
+- Deploy: push to `main`, Cloudflare Pages rebuilds `secureprospective.com`.
+- Dev server: `pnpm dev --port 4331`. Currently STOPPED.
 
-## 2. Agents and harnesses
+## 2. AGENTS + HARNESSES
 
-None used. This was done directly in the main session: edits by hand, verification in
-Christopher's Chrome via the claude-in-chrome extension. No subordinate agents were
-dispatched, so there is no brief, no run directory and no transcript to recover.
+None. Everything this session was done in the main context. No briefs written,
+no subordinate agents dispatched, nothing to recover.
 
-## 3. Gates / status
+## 3. GATES / STATUS
 
 | Gate | State |
 |---|---|
-| `pnpm build` on `main` | PASS, 14 pages |
+| `pnpm build` | PASS, 14 pages |
 | `pnpm test` | PASS, 16/16 |
-| Viewport-overflow sweep, 7 pages x 9 widths (360-1717px) | PASS, 63/63, nothing escaping, no horizontal scroll |
-| Live deploy | PASS, live 30s after push |
-| Live CSS matches local build | PASS, hash `the-method.k5SP9RuR.css` identical |
-| Filing gate (`~/.reorg/tools/check-filing.sh`) | PASS |
+| Filing gate (`~/.reorg/tools/check-filing.sh`) | PASS, exit 0, 23 entries |
+| Live verification of this push | PASS, see section 4 |
+| Em dash scan on edited pages | PASS, zero |
+| Working tree | clean, nothing unpushed |
 
-## 4. Artifacts that exist and work
+## 4. WHAT IS LIVE AND PROVEN
 
-- Commit `557a8d6` "Fix the fit defects across the six public pages", 8 files, +187/-80.
-- Branch `session/fit-corrections` still exists locally at the same SHA as `main`. It is
-  merged; deleting it is safe but not required.
-- Live stylesheets carrying the fixes: `_astro/index.BK7GYF4h.css` (home),
-  `_astro/the-method.k5SP9RuR.css` (method).
+Commit `5a20523` "Tighten the hero field and rework the homepage truth card",
+pushed to `origin/main`, deployed, and verified against the production site
+rather than the build output:
 
-## 5. The ten defects, all fixed and verified live
+| Change | Live evidence |
+|---|---|
+| Hero thread pitch 32px to 11px | `_astro/HeroTicker.astro_astro_type_script_index_0_lang.BkRoldSk.js` carries `=11,`; the hash matches the local `dist/` file |
+| Operating-state badge to ink | live CSS `home-operating-state strong{...background:var(--ink);color:var(--white)...}` |
+| Truth card three-column rework | live CSS `truth-columns{display:contents}` |
+| Truth card hover flashes ink | live CSS `.truth-card:hover,.home-page .truth-card:focus-within{background:var(--ink)}` |
+| "nobody to trust" | present on the homepage |
+| Suitability row deleted, register renumbered | 0 occurrences of "Suitability and best interest"; labels read `01 02 03 04 05` |
+| "6 years in annuities and income planning" | present on The Work |
+| "$110M+ assisted annuity production" | present on The Work |
+| Method spine line removed | `method-loop::before` 0 occurrences in `_astro/the-method.Dh97xIdj.css`; hash matches local build |
+| Contact copy stops at "himself." | present on Contact |
 
-| # | Page / width | Defect | Cause |
-|---|---|---|---|
-| 1 | Home, mobile | Pronunciation and REVENUE ACTIVE off the right edge | `.pronunciation` hard-placed at `grid-column: 2`; the mobile breakpoint collapses the lockup to one column, so the placement opened an implicit second column |
-| 2 | SP+, mobile | Foundation tabs spilling through their own borders | Equal-thirds grid sized buttons without reference to their labels; each word was ~5px wider than its third |
-| 3 | SP+, mobile | Starting-point connector struck through the copy | A full-width rule rotated 90deg, so its length became the column width |
-| 4 | SP+, desktop | Arrow floating between label and value | Centred against the whole field rather than the value row |
-| 5 | The Method | Loop spine missed every number, both breakpoints | Spine at `left: 40px`, number centres at 38px; two breakpoints restated the position independently |
-| 6 | The Operator | CONTRIBUTES. across the paragraph; TRANSFORM out of its card | Both sized in `vw` while sitting in columns of unrelated width (547px of text in a 435px box; 273px in a 234px card) |
-| 7 | Contact | ROUTE label off its line, marker sitting on top of it | Two translates either side of the rotation, the second applied in the rotated frame; marker floored at 30px, inside the label's zone |
-| 8 | SP+ access terms | First column's bullets flush to its border | `site.css` and `the-work.css` both styled the block; each won different properties |
-| 9 | Home register | ALPHA and AVAILABLE in two yellows a shade apart | `--yellow-accent` vs `--gold-identity` |
-| 10 | Contact | Uncaptioned rail square | Ornament with no caption, unlike the same device on The Method |
+`20fa2c6` (the previous resume document) rode along in the same push. Docs only.
 
-Two were structural rather than patches: `--loop-spine` is now one custom property that both
-the spine and the return arrow hang off, and `.access-terms` has a single owner after the
-duplicate block was deleted from `site.css`.
+## 5. THE CURRENT BUG
 
-## 6. Decisions Christopher made this session
+**Contact hero email wraps mid-word at roughly 1000px.** The direct-channel card
+breaks the address as `info@secureprospective.co` / `m`. Pre-existing, not
+introduced by any commit this session, and it only appears in that narrow-desktop
+band. The element is the `<a href="mailto:...">` inside `.contact-channel-card`,
+styled in `src/styles/pages/contact.css`.
 
-- **D-1.** Contact's rail mark: **caption every rail mark.** Keep the square, fill it yellow,
-  caption it in The Method's pattern. Shipped as "ONE LINE AT A TIME". Do not revisit.
-- **D-2.** Status badges: **one fill, weight by border.** PROVEN blue-filled, ALPHA and
-  AVAILABLE both `--yellow-accent`, PROSPECTIVE outline only. The gold `--gold-identity`
-  badge is gone. Do not reintroduce a second yellow.
-- **D-3.** He authorised this specific push to `main` and the live deploy, overriding the
-  repo's usual "CT105 owns the merge" workflow. **That authorisation was for that push only.**
-  The next push needs asking again.
+Leading hypothesis: the anchor inherits a word-breaking rule (`overflow-wrap` or
+`word-break`) that is meant for long prose and is breaking the address instead of
+keeping it atomic. **Caveat: this has not been confirmed by inspecting the
+computed style at that width.** Do not record it as the cause until it has been
+measured at 1008px.
 
-## 7. Method notes that cost time to work out — reuse these
+Christopher has asked for this fix twice now. It is the first thing to do.
 
-- **Verification rig:** run `pnpm dev --port 4399`, then in Chrome replace the page with an
-  iframe harness and point it at `http://localhost:4399<path>`. Media queries respond to the
-  iframe's width, so this gives real breakpoint testing at any width.
-  `resize_window` did **not** change the viewport (stayed 1260px) and is not a usable path.
-- **Production cannot be framed.** secureprospective.com sets frame-ancestors, so the iframe
-  harness returns `contentDocument === null` against the live site. Verify production by
-  navigating the tab directly and running measurements in the page.
-- **Measure, do not eyeball.** The overflow sweep compares each element's `getBoundingClientRect().right`
-  against `documentElement.clientWidth`. A `scrollWidth > clientWidth` check is noisy on this
-  codebase and produces false positives on 1px decorative spans and on elements with
-  negative-margin children (e.g. `.method-loop-link`); it is not a usable gate here.
-- Zoomed screenshots of very small rotated text are unreliable through JPEG compression.
-  Confirm such elements with `offsetWidth`/`offsetHeight` and computed style instead.
+## 6. HYPOTHESES AND METHODS ALREADY REFUTED — DO NOT RETEST
 
-## 8. Ledger state
+- **`resize_window` does not change the viewport.** It reports success and the
+  viewport stays where it was, so breakpoint testing silently tests the wrong
+  width. Use the iframe rig instead (below).
+- **Production cannot be iframed.** `contentDocument` comes back `null` because
+  the site sets frame-ancestors. Verify production by navigating the tab directly
+  or with `curl`.
+- **`scrollWidth > clientWidth` is not a usable overflow gate.** It false-positives
+  on 1px decorative spans and on elements with negative-margin children. Compare
+  `getBoundingClientRect().right` against `documentElement.clientWidth` instead.
+- **`curl` without `-L` reads like a failed deploy.** The site 308-redirects
+  `/services` to `/services/`, so an unredirected fetch returns nothing and looks
+  exactly like the change never shipped. Always `curl -L`.
+- **Full-width footer CTA on the truth card: tried and rejected.** Putting the
+  action across both columns made the headline column run short and simply moved
+  the empty band under the headline. The working answer was to span the ANSWER
+  column across both rows, which sizes row one by the lede alone.
+- **Centring the paragraph block was a patch, not a fix.** Christopher called it
+  out. The structural fix was flattening the `.truth-columns` wrapper with
+  `display: contents` so the card is one real three-column grid.
 
-Everything is committed and pushed. Nothing is written-but-uncommitted except this document,
-which is being committed as part of this step.
+## 7. DECISIONS
 
-## 9. NEXT ACTIONS, in order
+- **D-1.** Caption every rail mark on Contact. Applied in the earlier pass.
+- **D-2.** Status badges: one fill, weight by border. Applied in the earlier pass.
+- **D-3 (superseded by D-5).** Deploy authorisation is per push.
+- **D-4.** The grey second offset on the truth card is out. He asked for extra
+  depth, saw it, and reversed himself: "I know I asked for it, but it's not good."
+  One hard ink offset only. Do not reintroduce a softer or layered shadow.
+- **D-5.** He authorised this session's push explicitly ("push all to main live
+  site"). That authorisation covered that push and does not carry forward. Ask
+  again before the next one.
+- **D-6.** Hover on the homepage blue card flashes to theme ink, deliberately
+  plain, matching the white-to-yellow flash on the SP+ card above it. "Nothing
+  special."
 
-1. **Fix the Contact email wrap.** On the live Contact hero at roughly 1000px wide, the
-   direct-channel card breaks the address mid-word: `info@secureprospective.co` / `m`.
-   Pre-existing, not introduced by `557a8d6`, and it only shows in that narrow-desktop band.
-   The element is the `<a href="mailto:...">` inside `.contact-channel-card`, styled in
-   `src/styles/pages/contact.css`. Christopher has asked for it to go in the next push.
-   Reproduce it first at 1008px in the iframe rig, then fix, then re-verify at 1008px.
-2. **Ask before pushing.** D-3 does not carry forward. Land the fix on a branch, verify, and
-   ask Christopher for the deploy.
-3. **Then phase two: improvements.** He said the fixes come first and improvements follow.
-   Wait for him to open that rather than starting it.
+## 8. LEDGER STATE
 
-## 10. Environment notes
+Working tree clean. `origin/main` is at `5a20523`. Nothing uncommitted, nothing
+unpushed, no stashes created this session.
 
-- This is Beelink (`com`, 192.168.1.190). CT105 (192.168.1.105) is the head-brain; `ssh
-  root@192.168.1.105` works from here with BatchMode.
-- Dev server was on port 4399 and has been stopped. Nothing is running.
-- The Chrome tabs opened for verification were closed.
+## 9. NEXT ACTIONS, IN ORDER
 
-## 11. Honest status
+1. **Fix the Contact email wrap.** Reproduce at 1008px in the iframe rig first,
+   inspect the computed style on the anchor before assuming the cause, fix, then
+   re-verify at 1008px and at 1440px.
+2. **Decide the two remaining $110M phrasings.** `the-operator.astro:154`
+   ("Approximately $110M in annuity production assisted over six years") and its
+   stat caption at line 169 ("Total annuity production assisted over six years")
+   still use the old wording that The Work has moved away from. Flagged to
+   Christopher, no instruction given. Ask before changing.
+3. **Ask before pushing.** D-5 does not carry forward.
+4. **Keep taking screenshots.** He is still walking the site. Expect more.
 
-Phase one is genuinely finished and observed working on production, not merely built: the
-badge fills, the loop spine geometry and the contact rail were each read back off
-secureprospective.com after the deploy. The remaining known defect is the Contact email
-wrap in item 1, which has been reproduced by eye on the live site but **not yet measured or
-fixed**. No estimate is offered for phase two because its scope has not been discussed.
+## 10. ENVIRONMENT NOTES
+
+- **The iframe rig** is how breakpoints get tested, since `resize_window` does
+  not work. Navigate the tab to `http://localhost:4331/`, then replace the
+  document with an iframe of the target width, scaled to fit:
+  `document.documentElement.innerHTML='<body style="margin:0"><iframe id="rig" src="/?x='+Date.now()+'" style="width:1400px;height:1400px;border:0;transform:scale(0.585);transform-origin:0 0"></iframe></body>'`
+  Then read geometry out of `document.getElementById('rig').contentDocument`.
+  The cache-busting query parameter matters; without it the iframe serves stale CSS.
+- **Real hover cannot be verified across separate tool calls.** The pointer state
+  does not survive between them. Use `browser_batch` with navigate, hover and
+  screenshot in one call.
+- **Chrome viewport here is about 825px**, which is the tablet layout. Anything
+  desktop must be checked through the rig.
+
+## 11. HONEST STATUS
+
+Everything Christopher has asked for so far is live and was checked on the
+production site, not merely built. The one known open defect is the Contact email
+wrap, which is unfixed and whose cause is still unconfirmed. The two Operator
+phrasings are a judgement call waiting on him, not a defect. Nothing is running
+and nothing is half-applied.
