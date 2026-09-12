@@ -65,9 +65,11 @@
     }
 
     function drawRegister(width, height) {
-      var rowHeight = 32;
-      var dashWidth = 8;
-      var gap = 8;
+      // The threads read as a woven field rather than a loose ledger, so the
+      // row pitch is deliberately tighter than the 32px grid beneath it.
+      var rowHeight = 11;
+      var dashWidth = 7;
+      var gap = 6;
       var unit = dashWidth + gap;
       var rows = Math.ceil(height / rowHeight) + 1;
 
