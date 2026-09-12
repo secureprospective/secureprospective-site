@@ -1047,7 +1047,7 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && bash -n /usr/libexec/sp-plus/fin-notebook-gate \
 # Loaded on BOTH paths: the interactive TUI and Welcome's bounded --ask call.
 # A guard that is only on one of them is a guard with a documented way round it.
- && test "$(grep -c 'spplus-notebook' /usr/libexec/sp-plus/fin)" -eq 2 \
+ && test "$(grep -cE '^[[:space:]]*--extension "\$EXTENSIONS/spplus-notebook\.ts"' /usr/libexec/sp-plus/fin)" -eq 2 \
 # The two directories have to exist before Fin first runs, for the same reason
 # Documents/Fin does: a missing path fails as a broken tool, not as a rule.
 # Drafts is where a letter naming a client is SUPPOSED to go, and the guard's
@@ -1136,7 +1136,7 @@ console.log("SPPLUS_WEB_FETCH_ONLY_OK Fin can open a link, and cannot search")' 
  && grep -q 'pi-web-access/index.ts' /usr/libexec/sp-plus/fin \
  && grep -q 'pi-usage/index.ts' /usr/libexec/sp-plus/fin \
  && grep -q 'pi-subagents/index.ts' /usr/libexec/sp-plus/fin \
- && test "$(grep -c 'spplus-session-meter' /usr/libexec/sp-plus/fin)" -eq 1 \
+ && test "$(grep -cE '^[[:space:]]*--extension "\$EXTENSIONS/spplus-session-meter\.ts"' /usr/libexec/sp-plus/fin)" -eq 1 \
  && echo "FIN_FOOTER_OK status bar, plan mode, web fetch, usage, subagents and the session meter" \
 # The opening page. It is the first thing an advisor sees and, for many of them,
 # the only place they will ever learn what Fin can do -- so it lists the skills
@@ -1144,7 +1144,14 @@ console.log("SPPLUS_WEB_FETCH_ONLY_OK Fin can open a link, and cannot search")' 
 # THE suggestion until a voice profile exists. A rotation that might show the
 # interview on the fourth launch is a rotation nobody sees it in.
  && test -f /usr/share/sp-plus/fin/extensions/spplus-opening.ts \
- && test "$(grep -c 'spplus-opening' /usr/libexec/sp-plus/fin)" -eq 1 \
+# These three count how many times an extension is LOADED, which is what an
+# extension drawn twice would look like. They counted the bare name until
+# 2026-09-12, so a comment naming spplus-opening.ts -- added by cd202fb, in the
+# same commit that recomposed the page -- made the count 2 and killed the
+# v0.11.1 release build after twenty-three minutes, at the assertion rather than
+# at anything real. Match the load line itself. A check that its own file's
+# prose can fail is not a check.
+ && test "$(grep -cE '^[[:space:]]*--extension "\$EXTENSIONS/spplus-opening\.ts"' /usr/libexec/sp-plus/fin)" -eq 1 \
 # The launcher must NOT also print the shoal, or it appears twice: once above
 # the interface and once inside it.
  && ! grep -qE '^\[ -x "\$BANNER" \] && "\$BANNER"' /usr/libexec/sp-plus/fin \

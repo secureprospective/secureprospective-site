@@ -103,6 +103,24 @@ else
   bad "a Containerfile COPY source will not reach the build" "fix the path, add the file, or negate it in .containerignore"
 fi
 
+# P-2b  the launcher must load each extension exactly as often as the
+#       Containerfile asserts it does. The build makes these assertions against
+#       the installed copy, twenty-three minutes in; config/fin is the same file
+#       and it is right here. On 2026-09-12 a comment mentioning an extension by
+#       name made a bare-substring count read 2 instead of 1 and failed the
+#       release build at an assertion about nothing.
+LOADS_OK=1
+_loads() { grep -cE "^[[:space:]]*--extension \"\\\$EXTENSIONS/$1\.ts\"" "$C/fin"; }
+for pair in "spplus-guardrails 2" "spplus-workspace 2" "spplus-organize 2" \
+            "spplus-notebook 2" "spplus-session-meter 1" "spplus-opening 1"; do
+  set -- $pair
+  got="$(_loads "$1")"
+  [ "$got" = "$2" ] || { LOADS_OK=0; echo "       $1 is loaded $got time(s), the build asserts $2"; }
+done
+[ $LOADS_OK -eq 1 ] \
+  && ok "the launcher loads every extension exactly as often as the build asserts" \
+  || bad "the launcher and the Containerfile disagree about an extension" "the build will fail at the assertion, not at a real fault"
+
 # P-3  shell helpers must parse
 SH_OK=1
 for f in fin fin-tips spplus-first-login spplus-grant-admin sp-plus-starship.sh; do
