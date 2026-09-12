@@ -65,6 +65,24 @@ const mustBlock = [
   ['find /home -name "*.pdf" -delete', 'deletes found files'],
   ['cp /dev/null /etc/sp-plus/shares/office.cred', 'clobbers a share credential'],
   ['sudo ostree admin undeploy 1', 'removes an installed version'],
+  ['sudo dnf remove keepassxc', 'removes the password manager'],
+  ['sudo dnf remove kio-extras', 'removes office-share browsing'],
+  ['sudo dnf remove xdg-desktop-portal-kde', 'removes the app permission bridge'],
+  ['sudo dnf remove plasma-pa', 'removes the sound control'],
+  ['sudo dnf remove plasma-discover', 'removes the software centre'],
+  ['sudo dnf remove plasma-systemmonitor', 'removes the system monitor'],
+  ['sudo dnf remove okular', 'removes the PDF reader'],
+  ['sudo dnf remove gwenview', 'removes the image viewer'],
+  ['sudo dnf remove ark', 'removes the archive tool'],
+  ['sudo dnf remove kate', 'removes the text editor'],
+  ['sudo dnf remove kitty', 'removes a terminal'],
+  ['sudo dnf remove libreoffice-writer libreoffice-calc', 'removes the office suite'],
+  ['sudo dnf autoremove okular', 'the autoremove door to the same thing'],
+  ['flatpak uninstall com.bitwarden.desktop', 'removes the password manager Flatpak'],
+  ['flatpak uninstall org.signal.Signal', 'removes Signal'],
+  ['flatpak uninstall us.zoom.Zoom', 'removes Zoom, which advisors take client calls on'],
+  ['flatpak uninstall org.gnome.Boxes', 'removes Boxes'],
+  ['flatpak uninstall -y --noninteractive com.bitwarden.desktop', 'same, with flags in the way'],
 ];
 
 // Every one of these is a real repair an advisor would ask Fin for. If the gate
@@ -96,6 +114,12 @@ const mustAllow = [
   ['pkill -F /run/user/1000/app.pid', 'kill from a pidfile, the sanctioned form'],
   ['rm /home/advisor/.cache/thumbnails/fail.png', 'delete a single cache file'],
   ['sudo chmod 644 /etc/xdg/kdeglobals', 'fix one file mode'],
+  ['sudo dnf install keepassxc', 'installing is not removing'],
+  ['flatpak install -y flathub org.signal.Signal', 'reinstalling an app is fine'],
+  ['flatpak update -y', 'routine Flatpak update'],
+  ['rpm -q keepassxc dolphin', 'checking what is installed'],
+  ['systemctl restart cups', 'restarting printing is the repair, not the harm'],
+  ['flatpak list --app', 'listing apps'],
 ];
 
 // The extension resolves its list against homedir(). The test must do the same,

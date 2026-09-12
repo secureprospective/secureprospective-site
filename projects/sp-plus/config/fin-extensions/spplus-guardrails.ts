@@ -139,9 +139,29 @@ export default function (pi: ExtensionAPI) {
 		// a NEW deployment, so every destructive verb succeeds quietly and only
 		// bites on the next restart. Nothing visibly breaks at the moment of the
 		// mistake, which is precisely why nothing caught it.
+		// WIDENED 2026-09-12 on Christopher's ruling -- "I would rather be thorough
+		// on Fin than not. There are other ways to remove things, we just need Fin
+		// to be a tool, not a destroyer." Every advisor-facing app the image
+		// actually ships is now named, verified present with rpm -q on the running
+		// v0.11.1 VM rather than assumed: the password manager (keepassxc) and the
+		// four Flatpaks (bitwarden, signal, zoom, boxes) because they hold or reach
+		// advisor credentials and client calls; kio-extras because DN-26 makes it
+		// what lets the file manager browse an office share; the portal, sound,
+		// software-centre and monitor because losing them looks like a broken
+		// machine to someone who cannot diagnose it; okular, gwenview, ark, kate,
+		// kitty and libreoffice because an advisor who loses their PDF reader or
+		// their office suite has lost the working day.
+		//
+		// Thunderbird is deliberately NOT here: rpm -q says the image does not
+		// ship it, and a rule naming software that does not exist protects nothing
+		// while reading as though it does.
+		//
+		// The bare Flatpak names are enough for the full application ids --
+		// `bitwarden` has a word boundary on both sides inside
+		// `com.bitwarden.desktop` -- so the ids are not repeated here.
 		{
 			label: "removes part of the desktop this computer needs to work",
-			pattern: /\b(rpm-ostree\b[^\n]*\boverride\b[^\n]*\b(remove|replace)|rpm-ostree\b[^\n]*\buninstall\b|dnf5?\b[^\n]*\b(remove|erase|autoremove)\b|flatpak\b[^\n]*\buninstall\b)[^\n]*\b(dolphin|konsole|plasma-workspace|plasma-desktop|plasma-nm|kwin|kwin-wayland|sddm|systemsettings|kde-cli-tools|kscreen|kwallet\w*|xdg-desktop-portal-kde|polkit\w*|NetworkManager\w*|firewalld|cups\w*|pipewire|wireplumber|udisks2|brave-browser|sp-plus\w*|spplus\w*)\b/i,
+			pattern: /\b(rpm-ostree\b[^\n]*\boverride\b[^\n]*\b(remove|replace)|rpm-ostree\b[^\n]*\buninstall\b|dnf5?\b[^\n]*\b(remove|erase|autoremove)\b|flatpak\b[^\n]*\buninstall\b)[^\n]*\b(dolphin|konsole|plasma-workspace|plasma-desktop|plasma-nm|plasma-pa|plasma-discover|plasma-systemmonitor|kwin|kwin-wayland|sddm|systemsettings|kde-cli-tools|kscreen|kwallet\w*|keepassxc|kio-extras|xdg-desktop-portal\w*|polkit\w*|NetworkManager\w*|firewalld|cups\w*|pipewire|wireplumber|udisks2|okular|gwenview|ark|kate|kitty|libreoffice\w*|brave-browser|bitwarden|signal|zoom|boxes|sp-plus\w*|spplus\w*)\b/i,
 			fix: "Do not remove it. This is part of the desktop or a service SP+ needs. If it is misbehaving, repair or restart it instead, and say what is actually wrong.",
 		},
 
