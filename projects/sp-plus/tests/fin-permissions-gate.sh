@@ -21,12 +21,34 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPPLUS="$(dirname "$HERE")"
-GUARD="$SPPLUS/config/fin-extensions/spplus-guardrails.ts"
-PROBE="$HERE/fin-permissions-probe.cjs"
+
+# This gate ran in the checkout only until 2026-09-12, because it resolved its
+# three inputs through the source tree alone. The other four Fin gates ship into
+# /usr/libexec/sp-plus and run again at build time against the files that were
+# actually laid down, which is the run that catches a COPY landing in the wrong
+# place -- the one failure a checkout run can never see. This gate covers the
+# guardrails, the surface where Fin holds unprompted root, so it is the last one
+# that should have been left out. Resolve the installed paths first, exactly as
+# tests/fin-opening-gate.sh does, and fall back to the checkout.
+GUARD=""
+for c in /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
+         "$SPPLUS/config/fin-extensions/spplus-guardrails.ts"; do
+    [ -r "$c" ] && GUARD="$c" && break
+done
+PROBE=""
+for c in /usr/libexec/sp-plus/fin-permissions-probe.cjs \
+         "$HERE/fin-permissions-probe.cjs"; do
+    [ -r "$c" ] && PROBE="$c" && break
+done
+PROMPT_RESOLVED=""
+for c in /usr/share/sp-plus/fin/system-prompt.md \
+         "$SPPLUS/config/fin-system-prompt.md"; do
+    [ -r "$c" ] && PROMPT_RESOLVED="$c" && break
+done
 
 echo "=== SP+ FIN PERMISSIONS GATE ==="
-[ -f "$GUARD" ] || { echo "  FAIL missing $GUARD"; exit 2; }
-[ -f "$PROBE" ] || { echo "  FAIL missing $PROBE"; exit 2; }
+[ -n "$GUARD" ] || { echo "  FAIL cannot find spplus-guardrails.ts"; exit 2; }
+[ -n "$PROBE" ] || { echo "  FAIL cannot find fin-permissions-probe.cjs"; exit 2; }
 if ! command -v node >/dev/null 2>&1; then
   echo "  SKIP node is not available; the permission surface was NOT exercised"; exit 0
 fi
@@ -50,7 +72,7 @@ rc=$?
 # is a rule the next model does not follow.
 echo
 echo "--- plain language ---"
-PROMPT="$SPPLUS/config/fin-system-prompt.md"
+PROMPT="$PROMPT_RESOLVED"
 words=0
 
 # Words with no meaning to a financial advisor. Each was chosen because it has

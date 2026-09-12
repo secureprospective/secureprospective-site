@@ -544,6 +544,8 @@ COPY tests/fin-notebook-gate.sh   /usr/libexec/sp-plus/fin-notebook-gate
 COPY tests/fin-skills-gate.sh     /usr/libexec/sp-plus/fin-skills-gate
 COPY tests/fin-session-meter-gate.sh /usr/libexec/sp-plus/fin-session-meter-gate
 COPY tests/fin-opening-gate.sh    /usr/libexec/sp-plus/fin-opening-gate
+COPY tests/fin-permissions-gate.sh   /usr/libexec/sp-plus/fin-permissions-gate
+COPY tests/fin-permissions-probe.cjs /usr/libexec/sp-plus/fin-permissions-probe.cjs
 COPY config/fin-pi-config/pi-statusline.json /etc/skel/.pi/agent/pi-statusline.json
 COPY config/fin-pi-config/web-search.json    /etc/skel/.pi/web-search.json
 COPY config/fin-pi-config/settings.json      /etc/skel/.pi/agent/settings.json
@@ -1000,6 +1002,17 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
  && grep -q 'changes who is allowed to administer this computer' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
  && grep -q 'keeps working after this conversation ends' /usr/share/sp-plus/fin/extensions/spplus-guardrails.ts \
  && echo "FIN_GUARDRAILS_OK 3 extensions by path; privilege deliberately NOT gated, persistence IS" \
+# The rules above are GREPPED for. This EXECUTES them against the extension that
+# was actually laid down, and reads every permission question out of it to check
+# the words an advisor sees two seconds before approving something they did not
+# type. It ran in the checkout only until 2026-09-12, which meant the one gate
+# covering the surface where Fin holds unprompted root was also the one gate that
+# never saw the installed layout. The other four Fin gates ship; so does this.
+ && test -f /usr/libexec/sp-plus/fin-permissions-probe.cjs \
+ && chmod 0755 /usr/libexec/sp-plus/fin-permissions-gate \
+ && bash -n /usr/libexec/sp-plus/fin-permissions-gate \
+ && bash /usr/libexec/sp-plus/fin-permissions-gate \
+ && echo "FIN_PERMISSIONS_OK Fin can still repair, still cannot quietly destroy, and asks in plain words" \
  && grep -q 'image-mode' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'must not leave the machine' /usr/share/sp-plus/fin/system-prompt.md \
  && grep -q 'exec /usr/bin/pi' /usr/libexec/sp-plus/fin \

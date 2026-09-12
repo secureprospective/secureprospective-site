@@ -27,9 +27,18 @@ else
   bad "git tree is dirty" "commit or discard before building; the image records a commit"
 fi
 BR="$(git -C "$REPO" branch --show-current)"
-[ "$BR" = session/sp-plus-plan ] \
-  && ok "on branch session/sp-plus-plan" \
-  || bad "on branch '$BR'" "SP+ work never happens on main"
+# This asserted the literal branch name 'session/sp-plus-plan' until 2026-09-12.
+# That branch ended on 2026-09-10, so every build since has been refused by a
+# check whose own message says the rule is "never on main". A gate that names one
+# branch cannot express that rule: it blocks every legitimate session branch, and
+# it would have passed a branch called session/sp-plus-plan cut from anywhere.
+# Assert the rule itself -- a named session branch, never main, never detached.
+case "$BR" in
+  main|master) bad "on branch '$BR'" "SP+ work never happens on main" ;;
+  "")          bad "detached HEAD" "build from a named session branch; the image records the commit" ;;
+  session/*)   ok "on session branch '$BR'" ;;
+  *)           bad "on branch '$BR'" "build from a session/<name> branch" ;;
+esac
 
 # P-2  every COPY source in the Containerfile must exist in the build context
 if python3 - "$CF" "$REPO/projects/sp-plus" <<'PY'
