@@ -4,7 +4,15 @@
 # three commands were recorded in three ledger files with three different build
 # contexts and two of the three cannot work.
 #
-#   payload   context = REPO ROOT            (Containerfile COPYs images/kde/...)
+#   payload   context = projects/sp-plus   (COPY sources are relative to it:
+#             config/, tests/, welcome/, branding/ all sit there, and the
+#             Containerfile itself is named as images/kde/Containerfile from
+#             inside it). This comment said REPO ROOT until 2026-09-12, which
+#             contradicted the code three lines of scrollback below it and
+#             matched a recorded recipe that does not build. The code was
+#             right; the comment and the ledger were wrong. tests/config-
+#             preflight.sh checks every COPY source against projects/sp-plus,
+#             so the context is asserted, not merely described.
 #   installer context = projects/sp-plus     (COPYs installer/... and branding/)
 #   iso       --bootc-ref is the INSTALLER, --bootc-installer-payload-ref is the
 #             PAYLOAD. Passing the payload as --bootc-ref yields an ISO with no
