@@ -271,6 +271,74 @@ export default function (pi: ExtensionAPI) {
 		// fetches and installs a package nobody vetted; it is how a repository
 		// gets added as a package rather than as a repo file.
 		{ label: "installs software straight from a web address", pattern: /\bdnf5?\b[^\n]*\binstall\b[^\n]*https?:\/\//i, kind: "persistence", fix: "Install from a source SP+ already trusts instead, and say who published this one before asking again." },
+
+		// --- 6. Switching things off, and the routes the 2026-09-12 sweep found
+		// still open after the desktop rule landed. Every one of these was PROBED
+		// against this handler, not reasoned about: ten commands passed that should
+		// not have. Christopher's ruling the same day: "we just need Fin to be a
+		// tool, not a destroyer."
+		//
+		// These sit LAST on purpose. `rules.find` returns the first match, so
+		// putting them here means no existing rule's label changes -- e.g.
+		// `rpm-ostree kargs --append=selinux=0` keeps the more accurate
+		// "turns off one of this computer's built-in protections".
+
+		// The same hole as the desktop rule, through a different door: we guarded
+		// REMOVING the software and not SWITCHING IT OFF. Disabling the login
+		// screen or masking networking leaves exactly the machine Fin produced on
+		// 2026-09-12 -- one the advisor cannot use. The line is persistence, not
+		// power: `start`, `stop` and `restart` stay free because a stopped service
+		// returns on reboot and restarting IS the repair Fin is for. `disable` and
+		// `mask` do not come back, so they ask.
+		{
+			label: "switches off something this computer needs to work",
+			pattern: /\bsystemctl\b[^\n]*\b(disable|mask)\b[^\n]*\b(sddm|NetworkManager\w*|cups\w*|avahi\w*|pipewire\w*|wireplumber|polkit\w*|udisks2|plasma\w*|dbus\w*|systemd-resolved|rpm-ostreed\w*|bootc\w*|sp-plus\w*|spplus\w*)\b/i,
+			kind: "persistence",
+			fix: "If it is misbehaving, restart it instead with `systemctl restart <name>`. Leave disable and mask alone.",
+		},
+
+		// The hardening the posture gate measures lives on the kernel command
+		// line. `--append=selinux=0` was already caught by section 2; DELETING a
+		// hardening argument was not, so the machine could be quietly unhardened
+		// and the gate would still report it as it found it. Listing is fine --
+		// only the modifying flags ask.
+		{
+			label: "removes one of this computer's safety settings",
+			pattern: /\brpm-ostree\b[^\n]*\bkargs\b[^\n]*(--delete|--replace|--append|--editor)/i,
+			kind: "persistence",
+			fix: "Do not change the kernel settings. These are the hardening SP+ ships. Say which one is causing a problem and why.",
+		},
+
+		// Workspace confinement covers Fin's write tool; shell redirection walks
+		// round it, which is the same bypass the 2026-08-28 dotfile rule exists
+		// for. A bad filesystem or encryption table is an unbootable machine, and
+		// an advisor cannot recover one. Named files, not all of /etc, so ordinary
+		// repair still works.
+		{
+			label: "changes a file this computer needs to start or stay secure",
+			pattern: /(>{1,2}|\btee\b)[^\n]*\/etc\/(fstab|crypttab|default\/grub|sudoers|shadow|passwd|group|gshadow|pam\.d\/|selinux\/config|ssh\/|machine-id|kernel\/|dracut\.conf)/i,
+			fix: "Do not write to this file. If something will not start or mount, say what is failing and let a person decide.",
+		},
+
+		// The restore path. These are how the machine goes back, and the Debian
+		// plan makes Timeshift the rollback mechanism outright, so deleting them
+		// removes the recovery rather than anything the advisor can see.
+		{
+			label: "deletes the machine's own safety copies",
+			pattern: /\bbtrfs\b[^\n]*\bsubvolume\b[^\n]*\bdelete\b|\btimeshift\b[^\n]*--delete|\bsnapper\b[^\n]*\bdelete\b/i,
+			fix: "These are how this computer goes back if something breaks. Do not delete them. If disk space is the problem, say how much is needed.",
+		},
+
+		// Adding a software source asks (section 5). Removing one did not, and
+		// deleting Flathub is how the advisor stops getting app updates.
+		{ label: "removes a place this computer installs software from", pattern: /\bflatpak\b[^\n]*\bremote-(delete|modify)\b/i, kind: "persistence", fix: "Leave the software sources alone. If an app is misbehaving, say which one." },
+
+		// Changing the login shell can lock the advisor out of their own machine.
+		{ label: "changes how the advisor signs in", pattern: /\bchsh\b/i, kind: "persistence", fix: "Do not change the login shell. Nothing an advisor asks for needs this." },
+
+		// Loosening a kernel setting at runtime. Not persistent, but it weakens
+		// the machine now and nothing in a repair needs it. Reading is fine.
+		{ label: "weakens a safety setting while the computer is running", pattern: /\bsysctl\b[^\n]*(\s-w\b|\b\w+\.\w+\s*=)/i, fix: "Do not change kernel settings to make something work. Say what is failing instead." },
 		{ label: "changes which system updates this computer will trust", pattern: /(>{1,2}|\btee\b|\bcp\b|\bmv\b|\brm\b|\bln\b)[^\n]*\/etc\/(containers\/policy\.json|pki\/containers\/)/i, kind: "persistence" },
 	];
 

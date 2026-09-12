@@ -83,6 +83,21 @@ const mustBlock = [
   ['flatpak uninstall us.zoom.Zoom', 'removes Zoom, which advisors take client calls on'],
   ['flatpak uninstall org.gnome.Boxes', 'removes Boxes'],
   ['flatpak uninstall -y --noninteractive com.bitwarden.desktop', 'same, with flags in the way'],
+  ['sudo systemctl disable --now sddm', 'switches off the login screen'],
+  ['sudo systemctl mask NetworkManager', 'masks networking'],
+  ['sudo systemctl disable cups', 'switches off printing for good'],
+  ['sudo systemctl mask bootc-fetch-apply-updates.timer', 'switches off system updates'],
+  ['sudo rpm-ostree kargs --delete=init_on_alloc=1', 'strips a hardening setting'],
+  ['sudo rpm-ostree kargs --append=mitigations=off', 'adds an unsafe kernel setting'],
+  ['sudo tee -a /etc/fstab', 'an unbootable machine, via redirection'],
+  ['echo x | sudo tee /etc/crypttab', 'breaks disk decryption'],
+  ['sudo tee /etc/default/grub', 'rewrites the boot configuration'],
+  ['sudo btrfs subvolume delete /var/timeshift/snap1', 'deletes a restore point'],
+  ['sudo timeshift --delete-all', 'deletes every restore point'],
+  ['flatpak remote-delete flathub', 'removes the app source'],
+  ['flatpak remote-modify --no-gpg-verify flathub', 'stops checking app signatures'],
+  ['sudo chsh -s /bin/false alpha', 'locks the advisor out of a shell'],
+  ['sudo sysctl -w kernel.kptr_restrict=0', 'weakens the running kernel'],
 ];
 
 // Every one of these is a real repair an advisor would ask Fin for. If the gate
@@ -120,6 +135,16 @@ const mustAllow = [
   ['rpm -q keepassxc dolphin', 'checking what is installed'],
   ['systemctl restart cups', 'restarting printing is the repair, not the harm'],
   ['flatpak list --app', 'listing apps'],
+  ['sudo systemctl restart cups', 'restarting printing is the repair'],
+  ['sudo systemctl start cups', 'starting a service is fine'],
+  ['sudo systemctl stop cups', 'stop without disable comes back on reboot'],
+  ['systemctl --user restart plasma-plasmashell', 'restarting the desktop shell'],
+  ['systemctl status sddm', 'checking a service'],
+  ['rpm-ostree kargs', 'listing the kernel settings'],
+  ['sysctl -a', 'reading kernel settings'],
+  ['flatpak remote-list', 'listing software sources'],
+  ['sudo timeshift --list', 'listing restore points'],
+  ['sudo btrfs subvolume list /', 'listing subvolumes'],
 ];
 
 // The extension resolves its list against homedir(). The test must do the same,
