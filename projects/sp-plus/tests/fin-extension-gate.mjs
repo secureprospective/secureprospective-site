@@ -225,6 +225,10 @@ const mustBlockReadCmds = [
   ['cat ~/.ssh/id_ed25519', 'an ssh private key'],
   ['cat $HOME/.pgpass', 'a database password file'],
   ['strings ~/Documents/Fin/copied.kdbx', 'a password vault, even inside the workspace'],
+  // The workspace exemption is a prefix match on the word Fin. These two
+  // start with those three letters and are NOT the workspace.
+  ['cat ~/Documents/Finances/budget.csv', 'Finances is not the Fin workspace'],
+  ['cat ~/Documents/Finn/notes.txt', 'Finn is not the Fin workspace'],
   ['cat ~/Documents/client.txt', 'reading a client file with cat'],
   ['pdftotext ~/Downloads/policy.pdf -', 'extracting a PDF in Downloads'],
   ['grep -i jane ~/Documents/clients/', 'searching inside client documents'],
@@ -238,6 +242,18 @@ const mustAllowReadCmds = [
   ['stat ~/Documents/client.txt', 'metadata is not content'],
   ['du -sh ~/Documents', 'sizes are not content'],
   ['cat ~/Documents/Fin/draft.md', 'Fin own workspace is not client data'],
+  // A path that ENDS at the workspace, with no trailing slash. The rule read
+  // these as client data until 2026-09-12, so a marketer could write a flyer
+  // into Documents/Fin and then not export it. Found by driving Fin, not by
+  // reading the regex.
+  ['cd ~/Documents/Fin && soffice --headless --convert-to pdf flyer.html',
+   'converting a draft the advisor asked Fin to write'],
+  ['cd /var/home/test/Documents/Fin; soffice --headless --convert-to pdf flyer.html',
+   'the same, spelled with the real home path and a semicolon'],
+  ['libreoffice --headless --convert-to pdf --outdir ~/Documents/Fin ~/Documents/Fin/flyer.html',
+   'an outdir that ends at the workspace'],
+  ['ls ~/Documents/Fin', 'the workspace named with nothing after it'],
+  ['cd "$HOME/Documents/Fin"', 'the workspace in quotes, ending at the quote'],
   ['grep -r "error" ~/.thunderbird/profiles.ini', 'diagnosing the mail profile'],
   ['cat /etc/sp-plus/shares/office.cred', 'diagnosing a share'],
   ['journalctl -u cups --no-pager -n 50', 'reading a service log'],

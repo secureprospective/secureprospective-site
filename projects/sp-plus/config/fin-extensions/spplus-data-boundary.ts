@@ -164,9 +164,19 @@ function heldKind(target: string): Held {
 const READS_CONTENT =
 	/\b(cat|bat|head|tail|less|more|strings|nl|od|xxd|hexdump|grep|rg|egrep|fgrep|awk|sed|file|pdftotext|pdfgrep|pdfimages|antiword|catdoc|tesseract|xdg-open|gio\s+open|soffice|libreoffice|unzip\s+-p|tar\s+-\w*O)\b/i;
 
-/** The same shape the guardrails and organize use for the advisor's folders. */
+/** The same shape the guardrails and organize use for the advisor's folders.
+ *
+ *  The workspace exemption must also match a path that ENDS at `Fin`. It used
+ *  to be `(?!Fin\/)`, which only excused the workspace when something followed
+ *  the slash. Measured 2026-09-12: `cd ~/Documents/Fin && soffice --convert-to
+ *  pdf flyer.html` and `--outdir /var/home/test/Documents/Fin` both read as
+ *  client data, so a marketer could write a flyer into the workspace and then
+ *  not export it. Four different phrasings were refused. `heldKind` never had
+ *  this bug -- `within()` already treats the root itself as inside -- so the
+ *  path check and the command check disagreed, which is the worst shape for a
+ *  rule like this to be in. */
 const CLIENT_PATH_IN_COMMAND =
-	/(~|\$HOME|\/(?:var\/)?home\/[^/\s]+)\/(Documents|Desktop|Downloads|Pictures)\/(?!Fin\/)/i;
+	/(~|\$HOME|\/(?:var\/)?home\/[^/\s]+)\/(Documents|Desktop|Downloads|Pictures)\/(?!Fin(?:\/|[\s"';:,&|)\]]|$))/i;
 
 /** The same, for key material and credential stores.
  *
