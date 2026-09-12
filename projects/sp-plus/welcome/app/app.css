@@ -134,7 +134,7 @@ h1,h2,p{margin:0}h1{font-family:'Noto Sans Condensed Black','Noto Sans Condensed
 .preview-actions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
 .preview-actions .secondary-action{font-size:9px;box-shadow:none;white-space:nowrap}
 .preview-actions .primary-action{min-width:180px;min-height:40px;font-size:10px}
-.preview-actions button:disabled{cursor:wait;opacity:.55;box-shadow:none;transform:none}
+.preview-actions button:disabled{cursor:default;opacity:.55;box-shadow:none;transform:none}.preview-actions button[data-state=working]:disabled{cursor:wait}.preview-actions button[data-state=applied]:disabled{cursor:default;opacity:1;background:var(--blue);border-color:var(--blue);color:var(--white)}.preview-actions button[data-state=applied]:disabled:before{content:"\2713\00a0"}.preview-actions button[data-state=failed]:disabled{cursor:default;opacity:1;background:var(--white);border-color:var(--ink);color:var(--ink)}
 .preview-actions .primary-action[data-state=working]{background:var(--yellow);border-color:var(--ink);color:var(--ink)}
 .theme-card:focus-visible{position:relative;z-index:1}
 @media(max-width:900px){

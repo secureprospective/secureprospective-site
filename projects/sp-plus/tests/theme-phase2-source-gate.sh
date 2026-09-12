@@ -132,4 +132,48 @@ for preview in \
   [ -s "$preview_root/$preview" ] || fail "missing applied-session preview receipt: $preview"
 done
 
+# THE SPINNER THAT NEVER STOPPED. Reported by Christopher 2026-09-12: on the
+# choose-your-look screen, once a look was applied, hovering the apply button
+# still showed the busy cursor, so the desktop looked stuck long after it had
+# finished. "From a nontechie that looks broken."
+#
+# The JavaScript was never wrong: on success it sets aria-busy to false and the
+# label to APPLIED. The stylesheet was. It hung `cursor:wait` on :disabled, and
+# the button is deliberately LEFT disabled once a theme lands so the advisor
+# cannot apply the same one twice -- so a finished button and a working button
+# were identical to the pointer. The tool buttons already carry the equivalent
+# fix; this one was missed, which is why reading the JS never found it.
+#
+# The wait cursor belongs to the working state, and a finished button has to say
+# so with something other than going grey.
+css_file="$ROOT/welcome/app/app.css"
+python3 - "$css_file" <<'PY'
+import re, sys
+from pathlib import Path
+css = Path(sys.argv[1]).read_text(encoding='utf-8')
+
+rule = re.search(r'\.preview-actions button:disabled\{([^}]*)\}', css)
+if not rule:
+    raise SystemExit('the preview apply button has no disabled style at all')
+if 'cursor:wait' in rule.group(1):
+    raise SystemExit('the apply button still spins whenever it is disabled, '
+                     'including after the theme has been applied')
+
+working = re.search(r'\.preview-actions button\[data-state=working\]:disabled\{([^}]*)\}', css)
+if not working or 'cursor:wait' not in working.group(1):
+    raise SystemExit('nothing shows the advisor that applying is actually in progress')
+
+applied = re.search(r'\.preview-actions button\[data-state=applied\]:disabled\{([^}]*)\}', css)
+if not applied:
+    raise SystemExit('a finished apply button is styled the same as a dead one')
+body = applied.group(1)
+if 'cursor:wait' in body:
+    raise SystemExit('the apply button still spins after the theme has been applied')
+if 'cursor:default' not in body:
+    raise SystemExit('the pointer does not return to normal once the look is applied')
+if 'opacity:1' not in body:
+    raise SystemExit('an applied button still looks greyed out rather than finished')
+PY
+[ $? -eq 0 ] || fail 'the choose-your-look apply button does not confirm that it finished'
+
 pass 'SP+ Phase 2 theme source path and preview contract'
