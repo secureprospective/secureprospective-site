@@ -1,6 +1,6 @@
 ---
 name: save-this-session
-description: Write down what this conversation covered before it is lost, so that the next conversation starts where this one stopped instead of from nothing. Use when the advisor says they are finished, when a long conversation is approaching the point where earlier messages start dropping out, and whenever they ask Fin to remember what was worked on today.
+description: Write down what this conversation covered, when the advisor explicitly asks for it. Use when the advisor asks Fin to remember or write down what was worked on today, and only then. Long conversations already save themselves when pi compacts them, so do not offer this, do not raise it as a conversation gets long, and do not run it when the advisor says they are finished.
 ---
 
 # Saving what this conversation was about

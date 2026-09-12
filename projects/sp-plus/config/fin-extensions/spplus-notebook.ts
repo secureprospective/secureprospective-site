@@ -42,7 +42,7 @@
 
 import { homedir } from "node:os";
 import { isAbsolute, resolve, sep } from "node:path";
-import { readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 /** The notebook. Inside Documents/Fin so the workspace confinement in
@@ -357,6 +357,154 @@ function rebuildIndex(): void {
 	writeFileSync(INDEX, body, "utf8");
 }
 
+
+/* ---------------------------------------------- what Fin knows up front -- */
+
+/**
+ * THE TOKEN ARGUMENT, because this is the part that is easy to get wrong.
+ *
+ * The notebook skill used to say "read README.md at the start of a
+ * conversation". That cost roughly a thousand tokens of skill body plus a file
+ * read on EVERY conversation, including the ones where the advisor asks why
+ * their printer is offline and leaves. Christopher's two real users are an
+ * advisor who pecks at Fin with short unrelated questions all day, and a
+ * marketer who runs one long session building a flyer. The peck pays that toll
+ * ten times a day and gets nothing back nine of those times.
+ *
+ * So recall is no longer a skill instruction. It is this: one stable block
+ * appended to the system prompt, built once per session and cached. The voice
+ * profile is carried in full because Christopher's call on 2026-09-12 was that
+ * every draft should sound right from the first word without a lookup. The rest
+ * of the notebook is named, not loaded -- a line saying what exists, so Fin can
+ * open a page when the question actually needs one.
+ *
+ * Stability is the point. The same bytes every turn sit inside the prompt cache
+ * instead of re-billing. The cache is dropped only when a page is written.
+ */
+
+/** A voice profile is a page a person wrote about themselves; it does not run
+ *  to novels. The cap exists so a pathological file cannot silently eat the
+ *  window, not because a real profile is expected to approach it. */
+const VOICE_CAP = 6000;
+
+let primer: string | null = null;
+
+function primerText(): string {
+	const parts: string[] = [];
+
+	const voicePath = resolve(NOTEBOOK, "voice.md");
+	let hasVoice = false;
+	try {
+		if (existsSync(voicePath)) {
+			// The frontmatter is bookkeeping for the index, not instruction for the
+			// model. Shipping it spends tokens every turn telling Fin that the file
+			// it is reading has a title.
+			let body = readFileSync(voicePath, "utf8").replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
+			if (body.length > VOICE_CAP) {
+				body = body.slice(0, VOICE_CAP) + "\n\n(profile truncated; open voice.md for the rest)";
+			}
+			if (body) {
+				hasVoice = true;
+				parts.push("## How this advisor writes\n\n" + body);
+			}
+		}
+	} catch {
+		/* an unreadable profile is the same as not having one */
+	}
+	if (!hasVoice) {
+		parts.push(
+			"## How this advisor writes\n\n" +
+				"No voice profile has been written yet. If they ask for an email, letter or " +
+				"flyer, offer once to learn how they write. Do not raise it otherwise.",
+		);
+	}
+
+	// Everything else is NAMED, not loaded. Opening a page is a tool call Fin
+	// can make when a question needs it, and most questions do not.
+	let notes = 0;
+	let sessions = 0;
+	try {
+		for (const file of allMarkdown(NOTEBOOK)) {
+			const page = readPage(file);
+			if (!page) continue;
+			if (page.kind === "note") notes++;
+			else if (page.kind === "session") sessions++;
+		}
+	} catch {
+		/* counting is a convenience; failing to count is not an error */
+	}
+
+	const bits: string[] = [];
+	if (notes) bits.push(notes + (notes === 1 ? " note" : " notes"));
+	if (sessions) bits.push(sessions + (sessions === 1 ? " past session" : " past sessions"));
+
+	if (bits.length) {
+		parts.push(
+			"## The notebook\n\n" +
+				"Documents/Fin/Notebook holds " + bits.join(" and ") + ". " +
+				"The index is README.md. Open a page only when this conversation needs it. " +
+				"Do not read the notebook just because a conversation has started.",
+		);
+	} else {
+		parts.push(
+			"## The notebook\n\n" +
+				"Documents/Fin/Notebook is empty. That is normal on a new machine. " +
+				"Do not mention it and do not go looking.",
+		);
+	}
+
+	return parts.join("\n\n");
+}
+
+/** Called whenever a page changes, so the next turn rebuilds the block. */
+function forgetPrimer(): void {
+	primer = null;
+}
+
+/* ------------------------------------------------- saving without asking -- */
+
+/**
+ * Neither real user saves their work. The advisor pecks and closes the window;
+ * the marketer is three hours into a flyer and will not stop to file paperwork.
+ * Relying on them to invoke save-this-session means the notebook stays empty,
+ * which makes every token spent on it waste.
+ *
+ * So the save rides on compaction. When pi compacts, it has ALREADY paid a
+ * model call to summarise the conversation -- that summary is sitting in the
+ * event. Writing it to a page costs nothing beyond a file write, and compaction
+ * is exactly the moment the earlier messages are about to stop being reachable.
+ *
+ * The no-names rule still applies. This page is written by the same gate that
+ * refuses a name from a tool call; if the summary carries one, the page is
+ * written with the offending run redacted rather than dropped, because a
+ * redacted record of a real conversation beats no record at all.
+ */
+function autoSaveSession(summary: string, model: string): string | null {
+	const text = (summary || "").trim();
+	if (text.length < 200) return null; // nothing of substance happened
+
+	let body = text;
+	for (const finding of findPii(body)) {
+		if (finding.sample) body = body.split(finding.sample).join("[removed]");
+	}
+
+	const now = new Date();
+	const day = now.toISOString().slice(0, 10);
+	const hhmm = now.toISOString().slice(11, 16).replace(":", "");
+	const rel = "sessions/" + day + "-" + hhmm + ".md";
+	const file = resolve(NOTEBOOK, rel);
+
+	mkdirSync(resolve(NOTEBOOK, "sessions"), { recursive: true });
+	const page =
+		"---\n" +
+		"kind: session\n" +
+		"title: What we worked on, " + day + "\n" +
+		"---\n\n" +
+		body.trim() + "\n";
+	writeFileSync(file, stamp(page, file, model), "utf8");
+	return rel;
+}
+
 /* ------------------------------------------------------------- extension -- */
 
 export default function (pi: ExtensionAPI) {
@@ -453,8 +601,46 @@ export default function (pi: ExtensionAPI) {
 
 		try {
 			rebuildIndex();
+			forgetPrimer();
 		} catch {
 			/* a notebook with a stale index is still a notebook */
+		}
+		return undefined;
+	});
+
+	// The index has to exist before anything is told to read it. The skill used
+	// to send Fin at README.md on a machine where no page had ever been saved,
+	// so the advisor's first ever exchange with Fin ended in a red ENOENT naming
+	// a file path. Seen on the v0.11.2 VM, 2026-09-12.
+	pi.on("session_start", async () => {
+		try {
+			mkdirSync(NOTEBOOK, { recursive: true });
+			if (!existsSync(INDEX)) rebuildIndex();
+		} catch {
+			/* a missing index is a nuisance; a failed launch is not acceptable */
+		}
+		forgetPrimer();
+		return undefined;
+	});
+
+	// One stable block, built once, cached until a page changes.
+	pi.on("before_agent_start", async (event) => {
+		try {
+			if (primer === null) primer = primerText();
+			if (!primer) return undefined;
+			return { systemPrompt: event.systemPrompt + "\n\n" + primer };
+		} catch {
+			return undefined;
+		}
+	});
+
+	// Compaction has already paid for a summary. Keep it.
+	pi.on("session_compact", async (event, ctx) => {
+		try {
+			const rel = autoSaveSession(event.compactionEntry.summary, String(ctx.model ?? "unknown"));
+			if (rel) forgetPrimer();
+		} catch {
+			/* never let bookkeeping break a compaction */
 		}
 		return undefined;
 	});

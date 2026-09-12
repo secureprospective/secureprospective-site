@@ -1068,6 +1068,12 @@ RUN dnf install -y --setopt=install_weak_deps=False nodejs npm nodejs22-full-i18
 # Drafts is where a letter naming a client is SUPPOSED to go, and the guard's
 # refusal message sends Fin there by name.
  && mkdir -p /etc/skel/Documents/Fin/Notebook /etc/skel/Documents/Fin/Drafts \
+ && grep -q 'session_start' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && grep -q 'before_agent_start' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && grep -q 'session_compact' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
+ && ! grep -q 'Use at the start of a conversation' /usr/share/sp-plus/fin/skills/notebook/SKILL.md \
+ && grep -q 'Do not open the notebook at the start of a conversation' /usr/share/sp-plus/fin/skills/notebook/SKILL.md \
+ && echo "FIN_NOTEBOOK_RECALL_OK the index self-heals, recall is a cached primer, sessions save themselves" \
  && test -d /etc/skel/Documents/Fin/Notebook \
  && test -d /etc/skel/Documents/Fin/Drafts \
  && grep -q 'Documents/Fin/Drafts' /usr/share/sp-plus/fin/extensions/spplus-notebook.ts \
@@ -1334,9 +1340,12 @@ RUN dnf install -y --setopt=install_weak_deps=False gnome-disk-utility \
  && test -x /usr/bin/gnome-disks \
  && echo "USB_ENCRYPTION_GATE_OK gnome-disks formats LUKS sticks; udisks unlocks them on insert; GNOME disk notifier autostart removed"
 
-RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch \
+RUN dnf install -y --setopt=install_weak_deps=False btop fastfetch ripgrep fd-find \
  && dnf clean all \
  && test -x /usr/bin/btop \
+ && test -x /usr/bin/rg \
+ && test -x /usr/bin/fd \
+ && echo "FIN_SEARCH_TOOLS_OK ripgrep and fd are present, so Fin does not warn on launch" \
  && test -x /usr/bin/fastfetch \
  && test -x /usr/bin/flameshot \
  && chmod 0644 /usr/share/applications/btop.desktop \

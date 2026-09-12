@@ -1071,6 +1071,22 @@ fi
 # no assistant. A sweep on 2026-09-04 found the catalogue covered the dramatic
 # cases and missed 9 of 10 ordinary accidents -- cp and mv overwrite silently by
 # default, and bash redirection walked around the workspace confinement.
+# P-24e What Fin RECALLS, and what that costs on a conversation that does not
+# need it. The notebook skill used to fire on a greeting, which on the v0.11.2 VM
+# ended an advisor's first ever exchange with a red ENOENT naming a file path,
+# and spent about a thousand tokens of skill body before they had asked for
+# anything. Christopher, 2026-09-12: the advisor pecks with short questions all
+# day and the marketer runs one long session, and neither will ever file
+# paperwork -- "very very token efficient" and "mindful of habits". So recall is
+# a small cached block and saving rides on a compaction summary that has already
+# been paid for. Both are claims, so both are gated.
+if node "$REPO/projects/sp-plus/tests/fin-notebook-recall-gate.mjs" \
+     "$REPO/projects/sp-plus/config/fin-extensions/spplus-notebook.ts" >/dev/null 2>&1; then
+  ok "recall is cheap, the notebook index self-heals, and sessions save themselves"
+else
+  bad "Fin notebook recall gate failed" "either recall got expensive again, the index stopped self-healing, or sessions stopped being saved"
+fi
+
 if "$REPO/projects/sp-plus/tests/fin-permissions-gate.sh" >/dev/null 2>&1; then
   ok "Fin can do its job and cannot quietly destroy the advisor's work"
 else

@@ -1,6 +1,6 @@
 ---
 name: notebook
-description: Keep and look things up in the advisor's notebook, which is the running record of what you have worked on together, what they decided, and how they like things done. Use at the start of a conversation to find out what is already known, whenever the advisor says "remember this", "make a note" or "write that down", and whenever something gets settled that would be tedious to explain a second time.
+description: Look something up in, or write something into, the advisor's notebook, which is the running record of what they decided and how they like things done. Use when the advisor says "remember this", "make a note", "write that down", when they ask what Fin already knows about something, or when something gets settled that would be tedious to explain a second time. Do not use it merely because a conversation has started.
 ---
 
 # The notebook
@@ -14,19 +14,23 @@ It lives in **Documents/Fin/Notebook**. Three kinds of page go in it, and the
 | kind | What it holds | Where it goes |
 |---|---|---|
 | `profile` | How they like things written | `voice.md` |
-| `session` | What you worked on, one page per conversation | `sessions/YYYY-MM-DD-topic.md` |
+| `session` | What you worked on, one page per conversation | `sessions/YYYY-MM-DD-HHMM.md` |
 | `note` | Something learned or decided that stays true | `notes/topic.md` |
 
-## Read it before you start
+## You already know what is in it
 
-At the beginning of a conversation, read **Documents/Fin/Notebook/README.md**.
-That is the index, and it is rebuilt automatically, so it is always a true list
-of what is there. Open whatever looks relevant before asking the advisor
-questions they have already answered. Being asked the same question twice is the
-thing that makes an assistant feel like a stranger.
+Do not open the notebook at the start of a conversation. You are told what it
+holds before the advisor says anything: their voice profile in full, and a line
+saying how many notes and past sessions exist. Most conversations need nothing
+more than that.
 
-If the notebook is empty, that is the normal state of a new machine. Do not make
-a ceremony of it.
+Open a page when the conversation actually reaches for it, and say why in your
+own head first. "They asked what we decided about renewals" is a reason. "A
+conversation has started" is not. An advisor asking how to fix a printer is not
+helped by Fin reading its own diary first, and they pay for every word of it.
+
+`README.md` is the index and it is always current. Read it when you need to find
+which page holds something, not as a habit.
 
 ## Writing a page
 
@@ -41,6 +45,18 @@ are added for you. If you do include a `kind:` or `title:` line, that is kept.
 Keep a page short and specific. One subject per page, a heading, and prose a
 person would say out loud. A note that needs to be read twice is a note that
 will not be read at all.
+
+## Sessions write themselves
+
+You do not need to file a record of the conversation. When the conversation runs
+long enough that pi compacts it, the summary it produces is saved to the notebook
+automatically as a `session` page. That is deliberate: advisors do not stop work
+to do paperwork, and a record that depends on them remembering is a record that
+does not exist.
+
+So do not offer to save the session, and do not treat filing it as a task. If the
+advisor explicitly asks you to write down what you worked on, do it as a `note`
+about what was decided, which is the part worth keeping anyway.
 
 ## What never goes in the notebook
 
