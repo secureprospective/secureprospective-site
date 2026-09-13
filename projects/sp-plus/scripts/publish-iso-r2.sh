@@ -106,6 +106,31 @@ for r in rows:
       [ -n "${SIZE_R2:-}" ] && [ "$SIZE_R2" = "$SIZE_LOCAL" ] \
           || { echo "R2 GATE FAIL: object missing or the wrong size" >&2; exit 4; }
       echo "  OK  the object in R2 is byte-for-byte the size the build produced"
+
+      # SIZE IS NOT IDENTITY. v0.11.4 and v0.11.5 are both exactly 5520687104
+      # bytes -- two different images, one of them carrying a defect that told
+      # advisors their machine was up to date when it had never checked. A size
+      # check passes on either, so on 2026-09-13 it could not have told us
+      # whether the replacement had actually landed or whether rclone had
+      # skipped the transfer and merely touched the object's metadata.
+      #
+      # So read bytes out of the middle of the object that is REALLY there and
+      # compare them to the build. 2 MB at 3 GB in: far enough past the ISO
+      # headers that two builds of the same product genuinely differ, and cheap
+      # enough to run every time.
+      OFF=3000000000; LEN=2000000
+      if [ "$SIZE_LOCAL" -gt $((OFF + LEN)) ]; then
+          R2_CHUNK=$(rc cat --offset $OFF --count $LEN ":s3:$R2_BUCKET/$KEY" 2>/dev/null | sha256sum | awk '{print $1}')
+          LOCAL_CHUNK=$(dd if="$ISO" bs=1 skip=$OFF count=$LEN 2>/dev/null | sha256sum | awk '{print $1}')
+          if [ "$R2_CHUNK" = "$LOCAL_CHUNK" ]; then
+              echo "  OK  and its CONTENT matches this build, not merely its length"
+          else
+              echo "R2 GATE FAIL: the object is the right SIZE but the WRONG IMAGE." >&2
+              echo "              r2    chunk $R2_CHUNK" >&2
+              echo "              local chunk $LOCAL_CHUNK" >&2
+              exit 5
+          fi
+      fi
       echo
       echo "== paste this entry into functions/_lib/releases.ts on the site repo:"
       cat <<ENTRY
