@@ -1245,7 +1245,7 @@ Captured 2026-09-11 against a genuine first boot of the installed t29 image. Zer
 system units and zero failed user units at the time of capture.
 
 ```
-SP+ runtime posture gate — test@127.0.0.1:2222
+SP+ runtime posture gate: test@127.0.0.1:2222
 
   PASS  no world-listener on 139               absent
   PASS  no world-listener on 445               absent
@@ -1470,7 +1470,7 @@ present and measured as containing no unexpected entries. A new setuid root bina
 in a future image is a build failure.
 
 ```
-# SP+ SUID/SGID allowlist — T1.10.
+# SP+ SUID/SGID allowlist: T1.10.
 #
 # INVENTORY, NOT REMOVAL. Secureblue deletes sudo, su, pkexec, chsh and chfn.
 # That is exactly the class of change that breaks printing or mounting on a
