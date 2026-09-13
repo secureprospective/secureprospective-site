@@ -31,6 +31,19 @@ import HeroTicker from '../../components/HeroTicker.astro';
       <div class="gate-actions">
         <a href="/members/download" class="btn btn--wide">Download SP+</a>
       </div>
+      <!--
+        The reference document. It sits under the download rather than beside
+        it because the order is the point: most people read before they install,
+        and the ones who came here to install should not have to step past a
+        second primary button to do it.
+      -->
+      <div class="gate-actions">
+        <a href="/members/inside-sp-plus" class="btn btn--ink btn--wide">Read Inside SP+</a>
+      </div>
+      <p class="gate-footnote">
+        The full account of what SP+ protects, how each protection was measured, and where it
+        stops. Written to be read before you install, and yours to hand on.
+      </p>
       <div class="gate-actions gate-actions--secondary">
         <a href="/members/admin" class="btn" id="admin-link" hidden>Admin console</a>
         <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
@@ -136,6 +149,19 @@ import HeroTicker from '../../components/HeroTicker.astro';
   .gate-copy {
     color: var(--fineprint-gray);
     margin-bottom: var(--space-5);
+  }
+
+  /* Two stacked full-width buttons need air between them, and the document
+     needs one line saying what it is, or it reads as a duplicate download. */
+  .gate-actions + .gate-actions {
+    margin-top: var(--space-3);
+  }
+
+  .gate-footnote {
+    margin: var(--space-3) 0 0;
+    color: var(--fineprint-gray);
+    font-size: var(--text-caption);
+    line-height: 1.5;
   }
 
   /* One primary action on this card. A default-width button floating in the

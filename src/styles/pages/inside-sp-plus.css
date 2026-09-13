@@ -1,0 +1,702 @@
+/*
+ * Inside SP+ -- the back office reference document.
+ *
+ * The source of this page was a standalone HTML file with its own palette and
+ * two Google font links. Both are gone. Everything here draws on tokens.css and
+ * the Property Card vocabulary the rest of the site already speaks: platinum
+ * stock, compliance blue, ledger ink, square corners, and a hard zero-blur lift.
+ *
+ * The document is long by design, so the work this sheet does is rhythm: one
+ * card per section, a stamped blue bar that tells you where you are, and three
+ * repeating devices (pull, note, ledger) that a reader learns once and then
+ * recognises for the rest of the page.
+ */
+
+.inside-page {
+  --inside-rule: rgba(34, 34, 34, 0.16);
+  --inside-hair: rgba(34, 34, 34, 0.1);
+  --inside-tint: #f2f2f0;
+  --inside-lift: 8px 8px 0 var(--ink);
+  background: var(--silver-base);
+  padding-bottom: var(--space-8);
+}
+
+.inside-shell {
+  width: min(100% - 48px, 1040px);
+  margin-inline: auto;
+}
+
+/* ---------- masthead ---------- */
+
+.inside-masthead {
+  border-bottom: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--silver-base);
+  padding-block: var(--space-7) var(--space-6);
+}
+
+.inside-eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--gold-identity);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inside-masthead h1 {
+  margin: 0 0 var(--space-3);
+  max-width: 14ch;
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-h1), 9vw, 92px);
+  line-height: 0.94;
+  letter-spacing: -0.02em;
+}
+
+.inside-deck {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(var(--text-body), 2.2vw, var(--text-body-lg));
+  line-height: 1.5;
+  color: rgba(229, 228, 226, 0.92);
+}
+
+/* Four figures, read off the same installed machine the document describes.
+   They sit in the masthead because a reader deciding whether to spend twenty
+   minutes here deserves the shape of the answer before the first section. */
+.inside-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(229, 228, 226, 0.24);
+}
+
+.inside-figures div {
+  min-width: 0;
+}
+
+.inside-figures strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  line-height: 1;
+  color: var(--yellow-accent);
+}
+
+.inside-figures span {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-caption);
+  line-height: 1.35;
+  color: rgba(229, 228, 226, 0.7);
+}
+
+.inside-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.inside-actions .inside-note-text {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: rgba(229, 228, 226, 0.6);
+}
+
+/* ---------- ninety seconds ---------- */
+
+/* The four outcomes from section 03, lifted to the top. A reader who stops
+   after this panel should still be able to say what SP+ is for. */
+.inside-glance {
+  margin-top: calc(var(--space-6) * -1);
+  transform: translateY(var(--space-6));
+}
+
+.inside-glance-card {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  box-shadow: var(--inside-lift);
+}
+
+.inside-glance-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--ink);
+  background: var(--yellow-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Four, two or one, never three. auto-fit was leaving a single orphan cell on
+   its own row at tablet widths, which reads as a mistake rather than a grid. */
+.inside-glance-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .inside-glance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1000px) {
+  .inside-glance-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.inside-glance-grid > div {
+  min-width: 0;
+  padding: var(--space-4);
+  border-right: 1px solid var(--inside-hair);
+  border-bottom: 1px solid var(--inside-hair);
+}
+
+.inside-glance-grid h2 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  line-height: 1.2;
+}
+
+.inside-glance-grid p {
+  margin: 0;
+  max-width: none;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--fineprint-gray);
+}
+
+.inside-glance-n {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--blue-brand);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  letter-spacing: 0.1em;
+}
+
+/* ---------- contents ---------- */
+
+.inside-toc {
+  margin-top: calc(var(--space-7) + var(--space-6));
+  border: 2px solid var(--ink);
+  background: var(--white);
+}
+
+.inside-toc h2 {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.inside-toc ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inside-toc li {
+  min-width: 0;
+  border-right: 1px solid var(--inside-hair);
+  border-bottom: 1px solid var(--inside-hair);
+}
+
+.inside-toc a {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  font-size: var(--text-caption);
+  text-decoration: none;
+}
+
+.inside-toc a:hover,
+.inside-toc a:focus-visible {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.inside-toc a:hover .inside-toc-n,
+.inside-toc a:focus-visible .inside-toc-n {
+  color: var(--yellow-accent);
+}
+
+.inside-toc-n {
+  color: var(--blue-brand);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ---------- section cards ---------- */
+
+.inside-card {
+  margin-top: var(--space-5);
+  border: 2px solid var(--ink);
+  background: var(--white);
+  break-inside: avoid;
+}
+
+.inside-card-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--blue-brand);
+  color: var(--white);
+}
+
+.inside-card-bar h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inside-card-bar span {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  color: var(--yellow-accent);
+}
+
+.inside-body {
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+
+.inside-body > *:first-child {
+  margin-top: 0;
+}
+
+.inside-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.inside-body p {
+  margin: 0 0 var(--space-3);
+  max-width: 68ch;
+  line-height: 1.65;
+}
+
+.inside-body .lead {
+  font-size: var(--text-body-lg);
+  line-height: 1.5;
+}
+
+.inside-body h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  line-height: 1.15;
+}
+
+.inside-body h4 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  line-height: 1.3;
+}
+
+.inside-body ul,
+.inside-body ol {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+  max-width: 68ch;
+}
+
+.inside-body li {
+  margin-bottom: var(--space-2);
+  line-height: 1.6;
+}
+
+.inside-body li::marker {
+  color: var(--blue-brand);
+}
+
+.inside-body a {
+  color: var(--blue-brand);
+}
+
+/* The technical name, kept in small type so a reader can forward this page to
+   somebody who wants the real term without the prose stopping to explain it. */
+.tn {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--inside-rule);
+  background: var(--inside-tint);
+  color: var(--fineprint-gray);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.inside-body code {
+  padding: 1px 5px;
+  border: 1px solid var(--inside-rule);
+  background: var(--inside-tint);
+  font-size: 0.9em;
+}
+
+.pull {
+  margin: var(--space-4) 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-left: 4px solid var(--gold-identity);
+  max-width: 58ch;
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  line-height: 1.35;
+}
+
+.note {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--ink);
+  border-left: 4px solid var(--blue-brand);
+  background: var(--inside-tint);
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+.note .tag {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--blue-brand);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------- tables ---------- */
+
+.tablewrap {
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+}
+
+.inside-body table {
+  width: 100%;
+  min-width: 460px;
+  border-collapse: collapse;
+  font-size: var(--text-caption);
+}
+
+.inside-body caption {
+  padding-bottom: var(--space-2);
+  color: var(--fineprint-gray);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.inside-body th,
+.inside-body td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--inside-hair);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.inside-body th {
+  border-bottom: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.inside-body td:first-child {
+  padding-right: var(--space-4);
+  font-weight: 700;
+}
+
+.inside-body tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+table.compare {
+  min-width: 700px;
+}
+
+table.compare th:first-child,
+table.compare td:first-child {
+  width: 18%;
+}
+
+table.compare td:nth-child(2) {
+  width: 29%;
+  color: var(--fineprint-gray);
+}
+
+table.compare td:nth-child(3) {
+  width: 28%;
+}
+
+table.compare .why {
+  color: var(--fineprint-gray);
+}
+
+table.compare th.us {
+  color: var(--blue-brand);
+}
+
+/* ---------- repeating blocks ---------- */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin: var(--space-4) 0;
+  border-top: 2px solid var(--ink);
+}
+
+.cell {
+  min-width: 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) 0;
+  border-bottom: 1px solid var(--inside-hair);
+}
+
+.cell h4 {
+  margin: 0 0 var(--space-2);
+}
+
+.cell p {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: var(--fineprint-gray);
+}
+
+.ledger {
+  margin: var(--space-4) 0;
+  border-top: 2px solid var(--ink);
+}
+
+.ledger .row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+  gap: 0 var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--inside-hair);
+}
+
+.ledger .k {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  line-height: 1.3;
+}
+
+.ledger .v {
+  color: var(--fineprint-gray);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+/* ---------- closing and legal ---------- */
+
+.inside-closing {
+  margin-top: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--silver-base);
+  box-shadow: var(--inside-lift);
+}
+
+.inside-closing h2 {
+  margin: 0 0 var(--space-3);
+  max-width: 22ch;
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-h3), 4vw, var(--text-h2));
+  line-height: 1.05;
+}
+
+.inside-closing p {
+  max-width: 62ch;
+  margin: 0 0 var(--space-3);
+  line-height: 1.65;
+  color: rgba(229, 228, 226, 0.9);
+}
+
+.inside-closing p:last-of-type {
+  margin-bottom: 0;
+}
+
+.inside-closing .btn {
+  margin-top: var(--space-5);
+}
+
+.inside-legal {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--ink);
+}
+
+.inside-legal h2 {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--fineprint-gray);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.inside-legal p {
+  margin: 0;
+  max-width: 74ch;
+  color: var(--fineprint-gray);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+.inside-colophon {
+  margin-top: var(--space-5);
+  color: var(--fineprint-gray);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+@media (max-width: 767px) {
+  .inside-shell {
+    width: min(100% - 32px, 1040px);
+  }
+
+  .inside-body {
+    padding: var(--space-4) var(--space-3) var(--space-5);
+  }
+
+  .ledger .row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .inside-glance {
+    margin-top: 0;
+    transform: none;
+    padding-top: var(--space-5);
+  }
+
+  .inside-toc {
+    margin-top: var(--space-5);
+  }
+
+  .inside-closing {
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+/* The document is written to be printed and handed over, so the print sheet is
+   part of the deliverable rather than an afterthought: ink on paper, no bars of
+   solid colour, and the navigation furniture removed. */
+@media print {
+  .inside-page {
+    background: var(--white);
+    padding-bottom: 0;
+  }
+
+  .inside-shell {
+    width: 100%;
+  }
+
+  .inside-masthead {
+    padding-block: 0 18pt;
+    border-bottom: 2pt solid #000;
+    background: var(--white);
+    color: #000;
+  }
+
+  .inside-eyebrow,
+  .inside-figures strong,
+  .inside-figures span,
+  .inside-deck,
+  .inside-closing,
+  .inside-closing p {
+    color: #000;
+  }
+
+  .inside-figures {
+    border-top: 1px solid #999;
+  }
+
+  .inside-actions,
+  .inside-toc,
+  .site-nav,
+  .site-footer,
+  .inside-closing .btn {
+    display: none;
+  }
+
+  .inside-glance,
+  .inside-card,
+  .inside-closing {
+    margin-top: 20pt;
+    border: 0;
+    border-top: 1.5pt solid #000;
+    box-shadow: none;
+    transform: none;
+    background: var(--white);
+  }
+
+  .inside-glance-head,
+  .inside-card-bar {
+    padding: 8pt 0;
+    border-bottom: 1px solid #999;
+    background: var(--white);
+    color: #000;
+  }
+
+  .inside-card-bar span {
+    color: #000;
+  }
+
+  .inside-body,
+  .inside-closing {
+    padding: 10pt 0 0;
+  }
+
+  .note {
+    border: 1px solid #999;
+    background: var(--white);
+  }
+
+  .inside-body a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  .inside-body h3 {
+    page-break-after: avoid;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}
