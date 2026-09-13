@@ -107,7 +107,20 @@ import Footer from '../../../components/Footer.astro';
   */
   function boot() {
     // The admin console's own markup; no other page carries it.
-    if (!document.getElementById('invite-form')) return;
+    const root = document.getElementById('invite-form');
+    if (!root) return;
+    /*
+       Idempotent on purpose. boot() is called twice: once at the bottom of this
+       module and once per astro:page-load. Both are needed and neither is
+       sufficient. The listener misses the navigation that first pulls this
+       module into the session, because the module only evaluates part-way
+       through that swap, after the event has already fired; the direct call
+       misses every later navigation, because the module never evaluates again.
+       Running twice on one document would double-bind the handlers below, so
+       the element itself carries the record of having been wired.
+    */
+    if (root.dataset.booted === '1') return;
+    root.dataset.booted = '1';
 
     type Invite = {
       id: string;
@@ -516,6 +529,7 @@ import Footer from '../../../components/Footer.astro';
   }
 
   document.addEventListener('astro:page-load', boot);
+  boot();
 </script>
 
 <style>

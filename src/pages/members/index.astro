@@ -86,7 +86,20 @@ import HeroTicker from '../../components/HeroTicker.astro';
   */
   function boot() {
     // #logout-btn belongs to the back-office landing page and to no other.
-    if (!document.getElementById('logout-btn')) return;
+    const root = document.getElementById('logout-btn');
+    if (!root) return;
+    /*
+       Idempotent on purpose. boot() is called twice: once at the bottom of this
+       module and once per astro:page-load. Both are needed and neither is
+       sufficient. The listener misses the navigation that first pulls this
+       module into the session, because the module only evaluates part-way
+       through that swap, after the event has already fired; the direct call
+       misses every later navigation, because the module never evaluates again.
+       Running twice on one document would double-bind the handlers below, so
+       the element itself carries the record of having been wired.
+    */
+    if (root.dataset.booted === '1') return;
+    root.dataset.booted = '1';
 
     // The Claude Agent Kit card and the Google connection off-switch card were
     // removed 2026-09-04 (Christopher): the kit wizard and its Google
@@ -134,6 +147,7 @@ import HeroTicker from '../../components/HeroTicker.astro';
   }
 
   document.addEventListener('astro:page-load', boot);
+  boot();
 </script>
 
 <style>
