@@ -218,130 +218,152 @@ import Footer from '../../components/Footer.astro';
 </Layout>
 
 <script>
-  const shell = document.getElementById('main') as HTMLElement | null;
-  const list = document.getElementById('dl-list') as HTMLElement | null;
-  const empty = document.getElementById('dl-empty') as HTMLElement | null;
+  /*
+     Booted from astro:page-load, not from module scope.
 
-  function humanSize(bytes: number): string {
-    if (!bytes) return '';
-    const gb = bytes / 1024 / 1024 / 1024;
-    if (gb >= 1) return `${gb.toFixed(2)} GB`;
-    return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
-  }
+     The site runs Astro View Transitions, so a click from another page swaps
+     this document in without re-evaluating a module that has already run once.
+     Everything below used to execute at module scope, which meant it ran on a
+     full page load and never again: arriving here by link left the page in its
+     initial state with nothing to move it out of that state, and only a refresh
+     fixed it. astro:page-load fires on the first load AND on every client-side
+     navigation, which is the only event that matches what this code is for.
 
-  const downloadLinks: HTMLAnchorElement[] = [];
+     The guard is here because the listener outlives this page. Once registered
+     it fires for every navigation in the session, including ones to documents
+     that do not contain any of this markup.
+  */
+  function boot() {
+    // #dl-list belongs to this page and to no other.
+    if (!document.getElementById('dl-list')) return;
 
-  function acknowledged(): boolean {
-    const ack = document.getElementById('dl-ack') as HTMLInputElement | null;
-    return Boolean(ack?.checked);
-  }
+    const shell = document.getElementById('main') as HTMLElement | null;
+    const list = document.getElementById('dl-list') as HTMLElement | null;
+    const empty = document.getElementById('dl-empty') as HTMLElement | null;
 
-  function syncLocks() {
-    const ok = acknowledged();
-    for (const link of downloadLinks) {
-      link.classList.toggle('is-locked', !ok);
-      link.setAttribute('aria-disabled', String(!ok));
-    }
-  }
-
-  function releaseCard(r: any): HTMLElement {
-    const card = document.createElement('section');
-    card.className = 'property-card';
-
-    const band = document.createElement('div');
-    band.className = 'property-card__band property-card__band--static';
-    const title = document.createElement('span');
-    title.className = 'property-card__title';
-    title.textContent = r.label;
-    const meta = document.createElement('span');
-    meta.className = 'property-card__meta';
-    meta.textContent = [humanSize(r.size), r.released].filter(Boolean).join(' · ');
-    band.append(title, meta);
-
-    const body = document.createElement('div');
-    body.className = 'property-card__body';
-
-    if (r.note) {
-      const note = document.createElement('p');
-      note.textContent = r.note;
-      body.appendChild(note);
+    function humanSize(bytes: number): string {
+      if (!bytes) return '';
+      const gb = bytes / 1024 / 1024 / 1024;
+      if (gb >= 1) return `${gb.toFixed(2)} GB`;
+      return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
     }
 
-    const link = document.createElement('a');
-    link.className = 'btn is-locked';
-    // aria-disabled, not the disabled attribute: this is an anchor, and
-    // `disabled` does nothing on one. The click handler is what actually
-    // holds the door -- the attribute is there so a screen reader says so.
-    link.setAttribute('aria-disabled', 'true');
-    link.addEventListener('click', event => {
-      if (!acknowledged()) {
-        event.preventDefault();
-        const ack = document.getElementById('dl-ack');
-        ack?.focus();
-        ack?.closest('.property-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    });
-    downloadLinks.push(link);
-    // A plain link, not fetch(). The browser's own download manager handles
-    // a 5.7 GB transfer -- it survives a tab close, shows real progress and
-    // can resume, none of which a fetch() into memory can do at this size.
-    link.href = `/api/download/iso?v=${encodeURIComponent(r.id)}`;
-    link.textContent = 'Download';
-    body.appendChild(link);
+    const downloadLinks: HTMLAnchorElement[] = [];
 
-    if (r.sha256) {
-      const label = document.createElement('p');
-      label.className = 'dl-label';
-      label.textContent = 'SHA256';
-      const hash = document.createElement('pre');
-      hash.className = 'dl-code dl-code--hash';
-      const code = document.createElement('code');
-      code.textContent = r.sha256;
-      hash.appendChild(code);
-      body.append(label, hash);
+    function acknowledged(): boolean {
+      const ack = document.getElementById('dl-ack') as HTMLInputElement | null;
+      return Boolean(ack?.checked);
     }
 
-    const fn = document.createElement('p');
-    fn.className = 'dl-note';
-    fn.textContent = `Saves as ${r.filename}`;
-    body.appendChild(fn);
-
-    card.append(band, body);
-    return card;
-  }
-
-  async function load() {
-    try {
-      const res = await fetch('/api/download/list');
-      if (res.status === 401) {
-        window.location.href = '/members/login';
-        return;
+    function syncLocks() {
+      const ok = acknowledged();
+      for (const link of downloadLinks) {
+        link.classList.toggle('is-locked', !ok);
+        link.setAttribute('aria-disabled', String(!ok));
       }
-      if (!res.ok) throw new Error(String(res.status));
-      const body = await res.json();
-      const releases = body.releases ?? [];
-      if (list) {
-        for (const r of releases) list.appendChild(releaseCard(r));
-      }
-      syncLocks();
-      if (empty) empty.hidden = releases.length > 0;
-      if (shell) shell.hidden = false;
-    } catch {
-      // Failing open to the login page would be wrong here -- the session
-      // was fine, the list call was not. Show the page with the honest
-      // message instead of bouncing him somewhere he did not ask to go.
-      if (empty) {
-        empty.textContent =
-          'The download list could not be loaded. Refresh the page, and tell us if it keeps happening.';
-        empty.hidden = false;
-      }
-      if (shell) shell.hidden = false;
     }
+
+    function releaseCard(r: any): HTMLElement {
+      const card = document.createElement('section');
+      card.className = 'property-card';
+
+      const band = document.createElement('div');
+      band.className = 'property-card__band property-card__band--static';
+      const title = document.createElement('span');
+      title.className = 'property-card__title';
+      title.textContent = r.label;
+      const meta = document.createElement('span');
+      meta.className = 'property-card__meta';
+      meta.textContent = [humanSize(r.size), r.released].filter(Boolean).join(' · ');
+      band.append(title, meta);
+
+      const body = document.createElement('div');
+      body.className = 'property-card__body';
+
+      if (r.note) {
+        const note = document.createElement('p');
+        note.textContent = r.note;
+        body.appendChild(note);
+      }
+
+      const link = document.createElement('a');
+      link.className = 'btn is-locked';
+      // aria-disabled, not the disabled attribute: this is an anchor, and
+      // `disabled` does nothing on one. The click handler is what actually
+      // holds the door -- the attribute is there so a screen reader says so.
+      link.setAttribute('aria-disabled', 'true');
+      link.addEventListener('click', event => {
+        if (!acknowledged()) {
+          event.preventDefault();
+          const ack = document.getElementById('dl-ack');
+          ack?.focus();
+          ack?.closest('.property-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      downloadLinks.push(link);
+      // A plain link, not fetch(). The browser's own download manager handles
+      // a 5.7 GB transfer -- it survives a tab close, shows real progress and
+      // can resume, none of which a fetch() into memory can do at this size.
+      link.href = `/api/download/iso?v=${encodeURIComponent(r.id)}`;
+      link.textContent = 'Download';
+      body.appendChild(link);
+
+      if (r.sha256) {
+        const label = document.createElement('p');
+        label.className = 'dl-label';
+        label.textContent = 'SHA256';
+        const hash = document.createElement('pre');
+        hash.className = 'dl-code dl-code--hash';
+        const code = document.createElement('code');
+        code.textContent = r.sha256;
+        hash.appendChild(code);
+        body.append(label, hash);
+      }
+
+      const fn = document.createElement('p');
+      fn.className = 'dl-note';
+      fn.textContent = `Saves as ${r.filename}`;
+      body.appendChild(fn);
+
+      card.append(band, body);
+      return card;
+    }
+
+    async function load() {
+      try {
+        const res = await fetch('/api/download/list');
+        if (res.status === 401) {
+          window.location.href = '/members/login';
+          return;
+        }
+        if (!res.ok) throw new Error(String(res.status));
+        const body = await res.json();
+        const releases = body.releases ?? [];
+        if (list) {
+          for (const r of releases) list.appendChild(releaseCard(r));
+        }
+        syncLocks();
+        if (empty) empty.hidden = releases.length > 0;
+        if (shell) shell.hidden = false;
+      } catch {
+        // Failing open to the login page would be wrong here -- the session
+        // was fine, the list call was not. Show the page with the honest
+        // message instead of bouncing him somewhere he did not ask to go.
+        if (empty) {
+          empty.textContent =
+            'The download list could not be loaded. Refresh the page, and tell us if it keeps happening.';
+          empty.hidden = false;
+        }
+        if (shell) shell.hidden = false;
+      }
+    }
+
+    document.getElementById('dl-ack')?.addEventListener('change', syncLocks);
+
+    load();
   }
 
-  document.getElementById('dl-ack')?.addEventListener('change', syncLocks);
-
-  load();
+  document.addEventListener('astro:page-load', boot);
 </script>
 
 <style>

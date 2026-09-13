@@ -90,399 +90,421 @@ import Footer from '../../../components/Footer.astro';
 </Layout>
 
 <script>
-  type Invite = {
-    id: string;
-    email: string;
-    created_by: string;
-    created_at: string;
-    expires_at: string;
-    redeemed_at: string | null;
-  };
-  type Member = {
-    id: string;
-    email: string;
-    role: string;
-    created_at: string;
-    email_verified_at: string | null;
-  };
+  /*
+     Booted from astro:page-load, not from module scope.
 
-  const shell = document.getElementById('main') as HTMLElement | null;
-  const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;
+     The site runs Astro View Transitions, so a click from another page swaps
+     this document in without re-evaluating a module that has already run once.
+     Everything below used to execute at module scope, which meant it ran on a
+     full page load and never again: arriving here by link left the page in its
+     initial state with nothing to move it out of that state, and only a refresh
+     fixed it. astro:page-load fires on the first load AND on every client-side
+     navigation, which is the only event that matches what this code is for.
 
-  const inviteForm = document.getElementById('invite-form') as HTMLFormElement | null;
-  const inviteSubmit = document.getElementById('invite-submit') as HTMLButtonElement | null;
-  const inviteResult = document.getElementById('invite-result') as HTMLParagraphElement | null;
-  const inviteError = document.getElementById('invite-error') as HTMLParagraphElement | null;
+     The guard is here because the listener outlives this page. Once registered
+     it fires for every navigation in the session, including ones to documents
+     that do not contain any of this markup.
+  */
+  function boot() {
+    // The admin console's own markup; no other page carries it.
+    if (!document.getElementById('invite-form')) return;
 
-  const invitesBody = document.getElementById('invites-body') as HTMLTableSectionElement | null;
-  const membersBody = document.getElementById('members-body') as HTMLTableSectionElement | null;
+    type Invite = {
+      id: string;
+      email: string;
+      created_by: string;
+      created_at: string;
+      expires_at: string;
+      redeemed_at: string | null;
+    };
+    type Member = {
+      id: string;
+      email: string;
+      role: string;
+      created_at: string;
+      email_verified_at: string | null;
+    };
 
-  const welcomeEmailPanel = document.getElementById('welcome-email-panel') as HTMLElement | null;
-  const welcomeEmailFrame = document.getElementById('welcome-email-frame') as HTMLIFrameElement | null;
-  const welcomeEmailSubjectInput = document.getElementById('welcome-email-subject') as HTMLInputElement | null;
-  const copySubjectBtn = document.getElementById('copy-subject-btn') as HTMLButtonElement | null;
-  const copyEmailBtn = document.getElementById('copy-email-btn') as HTMLButtonElement | null;
-  const copyEmailStatus = document.getElementById('copy-email-status') as HTMLParagraphElement | null;
+    const shell = document.getElementById('main') as HTMLElement | null;
+    const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement | null;
 
-  let currentAdminId = '';
-  let currentWelcomeEmailHtml = '';
-  let currentWelcomeEmailText = '';
+    const inviteForm = document.getElementById('invite-form') as HTMLFormElement | null;
+    const inviteSubmit = document.getElementById('invite-submit') as HTMLButtonElement | null;
+    const inviteResult = document.getElementById('invite-result') as HTMLParagraphElement | null;
+    const inviteError = document.getElementById('invite-error') as HTMLParagraphElement | null;
 
-  const LOGO_URL = 'https://secureprospective.com/assets/email/logo.png';
-  const WELCOME_EMAIL_SUBJECT = "You're invited to the SecureProspective back office";
+    const invitesBody = document.getElementById('invites-body') as HTMLTableSectionElement | null;
+    const membersBody = document.getElementById('members-body') as HTMLTableSectionElement | null;
 
-  function buildWelcomeEmailHtml(acceptUrl: string, expiresLabel: string): string {
-    return `
-<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;background:#ffffff;">
-  <div style="text-align:center;padding:28px 0 20px;">
-    <img src="${LOGO_URL}" alt="SecureProspective" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
-  </div>
-  <div style="padding:0 32px 32px;color:#222222;">
-    <h2 style="font-size:20px;margin:0 0 16px;color:#222222;">You are invited to the SecureProspective back office</h2>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hello,</p>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">
-      You have been invited to join the SecureProspective back office. Follow the steps
-      below to get signed in.
-    </p>
-    <ol style="font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
-      <li>Click the button below to open your invite.</li>
-      <li>Set your own password on that page.</li>
-      <li>You will be signed in right away.</li>
-    </ol>
-    <div style="text-align:center;margin:0 0 24px;">
-      <a href="${acceptUrl}" style="display:inline-block;background:#FFD700;color:#222222;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:2px;font-size:15px;">Accept Your Invite</a>
+    const welcomeEmailPanel = document.getElementById('welcome-email-panel') as HTMLElement | null;
+    const welcomeEmailFrame = document.getElementById('welcome-email-frame') as HTMLIFrameElement | null;
+    const welcomeEmailSubjectInput = document.getElementById('welcome-email-subject') as HTMLInputElement | null;
+    const copySubjectBtn = document.getElementById('copy-subject-btn') as HTMLButtonElement | null;
+    const copyEmailBtn = document.getElementById('copy-email-btn') as HTMLButtonElement | null;
+    const copyEmailStatus = document.getElementById('copy-email-status') as HTMLParagraphElement | null;
+
+    let currentAdminId = '';
+    let currentWelcomeEmailHtml = '';
+    let currentWelcomeEmailText = '';
+
+    const LOGO_URL = 'https://secureprospective.com/assets/email/logo.png';
+    const WELCOME_EMAIL_SUBJECT = "You're invited to the SecureProspective back office";
+
+    function buildWelcomeEmailHtml(acceptUrl: string, expiresLabel: string): string {
+      return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;background:#ffffff;">
+    <div style="text-align:center;padding:28px 0 20px;">
+      <img src="${LOGO_URL}" alt="SecureProspective" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto;" />
     </div>
-    <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 8px;">
-      If the button does not work, copy and paste this link into your browser:
-    </p>
-    <p style="font-size:13px;line-height:1.6;word-break:break-all;margin:0 0 24px;">
-      <a href="${acceptUrl}" style="color:#0033A0;">${acceptUrl}</a>
-    </p>
-    <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 24px;">This invite expires on ${expiresLabel}.</p>
-    <p style="font-size:14px;line-height:1.6;margin:0;">Questions? Just reply to this email.</p>
-  </div>
-  <div style="border-top:1px solid #E5E4E2;padding:16px 32px;text-align:center;">
-    <p style="font-size:12px;color:#666666;margin:0;">SecureProspective &middot; secureprospective.com</p>
-  </div>
-</div>`.trim();
-  }
-
-  function buildWelcomeEmailText(acceptUrl: string, expiresLabel: string): string {
-    return [
-      'You are invited to the SecureProspective back office.',
-      '',
-      '1. Open your invite: ' + acceptUrl,
-      '2. Set your own password on that page.',
-      '3. You will be signed in right away.',
-      '',
-      'This invite expires on ' + expiresLabel + '.',
-      '',
-      'Questions? Just reply to this email.',
-      '',
-      'SecureProspective',
-      'secureprospective.com',
-    ].join('\n');
-  }
-
-  function showWelcomeEmail(acceptUrl: string, expiresAt: string) {
-    const expiresLabel = fmt(expiresAt);
-    currentWelcomeEmailHtml = buildWelcomeEmailHtml(acceptUrl, expiresLabel);
-    currentWelcomeEmailText = buildWelcomeEmailText(acceptUrl, expiresLabel);
-
-    if (welcomeEmailFrame) {
-      welcomeEmailFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#f2f2f2;">${currentWelcomeEmailHtml}</body></html>`;
+    <div style="padding:0 32px 32px;color:#222222;">
+      <h2 style="font-size:20px;margin:0 0 16px;color:#222222;">You are invited to the SecureProspective back office</h2>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hello,</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">
+        You have been invited to join the SecureProspective back office. Follow the steps
+        below to get signed in.
+      </p>
+      <ol style="font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
+        <li>Click the button below to open your invite.</li>
+        <li>Set your own password on that page.</li>
+        <li>You will be signed in right away.</li>
+      </ol>
+      <div style="text-align:center;margin:0 0 24px;">
+        <a href="${acceptUrl}" style="display:inline-block;background:#FFD700;color:#222222;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:2px;font-size:15px;">Accept Your Invite</a>
+      </div>
+      <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 8px;">
+        If the button does not work, copy and paste this link into your browser:
+      </p>
+      <p style="font-size:13px;line-height:1.6;word-break:break-all;margin:0 0 24px;">
+        <a href="${acceptUrl}" style="color:#0033A0;">${acceptUrl}</a>
+      </p>
+      <p style="font-size:13px;line-height:1.6;color:#666666;margin:0 0 24px;">This invite expires on ${expiresLabel}.</p>
+      <p style="font-size:14px;line-height:1.6;margin:0;">Questions? Just reply to this email.</p>
+    </div>
+    <div style="border-top:1px solid #E5E4E2;padding:16px 32px;text-align:center;">
+      <p style="font-size:12px;color:#666666;margin:0;">SecureProspective &middot; secureprospective.com</p>
+    </div>
+  </div>`.trim();
     }
-    if (welcomeEmailSubjectInput) welcomeEmailSubjectInput.value = WELCOME_EMAIL_SUBJECT;
-    if (welcomeEmailPanel) welcomeEmailPanel.hidden = false;
-    if (copyEmailStatus) copyEmailStatus.hidden = true;
-  }
 
-  function fmt(dateStr: string | null): string {
-    if (!dateStr) return 'Not set';
-    // D1 rows show up in two shapes: SQLite's own `datetime('now')` default
-    // ("2026-08-08 16:47:51", no timezone) and full ISO strings this app
-    // writes itself via `new Date().toISOString()` ("...T...Z"). Only the
-    // first form needs a timezone appended. Doing it unconditionally to an
-    // already-ISO string produces "...ZZ", which Date() can't parse.
-    const iso = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? dateStr : d.toLocaleString();
-  }
+    function buildWelcomeEmailText(acceptUrl: string, expiresLabel: string): string {
+      return [
+        'You are invited to the SecureProspective back office.',
+        '',
+        '1. Open your invite: ' + acceptUrl,
+        '2. Set your own password on that page.',
+        '3. You will be signed in right away.',
+        '',
+        'This invite expires on ' + expiresLabel + '.',
+        '',
+        'Questions? Just reply to this email.',
+        '',
+        'SecureProspective',
+        'secureprospective.com',
+      ].join('\n');
+    }
 
-  async function api(path: string, options: RequestInit = {}) {
-    const res = await fetch(path, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status}).`);
-    return body;
-  }
+    function showWelcomeEmail(acceptUrl: string, expiresAt: string) {
+      const expiresLabel = fmt(expiresAt);
+      currentWelcomeEmailHtml = buildWelcomeEmailHtml(acceptUrl, expiresLabel);
+      currentWelcomeEmailText = buildWelcomeEmailText(acceptUrl, expiresLabel);
 
-  async function loadInvites() {
-    if (!invitesBody) return;
-    try {
-      const { invites } = (await api('/api/auth/admin/invites')) as { invites: Invite[] };
-      if (!invites.length) {
-        invitesBody.innerHTML = '<tr><td colspan="6">No invites yet.</td></tr>';
-        return;
+      if (welcomeEmailFrame) {
+        welcomeEmailFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#f2f2f2;">${currentWelcomeEmailHtml}</body></html>`;
       }
-      invitesBody.innerHTML = '';
-      invites.forEach((inv) => {
-        const tr = document.createElement('tr');
-        const status = inv.redeemed_at
-          ? 'Redeemed'
-          : new Date(inv.expires_at) < new Date()
-            ? 'Expired'
-            : 'Pending';
-        tr.innerHTML = `
-          <td>${inv.email}</td>
-          <td>${inv.created_by}</td>
-          <td>${fmt(inv.created_at)}</td>
-          <td>${fmt(inv.expires_at)}</td>
-          <td>${status}</td>
-          <td></td>
-        `;
-        const actionCell = tr.lastElementChild as HTMLTableCellElement;
-        const isPending = status === 'Pending';
-        const actionBtn = document.createElement('button');
-        actionBtn.type = 'button';
-        actionBtn.className = isPending ? 'btn-link' : 'btn-link btn-link--danger';
-        actionBtn.textContent = isPending ? 'Revoke' : 'Remove';
-        actionBtn.addEventListener('click', async () => {
-          const confirmMsg = isPending
-            ? `Revoke the invite for ${inv.email}?`
-            : `Remove this ${status.toLowerCase()} invite record for ${inv.email}? This only clears the history row. It does not touch any account already created from it.`;
-          if (!confirm(confirmMsg)) return;
-          try {
-            await api('/api/auth/admin/invite-revoke', {
-              method: 'POST',
-              body: JSON.stringify({ id: inv.id }),
-            });
-            loadInvites();
-          } catch (err) {
-            alert((err as Error).message);
-          }
-        });
-        actionCell.appendChild(actionBtn);
-        invitesBody.appendChild(tr);
-      });
-    } catch (err) {
-      invitesBody.innerHTML = `<tr><td colspan="6">${(err as Error).message}</td></tr>`;
+      if (welcomeEmailSubjectInput) welcomeEmailSubjectInput.value = WELCOME_EMAIL_SUBJECT;
+      if (welcomeEmailPanel) welcomeEmailPanel.hidden = false;
+      if (copyEmailStatus) copyEmailStatus.hidden = true;
     }
-  }
 
-  async function loadMembers() {
-    if (!membersBody) return;
-    try {
-      const { members } = (await api('/api/auth/admin/members')) as { members: Member[] };
-      membersBody.innerHTML = '';
-      members.forEach((m) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${m.email}</td>
-          <td></td>
-          <td>${fmt(m.created_at)}</td>
-          <td></td>
-        `;
+    function fmt(dateStr: string | null): string {
+      if (!dateStr) return 'Not set';
+      // D1 rows show up in two shapes: SQLite's own `datetime('now')` default
+      // ("2026-08-08 16:47:51", no timezone) and full ISO strings this app
+      // writes itself via `new Date().toISOString()` ("...T...Z"). Only the
+      // first form needs a timezone appended. Doing it unconditionally to an
+      // already-ISO string produces "...ZZ", which Date() can't parse.
+      const iso = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? dateStr : d.toLocaleString();
+    }
 
-        const roleCell = tr.children[1] as HTMLTableCellElement;
-        const roleSelect = document.createElement('select');
-        ['member', 'admin'].forEach((r) => {
-          const opt = document.createElement('option');
-          opt.value = r;
-          opt.textContent = r;
-          if (r === m.role) opt.selected = true;
-          roleSelect.appendChild(opt);
-        });
-        roleSelect.addEventListener('change', async () => {
-          try {
-            await api('/api/auth/admin/member-edit', {
-              method: 'POST',
-              body: JSON.stringify({ id: m.id, role: roleSelect.value }),
-            });
-            loadMembers();
-          } catch (err) {
-            alert((err as Error).message);
-            roleSelect.value = m.role;
-          }
-        });
-        roleCell.appendChild(roleSelect);
+    async function api(path: string, options: RequestInit = {}) {
+      const res = await fetch(path, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status}).`);
+      return body;
+    }
 
-        const actionCell = tr.lastElementChild as HTMLTableCellElement;
-        actionCell.className = 'action-cell';
-
-        const pwBtn = document.createElement('button');
-        pwBtn.type = 'button';
-        pwBtn.className = 'btn-link';
-        pwBtn.textContent = 'Set password';
-        pwBtn.addEventListener('click', async () => {
-          const newPassword = prompt(`New password for ${m.email} (min 8 characters):`);
-          if (!newPassword) return;
-          if (newPassword.length < 8) {
-            alert('Password must be at least 8 characters.');
-            return;
-          }
-          try {
-            await api('/api/auth/admin/member-password', {
-              method: 'POST',
-              body: JSON.stringify({ id: m.id, newPassword }),
-            });
-            alert(`Password updated for ${m.email}.`);
-          } catch (err) {
-            alert((err as Error).message);
-          }
-        });
-        actionCell.appendChild(pwBtn);
-
-        if (m.id !== currentAdminId) {
-          const removeBtn = document.createElement('button');
-          removeBtn.type = 'button';
-          removeBtn.className = 'btn-link btn-link--danger';
-          removeBtn.textContent = 'Remove';
-          removeBtn.addEventListener('click', async () => {
-            if (!confirm(`Remove ${m.email}? This cannot be undone.`)) return;
+    async function loadInvites() {
+      if (!invitesBody) return;
+      try {
+        const { invites } = (await api('/api/auth/admin/invites')) as { invites: Invite[] };
+        if (!invites.length) {
+          invitesBody.innerHTML = '<tr><td colspan="6">No invites yet.</td></tr>';
+          return;
+        }
+        invitesBody.innerHTML = '';
+        invites.forEach((inv) => {
+          const tr = document.createElement('tr');
+          const status = inv.redeemed_at
+            ? 'Redeemed'
+            : new Date(inv.expires_at) < new Date()
+              ? 'Expired'
+              : 'Pending';
+          tr.innerHTML = `
+            <td>${inv.email}</td>
+            <td>${inv.created_by}</td>
+            <td>${fmt(inv.created_at)}</td>
+            <td>${fmt(inv.expires_at)}</td>
+            <td>${status}</td>
+            <td></td>
+          `;
+          const actionCell = tr.lastElementChild as HTMLTableCellElement;
+          const isPending = status === 'Pending';
+          const actionBtn = document.createElement('button');
+          actionBtn.type = 'button';
+          actionBtn.className = isPending ? 'btn-link' : 'btn-link btn-link--danger';
+          actionBtn.textContent = isPending ? 'Revoke' : 'Remove';
+          actionBtn.addEventListener('click', async () => {
+            const confirmMsg = isPending
+              ? `Revoke the invite for ${inv.email}?`
+              : `Remove this ${status.toLowerCase()} invite record for ${inv.email}? This only clears the history row. It does not touch any account already created from it.`;
+            if (!confirm(confirmMsg)) return;
             try {
-              await api('/api/auth/admin/member-remove', {
+              await api('/api/auth/admin/invite-revoke', {
                 method: 'POST',
-                body: JSON.stringify({ id: m.id }),
+                body: JSON.stringify({ id: inv.id }),
               });
-              loadMembers();
+              loadInvites();
             } catch (err) {
               alert((err as Error).message);
             }
           });
-          actionCell.appendChild(removeBtn);
-        }
-
-        membersBody.appendChild(tr);
-      });
-    } catch (err) {
-      membersBody.innerHTML = `<tr><td colspan="4">${(err as Error).message}</td></tr>`;
-    }
-  }
-
-  inviteForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (inviteError) inviteError.hidden = true;
-    if (inviteResult) inviteResult.hidden = true;
-
-    const data = new FormData(inviteForm);
-    const email = String(data.get('email') ?? '');
-
-    inviteSubmit?.classList.add('is-loading');
-    inviteSubmit?.setAttribute('disabled', 'true');
-    try {
-      const body = await api('/api/auth/admin/invites', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
-      if (inviteResult) {
-        inviteResult.hidden = false;
-        inviteResult.innerHTML = body.emailSent
-          ? `Invite sent to ${body.email}.`
-          : `Invite created. Email delivery isn't wired up yet. Copy this link to ${body.email}: <code>${body.acceptUrl}</code>`;
-      }
-      if (!body.emailSent) showWelcomeEmail(body.acceptUrl, body.expiresAt);
-      inviteForm.reset();
-      loadInvites();
-    } catch (err) {
-      if (inviteError) {
-        inviteError.hidden = false;
-        inviteError.textContent = (err as Error).message;
-      }
-    } finally {
-      inviteSubmit?.classList.remove('is-loading');
-      inviteSubmit?.removeAttribute('disabled');
-    }
-  });
-
-  copySubjectBtn?.addEventListener('click', async () => {
-    if (copyEmailStatus) copyEmailStatus.hidden = true;
-    try {
-      await navigator.clipboard.writeText(WELCOME_EMAIL_SUBJECT);
-      if (copyEmailStatus) {
-        copyEmailStatus.hidden = false;
-        copyEmailStatus.textContent = 'Subject line copied.';
-      }
-    } catch {
-      welcomeEmailSubjectInput?.select();
-      if (copyEmailStatus) {
-        copyEmailStatus.hidden = false;
-        copyEmailStatus.textContent = 'Could not copy automatically. The subject field is selected. Copy it manually.';
+          actionCell.appendChild(actionBtn);
+          invitesBody.appendChild(tr);
+        });
+      } catch (err) {
+        invitesBody.innerHTML = `<tr><td colspan="6">${(err as Error).message}</td></tr>`;
       }
     }
-  });
 
-  copyEmailBtn?.addEventListener('click', async () => {
-    if (!currentWelcomeEmailHtml) return;
-    if (copyEmailStatus) copyEmailStatus.hidden = true;
-    try {
-      // Writing both text/html and text/plain lets Gmail's compose box (a
-      // rich text editor) paste the formatted version (logo, button and
-      // clickable link) instead of raw HTML tags as literal text.
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          'text/html': new Blob([currentWelcomeEmailHtml], { type: 'text/html' }),
-          'text/plain': new Blob([currentWelcomeEmailText], { type: 'text/plain' }),
-        }),
-      ]);
-      if (copyEmailStatus) {
-        copyEmailStatus.hidden = false;
-        copyEmailStatus.textContent = 'Copied. Paste into a new Gmail message.';
-      }
-    } catch {
+    async function loadMembers() {
+      if (!membersBody) return;
       try {
-        await navigator.clipboard.writeText(currentWelcomeEmailText);
+        const { members } = (await api('/api/auth/admin/members')) as { members: Member[] };
+        membersBody.innerHTML = '';
+        members.forEach((m) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${m.email}</td>
+            <td></td>
+            <td>${fmt(m.created_at)}</td>
+            <td></td>
+          `;
+
+          const roleCell = tr.children[1] as HTMLTableCellElement;
+          const roleSelect = document.createElement('select');
+          ['member', 'admin'].forEach((r) => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            if (r === m.role) opt.selected = true;
+            roleSelect.appendChild(opt);
+          });
+          roleSelect.addEventListener('change', async () => {
+            try {
+              await api('/api/auth/admin/member-edit', {
+                method: 'POST',
+                body: JSON.stringify({ id: m.id, role: roleSelect.value }),
+              });
+              loadMembers();
+            } catch (err) {
+              alert((err as Error).message);
+              roleSelect.value = m.role;
+            }
+          });
+          roleCell.appendChild(roleSelect);
+
+          const actionCell = tr.lastElementChild as HTMLTableCellElement;
+          actionCell.className = 'action-cell';
+
+          const pwBtn = document.createElement('button');
+          pwBtn.type = 'button';
+          pwBtn.className = 'btn-link';
+          pwBtn.textContent = 'Set password';
+          pwBtn.addEventListener('click', async () => {
+            const newPassword = prompt(`New password for ${m.email} (min 8 characters):`);
+            if (!newPassword) return;
+            if (newPassword.length < 8) {
+              alert('Password must be at least 8 characters.');
+              return;
+            }
+            try {
+              await api('/api/auth/admin/member-password', {
+                method: 'POST',
+                body: JSON.stringify({ id: m.id, newPassword }),
+              });
+              alert(`Password updated for ${m.email}.`);
+            } catch (err) {
+              alert((err as Error).message);
+            }
+          });
+          actionCell.appendChild(pwBtn);
+
+          if (m.id !== currentAdminId) {
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-link btn-link--danger';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', async () => {
+              if (!confirm(`Remove ${m.email}? This cannot be undone.`)) return;
+              try {
+                await api('/api/auth/admin/member-remove', {
+                  method: 'POST',
+                  body: JSON.stringify({ id: m.id }),
+                });
+                loadMembers();
+              } catch (err) {
+                alert((err as Error).message);
+              }
+            });
+            actionCell.appendChild(removeBtn);
+          }
+
+          membersBody.appendChild(tr);
+        });
+      } catch (err) {
+        membersBody.innerHTML = `<tr><td colspan="4">${(err as Error).message}</td></tr>`;
+      }
+    }
+
+    inviteForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (inviteError) inviteError.hidden = true;
+      if (inviteResult) inviteResult.hidden = true;
+
+      const data = new FormData(inviteForm);
+      const email = String(data.get('email') ?? '');
+
+      inviteSubmit?.classList.add('is-loading');
+      inviteSubmit?.setAttribute('disabled', 'true');
+      try {
+        const body = await api('/api/auth/admin/invites', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        });
+        if (inviteResult) {
+          inviteResult.hidden = false;
+          inviteResult.innerHTML = body.emailSent
+            ? `Invite sent to ${body.email}.`
+            : `Invite created. Email delivery isn't wired up yet. Copy this link to ${body.email}: <code>${body.acceptUrl}</code>`;
+        }
+        if (!body.emailSent) showWelcomeEmail(body.acceptUrl, body.expiresAt);
+        inviteForm.reset();
+        loadInvites();
+      } catch (err) {
+        if (inviteError) {
+          inviteError.hidden = false;
+          inviteError.textContent = (err as Error).message;
+        }
+      } finally {
+        inviteSubmit?.classList.remove('is-loading');
+        inviteSubmit?.removeAttribute('disabled');
+      }
+    });
+
+    copySubjectBtn?.addEventListener('click', async () => {
+      if (copyEmailStatus) copyEmailStatus.hidden = true;
+      try {
+        await navigator.clipboard.writeText(WELCOME_EMAIL_SUBJECT);
         if (copyEmailStatus) {
           copyEmailStatus.hidden = false;
-          copyEmailStatus.textContent =
-            'Copied as plain text only (rich copy is not supported in this browser). The logo and button will not carry over.';
+          copyEmailStatus.textContent = 'Subject line copied.';
         }
       } catch {
+        welcomeEmailSubjectInput?.select();
         if (copyEmailStatus) {
           copyEmailStatus.hidden = false;
-          copyEmailStatus.textContent = 'Could not copy automatically. Select the preview above and copy it manually.';
+          copyEmailStatus.textContent = 'Could not copy automatically. The subject field is selected. Copy it manually.';
         }
       }
-    }
-  });
+    });
 
-  logoutBtn?.addEventListener('click', async () => {
-    logoutBtn.setAttribute('disabled', 'true');
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    } finally {
-      window.location.href = '/members/login';
-    }
-  });
+    copyEmailBtn?.addEventListener('click', async () => {
+      if (!currentWelcomeEmailHtml) return;
+      if (copyEmailStatus) copyEmailStatus.hidden = true;
+      try {
+        // Writing both text/html and text/plain lets Gmail's compose box (a
+        // rich text editor) paste the formatted version (logo, button and
+        // clickable link) instead of raw HTML tags as literal text.
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([currentWelcomeEmailHtml], { type: 'text/html' }),
+            'text/plain': new Blob([currentWelcomeEmailText], { type: 'text/plain' }),
+          }),
+        ]);
+        if (copyEmailStatus) {
+          copyEmailStatus.hidden = false;
+          copyEmailStatus.textContent = 'Copied. Paste into a new Gmail message.';
+        }
+      } catch {
+        try {
+          await navigator.clipboard.writeText(currentWelcomeEmailText);
+          if (copyEmailStatus) {
+            copyEmailStatus.hidden = false;
+            copyEmailStatus.textContent =
+              'Copied as plain text only (rich copy is not supported in this browser). The logo and button will not carry over.';
+          }
+        } catch {
+          if (copyEmailStatus) {
+            copyEmailStatus.hidden = false;
+            copyEmailStatus.textContent = 'Could not copy automatically. Select the preview above and copy it manually.';
+          }
+        }
+      }
+    });
 
-  async function init() {
-    try {
-      const res = await fetch('/api/auth/me');
-      if (!res.ok) {
+    logoutBtn?.addEventListener('click', async () => {
+      logoutBtn.setAttribute('disabled', 'true');
+      try {
+        await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      } finally {
         window.location.href = '/members/login';
-        return;
       }
-      const body = await res.json();
-      if (body.user?.mustChangePassword) {
-        window.location.href = '/members/change-password';
-        return;
+    });
+
+    async function init() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          window.location.href = '/members/login';
+          return;
+        }
+        const body = await res.json();
+        if (body.user?.mustChangePassword) {
+          window.location.href = '/members/change-password';
+          return;
+        }
+        if (body.user?.role !== 'admin') {
+          window.location.href = '/members';
+          return;
+        }
+        currentAdminId = body.user.id;
+        if (shell) shell.hidden = false;
+        loadInvites();
+        loadMembers();
+      } catch {
+        window.location.href = '/members/login';
       }
-      if (body.user?.role !== 'admin') {
-        window.location.href = '/members';
-        return;
-      }
-      currentAdminId = body.user.id;
-      if (shell) shell.hidden = false;
-      loadInvites();
-      loadMembers();
-    } catch {
-      window.location.href = '/members/login';
     }
+
+    init();
   }
 
-  init();
+  document.addEventListener('astro:page-load', boot);
 </script>
 
 <style>

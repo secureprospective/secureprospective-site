@@ -40,63 +40,110 @@ import Footer from '../../components/Footer.astro';
 <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
 
 <script>
-  const form = document.getElementById('login-form') as HTMLFormElement | null;
-  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
-  const errorEl = document.getElementById('form-error') as HTMLParagraphElement | null;
+  /*
+     Booted from astro:page-load, not from module scope.
 
-  function showError(message: string) {
-    if (!errorEl) return;
-    errorEl.textContent = message;
-    errorEl.hidden = false;
-  }
+     The site runs Astro View Transitions, so a click from another page swaps
+     this document in without re-evaluating a module that has already run once.
+     Everything below used to execute at module scope, which meant it ran on a
+     full page load and never again: arriving here by link left the page in its
+     initial state with nothing to move it out of that state, and only a refresh
+     fixed it. astro:page-load fires on the first load AND on every client-side
+     navigation, which is the only event that matches what this code is for.
 
-  function hideError() {
-    if (!errorEl) return;
-    errorEl.hidden = true;
-  }
+     The guard is here because the listener outlives this page. Once registered
+     it fires for every navigation in the session, including ones to documents
+     that do not contain any of this markup.
+  */
+  function boot() {
+    // #login-form belongs to this page and to no other.
+    if (!document.getElementById('login-form')) return;
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    hideError();
-
-    const data = new FormData(form);
-    const email = String(data.get('email') ?? '');
-    const password = String(data.get('password') ?? '');
-    const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
-
-    if (!turnstileToken) {
-      showError('Please complete the verification challenge.');
-      return;
+    /*
+       Turnstile renders itself when its script loads, which on a client-side
+       navigation has already happened for a document that is now gone. The
+       widget in THIS document would then never be drawn, and the check above
+       would tell the member to complete a challenge that is not on their
+       screen: a login they cannot finish without knowing to refresh. Render it
+       by hand when it is missing, and leave it alone when the script's own
+       auto-render has already done the job.
+    */
+    try {
+      const widget = document.querySelector('.cf-turnstile') as HTMLElement | null;
+      // @ts-ignore. Turnstile global, loaded by the async script in the markup.
+      const ts = window.turnstile;
+      // Turnstile renders into a child div, not an iframe of its own, so an
+      // empty element is the honest test for "never rendered". Checking for an
+      // iframe would be true even after a successful render and would draw a
+      // second widget on top of the first.
+      if (widget && ts?.render && widget.children.length === 0 && widget.dataset.sitekey) {
+        ts.render(widget, { sitekey: widget.dataset.sitekey });
+      }
+    } catch {
+      // A failed render must not take the rest of the page's wiring with it.
     }
 
-    submitBtn?.classList.add('is-loading');
-    submitBtn?.setAttribute('disabled', 'true');
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, turnstileToken }),
-      });
-      const body = await res.json();
+    const form = document.getElementById('login-form') as HTMLFormElement | null;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+    const errorEl = document.getElementById('form-error') as HTMLParagraphElement | null;
 
-      if (!res.ok) {
-        showError(body.error ?? 'Sign in failed.');
-        // @ts-ignore. Turnstile global loaded by the async script above
-        window.turnstile?.reset();
+    function showError(message: string) {
+      if (!errorEl) return;
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+
+    function hideError() {
+      if (!errorEl) return;
+      errorEl.hidden = true;
+    }
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const data = new FormData(form);
+      const email = String(data.get('email') ?? '');
+      const password = String(data.get('password') ?? '');
+      const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
+
+      if (!turnstileToken) {
+        showError('Please complete the verification challenge.');
         return;
       }
 
-      window.location.href = body.user?.mustChangePassword ? '/members/change-password' : '/members';
-    } catch {
-      showError('Something went wrong. Please try again.');
-      // @ts-ignore
-      window.turnstile?.reset();
-    } finally {
-      submitBtn?.classList.remove('is-loading');
-      submitBtn?.removeAttribute('disabled');
-    }
-  });
+      submitBtn?.classList.add('is-loading');
+      submitBtn?.setAttribute('disabled', 'true');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, turnstileToken }),
+        });
+        const body = await res.json();
+
+        if (!res.ok) {
+          showError(body.error ?? 'Sign in failed.');
+          // @ts-ignore. Turnstile global loaded by the async script above
+          window.turnstile?.reset();
+          return;
+        }
+
+        window.location.href = body.user?.mustChangePassword ? '/members/change-password' : '/members';
+      } catch {
+        showError('Something went wrong. Please try again.');
+        // @ts-ignore
+        window.turnstile?.reset();
+      } finally {
+        submitBtn?.classList.remove('is-loading');
+        submitBtn?.removeAttribute('disabled');
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', boot);
 </script>
 
 <style>
