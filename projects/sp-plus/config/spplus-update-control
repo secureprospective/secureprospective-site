@@ -109,6 +109,32 @@ print(json.dumps({"booted": booted, "staged": staged, "cached": cached}))
 
 read_state() { bootc status --format=json 2>/dev/null | parse_state; }
 
+# WHEN DID THIS MACHINE LAST SUCCESSFULLY ASK THE REGISTRY?
+#
+# bootc does not record that, and without it "up to date" is a claim this
+# helper cannot support. `status` reads local state only, by design -- so on a
+# machine that has never completed a check, `cachedUpdate` is absent and the
+# guard below used to read that absence as "nothing available" and answer
+# "This computer is up to date."
+#
+# Absence of information is not evidence of currency. That conflation is how
+# the Dell sat on a 2026-09-11 image, with 0.11.4 published and reachable,
+# while its own update panel said it was current. The advisor is not told
+# "we do not know"; they are told the reassuring thing, which is the one
+# answer that stops anybody looking further.
+#
+# So we keep our own stamp. It is written ONLY after bootc has actually
+# answered, and `status` refuses to say "up to date" without a fresh one.
+STAMP_DIR=/var/lib/sp-plus
+STAMP=$STAMP_DIR/last-check
+
+record_check() {
+    mkdir -p "$STAMP_DIR" 2>/dev/null || return 0
+    date -u +%Y-%m-%dT%H:%M:%SZ > "$STAMP" 2>/dev/null || :
+}
+
+read_stamp() { cat "$STAMP" 2>/dev/null || printf ''; }
+
 # The downgrade guard, and the reason this file exists. Answers one question:
 # given what is booted and what the registry offers, is there a real update?
 #
@@ -125,6 +151,14 @@ state = json.loads(sys.argv[1] or "{}")
 booted = state.get("booted") or {}
 staged = state.get("staged") or {}
 cached = state.get("cached") or {}
+# The last time bootc actually answered us, as an ISO-8601 UTC string, or "".
+# Passed in rather than read here so the simulate seam can drive every branch
+# without a machine and without a clock.
+checked_raw = (sys.argv[2] if len(sys.argv) > 2 else "") or ""
+# A check older than this is not evidence about today. The staging timer is
+# daily with up to 2h of jitter, so 48h is comfortably past "it just has not
+# run yet" and squarely in "this machine has stopped checking".
+STALE_AFTER_HOURS = 48
 
 
 def when(node):
@@ -137,7 +171,9 @@ def when(node):
         return None
 
 
-out = {"ok": True, "booted": booted, "staged": staged, "available": cached}
+checked = when({"timestamp": checked_raw})
+out = {"ok": True, "booted": booted, "staged": staged, "available": cached,
+       "checked": checked_raw}
 
 if staged.get("digest"):
     out["state"] = "staged"
@@ -147,6 +183,29 @@ if staged.get("digest"):
     raise SystemExit(0)
 
 bt, ct = when(booted), when(cached)
+
+# STALENESS IS DECIDED BEFORE CURRENCY, and that order is the whole fix.
+#
+# Every branch below that says "up to date" is a statement about the registry,
+# and this helper only knows about the registry if something asked it. If
+# nothing has, or not for two days, the honest answer is that we do not know --
+# and the advisor is told plainly, because a machine that has silently stopped
+# checking is the exact failure this OS exists to not have.
+stale = True
+if checked is not None:
+    age = datetime.now(checked.tzinfo) - checked
+    stale = age.total_seconds() > STALE_AFTER_HOURS * 3600
+
+if stale and not cached.get("digest"):
+    out["state"] = "unknown"
+    if not checked_raw:
+        out["reason"] = ("This computer has not checked for updates yet. "
+                         "It will check on its own shortly.")
+    else:
+        out["reason"] = ("This computer has not been able to check for "
+                         "updates since %s. It will keep trying." % checked_raw)
+    print(json.dumps(out))
+    raise SystemExit(0)
 
 if not cached.get("digest") or cached["digest"] == booted.get("digest"):
     out["state"] = "current"
@@ -166,12 +225,12 @@ else:
     out["reason"] = "A new version is available."
 
 print(json.dumps(out))
-' "$1"
+' "$1" "${2:-}"
 }
 
 case "${1:-status}" in
 status)
-    decide "$(read_state)"
+    decide "$(read_state)" "$(read_stamp)"
     ;;
 
 check)
@@ -182,12 +241,37 @@ check)
         if sig=$(signature_failure "$err"); then fail "$sig"; fi
         fail "Could not reach the update service. $(printf '%s' "$err" | tail -1)"
     fi
-    decide "$(read_state)"
+    # Only now, once bootc has genuinely answered.
+    record_check
+    decide "$(read_state)" "$(read_stamp)"
     ;;
 
 stage)
+    # ASK BEFORE DECIDING. This is the defect that made the whole automatic
+    # lane inert, and it is worth spelling out because it looked like nothing.
+    #
+    # `decide` answers from bootc's cachedUpdate, and cachedUpdate is populated
+    # by exactly one thing: `bootc upgrade --check`. Until 2026-09-13 that ran
+    # only in the `check` subcommand above -- and NOTHING in the shipped system
+    # ever called `check`. The one reference in the whole tree was a test.
+    #
+    # So the daily timer fired, called `stage`, read a cache nothing had ever
+    # filled, correctly concluded there was no update, and did nothing. Every
+    # day. On every machine. The lane was a closed loop: staging was gated on a
+    # verdict that could never become "available" without a network check that
+    # never happened, and the only symptom was a machine that quietly never
+    # updated while reporting itself healthy.
+    #
+    # A network failure here is NOT fatal and must not be: an advisor on a
+    # hotel network or a metered tether fails this routinely. It is reported
+    # as itself, the same way `check` reports it, and the timer tries again.
+    if ! err=$(bootc upgrade --check 2>&1); then
+        if sig=$(signature_failure "$err"); then fail "$sig"; fi
+        fail "Could not reach the update service. $(printf '%s' "$err" | tail -1)"
+    fi
+    record_check
     state=$(read_state)
-    verdict=$(decide "$state")
+    verdict=$(decide "$state" "$(read_stamp)")
     want=$(printf '%s' "$verdict" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("state",""))')
     # Refuse to stage anything the guard did not call an update. This is what
     # stops a downgrade being attempted at all.
@@ -235,7 +319,9 @@ simulate)
     if [ -z "${2:-}" ]; then
         fail "simulate needs a state object."
     fi
-    decide "$2"
+    # $3 is the last-check stamp, so the unknown/stale branches are drivable
+    # without a machine and without waiting two days.
+    decide "$2" "${3:-}"
     ;;
 
 *)

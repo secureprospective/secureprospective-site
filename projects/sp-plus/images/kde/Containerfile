@@ -823,9 +823,24 @@ RUN set -eux; \
 # registry-is-behind case. That case cannot be produced on demand against a live
 # registry, so without the simulate seam it would never be tested at all.
 COPY tests/update-guard-gate.sh /tmp/update-guard-gate.sh
+# THE LANE GATE, added 2026-09-13. The guard gate above proves decide() is
+# right. It was right, and the advisor's panel still said "This computer is up
+# to date" on a machine that had never once asked the registry -- because
+# `status` reads local state only, and absence of a cached answer was being
+# reported as currency. Measured on the Dell with 0.11.4 published and
+# reachable. A correct function reached through wrong wiring is still a machine
+# that quietly stops updating, which for a machine holding client financial
+# records is the worst failure available: not a crash, which gets reported.
+#
+# So this gate asserts the WIRING, not the arithmetic: that the staging path
+# refreshes from the registry before it decides, and that no state without a
+# recent successful check is ever allowed to render as "up to date".
+# Mutation-tested against the pre-fix file from git: it fails four assertions.
+COPY tests/update-lane-gate.sh /tmp/update-lane-gate.sh
 RUN set -eux; \
     bash /tmp/update-guard-gate.sh; \
-    rm -f /tmp/update-guard-gate.sh; \
+    bash /tmp/update-lane-gate.sh /usr/libexec/spplus-update-control; \
+    rm -f /tmp/update-guard-gate.sh /tmp/update-lane-gate.sh; \
     D=/usr/lib64/qt6/plugins/discover; \
     rm -f "$D/rpm-ostree-backend.so"; \
     test ! -e "$D/rpm-ostree-backend.so"; \
