@@ -36,6 +36,35 @@ BOLD=$'\033[1m'; DIM=$'\033[2m'; OFF=$'\033[0m'
 
 have_key() { [ -n "${ANTHROPIC_API_KEY:-}" ]; }
 
+# An auth.json can exist and still be EMPTY. The assistant writes `{}` the moment
+# a login is STARTED, and a 3-byte file passes every `-s` test, so the wrapper
+# used to call a file holding no credential "connected" -- and the advisor got a
+# raw startup error, node_modules paths and all, where they should have been told
+# Fin is not connected yet. Connected means at least one provider entry that
+# actually carries a token.
+have_auth() {
+    _a="$HOME/.pi/agent/auth.json"
+    [ -s "$_a" ] || return 1
+    # If python3 were ever dropped from the image, fall back to the old, weaker
+    # test rather than telling a connected advisor they are not connected.
+    [ -x /usr/bin/python3 ] || return 0
+    /usr/bin/python3 - "$_a" <<'PYAUTH' 2>/dev/null
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+if not isinstance(d, dict):
+    sys.exit(1)
+for v in d.values():
+    if isinstance(v, dict) and any(
+        str(v.get(k, "") or "").strip() for k in ("access", "key", "refresh")
+    ):
+        sys.exit(0)
+sys.exit(1)
+PYAUTH
+}
+
 # Welcome uses this bounded, non-interactive path. It deliberately bypasses the
 # banner and coaching tip so stdout is one answer that the page can display.
 if [ "${1:-}" = "--ask" ]; then
@@ -44,7 +73,7 @@ if [ "${1:-}" = "--ask" ]; then
         printf 'Fin needs one question.\n'
         exit 2
     fi
-    if ! have_key && [ ! -s "$HOME/.pi/agent/auth.json" ]; then
+    if ! have_key && ! have_auth; then
         printf 'Fin is not connected yet.\n'
         exit 1
     fi
@@ -61,6 +90,30 @@ if [ "${1:-}" = "--ask" ]; then
         --approve \
         "$1"
 fi
+
+# `fin --help` used to fall through to the agent underneath, which printed ITS
+# own help: its name, its subcommands, and an instruction to run a binary that is
+# not what the advisor was told to run. The first thing a new advisor tries is
+# --help, so this page is Fin's own and names only things that exist in SP+.
+case "${1:-}" in
+    --help|-h|help)
+        printf '\n  %sFin%s -- the SP+ assistant.\n\n' "$BOLD" "$OFF"
+        printf '  %sUsage%s\n' "$BOLD" "$OFF"
+        printf '    fin                       Open Fin and start talking.\n'
+        printf '    fin "<question>"          Open Fin with a question already asked.\n'
+        printf '    fin --tips list           Show what else Fin can help with.\n'
+        printf '    fin --tips off            Stop the coaching tip at startup.\n'
+        printf '    fin --tips on             Start it again.\n'
+        printf '    fin --version             Show which Fin this machine runs.\n'
+        printf '    fin --help                This page.\n\n'
+        printf '  %sInside Fin%s\n' "$BOLD" "$OFF"
+        printf '    /help                     The commands Fin understands.\n'
+        printf '    /login                    Connect Fin to an assistant account.\n'
+        printf '    /exit                     Close Fin.\n\n'
+        printf '  %sFin is part of SP+ and updates with the system. There is nothing to\n' "$DIM"
+        printf '  install and nothing to update by hand.%s\n\n' "$OFF"
+        exit 0 ;;
+esac
 
 # `fin --version` reports the version Fin ACTUALLY runs, not whatever is first on
 # PATH. Those differ the moment anything installs a second copy under /usr/local,
@@ -113,7 +166,7 @@ esac
 # Decide the opening request BEFORE any flags are prepended, so that $# still
 # reflects what the advisor actually typed.
 TIP_CHOICE=""
-if [ -x "$TIPS" ] && [ $# -eq 0 ] && have_key; then
+if [ -x "$TIPS" ] && [ $# -eq 0 ] && { have_key || have_auth; }; then
     # One coaching tip, at most, per session, and only when Fin can actually
     # answer it. "Try it" hands the tip straight to Fin as the opening request:
     # the advisor learns by having the work done, not by reading about it.

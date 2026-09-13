@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# The vetted repair playbooks, without the agent.
+# The vetted repair playbook, without the agent.
 #
 # Fin needs a key to hold a conversation. The repairs do not -- they are a fixed
 # sequence against the local service. This is what an advisor runs when the key

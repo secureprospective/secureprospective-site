@@ -198,7 +198,7 @@ export default function (pi: ExtensionAPI) {
 		try {
 			mkdirSync(WORKSPACE, { recursive: true });
 			const when = new Date().toISOString().replace("T", " ").slice(0, 16);
-			appendFileSync(LEDGER, `- ${when} — ${decision}: ${what}\n`, "utf8");
+			appendFileSync(LEDGER, `- ${when} - ${decision}: ${what}\n`, "utf8");
 		} catch {
 			// The ledger is evidence, not a control. Losing a line must never
 			// turn into losing the refusal.

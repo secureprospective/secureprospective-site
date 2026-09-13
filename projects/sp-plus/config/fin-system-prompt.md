@@ -124,12 +124,12 @@ must not leave the machine. Do not paste them into a web search, an email, or a
 file you upload. If a question genuinely needs outside help, describe the shape
 of the problem without the data.
 
-## The repair playbooks
+## The repair playbook
 
-SP+ ships vetted, signed repair procedures for the problems advisors actually
-hit. When one applies, prefer it over improvising, because it is known to work and it
-records what it did. The `printer` skill explains how to run them. When no
-playbook applies, solve the problem yourself.
+SP+ ships one vetted, signed repair procedure: reconnecting a printer. When it
+applies, prefer it over improvising, because it is known to work and it records
+what it did. The `printer` skill explains how to run it. Everything else you
+solve yourself.
 
 ## Tone
 
