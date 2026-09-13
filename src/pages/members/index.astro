@@ -44,6 +44,21 @@ import HeroTicker from '../../components/HeroTicker.astro';
         The full account of what SP+ protects, how each protection was measured, and where it
         stops. Written to be read before you install, and yours to hand on.
       </p>
+      <!--
+        The same product, one level down. Inside SP+ is written for the advisor
+        who will use the machine; this one is written for whoever they ask to
+        check it. Outlined rather than filled, because it is the third thing on
+        this card and should not compete with the two above it.
+      -->
+      <div class="gate-actions">
+        <a href="/members/sp-plus-security-architecture" class="btn btn--outline btn--wide">
+          Read the security architecture
+        </a>
+      </div>
+      <p class="gate-footnote">
+        For the technical reader. Trust anchors, threat model, every control measured on a
+        booted machine, and the register of our own checks that measured nothing.
+      </p>
       <div class="gate-actions gate-actions--secondary">
         <a href="/members/admin" class="btn" id="admin-link" hidden>Admin console</a>
         <button type="button" class="btn btn--ink" id="logout-btn">Sign out</button>
@@ -162,6 +177,27 @@ import HeroTicker from '../../components/HeroTicker.astro';
     color: var(--fineprint-gray);
     font-size: var(--text-caption);
     line-height: 1.5;
+  }
+
+  .gate-footnote + .gate-actions {
+    margin-top: var(--space-4);
+  }
+
+  /* Three stacked actions need three weights or the card reads as a pile.
+     Yellow for the download, ink for the document the member is meant to read,
+     outline for the one aimed past them at their technical reviewer. Scoped
+     here rather than added to site.css: an earlier global .btn--outline was
+     removed from this codebase, and one card is not reason enough to bring a
+     fourth button variant back sitewide. */
+  .btn--outline {
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .btn--outline:hover,
+  .btn--outline:focus-visible {
+    background: var(--ink);
+    color: var(--white);
   }
 
   /* One primary action on this card. A default-width button floating in the

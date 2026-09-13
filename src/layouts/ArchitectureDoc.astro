@@ -1,0 +1,211 @@
+---
+import Layout from './Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/pages/architecture.css';
+
+/*
+ * Layout for the SP+ security architecture report.
+ *
+ * The report is authored and maintained as markdown, because it is a technical
+ * document that will be regenerated as the product changes and nobody should
+ * have to hand-port eighty assertions into JSX to publish an update. Astro
+ * renders it; this layout supplies everything around it that markdown cannot
+ * express: the artifact ledger, the evidence-marker legend, and a persistent
+ * section rail built from the document's own headings rather than from a
+ * hand-written contents table that can drift out of step with the prose.
+ *
+ * The rail is the restructuring. A reviewer does not read a report like this
+ * front to back; they jump to the layer they care about, follow a cross
+ * reference, and jump back. The original's contents table only worked from the
+ * top of the page.
+ */
+
+const { frontmatter, headings } = Astro.props;
+
+// Depth-2 only. The subsections under section 5 are numerous enough that
+// including them would make the rail longer than the viewport and useless.
+const h2 = headings.filter((h) => h.depth === 2);
+const sections = h2.filter((h) => !h.text.startsWith('Appendix'));
+const appendices = h2.filter((h) => h.text.startsWith('Appendix'));
+
+// "5. Controls, layer by layer" splits into a number and a title so the rail
+// can set the numbers in one column and stay aligned down the list.
+function split(text) {
+  const m = text.match(/^(\d+)\.\s+(.*)$/);
+  if (m) return [m[1].padStart(2, '0'), m[2]];
+  const a = text.match(/^Appendix ([A-Z])\.\s+(.*)$/);
+  if (a) return [a[1], a[2]];
+  return ['', text];
+}
+---
+
+<Layout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  noindex
+>
+  <Nav />
+
+  <main id="main" class="arch-page" transition:name="page-card">
+    <header class="arch-masthead">
+      <div class="arch-shell">
+        <p class="arch-eyebrow">SP+ // Security architecture and evidence</p>
+        <h1>{frontmatter.docTitle}</h1>
+        <p class="arch-deck">{frontmatter.description}</p>
+
+        <dl class="arch-artifact">
+          <div><dt>Artifact</dt><dd><code>{frontmatter.artifact}</code></dd></div>
+          <div><dt>Payload</dt><dd><code>{frontmatter.payload}</code></dd></div>
+          <div class="arch-artifact-wide">
+            <dt>sha256</dt><dd><code>{frontmatter.sha256}</code></dd>
+          </div>
+          <div><dt>Bytes</dt><dd><code>{frontmatter.bytes}</code></dd></div>
+          <div><dt>Branch</dt><dd><code>{frontmatter.branch}</code></dd></div>
+          <div><dt>Head</dt><dd><code>{frontmatter.head}</code></dd></div>
+          <div><dt>Prepared</dt><dd><code>{frontmatter.prepared}</code></dd></div>
+        </dl>
+
+        <div class="arch-figures">
+          {
+            frontmatter.figures.map((f) => (
+              <div><strong>{f.value}</strong><span>{f.label}</span></div>
+            ))
+          }
+        </div>
+
+        <div class="arch-actions">
+          <button type="button" class="btn" id="print-btn">Print or save as PDF</button>
+          <p class="arch-note-text">{frontmatter.audience}.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="arch-shell arch-start">
+      <div class="arch-start-card">
+        <div class="arch-start-head">
+          <span>A reviewer short of time reads three sections</span>
+          <span>Start here</span>
+        </div>
+        <div class="arch-start-grid">
+          {
+            frontmatter.start.map((s) => (
+              <a href={`#${s.id}`}>
+                <span class="arch-start-n">§{s.n}</span>
+                <strong>{s.title}</strong>
+                <span class="arch-start-note">{s.note}</span>
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-shell arch-body-grid">
+      <!--
+        Sticky rather than fixed: it scrolls with the page until it reaches the
+        top, then holds, and it drops out of the layout entirely below 1100px
+        where there is no column to spare for it.
+      -->
+      <aside class="arch-rail" aria-label="Report contents">
+        <nav>
+          <p class="arch-rail-head">Sections</p>
+          <ol>
+            {
+              sections.map((h) => {
+                const [n, title] = split(h.text);
+                return (
+                  <li>
+                    <a href={`#${h.slug}`} data-rail-link={h.slug}>
+                      <span class="arch-rail-n">{n}</span>
+                      <span>{title}</span>
+                    </a>
+                  </li>
+                );
+              })
+            }
+          </ol>
+          <p class="arch-rail-head">Appendices</p>
+          <ol>
+            {
+              appendices.map((h) => {
+                const [n, title] = split(h.text);
+                return (
+                  <li>
+                    <a href={`#${h.slug}`} data-rail-link={h.slug}>
+                      <span class="arch-rail-n">{n}</span>
+                      <span>{title}</span>
+                    </a>
+                  </li>
+                );
+              })
+            }
+          </ol>
+        </nav>
+      </aside>
+
+      <article class="arch-doc">
+        <slot />
+      </article>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  // Two behaviours, both bound on every view transition because Astro swaps the
+  // body and a listener bound once would survive only the first page.
+  function boot() {
+    const btn = document.getElementById('print-btn') as HTMLButtonElement | null;
+    if (btn && !btn.dataset.bound) {
+      btn.dataset.bound = 'true';
+      btn.addEventListener('click', () => window.print());
+    }
+
+    // Rail highlighting. The rail is long, so without it a reader who has
+    // jumped three times has no idea where in the document they are.
+    const rail = document.querySelector('.arch-rail');
+    if (!rail || (rail as HTMLElement).dataset.bound) return;
+    (rail as HTMLElement).dataset.bound = 'true';
+
+    const links = new Map<string, HTMLAnchorElement>();
+    rail.querySelectorAll<HTMLAnchorElement>('[data-rail-link]').forEach((a) => {
+      links.set(a.dataset.railLink as string, a);
+    });
+
+    const targets = [...links.keys()]
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (!targets.length) return;
+
+    let current: HTMLAnchorElement | null = null;
+    const seen = new Set<string>();
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) seen.add(e.target.id);
+          else seen.delete(e.target.id);
+        });
+        // The topmost heading currently on screen wins. Falling back to the
+        // last one passed keeps a section marked while its body scrolls by
+        // with no heading visible at all, which is most of the time here.
+        const active = targets.find((t) => seen.has(t.id));
+        if (!active) return;
+        const link = links.get(active.id) ?? null;
+        if (link === current) return;
+        current?.removeAttribute('aria-current');
+        link?.setAttribute('aria-current', 'true');
+        current = link;
+      },
+      { rootMargin: '-68px 0px -70% 0px' },
+    );
+
+    targets.forEach((t) => io.observe(t));
+    document.addEventListener('astro:before-swap', () => io.disconnect(), { once: true });
+  }
+
+  document.addEventListener('astro:page-load', boot);
+  boot();
+</script>

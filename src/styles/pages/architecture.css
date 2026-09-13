@@ -1,0 +1,640 @@
+/*
+ * SP+ Security Architecture report.
+ *
+ * Inside SP+ is the same product explained to the person who will use it, and
+ * it is built out of cards. This document is the same product explained to
+ * somebody auditing it, so it is built out of a ledger: one measure column, a
+ * persistent rail, mono wherever a value is meant to be copied, and dark
+ * evidence blocks that a reviewer can tell apart from prose at a glance.
+ *
+ * No mono webfont ships in this project, so code uses the system mono stack,
+ * the same decision already taken for the numeric metrics on The Work.
+ */
+
+.arch-page {
+  --arch-rule: rgba(34, 34, 34, 0.16);
+  --arch-hair: rgba(34, 34, 34, 0.09);
+  --arch-tint: #f2f2f0;
+  --arch-code-bg: #1b1b1a;
+  --arch-code-ink: #e7e6e3;
+  --arch-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --arch-lift: 8px 8px 0 var(--ink);
+  background: var(--silver-base);
+  padding-bottom: var(--space-8);
+}
+
+.arch-shell {
+  width: min(100% - 48px, 1240px);
+  margin-inline: auto;
+}
+
+/* ---------- masthead ---------- */
+
+.arch-masthead {
+  border-bottom: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--silver-base);
+  padding-block: var(--space-7) var(--space-6);
+}
+
+.arch-eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--gold-identity);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.arch-masthead h1 {
+  margin: 0 0 var(--space-3);
+  max-width: 20ch;
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-h2), 6vw, 72px);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+}
+
+.arch-deck {
+  margin: 0;
+  max-width: 62ch;
+  font-size: clamp(var(--text-body), 2vw, var(--text-body-lg));
+  line-height: 1.5;
+  color: rgba(229, 228, 226, 0.9);
+}
+
+/* The subject of the report, in the form a reviewer would paste into a shell.
+   Every value is mono and selectable; the digest gets its own full-width row
+   because it is 64 characters and must never wrap mid-hash on a phone. */
+.arch-artifact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0;
+  margin: var(--space-6) 0 0;
+  border-top: 1px solid rgba(229, 228, 226, 0.24);
+}
+
+.arch-artifact > div {
+  min-width: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+  border-bottom: 1px solid rgba(229, 228, 226, 0.12);
+}
+
+.arch-artifact-wide {
+  grid-column: 1 / -1;
+}
+
+.arch-artifact dt {
+  margin: 0 0 var(--space-1);
+  color: rgba(229, 228, 226, 0.55);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.arch-artifact dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.arch-artifact code {
+  color: var(--yellow-accent);
+  font-family: var(--arch-mono);
+  font-size: var(--text-caption);
+  overflow-wrap: anywhere;
+}
+
+.arch-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.arch-figures strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  line-height: 1;
+  color: var(--yellow-accent);
+}
+
+.arch-figures span {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  color: rgba(229, 228, 226, 0.7);
+}
+
+.arch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.arch-note-text {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: rgba(229, 228, 226, 0.6);
+}
+
+/* ---------- start here ---------- */
+
+/* The document says in its own opening that a reviewer short of time should
+   read §4, §7 and §9. That instruction was buried in a paragraph; here it is
+   the first thing under the masthead and it is clickable. */
+.arch-start {
+  margin-top: calc(var(--space-6) * -1);
+  transform: translateY(var(--space-6));
+}
+
+.arch-start-card {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  box-shadow: var(--arch-lift);
+}
+
+.arch-start-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--ink);
+  background: var(--yellow-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.arch-start-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 860px) {
+  .arch-start-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.arch-start-grid a {
+  display: block;
+  min-width: 0;
+  padding: var(--space-4);
+  border-right: 1px solid var(--arch-hair);
+  border-bottom: 1px solid var(--arch-hair);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.arch-start-grid a:hover,
+.arch-start-grid a:focus-visible {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.arch-start-n {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--blue-brand);
+  font-family: var(--arch-mono);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+
+.arch-start-grid a:hover .arch-start-n,
+.arch-start-grid a:focus-visible .arch-start-n {
+  color: var(--yellow-accent);
+}
+
+.arch-start-grid strong {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  line-height: 1.2;
+}
+
+.arch-start-note {
+  display: block;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--fineprint-gray);
+}
+
+.arch-start-grid a:hover .arch-start-note,
+.arch-start-grid a:focus-visible .arch-start-note {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* ---------- rail and body ---------- */
+
+.arch-body-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  margin-top: calc(var(--space-7) + var(--space-6));
+}
+
+@media (min-width: 1100px) {
+  .arch-body-grid {
+    grid-template-columns: 250px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.arch-rail {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .arch-rail {
+    display: block;
+    position: sticky;
+    top: calc(var(--nav-h) + var(--space-4));
+    max-height: calc(100vh - var(--nav-h) - var(--space-6));
+    overflow-y: auto;
+    padding-right: var(--space-3);
+    border-right: 2px solid var(--ink);
+  }
+}
+
+.arch-rail-head {
+  margin: 0 0 var(--space-2);
+  color: var(--fineprint-gray);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.arch-rail-head + ol {
+  margin-bottom: var(--space-5);
+}
+
+.arch-rail ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arch-rail a {
+  display: grid;
+  grid-template-columns: 2.2em 1fr;
+  gap: var(--space-2);
+  padding: 5px var(--space-2) 5px 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.arch-rail a:hover {
+  color: var(--blue-brand);
+}
+
+/* The marker is a hard block in the gutter rather than a colour change, so
+   position in a list this long survives a glance. */
+.arch-rail a[aria-current] {
+  box-shadow: inset 3px 0 0 var(--blue-brand);
+  padding-left: var(--space-2);
+  font-weight: 700;
+  color: var(--blue-brand);
+}
+
+.arch-rail-n {
+  color: var(--fineprint-gray);
+  font-family: var(--arch-mono);
+  font-size: 12px;
+}
+
+.arch-rail a[aria-current] .arch-rail-n {
+  color: var(--blue-brand);
+}
+
+/* ---------- the document itself ---------- */
+
+.arch-doc {
+  min-width: 0;
+  border: 2px solid var(--ink);
+  background: var(--white);
+  padding: var(--space-6) var(--space-5) var(--space-7);
+}
+
+.arch-doc > *:first-child {
+  margin-top: 0;
+}
+
+.arch-doc p,
+.arch-doc li {
+  line-height: 1.65;
+}
+
+.arch-doc p {
+  margin: 0 0 var(--space-3);
+  max-width: 74ch;
+}
+
+/* Section headings carry a rule across the measure so the document reads as a
+   sequence of numbered parts rather than as one long page of prose. */
+.arch-doc h2 {
+  margin: var(--space-7) 0 var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 2px solid var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-h3), 3vw, var(--text-h2));
+  line-height: 1.1;
+  scroll-margin-top: calc(var(--nav-h) + var(--space-3));
+}
+
+.arch-doc h3 {
+  margin: var(--space-6) 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  line-height: 1.2;
+  scroll-margin-top: calc(var(--nav-h) + var(--space-3));
+}
+
+.arch-doc h4 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  line-height: 1.25;
+  scroll-margin-top: calc(var(--nav-h) + var(--space-3));
+}
+
+.arch-doc h5,
+.arch-doc h6 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+}
+
+.arch-doc ul,
+.arch-doc ol {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+  max-width: 74ch;
+}
+
+.arch-doc li {
+  margin-bottom: var(--space-2);
+}
+
+.arch-doc li::marker {
+  color: var(--blue-brand);
+}
+
+.arch-doc a {
+  color: var(--blue-brand);
+}
+
+.arch-doc hr {
+  margin: var(--space-6) 0;
+  border: 0;
+  border-top: 1px solid var(--arch-hair);
+}
+
+.arch-doc strong {
+  font-weight: 700;
+}
+
+/* Inline values: command names, sysctls, unit names, digests. Mono and boxed so
+   an identifier is never mistaken for emphasis. */
+.arch-doc :not(pre) > code {
+  padding: 1px 5px;
+  border: 1px solid var(--arch-rule);
+  border-radius: 2px;
+  background: var(--arch-tint);
+  font-family: var(--arch-mono);
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+
+/* Syntax highlighting, defined from the site palette rather than from Shiki's
+   own theme. Shiki is configured to the css-variables theme in astro.config.mjs
+   precisely so these can be tokens: an evidence block should not introduce a
+   second colour system into a document that is mostly evidence blocks. */
+.arch-page {
+  --astro-code-color-text: var(--arch-code-ink);
+  --astro-code-color-background: var(--arch-code-bg);
+  --astro-code-token-constant: var(--yellow-accent);
+  --astro-code-token-string: #b6d7a8;
+  --astro-code-token-string-expression: #b6d7a8;
+  --astro-code-token-comment: #8d8d88;
+  --astro-code-token-keyword: #9fc0f5;
+  --astro-code-token-parameter: var(--arch-code-ink);
+  --astro-code-token-function: #9fc0f5;
+  --astro-code-token-punctuation: #a9a8a4;
+  --astro-code-token-link: var(--gold-identity);
+}
+
+/* Evidence blocks. Dark, so quoted output reads as something the machine said
+   rather than as something the author wrote. Shiki writes the background as an
+   inline style, so the border, padding and scrolling are ours and the fill is
+   the token above. */
+.arch-doc pre {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 2px solid var(--ink);
+  background: var(--arch-code-bg);
+  color: var(--arch-code-ink);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.arch-doc pre code {
+  font-family: var(--arch-mono);
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  white-space: pre;
+}
+
+.arch-doc blockquote {
+  margin: var(--space-4) 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-left: 4px solid var(--gold-identity);
+  max-width: 64ch;
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  line-height: 1.35;
+}
+
+/* Tables carry most of the substance here: threat model, decision register,
+   gate results. They stay legible ahead of everything else. */
+.arch-doc table {
+  width: 100%;
+  margin: var(--space-4) 0;
+  border-collapse: collapse;
+  font-size: var(--text-caption);
+}
+
+.arch-doc table th,
+.arch-doc table td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--arch-hair);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.arch-doc table th {
+  border-bottom: 2px solid var(--ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.arch-doc table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.arch-doc table code {
+  font-size: 0.9em;
+}
+
+/* Every table gets its own scroller rather than widening the page. Wrapped by
+   the markdown pipeline is not an option here, so the rule is applied to the
+   table itself with a block container. */
+.arch-doc table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+@media (min-width: 700px) {
+  .arch-doc table {
+    display: table;
+  }
+}
+
+@media (max-width: 1099px) {
+  .arch-shell {
+    width: min(100% - 32px, 1240px);
+  }
+
+  .arch-doc {
+    padding: var(--space-5) var(--space-3) var(--space-6);
+  }
+
+  .arch-body-grid {
+    margin-top: var(--space-6);
+  }
+
+  .arch-start {
+    margin-top: 0;
+    transform: none;
+    padding-top: var(--space-5);
+  }
+}
+
+/* The report is the thing a reviewer forwards to somebody else, so it prints:
+   ink on paper, the rail and the page furniture gone, evidence blocks in a box
+   rather than a slab of toner. */
+@media print {
+  .arch-page {
+    background: var(--white);
+    padding-bottom: 0;
+  }
+
+  .arch-shell {
+    width: 100%;
+  }
+
+  .arch-masthead {
+    padding-block: 0 18pt;
+    border-bottom: 2pt solid #000;
+    background: var(--white);
+    color: #000;
+  }
+
+  .arch-eyebrow,
+  .arch-deck,
+  .arch-artifact dt,
+  .arch-artifact code,
+  .arch-figures strong,
+  .arch-figures span {
+    color: #000;
+  }
+
+  .arch-artifact,
+  .arch-artifact > div {
+    border-color: #999;
+  }
+
+  .arch-actions,
+  .arch-rail,
+  .site-nav,
+  .site-footer {
+    display: none;
+  }
+
+  .arch-start,
+  .arch-doc {
+    transform: none;
+    margin-top: 18pt;
+    border: 0;
+    border-top: 1.5pt solid #000;
+    box-shadow: none;
+    padding: 10pt 0 0;
+  }
+
+  .arch-start-head {
+    padding: 8pt 0;
+    background: var(--white);
+    border-bottom: 1px solid #999;
+  }
+
+  .arch-body-grid {
+    display: block;
+    margin-top: 0;
+  }
+
+  /* Shiki sets the fill inline, so print has to say so louder. Toner, not a
+     black slab, and long gate lines wrap instead of being guillotined at the
+     page edge. */
+  .arch-doc pre,
+  .arch-doc pre.astro-code {
+    border: 1px solid #999;
+    background: #fff !important;
+    color: #000 !important;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .arch-doc pre code span {
+    color: #000 !important;
+  }
+
+  .arch-doc a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  .arch-doc h2,
+  .arch-doc h3 {
+    page-break-after: avoid;
+  }
+
+  .arch-doc table {
+    display: table;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}
