@@ -1,269 +1,160 @@
-# SITE FIT RESUME: secureprospective.com
-
-Written 2026-09-12 for a mid-session compaction. The session CONTINUES after this.
-Supersedes the 2026-09-12 12:53 edition, which covered the homepage pass.
-
----
+# RESUME: secureprospective.com site fit + SP+ 0.11 release wiring
+**Written:** 2026-09-12 23:30 CDT. Supersedes the back-office-pass resume at `69b7a02`.
+This is a compact-safe snapshot. The session CONTINUES; nothing here is a wrap-up.
 
 ## 1. WHAT WE ARE DOING
+Two threads. (a) A full pre-launch audit of every page of secureprospective.com,
+fixing what it found. (b) Making the site tell the truth about the SP+ 0.11
+release, which is mid-upload and therefore not yet downloadable.
 
-Christopher walks the live site and hands over work one ask at a time. I build it,
-verify it rendered, and deploy when he authorises that specific deploy. The current
-stretch is the member back office: two long documents about SP+ brought into the site
-as real pages.
+- Repo: `/home/chris/work/secureprospective-site`, branch `main`, NOT a worktree.
+- Deploy: Cloudflare Pages auto-deploys on push to `main`. A push IS a production deploy.
+- Second repo touched: `/home/chris/work/secureprospective-advisor-os`, branch
+  `session/sp-plus-defense-in-depth`. **This one IS a git worktree** and another
+  agent is actively working in it. Never `git stash` there.
 
-- **Repo:** `/home/chris/work/secureprospective-site` (Beelink clone)
-- **Branch:** `main`, clean, `origin/main` == local HEAD == `2411867`
-- **Deploy:** Cloudflare Pages auto-deploys from `main`. Typical rebuild ~45 seconds.
-- **Live:** https://secureprospective.com
-
----
-
-## 2. AGENTS AND HARNESSES
-
-**None.** No subordinate agents were dispatched this session. Nothing to orphan and
-no transcripts to recover. All work was done in the main context.
-
----
+## 2. AGENTS + HARNESSES
+- **Me (Claude, Opus 5, Beelink `com` / 192.168.1.190).** Owns the site repo.
+- **Claudebox / CT105 (192.168.1.105).** Head brain. Owns the SP+ release end:
+  the ISO build, ghcr publish, the R2 upload, and the Dell. Talks to me through
+  brief files that Christopher relays by hand; there is no direct channel.
+  - Brief I sent: `~/fleet/briefs/ct105-spplus-011-release-verify.md`
+  - Its reply: `~/fleet/briefs/ct105-spplus-011-release-verify.reply.md`
+  - **CT105 addresses me as "Tom".** It has the wrong identity recorded for this
+    end. Flagged to Christopher, not corrected.
 
 ## 3. GATES / STATUS
-
 | Gate | State |
 |---|---|
-| `npm run build` | PASS, 16 pages |
-| Filing gate `~/.reorg/tools/check-filing.sh` | PASS, exit 0, 23 visible entries |
-| Zero em dashes in visitor copy | PASS in prose; 2 remain inside fenced blocks, deliberately, see §7 D-9 |
-| No font CDNs | PASS, 0 `fonts.googleapis` references on both new pages |
-| Rendered verification | PASS at 390px, 847px and 1440px on both pages |
-| Live verification against production | PASS, see §4 |
-| Dev / preview servers | None running |
-
----
+| Static audit (SEO, a11y, links, security, content) over all 16 pages | PASS |
+| Rendered audit in Chrome at 360/390/768/1008/1280/1440 | PASS, 0 overflow, 0 contrast failures |
+| Em dashes sitewide | 0, verified against production |
+| Cloudflare edge caching of HTML | LIVE and verified MISS then HIT |
+| SP+ 0.11 downloadable by members | **BLOCKED. The R2 object does not exist yet.** |
+| SP+ update lane (`spplus-update-control status`) | **DEFECTIVE, CT105's lane.** See §5 |
+| R2 credential rotation after the argv leak | NOT DONE |
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
+- **SP+ 0.11 ISO**, built as v0.11.4, on this machine at
+  `~/work/secureprospective-advisor-os/projects/sp-plus/artifacts/v0.11.4-iso/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso`
+  - `5520687104` bytes
+  - sha256 `a793df68e7f21cea274d139ef9b3aca375f7545bba9a38ddb79945d863cc562b`
+  - **I recomputed that hash myself from the file on disk.** It agrees with the
+    release ledger. It is not a copied number.
+- **ghcr image**, published + signed + verified by CT105:
+  `sha256:286075671c3f18259db7339c059f74ffdc389604f79e4b3c99e6ececd29304ac`
+  (tags `:latest` and `:20260913`). This half of "released" is genuinely done.
+- **Audit scripts**, scratchpad only, WILL NOT SURVIVE:
+  `/tmp/claude-1000/-home-chris/bb43a672-693a-40e4-b860-f122f05da111/scratchpad/audit/static.mjs` (SEO/a11y/content/link scanner over `dist/`) and
+  `/tmp/claude-1000/-home-chris/bb43a672-693a-40e4-b860-f122f05da111/scratchpad/audit/pass2.mjs` (labels, heading order, duplicate meta, og:image).
+  Both re-runnable with `node <path>` after `npx astro build`. Copy into the repo
+  if the audit is ever to be repeatable.
 
-Two new pages, both live and verified **against production**, not against `dist/`.
+## 5. THE CURRENT BUG(S)
+**A. The release is not released.** Christopher's words were "We just uploaded and
+released SP+ 0.11." The ghcr half is true. The member-facing ISO is not: `rclone`
+is still uploading, 65% at 23:28 CDT, ETA ~28 min, ~1.07 MiB/s.
+- It is a **multipart** upload, so the key does not appear in the bucket until the
+  final part commits. An empty `sp-plus/` prefix is therefore NOT evidence of
+  failure. Both I and CT105 listed it and got nothing; both readings were correct.
 
-### `/members/inside-sp-plus`, commit `d5cbea6`
+**B. `spplus-update-control status` lies, on the Dell.** CT105 observed it report
+`"state": "current"`, `"This computer is up to date."` while `check`, seconds later,
+found `sha256:286075...` available. Status cannot distinguish "verified current"
+from "never looked" and gives the reassuring answer for both.
+- **Caveat, and it matters:** this is CT105's observation on the Dell, not mine. I
+  have not reproduced it and cannot from here.
+- **Site consequence, unconfirmed:** Inside SP+ says *"A daily health check can mark
+  the system as needing attention rather than leaving a problem to be discovered
+  later."* IF that health check consumes `update-control status`, that sentence is a
+  promise the machine does not keep and must be reworded before 0.11 reaches members.
+  **I could not trace the linkage from this machine. Do not reword it on the
+  assumption. The open question to CT105 is: does the daily health check consume
+  `update-control status`?**
 
-The advisor-facing reference document. Source was `~/Downloads/INSIDE-SP-PLUS.html`
-(62,733 bytes), which carried its own palette and two Google font links. Both removed.
+**C. The R2 access key and secret are exposed in `ps` right now.** The running
+upload was launched by the OLD `publish-iso-r2.sh`, which passed them as rclone
+CLI flags. The script has since been fixed to use the environment, but the live
+process still carries them in argv, readable by any local user, until it exits.
+Rotation has not happened. Do not paste those values anywhere.
 
-| File | Bytes |
+## 6. HYPOTHESES ALREADY REFUTED. DO NOT RETEST.
+| Claim | Verdict |
 |---|---|
-| `src/pages/members/inside-sp-plus.astro` | 70,902 |
-| `src/styles/pages/inside-sp-plus.css` | 14,452 |
-
-Live asset hash: `_astro/inside-sp-plus.3VlSqibq.css`, matches local `dist/` exactly.
-
-### `/members/sp-plus-security-architecture`, commit `2411867`
-
-The technical counterpart, for a security reviewer. Source was
-`~/Downloads/SP-PLUS-SECURITY-ARCHITECTURE-2026-09-11.md` (85,590 bytes, 1,705 lines).
-
-| File | Bytes |
-|---|---|
-| `src/pages/members/sp-plus-security-architecture.md` | 85,090 |
-| `src/layouts/ArchitectureDoc.astro` | 7,577 |
-| `src/styles/pages/architecture.css` | 14,447 |
-| `astro.config.mjs` | +14 lines, Shiki `css-variables` theme |
-
-Live asset hashes: `_astro/sp-plus-security-architecture.D6X52_YQ.css` and
-`_astro/sp-plus-security-architecture.mW_Jeoa3.css`, both matching local `dist/`.
-
-**Live read-back, 2026-09-12 after the push:**
-
-| Check | Observed |
-|---|---|
-| Architecture page | 200, 151,607 bytes |
-| Section rail | 20 `data-rail-link` entries |
-| Tables rendered | 15 |
-| Shiki theme in output | `astro-code css-variables` |
-| Em dashes in page | 2, both in fenced blocks |
-| `fonts.googleapis` references | 0 |
-| sha256 in artifact ledger | `038795fe96b734015d941967eca9b63a96318ab90ee5d9ece0b843be68016c94` |
-| Back office buttons | Download SP+ / Read Inside SP+ / Read the security architecture, all present |
-| Inside SP+ page | 200 |
-
-### The transform script
-
-`/tmp/claude-1000/-home-chris/bb43a672-693a-40e4-b860-f122f05da111/scratchpad/xform.py`
-(12,556 bytes) holds the 64 explicit em-dash rewrites applied to the architecture
-markdown. It asserts every source string is found and re-scans for strays, so it is
-the thing to re-run if the upstream `.md` is regenerated. **Scratchpad only, not
-committed, and it will not survive the session.** If the report gets regenerated
-later, copy it into the repo first.
-
----
-
-## 5. THE CURRENT BUG
-
-**The Contact hero email wrap.** Carried over from the previous resume document and
-still open. At roughly 1000px the direct-channel card breaks
-`info@secureprospective.co` / `m`.
-
-- **Element:** the `<a href="mailto:...">` inside `.contact-channel-card`
-- **Styled in:** `src/styles/pages/contact.css`
-- **Leading hypothesis:** a width or `overflow-wrap` interaction on the anchor.
-- **Caveat on that hypothesis: it is unconfirmed.** Nobody has inspected the computed
-  style on that anchor at that width. Do not write a fix against this guess. Reproduce
-  at 1008px in the iframe rig and read the computed style first.
-
-Christopher has now raised this twice and it has been deferred twice.
-
----
-
-## 6. HYPOTHESES AND METHODS ALREADY REFUTED: DO NOT RETEST
-
-1. **`resize_window` does not change the viewport.** Confirmed across two sessions.
-   Use an iframe rig instead: create an iframe at the target width, read
-   `contentWindow`/`contentDocument`. Add a cache-busting `?v=Date.now()` or it serves
-   stale CSS.
-2. **`scrollIntoView` and `window.scrollTo` inside a transformed iframe do nothing.**
-   Observed this session: both returned `scrollY: 0`. `contentDocument.documentElement.scrollTop = N`
-   works. Use that.
-3. **`offsetTop` inside `.arch-doc` is not the document offset.** Its offsetParent is the
-   card, so scrolling to `el.offsetTop` lands in the wrong section. Use
-   `getBoundingClientRect().top + scrollY`.
-4. **Synthetic `hover` does not register as `:hover`** across separate tool calls. Use
-   `browser_batch` so pointer state survives.
-5. **`curl` without `-L` makes a successful deploy look like a failure.** The site
-   308-redirects `/path` to `/path/`. Always `curl -L`.
-6. **A chained `sleep 45` is blocked by the harness.** Use a poll loop.
-7. **`pkill -f` returns exit 144 and looks like a failure.** It is not. Confirm with a
-   follow-up `pgrep`. Note that `pgrep -af <pattern>` matches its own wrapper shell, so
-   a bare match is not proof something is still running. Check the port instead.
-8. **`.btn--outline` does not exist in this codebase.** `CLAUDE.md` says it was promoted
-   to a shared component in `Layout.astro`. It was not, or it was later removed. Using
-   the class alone renders a default yellow `.btn`. It is now defined scoped inside
-   `src/pages/members/index.astro` only.
-9. **Astro's default Shiki theme paints its own palette inline.** `github-dark` writes
-   `style="background-color:#24292e"` onto every `<pre>`, which no stylesheet rule wins
-   against. Fixed by setting `theme: 'css-variables'` in `astro.config.mjs` and defining
-   `--astro-code-*` from tokens in `architecture.css`. Do not try to override it with CSS
-   specificity; that was the wrong road.
-
----
+| "Shiki's code-block colours can be beaten with CSS" | **REFUTED.** It writes `style="background-color:#24292e"` inline. Fixed at source with `theme: 'css-variables'` in `astro.config.mjs`. Do not fight specificity. |
+| "`.btn--outline` is a global component" | **REFUTED.** CLAUDE.md says it was promoted sitewide; `grep -rn 'btn--outline' src/` finds nothing. It is defined scoped in `members/index.astro`. CLAUDE.md is stale on this. |
+| "The contact email wrap is a width or `overflow-wrap` bug" | **PARTLY WRONG, now solved.** Real cause, measured: above 980px the hero grid goes two-column and the card drops 456px to 298px while `clamp(1.18rem, 2vw, 1.5rem)` kept growing with the VIEWPORT. Fixed with `container-type: inline-size` + `cqi`. |
+| "An empty R2 prefix means the upload failed" | **REFUTED.** Multipart; the key appears only at final commit. |
+| "The 18x18 download checkbox fails WCAG 2.5.8" | **REFUTED.** It is wrapped in a 280x153 `<label>`, so the hit area is the label. Not a defect. |
+| "`scrollIntoView` / `window.scrollTo` work inside a transformed iframe" | **REFUTED.** Both leave `scrollY: 0`. Set `contentDocument.documentElement.scrollTop` directly. |
+| "`pgrep -af <pattern>` proves a process is running" | **REFUTED, twice, by both of us.** It matches its own wrapper shell. Confirm a server by curling the port. |
+| "We have a Cloudflare token that can read Pages bindings or R2" | **REFUTED by CT105, checked twice.** The stored token 403s on `/pages/projects`; the wrangler OAuth login has no `r2` scope. |
+| "Publishing the sha256 implies we verified it against R2" | **REFUTED by reading the page.** The download page frames it as the build's fingerprint for the member to compare against their own file. It claims nothing about the bucket. No copy change needed. |
 
 ## 7. DECISIONS
-
-Carried forward and still binding:
-
-- **D-1.** Zero em dashes in anything a visitor reads. Rewrite the sentence, never swap
-  the character.
-- **D-2.** No Tailwind, no font CDNs. Colour only through `tokens.css`.
-- **D-3.** Nothing is done until it has been observed rendering. A clean build is not
-  evidence.
-- **D-4.** No grey drop shadow on the homepage truth card. He asked for it, then
-  withdrew it. Do not reintroduce it.
-- **D-5.** Live deploys need approval for that specific deploy. It does not carry
-  forward to the next one.
-
-New this session:
-
-- **D-6.** The two SP+ documents are **not behind the auth gate**. Both are `noindex`,
-  so they are links you hand somebody rather than pages they find. Rationale: both are
-  written to be read before a conversation, and the architecture report exists to be
-  forwarded to a reviewer. Flagged to Christopher; he did not ask for a gate.
-- **D-7.** The architecture report stays **authored as markdown**, rendered by
-  `ArchitectureDoc.astro`. It is an evidence document that will be regenerated as SP+
-  changes, and hand-porting 80 assertions into a component every time guarantees drift.
-- **D-8.** The back office carries **three button weights**: yellow for the download,
-  ink for Inside SP+, outline for the architecture report. Not three of the same.
-- **D-9.** **Two em dashes stay** in the architecture page, inside fenced blocks:
-  `SP+ runtime posture gate — test@127.0.0.1:2222` in quoted gate output, and
-  `# SP+ SUID/SGID allowlist — T1.10.` in a quoted source file. Editing quoted evidence
-  in a document whose whole argument is that its quotes are verbatim would be worse
-  than the style violation. The honest fix is upstream in `runtime-posture-gate.sh` and
-  the allowlist, then re-import.
-
----
+- **D-1.** A push to `secureprospective-site` main is a production deploy and needs
+  Christopher's explicit approval **for that specific push**. It does not carry forward.
+- **D-2.** The 0.11 manifest entry stays `published: false` until the R2 object is
+  listed at 5,520,687,104 bytes. A published entry over a missing object would give
+  every member a download button that streams nothing.
+- **D-3 (mine, stated to CT105).** Rotate the leaked R2 token BEFORE publishing, not
+  just before finishing the upload.
+- **D-4 (Christopher, 2026-09-13, via CT105's ledger).** The image keeps reporting
+  `SP+ 1 (20260913)`. 0.11 is the release name, not the image string. Publish rather
+  than rebuild. Do not relitigate.
+- **D-5.** Only ONE thing from a release ever reaches site `main`: the `releases.ts`
+  entry. CT105 does not push to the site repo; I do.
+- **D-6 (mine).** The fictitious `1.0-alpha` manifest stub (size 0, empty sha256,
+  a key for an ISO never built) was REPLACED, not kept alongside. If that was the
+  "old one" Christopher wanted deleted, it is handled.
+- **D-7.** Ghcr tags `:20260911` and `:signtest` still exist. Nothing deleted. Awaiting
+  Christopher's answer on what "delete the old one" meant.
 
 ## 8. LEDGER STATE
+**Site repo, `main`:**
+- `1cfc113` Stage the real 0.11 entry + fix the stale 404 note. **COMMITTED, NOT PUSHED.**
+  Deliberate: it should go up together with `published: true` in one step.
+- `26f8028`, `0cc692d`, `69b7a02` are pushed and verified live.
+- Working tree clean.
 
-Everything is committed and pushed. Nothing is written but uncommitted.
-
-```
-2411867  Publish the SP+ security architecture report   <- origin/main, live, verified
-d5cbea6  Add Inside SP+ to the back office              <- live, verified
-339e983  Update the resume document for the front-page pass
-5a20523  Tighten the hero field and rework the homepage truth card
-```
-
-Working tree clean. `origin/main` == local HEAD.
-
-**Note:** `docs/SITE-FIT-RESUME.md` in the repo is still the previous (homepage pass)
-edition until this one is committed in Step 3.
-
----
+**advisor-os, `session/sp-plus-defense-in-depth`:**
+- `bda4543` (my em dash fix at source) is committed AND already at origin.
+- `projects/sp-plus/installer/interactive-defaults.ks` and `payload-ref.txt` are
+  modified by **someone else**. I did not touch them and neither should the next window.
 
 ## 9. NEXT ACTIONS, IN ORDER
-
-1. **Wait for Christopher's next screenshot.** He is walking the site and handing over
-   asks one at a time. That is the actual driver, not this list.
-2. **Fix the Contact email wrap.** Reproduce at 1008px in the iframe rig, read the
-   computed style on the anchor **before** assuming a cause, fix, re-verify at 1008px
-   and 1440px. Open since two sessions ago and raised twice.
-3. **Correct `CLAUDE.md`'s `.btn--outline` claim.** It documents a shared component that
-   is not in the codebase. Flagged to Christopher, no instruction given.
-4. **Decide the two remaining `$110M` phrasings** at `the-operator.astro:154` and `:169`.
-   They still use the wording The Work has moved away from. Flagged, no instruction
-   given. Ask before changing.
-5. **Ask before pushing.** D-5 does not carry forward. Both deploys this session were
-   separately authorised.
-
----
+1. **Wait for CT105's confirmation** that the R2 object is listed. Do not poll the
+   upload aggressively and do not touch the rclone process.
+2. **Confirm the token was rotated** and a `publish-iso-r2.sh check` passes with the
+   new credential.
+3. **Flip** `published: false` to `true` in `functions/_lib/releases.ts`, amend or add
+   a commit, and **ask Christopher for the push** (D-1).
+4. **Verify against production**, not `dist/`: sign in, confirm the release card
+   renders, the size reads 5.14 GiB, the sha256 string matches, and
+   `/api/download/iso?v=0.11` streams rather than 404s.
+5. **Put the health-check question to CT105**: does the daily health check consume
+   `update-control status`? Reword the Inside SP+ sentence only if the answer is yes.
+6. **Raise with Christopher**: ghcr `:20260911` / `:signtest`, keep or delete.
 
 ## 10. RELAY / ENVIRONMENT NOTES
-
-- Working directory is `/home/chris/work/secureprospective-site`. Beware: a bare `cd`
-  inside a Bash call changes the harness's primary working directory for later calls.
-  It happened twice this session. Prefer absolute paths.
-- **Iframe rig**, the only way to test a viewport width here:
-  ```js
-  const f=document.createElement('iframe');
-  f.style.cssText='position:fixed;top:0;left:0;width:1440px;height:1450px;border:0;z-index:99999;background:#fff;transform:scale(0.585);transform-origin:0 0';
-  f.src='/path/?v='+Date.now();
-  document.body.appendChild(f);
-  await new Promise(r=>f.onload=r);
-  const d=f.contentDocument, w=f.contentWindow;
-  d.documentElement.scrollTop = el.getBoundingClientRect().top + w.scrollY - 90;
-  ```
-  The `transform: scale()` is what lets a 1440px layout fit inside an 847px screenshot.
-- **Viewing a gated members page:** the auth script redirects to `/members/login` before
-  you can see anything. Write a throwaway copy into `dist/` with the module script
-  stripped and `hidden` removed, view it, then delete it. Never commit it; `dist/` is
-  not tracked, but the file should still be removed.
-- **Deploy verification loop** that worked:
-  ```bash
-  for i in $(seq 1 50); do
-    code=$(curl -sL -o /tmp/x.html -w '%{http_code}' https://secureprospective.com/PATH/)
-    [ "$code" = 200 ] && grep -q 'MARKER' /tmp/x.html && break
-    sleep 15
-  done
-  ```
-  Deploys landed in 3 to 4 polls both times, so roughly 45 to 60 seconds.
-- **Filing gate note:** a new dotfile `.wrangler` has appeared at `~` since the baseline.
-  The gate calls it out as a review item, not a failure, and still exits 0. Not
-  re-baselined, because that is Christopher's call.
-
----
+- Chrome is the only usable rendering engine here. `playwright-core` is installed but
+  **no browser binary exists**, and `resize_window` does not work. The working rig is
+  an iframe at a fixed pixel width inside a normal tab, driven by `javascript_tool`.
+- Gated `/members/*` pages redirect to login before they can be inspected. To view one,
+  write a copy into `dist/` with the module script stripped, look at it, then delete it.
+- A long `javascript_tool` sweep will blow the 45s CDP timeout. Park results on `window`
+  and poll for them instead of awaiting inline.
+- `cd` inside a Bash call changes the harness's working directory. Prefer absolute paths;
+  it has flipped between the two repos several times this session.
 
 ## 11. HONEST STATUS
-
-Everything Christopher asked for in this session is live on production and was verified
-against production rather than against the build output. There is no work in flight and
-nothing is running.
-
-What is genuinely unproven:
-
-- **The Contact email wrap has never been diagnosed.** The hypothesis in §5 is a guess,
-  and it is recorded as a guess.
-- **Neither new page has been seen by Christopher on a real phone.** I measured 390px in
-  an iframe, which proves layout but not feel.
-- **The print stylesheets on both pages have never been rendered to paper or to a PDF.**
-  They are written and they are plausible; they are not measured. Both documents are
-  meant to be handed over on paper, so this is a real gap, not a pedantic one.
-- **The architecture report's figures are dated.** It names edition t29, head `830023b`
-  and 2026-09-11 throughout. It will be wrong the moment SP+ moves, and nothing on the
-  page warns a reader of that beyond the prepared date.
+The site itself is in good shape and that part is proven, not asserted: every fix was
+checked rendered and then re-checked against production. What is NOT proven:
+- **The 0.11 download has never worked, because the object does not exist yet.** Nothing
+  about the download lane is verified end to end. The manifest entry is correct data
+  pointing at an absent file.
+- **The update-lane defect is CT105's report, not my observation**, and its blast radius
+  on the site copy is a linkage I could not trace.
+- **The Pages binding `SPPLUS_RELEASES` is unverified by anyone.** It rests on
+  Christopher having read the dashboard. No credential on either machine can check it.
+  If the download 404s after publishing, suspect this first.
