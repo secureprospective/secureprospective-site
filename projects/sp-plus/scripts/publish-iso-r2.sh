@@ -76,7 +76,25 @@ case "${1:-check}" in
   verify)
       SIZE_LOCAL=$(stat -c %s "$ISO")
       SHA_LOCAL=$(sha256sum "$ISO" | awk '{print $1}')
-      SIZE_R2=$(rc size ":s3:$R2_BUCKET/$KEY" 2>/dev/null | awk '/total size/ {print $NF}' | tr -dc 0-9)
+      # PARSE JSON, NOT THE HUMAN-READABLE OUTPUT. This was:
+      #   rc size ... | awk '/total size/ {print $NF}'
+      # and rclone prints "Total size:" with a capital T, so the pattern never
+      # matched, SIZE_R2 was always empty, and the gate below could only ever
+      # FAIL. It did exactly that on 2026-09-13 against an upload that had in
+      # fact completed perfectly -- 5520687104 bytes, present, correct. A check
+      # that cannot pass is as useless as one that cannot fail, and it is more
+      # dangerous, because the false alarm trains you to disbelieve the gate.
+      SIZE_R2=$(rc lsjson ":s3:$R2_BUCKET/$KEY" 2>/dev/null \
+          | python3 -c 'import json,sys
+try:
+    rows = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(0)
+for r in rows:
+    if not r.get("IsDir"):
+        print(r.get("Size", ""))
+        break
+')
       echo "== local $SIZE_LOCAL bytes"
       echo "== r2    ${SIZE_R2:-<absent>} bytes"
       [ -n "${SIZE_R2:-}" ] && [ "$SIZE_R2" = "$SIZE_LOCAL" ] \
