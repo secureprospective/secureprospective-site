@@ -39,14 +39,21 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
-    id: "1.0-alpha",
-    label: "SP+ 1 Alpha",
-    key: "sp-plus/sp-plus-1.0-alpha.iso",
-    filename: "sp-plus-1.0-alpha.iso",
-    size: 0,
-    sha256: "",
-    released: "2026-09-04",
-    note: "First public build. Install to a spare machine, not your working laptop.",
+    // Built as v0.11.4; 0.11 is how the release is named to members. The image
+    // itself still reports "SP+ 1 (20260913)" -- Christopher's call on
+    // 2026-09-13 was to publish rather than rebuild for a version string.
+    id: "0.11",
+    label: "SP+ 0.11",
+    key: "sp-plus/sp-plus-0.11.iso",
+    filename: "sp-plus-0.11.iso",
+    size: 5520687104,
+    sha256: "a793df68e7f21cea274d139ef9b3aca375f7545bba9a38ddb79945d863cc562b",
+    released: "2026-09-13",
+    note: "Install to a spare machine, not your working laptop.",
+    // STAGED, NOT LIVE. The object is still uploading to R2; the bucket was
+    // empty when this entry was written. Publishing now would put a download
+    // button in front of members that streams nothing. Flip to true only after
+    // `publish-iso-r2.sh verify` reports the object present at the size above.
     published: false,
   },
 ];
