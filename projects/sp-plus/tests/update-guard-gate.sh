@@ -52,7 +52,11 @@ expect_state() {
     fi
 }
 
-run() { "$HELPER" simulate "{\"booted\":$BOOTED,\"staged\":$1,\"cached\":$2}"; }
+# $3 is the last-successful-check stamp. It defaults to NOW, because every case
+# below is a question about what the guard concludes when the machine HAS
+# checked. The separate question -- what it says when it has NOT -- is case 5.
+run() { "$HELPER" simulate "{\"booted\":$BOOTED,\"staged\":$1,\"cached\":$2}" \
+        "${3-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; }
 
 echo "update-guard-gate: $HELPER"
 
@@ -72,9 +76,27 @@ expect_state "registry newer than machine" "$(run '{}' "$NEWER")" available
 # 3. Something already downloaded is reported as ready to restart into.
 expect_state "update already staged" "$(run "$NEWER" "$NEWER")" staged
 
-# 4. Same digest, and no cachedUpdate at all, are both "current".
+# 4. Same digest, and no cachedUpdate, are "current" -- BUT ONLY WITH A RECENT
+#    CHECK BEHIND THEM. This assertion used to read:
+#
+#        expect_state "no cached update" "$(run '{}' '{}')" current
+#
+#    with no stamp at all, and it passed. It was encoding the bug. An absent
+#    cachedUpdate is exactly what a machine looks like when it has NEVER asked
+#    the registry, and calling that "up to date" is the defect found on the Dell
+#    on 2026-09-13 and reproduced on a one-minute-old install from the 0.11 ISO:
+#    a brand-new advisor machine telling its owner it was current, having never
+#    once checked.
+#
+#    A gate that asserts the wrong contract does not merely miss the bug; it
+#    PINS it, and fails the build of the fix. This one did exactly that.
 expect_state "identical digest" "$(run '{}' "$SAME")" current
-expect_state "no cached update" "$(run '{}' '{}')" current
+expect_state "no cached update, checked just now" "$(run '{}' '{}')" current
+
+# 5. The same state with NO successful check behind it must NOT claim currency.
+expect_state "no cached update, never checked" "$(run '{}' '{}' '')" unknown
+expect_state "no cached update, check is stale" \
+    "$(run '{}' '{}' "$(date -u -d '5 days ago' +%Y-%m-%dT%H:%M:%SZ)")" unknown
 
 # 5. staged wins over everything: a staged update is never re-offered as new.
 expect_state "staged outranks available" "$(run "$NEWER" "$OLDER")" staged
