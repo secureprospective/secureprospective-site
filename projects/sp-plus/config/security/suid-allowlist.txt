@@ -1,4 +1,4 @@
-# SP+ SUID/SGID allowlist — T1.10.
+# SP+ SUID/SGID allowlist: T1.10.
 #
 # INVENTORY, NOT REMOVAL. Secureblue deletes sudo, su, pkexec, chsh and chfn.
 # That is exactly the class of change that breaks printing or mounting on a

@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# SP+ runtime posture gate — assert the SECURITY CONTROLS THAT ARE IN EFFECT on a
+# SP+ runtime posture gate: assert the SECURITY CONTROLS THAT ARE IN EFFECT on a
 # booted machine, not the config text that was supposed to produce them.
 #
 # WHY THIS EXISTS. The 2026-09-03 pre-release audit found smbd listening on
@@ -44,7 +44,7 @@ record() {
 
 remote() { "${SSH[@]}" "$*" 2>/dev/null; }
 
-echo "SP+ runtime posture gate — $TARGET:$PORT"
+echo "SP+ runtime posture gate: $TARGET:$PORT"
 if ! remote true; then
     echo "UNREACHABLE: cannot ssh to $TARGET:$PORT with $IDENT."
     echo "That is a harness problem, not a pass. Exiting non-zero."
@@ -656,7 +656,7 @@ esac
 echo
 echo "passed=$PASS failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then
-    echo "POSTURE GATE FAILED — a control that the build believes it applied is not in effect."
+    echo "POSTURE GATE FAILED: a control that the build believes it applied is not in effect."
     exit 1
 fi
 echo "RUNTIME_POSTURE_OK all $PASS controls measured in effect"
