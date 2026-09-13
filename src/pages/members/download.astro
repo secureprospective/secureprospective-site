@@ -87,11 +87,125 @@ import Footer from '../../components/Footer.astro';
         </p>
         <p class="dl-label">Windows (PowerShell)</p>
         <pre class="dl-code"><code>Get-FileHash .\FILENAME -Algorithm SHA256</code></pre>
+        <p class="dl-label">Windows (Command Prompt)</p>
+        <pre class="dl-code"><code>certutil -hashfile FILENAME SHA256</code></pre>
         <p class="dl-label">Mac or Linux</p>
         <pre class="dl-code"><code>shasum -a 256 FILENAME</code></pre>
         <p class="dl-note">
           Replace FILENAME with the file you saved. This is worth doing: it is the whole point of
           publishing the fingerprint.
+        </p>
+      </div>
+    </section>
+
+    <!--
+      Install and after-install documentation. This is written for an advisor
+      who has only ever installed software by double-clicking an installer
+      inside Windows, and for whom "write the image to a USB stick" is a new
+      idea. The passphrase paragraph is the one that matters most: it is the
+      only step on this page that can lose a person their data permanently,
+      and it happens while they are still deciding whether they trust us.
+    -->
+    <section class="property-card">
+      <div class="property-card__band property-card__band--static">
+        <span class="property-card__title">How to install it</span>
+      </div>
+      <div class="property-card__body">
+        <p>
+          What you downloaded is a whole operating system, not a program that runs inside Windows.
+          It replaces Windows on the machine you install it to. That is the point of it, and it is
+          also why the machine has to be one you can afford to erase.
+        </p>
+
+        <p class="dl-label">What you need</p>
+        <ul class="dl-steps">
+          <li>The spare computer you are installing to, plugged into power.</li>
+          <li>A USB stick of 8 GB or larger. Writing SP+ to it erases whatever is on it.</li>
+          <li>
+            A wired network connection if the machine has a port for one. Wireless works, but a
+            cable is the difference between an install that finishes and one you have to babysit.
+          </li>
+        </ul>
+
+        <p class="dl-label">Step by step</p>
+        <ol class="dl-steps">
+          <li>
+            <strong>Write the file to the USB stick.</strong> On Windows, use Rufus or Etcher. On a
+            Mac, use Etcher. Both are free, and both do one job: they copy this file onto the stick
+            in a form the computer can start from. Copying the file onto the stick the ordinary way
+            does not work.
+          </li>
+          <li>
+            <strong>Start the spare machine from the stick.</strong> Put the stick in, turn the
+            machine on, and press the key that opens its boot menu while it starts. It is usually
+            F12, sometimes F9, F10 or Escape, and the machine normally tells you which for about a
+            second. Choose the USB stick from the list.
+          </li>
+          <li>
+            <strong>Work through the installer.</strong> It asks for your language, your time zone,
+            the disk to install to, and a name and password for yourself.
+          </li>
+          <li>
+            <strong>Set the disk passphrase when it asks.</strong> Read the next section first.
+          </li>
+          <li>
+            <strong>Let it finish, then remove the stick and restart.</strong> The first start after
+            an install takes longer than the ones after it.
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="property-card property-card--warn">
+      <div class="property-card__band property-card__band--warn">
+        <span class="property-card__title">The disk passphrase</span>
+      </div>
+      <div class="property-card__body">
+        <p>
+          SP+ encrypts the whole disk. That is not an option you turn on afterwards; it happens
+          during the install, and you choose the passphrase that unlocks it. You will type that
+          passphrase every time the machine starts, before anything else appears.
+        </p>
+        <p>
+          <strong>Nobody can recover it. Not us, not the manufacturer, not anyone.</strong> There is
+          no reset link and no support line that can let you back in. If you lose that passphrase,
+          everything on that machine is gone, and the only way forward is to erase the disk and
+          install again from the beginning.
+        </p>
+        <p>
+          Write it down before you type it in, and keep the paper somewhere that is not that
+          computer. This is the one step on this page that cannot be undone by trying again.
+        </p>
+      </div>
+    </section>
+
+    <section class="property-card">
+      <div class="property-card__band property-card__band--static">
+        <span class="property-card__title">After it is installed</span>
+      </div>
+      <div class="property-card__body">
+        <p>
+          The computer updates itself. You do not go looking for updates, you do not buy them, and
+          there is nothing to renew. It checks on its own, and when a new version is ready it
+          downloads it in the background while you keep working.
+        </p>
+        <p>
+          When the download has finished you will see a notification that says
+          <strong>SP+ is ready to update</strong>, with two buttons. <strong>Restart now</strong>
+          puts the new version in place immediately and takes a couple of minutes.
+          <strong>Later</strong> leaves it where it is.
+        </p>
+        <p>
+          Choosing Later costs you nothing. The update has already been downloaded, and it is
+          applied the next time the machine shuts down, so closing the laptop lid at the end of the
+          day and shutting it off does the same job as pressing the button. Either way, the next
+          time you start it you are on the new version, and you unlock the disk with the same
+          passphrase as always.
+        </p>
+        <p class="dl-note">
+          If an update goes wrong, the version you were on before is still on the machine. It is
+          kept deliberately, so there is something to put back. You will not be left with a
+          computer that does not start.
         </p>
       </div>
     </section>
@@ -321,6 +435,17 @@ import Footer from '../../components/Footer.astro';
   .dl-note {
     color: var(--fineprint-gray);
     font-size: 14px;
+  }
+
+  /* The install steps are read on a phone, standing next to the machine being
+     installed, which is why they are spaced further apart than ordinary body
+     copy: losing your place between step 2 and step 3 costs a reboot. */
+  .dl-steps {
+    padding-left: var(--space-4);
+  }
+
+  .dl-steps li + li {
+    margin-top: var(--space-3);
   }
 
   .property-card--warn {
