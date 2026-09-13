@@ -32,6 +32,7 @@ scripts/
 # excluded wholesale above, and that exclusion silently failed the build on
 # 2026-09-01 at STEP 54 with "no items matching glob ... (1 filtered out)".
 !tests/update-guard-gate.sh
+!tests/update-lane-gate.sh
 
 # The five Fin gates and the permissions probe. Four of the five gates run at
 # build time AND ship, so an advisor's machine can be checked against the same
