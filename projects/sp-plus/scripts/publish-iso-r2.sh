@@ -27,6 +27,10 @@ KEY="sp-plus/sp-plus-0.11.iso"
 [ -r "$ENVF" ] || { echo "no credentials at $ENVF -- see ~/Downloads/paste.md" >&2; exit 2; }
 # shellcheck disable=SC1090
 set -a; . "$ENVF"; set +a
+# Known, so they are defaults rather than something to paste and mistype.
+: "${R2_ACCOUNT_ID:=002dd2f758b67ac08d05a3809d65a25a}"
+: "${R2_BUCKET:=spplus-releases}"
+
 for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
     val="${!v:-}"
     case "$val" in
@@ -35,14 +39,18 @@ for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
 done
 [ -x "$RCLONE" ] || { echo "rclone not at $RCLONE" >&2; exit 2; }
 
+# The secret goes through the ENVIRONMENT, never argv. rclone accepts both, but
+# a command line is world-readable: `ps aux` on this machine shows every flag to
+# every local user, and it lands verbatim in any log or transcript that captures
+# a process listing. That happened on 2026-09-13 with the first version of this
+# script. /proc/<pid>/environ is readable only by the owner and root.
 rc() {
-    "$RCLONE" \
-        --s3-provider Cloudflare \
-        --s3-access-key-id "$R2_ACCESS_KEY_ID" \
-        --s3-secret-access-key "$R2_SECRET_ACCESS_KEY" \
-        --s3-endpoint "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-        --s3-no-check-bucket \
-        "$@"
+    RCLONE_S3_PROVIDER=Cloudflare \
+    RCLONE_S3_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+    RCLONE_S3_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+    RCLONE_S3_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+    RCLONE_S3_NO_CHECK_BUCKET=true \
+    "$RCLONE" "$@"
 }
 
 case "${1:-check}" in

@@ -136,8 +136,17 @@ includes R2, or an R2 "Object Read & Write" API token from the dashboard saved
 to `~/.config/sp-plus-r2/env`. `scripts/publish-iso-r2.sh` reads that file,
 uploads, verifies the object size against the build, and prints the manifest
 entry for stage 7. **Account ID: `002dd2f758b67ac08d05a3809d65a25a`.**
-The bucket name is only in the Pages project binding `SPPLUS_RELEASES` — it is
-recorded nowhere in the repo. **Write it here the first time you learn it.**
+**The bucket is `spplus-releases`** (confirmed 2026-09-13), on the
+`secureprospective-site` Pages project, bound as `SPPLUS_RELEASES` in BOTH
+Production and Preview. It is private: no public access, no custom domain, no
+`r2.dev`. The Pages Function streams objects out of it through the binding,
+which is a separate auth path from the upload token.
+
+S3 endpoint: `https://002dd2f758b67ac08d05a3809d65a25a.r2.cloudflarestorage.com`,
+region `auto`. The token wants **Account** type, **Object Read & Write**, scoped
+to `spplus-releases` alone — that is the only permission level that can be
+scoped to one bucket. The Secret Access Key is shown ONCE on the success screen
+and cannot be retrieved later.
 
 ## 7. The release manifest — a real, small commit to the SITE repo main
 
