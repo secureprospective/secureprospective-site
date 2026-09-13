@@ -313,7 +313,11 @@
   line-height: 1.15;
 }
 
-.inside-body h4 {
+.inside-body h4,
+/* The questions in section 11 sit directly under that section's h2, so they
+   have to be h3 or a screen reader hears a level skipped. They are still
+   question-sized rather than subhead-sized, which is what this class keeps. */
+.inside-body h3.inside-q {
   margin: var(--space-5) 0 var(--space-2);
   font-family: var(--font-display);
   font-size: var(--text-body);

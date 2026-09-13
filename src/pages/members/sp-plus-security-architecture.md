@@ -2,7 +2,7 @@
 layout: ../../layouts/ArchitectureDoc.astro
 title: "SP+ Security Architecture: SecureProspective"
 docTitle: "SP+ Security Architecture and Evidence Report"
-description: "Every control measured in effect on a booted machine, every measurement shown capable of failing, and the register of this project's own checks that measured nothing."
+description: "Every control measured on a booted machine, every measurement shown capable of failing, and the register of our own checks that measured nothing."
 audience: "Security reviewers examining the technical substance of the work"
 prepared: "2026-09-11"
 artifact: "sp-plus-defense-in-depth-20260911.iso"

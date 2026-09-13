@@ -19,7 +19,7 @@ import Footer from '../../../components/Footer.astro';
       <section class="panel">
         <h2>Invite a member</h2>
         <form id="invite-form" class="inline-form" novalidate>
-          <input type="email" name="email" placeholder="agent@example.com" required />
+          <input type="email" name="email" placeholder="agent@example.com" aria-label="Email address to invite" required />
           <button type="submit" class="btn" id="invite-submit">Send invite</button>
         </form>
         <p id="invite-result" class="result-line" hidden></p>
@@ -32,9 +32,9 @@ import Footer from '../../../components/Footer.astro';
           Copy this and paste it into a new email in Gmail (info@secureprospective.com), then send it to the invitee.
         </p>
         <div class="subject-field">
-          <span class="subject-label">Subject line</span>
+          <span class="subject-label" id="subject-label">Subject line</span>
           <div class="subject-row">
-            <input type="text" id="welcome-email-subject" readonly />
+            <input type="text" id="welcome-email-subject" aria-labelledby="subject-label" readonly />
             <button type="button" class="btn-link" id="copy-subject-btn">Copy subject</button>
           </div>
         </div>

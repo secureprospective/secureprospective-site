@@ -136,6 +136,12 @@
 }
 
 .contact-channel-card {
+  /* The address sizes itself against this card, not the viewport. Above 980px
+     the hero grid goes two-column and the card drops from 456px to 298px while
+     a vw-based clamp keeps growing, which is what broke
+     "info@secureprospective.co / m" across two lines between roughly 1000px and
+     1250px. Container units follow the box that actually constrains the text. */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   padding: 26px;
@@ -175,11 +181,14 @@
   min-height: 48px;
   margin-top: 20px;
   color: var(--ink);
-  font-size: clamp(1.18rem, 2vw, 1.5rem);
+  font-size: clamp(1.1rem, 6cqi, 1.5rem);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.16;
-  overflow-wrap: anywhere;
+  /* anywhere broke the address mid-word as a first resort. break-word keeps a
+     mid-word break as the last thing tried, and the sizing above means it is
+     never reached at any width the site is read at. */
+  overflow-wrap: break-word;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
 }
@@ -569,10 +578,6 @@
   .contact-channel-card {
     padding: 22px;
     box-shadow: 5px 5px 0 var(--yellow-accent);
-  }
-
-  .contact-channel-card > a {
-    font-size: clamp(1.1rem, 5.25vw, 1.5rem);
   }
 
   .contact-hero-footer {
