@@ -151,3 +151,78 @@ The greeter is `plasmalogin.service` (plasma-login-manager), NOT sddm.
 - Exit codes prove nothing; gate on the sentinel and read the artifact.
 - The notification unit sits in `activating (start)` while the notification is on
   screen — that is how you detect from a shell that the advisor is being asked.
+
+---
+
+## 8. THE GREETER GATE — CLOSED on the Dell, with caveats
+
+**Result: an advisor logged in at a real greeter immediately after the update
+applied, on the target hardware. No lockout.**
+
+Dell journal, post-update boot:
+```
+09:33:25  plasmalogin-greeter: session opened for user plasmalogin
+09:34:36  pam_unix(plasmalogin:session): session opened for user dell(uid=1000)
+09:34:41  greeter session closed
+```
+`/etc/plasmalogin.conf.d/` on the Dell is EMPTY — no autologin. This was a real
+greeter and a real password authentication.
+
+### The VM is NOT a faithful stand-in for this test
+The VM carries `/etc/plasmalogin.conf.d/99-test-autologin.conf`
+(`User=advisor`, `Session=plasma.desktop`, `Relogin=false`), so it autologins and
+**shows no greeter at all after a reboot**. Any greeter conclusion drawn from the
+VM is about a state the VM only reaches by force-terminating its session. Test the
+greeter on hardware, or on a VM with the autologin dropin removed.
+
+### Measured on the VM (pre-update image, focus only)
+Typing blind with no click put **11 of 11 characters** into the password field;
+a second pass with valid credentials logged in. The focus bug did NOT reproduce.
+**Scope caveat:** this ran on the booted image `16c1924f…`, NOT post-update — the
+VM reboot was blocked by the Beelink guardrail hook and was correctly NOT routed
+around. The post-update focus question is answered only by the Dell.
+
+### Two NEW user-facing defects found, neither a lockout
+1. **The lock-screen curtain.** The first keystroke lifts a full-screen clock
+   before the password field is visible. No character was lost, but the advisor
+   types into a screen showing them no field. This is the most likely source of
+   the original "password field has no focus" report.
+2. **A wrong password produces SILENCE.** Enter on an incorrect password changed
+   nothing on screen — no error, no shake, no message — and wrote **no journal
+   line at all**: no PAM attempt, no failure. The keypress never reached PAM.
+   An advisor who mistypes gets no signal that anything was rejected.
+
+**Consequence for evidence-gathering:** absence of failure lines in this journal
+does NOT prove a first-attempt success. Do not read it as such.
+
+### Still unknown
+Whether a click on the password field was needed before typing on the Dell. Not a
+lockout — the login succeeded — but it decides whether advisors need coaching.
+
+## 9. FINAL STATE OF THE DELL
+
+| Item | Value |
+|---|---|
+| Booted | `sha256:384e2c8a…` (SP+ 1, BUILD_ID 20260913) |
+| Previous | `sha256:1593017d…` — retained as rollback |
+| Shipped control script | **14,255 bytes — the FIXED script, now in read-only /usr** |
+| Remediation dropin | **REMOVED** — redundant once the fix ships in the image; machine runs signed image code only |
+| `update-staged` marker | absent (correctly cleared) |
+| Shipped script reports | `state: current`, `checked: 2026-09-13T12:35:49Z` — current AND able to say when it last looked |
+
+The remediation worked itself out of a job, which is the correct end state: the
+dropin is a bridge onto a stranded machine, not a permanent fixture.
+
+## 10. WHAT IS STILL NOT PROVEN
+
+- **The "Restart now" button has never been pressed by a human.** The Dell was
+  updated via the OTHER advertised path — "leave it, it will be applied the next
+  time you shut down" — which is a legitimate advisor workflow, but it is not the
+  button. The button's click handler remains untested.
+- **The timer has never fired the lane unattended on hardware.**
+  `systemctl start spplus-stage-update.service` is the same code path, not the
+  same trigger.
+- **The original multi-hour wedge was not reproduced**, so the I/O-saturation
+  explanation is inferred from a milder instance, not proven on the severe one.
+- **Whether a click was needed at the Dell greeter.**
+- **The R2 token is still unrotated** — it was exposed in a `ps` listing.
