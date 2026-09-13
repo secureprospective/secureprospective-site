@@ -18,7 +18,13 @@ set -euo pipefail
 ENVF="$HOME/.config/sp-plus-r2/env"
 RCLONE="${RCLONE_BIN:-$HOME/.local/bin/rclone}"
 SP="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-DEFAULT_ISO="$SP/artifacts/v0.11.4-iso/bootc-sp-plus-1.0-bootc-generic-iso-x86_64/bootc-sp-plus-1.0-bootc-generic-iso-x86_64.iso"
+# THE NEWEST BUILD, not a version written down here. This line said
+# artifacts/v0.11.4-iso/... and stayed saying it after v0.11.5 was built to fix
+# a defect IN v0.11.4 -- so the default was to re-upload the very image the new
+# build existed to replace, under the same public name, silently. A default
+# that needs editing every release is a default that ships the wrong artifact
+# the one time somebody forgets.
+DEFAULT_ISO=$(ls -1dt "$SP"/artifacts/v*-iso/*/*.iso 2>/dev/null | head -1)
 ISO="${2:-$DEFAULT_ISO}"
 
 # What the advisor downloads. The public release of this build is 0.11.
