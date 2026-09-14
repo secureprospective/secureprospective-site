@@ -369,6 +369,14 @@ AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24, see Op
 
 ---
 
+## SP+ ISO location — standing order
+
+> **STANDING ORDER (Christopher, 2026-09-14): finished SP+ ISOs go to `/QEMU/iso/` on the
+> Beelink as `SP-PLUS-v<version>.iso`, never `~/Downloads`.** `/QEMU` sits on the root drive,
+> which has the space; `/home` does not. Move each ISO out of `artifacts/<tag>-iso/`:
+> copy it, `sha256sum` both copies, and delete the source only if they match. Never leave a
+> second 5 GB copy on `/home`.
+
 ## SP+ stream overlay + OBS production rig (2026-09-05/06)
 
 **State lives in `projects/sp-plus/obs/STATUS.md`** — deliberately not restated here, because a
