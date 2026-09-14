@@ -2,6 +2,10 @@
 
 **Baton:** Bee → ClaudeBox · 2026-09-08
 
+## Standing orders
+
+- **SP+ ISOs go to `/QEMU/iso/SP-PLUS-v<version>.iso`, never `~/Downloads`** (Christopher, 2026-09-14). `/QEMU` is on the root drive, which has the space; `/home` does not. Move each ISO out of `projects/sp-plus/artifacts/<tag>-iso/`: copy it, `sha256sum` both copies, and delete the source only if they match. Full text: `projects/sp-plus/docs/RELEASE-RUNBOOK.md`.
+
 ## Where it stands
 
 SP+ OBS overlay pass is complete and verified live in OBS.
