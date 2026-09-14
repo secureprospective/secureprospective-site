@@ -2,28 +2,20 @@
 
 ## Baton
 
-ClaudeBox, 2026-09-08
+Bee, 2026-09-14
 
 ## Where it stands
 
-Pipeline test: Bee verified it can build, commit and push a branch from the Beelink.
-
-The approved public-site redesign is live on `https://secureprospective.com` from `main`. The IMO leads, SP+ is deliverable one, and consulting remains an earned future offer. Production verification passed on `/`, `/services/`, `/the-work/`, `/the-method/`, `/the-operator/`, `/contact/`, and `/members/`. Fonts return HTTP 200, and `/api/auth/me` returns the expected unauthenticated 401. Member pages, APIs, migrations, ecosystem code, and the separate SP+ project were not changed by the redesign.
-
-Added `grafix/secureprospective-facebook-page-cover.png`, a 1600×600 static Facebook cover using the current site palette, logo, voice, and SP+ availability state. It contains no personal photography.
-
-Added `grafix/secureprospective-facebook-profile-photo.png`, a 1024×1024 logo-only profile image with no words or photography.
-
-Added `grafix/secureprospective-linkedin-page-banner.png`, the approved v2 design rendered at 4200×700 for the LinkedIn Page cover field. LinkedIn's own presets also fail at Apply, so the remaining problem is page/session/backend behavior, not the asset.
+Created branch `session/watercolor-portrait` with commit `0b8e356`. Added a reusable `WatercolorPortrait.astro` component and three public assets: animated WebP (preferred), GIF fallback, and static opening pose. The animation loops through the supplied arms-down, arms-crossed, and hands-in-pockets poses with a smooth comic/watercolor morph. Reduced-motion users receive the static pose. `pnpm build` passes.
 
 ## Next move
 
-Review the committed LinkedIn banner, then use it when LinkedIn's Page cover update works. Do not publish the proposed Microsoft/PII post without explicit approval of the final copy and permission to post.
+Christopher should review the asset and decide where to place the component. If approved, merge the branch through the normal visual gate, then add `<WatercolorPortrait />` to the chosen page.
 
 ## Blocked on
 
-LinkedIn Page cover updates fail even with LinkedIn's built-in presets; likely LinkedIn page/session/backend issue.
+No code blocker. Placement is intentionally not wired into a page yet.
 
 ## Tried and rejected
 
-A replacement mission-assurance visual world was rejected because the Property Card theme had to remain. Direct Wrangler lookup was rejected because Beelink's account does not own the Git-connected Pages project; deployment through `main` succeeded. The critique's initial Chromium-font P0 was rejected as a Playwright headless-shell artifact after Firefox and the operator browser rendered the self-hosted fonts correctly. An animated ticker treatment was rejected for the Facebook cover in favor of static property-card framing.
+Local AI video generation was not available because ComfyUI has no model weights. This first pass uses the three supplied poses and crossfades between them rather than inventing arm anatomy.
