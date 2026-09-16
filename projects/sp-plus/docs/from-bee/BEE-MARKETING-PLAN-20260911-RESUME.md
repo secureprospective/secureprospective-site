@@ -4,116 +4,129 @@ Updated: 2026-09-15 on Bee (`com`, 192.168.1.191).
 
 ## 1. WHAT WE ARE DOING
 
-Review and refine SP+ batch-01 graphics AD-013 through AD-022 one at a time until Christopher explicitly approves each full-size graphic, then immediately copy the exact approved render to `/home/chris/Pictures/assets/Ads` and verify byte identity. Working run: `/home/chris/fleet/runs/bee-marketing-plan-20260911`; it is **not a git repository**. Project repository used for durable SP+ documentation: `/home/chris/work/secureprospective-advisor-os`, branch `session/sp-plus-defense-in-depth`, remote `origin`.
+The AD-013 through AD-022 review pass is complete. Christopher explicitly approved six SP+ graphics, which were copied byte-for-byte to `/home/chris/Pictures/assets/Ads`; four off-task graphics were explicitly rejected, retained only as negative controls, and not delivered. Working run: `/home/chris/fleet/runs/bee-marketing-plan-20260911` (not a git repository). Durable SP+ docs repo: `/home/chris/work/secureprospective-advisor-os`, branch `session/sp-plus-defense-in-depth`, remote `origin`.
 
-Host: Bee/Beelink `com`, `192.168.1.191`. Render/test VM: `SP-Alpha-Rig`; use `/home/chris/work/secureprospective-advisor-os/projects/sp-plus/rig/rig`. Direct test-VM SSH endpoint, if required by the harness: `ssh -p 2222 test@127.0.0.1`. Do not render ads on the host and do not start graphical programs on the host.
+Host: Bee/Beelink `com`, `192.168.1.191`. Render/test VM: `SP-Alpha-Rig`; use `/home/chris/work/secureprospective-advisor-os/projects/sp-plus/rig/rig`. Direct test-VM endpoint if required: `ssh -p 2222 test@127.0.0.1`. Never render ads on the host and never start graphical programs on the host.
 
 ## 2. AGENTS + HARNESSES
 
-- Bee owns this ad-review pass. ClaudeBox is the fleet coordinator but no escalation is pending.
-- No subagent, dispatch, build, or render job is currently running. There are no current `bee-<fid>.{out,err,sentinel}` triples, briefs, session IDs, or transcripts to recover.
-- `SP-Alpha-Rig` is running and idle. Render there only through the rig wrapper.
-- Run evidence, revision scripts, checks, screenshots, logs, decisions, and handoff live under `/home/chris/fleet/runs/bee-marketing-plan-20260911`.
-- Approved deliverables live under `/home/chris/Pictures/assets/Ads`.
-- Reaping at compaction removed 47,983,762 bytes of replayable host tar staging plus completed `/tmp/ad013-*`, `/tmp/ad014-*`, `/tmp/ad015-*`, and batch staging inside `SP-Alpha-Rig`. Evidence and the live VM were preserved.
-- `/home/chris` filing gate passed. The visible-entry count was 22 against the informational target of 23; all enforced filing checks passed.
-- A host `xviewer` process showing the old contact sheet exists, but it belongs to Christopher's live desktop context and was not touched.
+- Bee owns this completed review pass. No ClaudeBox escalation is pending.
+- No subagent, dispatch, build, or render job is running. There are no live `bee-<fid>` artifacts or transcripts to recover.
+- `SP-Alpha-Rig` is running and idle. All ad renders were produced there through the rig wrapper.
+- Run evidence, scripts, renders, checks, logs, decisions, rejection studies, and handoff: `/home/chris/fleet/runs/bee-marketing-plan-20260911`.
+- Approved graphics: `/home/chris/Pictures/assets/Ads`.
+- Reaping removed 11,136,717 bytes of replayable host staging and completed ad staging inside `SP-Alpha-Rig`. Evidence and the live VM were preserved.
+- `/home/chris` filing gate passed. Visible-entry count was 22 against the informational target of 23; all enforced checks passed.
 
 ## 3. GATES / STATUS
 
-| Gate | Status | Evidence / note |
+| Gate | Status | Evidence |
 |---|---|---|
-| AD-013 explicit approval | PASS | Christopher approved r06 |
-| AD-013 delivery byte match | PASS | SHA256 below; `ad-013/revisions/r06/DELIVERY.md` |
-| AD-014 explicit approval | PASS | Christopher approved r08 |
-| AD-014 delivery byte match | PASS | SHA256 below; `ad-014/revisions/r08/DELIVERY.md` |
-| AD-015 explicit approval | PASS | Christopher said `approve` for r06 |
-| AD-015 delivery byte match | PASS | SHA256 below; `ad-015/revisions/r06/DELIVERY.md` |
-| AD-016 automated r03 checks | PASS | `ad-016/revisions/r03/checks.json` |
-| AD-016 human quality/claim review | FAIL / NOT READY | The unapproved r03 contains the absolute line `cannot be worn down`; revise before showing |
-| AD-016 through AD-022 approval | PENDING | All remain unapproved drafts |
-| Render provenance | PASS | Existing batch renders report `SP-Alpha-Rig` |
-| Display font rule | PASS | IBM Plex Sans Bold; no Primal |
-| Publication / scheduling / spend | NOT AUTHORIZED | Graphic approval and file delivery only |
+| AD-013 r06 approval + delivery | PASS | `ad-013/revisions/r06/DELIVERY.md` |
+| AD-014 r08 approval + delivery | PASS | `ad-014/revisions/r08/DELIVERY.md` |
+| AD-015 r06 approval + delivery | PASS | `ad-015/revisions/r06/DELIVERY.md` |
+| AD-016 r06 approval + delivery | PASS | `ad-016/revisions/r06/DELIVERY.md` |
+| AD-017 r06 approval + delivery | PASS | `ad-017/revisions/r06/DELIVERY.md` |
+| AD-021 r06 approval + delivery | PASS | `ad-021/revisions/r06/DELIVERY.md` |
+| AD-018 | REJECTED | r04 preserved; no delivery |
+| AD-019 | REJECTED | r03 preserved; no delivery |
+| AD-020 | REJECTED | r03 preserved; no delivery |
+| AD-022 | REJECTED / JUNKED | r03 preserved only as AI-slop negative control; no replacement |
+| Render provenance | PASS | Approved revisions report `SP-Alpha-Rig` |
+| Display font | PASS | IBM Plex Sans Bold; no Primal |
+| Publication / scheduling / spend | NOT AUTHORIZED | Graphic approval and local delivery only |
 
 ## 4. ARTIFACTS THAT EXIST AND WORK
 
-Approved sources and exact deliveries:
+Approved and delivered full-size PNGs (source revisions have identical bytes):
 
-- AD-013 r06 source: `/home/chris/fleet/runs/bee-marketing-plan-20260911/ad-013/revisions/r06/ad-013-r06.png`; 104,014 bytes; SHA256 `ae02aec0a2c549b84aeca0b1e0d087a0a8806700b028bed1ae79b755b73a89dd`.
-- AD-013 delivery: `/home/chris/Pictures/assets/Ads/sp-plus-windows-expects-an-administrator.png`; 104,014 bytes; same SHA256.
-- AD-014 r08 source: `/home/chris/fleet/runs/bee-marketing-plan-20260911/ad-014/revisions/r08/ad-014-r08.png`; 133,421 bytes; SHA256 `ece8f4667ed1f13def3f042ca019007a5984e1e8ecd709f3a3974ca9a9dd688d`.
-- AD-014 delivery: `/home/chris/Pictures/assets/Ads/sp-plus-your-laptop-still-works.png`; 133,421 bytes; same SHA256.
-- AD-015 r06 source: `/home/chris/fleet/runs/bee-marketing-plan-20260911/ad-015/revisions/r06/ad-015-r06.png`; 96,909 bytes; SHA256 `1b8d9eb12b8c467547a313ac7328418f55488851e8fd76fbfe6aeebb22c832cf`.
-- AD-015 delivery: `/home/chris/Pictures/assets/Ads/sp-plus-own-the-device-own-the-outcome.png`; 96,909 bytes; same SHA256.
+- AD-013 r06: `/home/chris/Pictures/assets/Ads/sp-plus-windows-expects-an-administrator.png`; 104,014 bytes; SHA256 `ae02aec0a2c549b84aeca0b1e0d087a0a8806700b028bed1ae79b755b73a89dd`.
+- AD-014 r08: `/home/chris/Pictures/assets/Ads/sp-plus-your-laptop-still-works.png`; 133,421 bytes; SHA256 `ece8f4667ed1f13def3f042ca019007a5984e1e8ecd709f3a3974ca9a9dd688d`.
+- AD-015 r06: `/home/chris/Pictures/assets/Ads/sp-plus-own-the-device-own-the-outcome.png`; 96,909 bytes; SHA256 `1b8d9eb12b8c467547a313ac7328418f55488851e8fd76fbfe6aeebb22c832cf`.
+- AD-016 r06: `/home/chris/Pictures/assets/Ads/sp-plus-everything-underneath-is-different.png`; 108,960 bytes; SHA256 `900aa0dcb5c6d7e4452c62d90e61ce0c0f026dbfb4f935fd97ca8ac074ffba97`.
+- AD-017 r06: `/home/chris/Pictures/assets/Ads/sp-plus-fewer-prompts-fewer-decisions.png`; 156,843 bytes; SHA256 `91b5f508ab8cd81038f4e62fbdc19814db6c2b8da09eca81d62596ad2b66afb0`.
+- AD-021 r06: `/home/chris/Pictures/assets/Ads/sp-plus-client-documents-direct-to-portal.png`; 107,284 bytes; SHA256 `902b8b9514e43dd30428c16414b05a38fdb02e4699b41b3d9ef97155bf9eded8`.
 
-Current next draft:
+Rejected negative controls:
 
-- AD-016 r03 full: `/home/chris/fleet/runs/bee-marketing-plan-20260911/ad-016/revisions/r03/ad-016-r03.png`; 83,541 bytes; SHA256 `48878b9bf4439556270e186647fe503b2ff76d9f7df4580a3f6f6866047cc957`.
-- AD-016 r03 phone: `/home/chris/fleet/runs/bee-marketing-plan-20260911/ad-016/revisions/r03/ad-016-r03-phone.png`; 87,335 bytes; SHA256 `c15c4eb4f9d72247cb2217021c38fcf14bddac2a132585019333f3602df2b1f7`.
+- AD-018 r04: `ad-018/revisions/r04/ad-018-r04.png`; 80,461 bytes; SHA256 `7d4cd28a9f3660599102dd7482636f7f64e40e044513f00415c061e2c70a730e`; log `logs/AD-018-R04-REJECTED.md`.
+- AD-019 r03: `ad-019/revisions/r03/ad-019-r03.png`; 72,655 bytes; SHA256 `94c4f32a729a35e5481001e7fa9111ad1738130d8011144a5f2bdb9995e14059`; log `logs/AD-019-R03-REJECTED.md`.
+- AD-020 r03: `ad-020/revisions/r03/ad-020-r03.png`; 59,220 bytes; SHA256 `e30838484f6d47c0eafe8c784b5b23809e5234262c22fe2b85dd05e3747d5773`; log `logs/AD-020-R03-REJECTED.md`.
+- AD-022 r03: `ad-022/revisions/r03/ad-022-r03.png`; 77,685 bytes; SHA256 `2ab9ed21fef9b610827b302a35e4484578ed357759790b14856aca803f997e84`; log `logs/AD-022-R03-REJECTED.md`.
+
+Other critical paths:
+
 - Current checkpoint: `/home/chris/fleet/runs/bee-marketing-plan-20260911/HANDOFF.md`.
 - Decision ledger: `/home/chris/fleet/runs/bee-marketing-plan-20260911/DECISIONS.md`.
-- Playbook: `/home/chris/fleet/runs/bee-marketing-plan-20260911/AD-PLAYBOOK.md`.
+- Standing playbook: `/home/chris/fleet/runs/bee-marketing-plan-20260911/AD-PLAYBOOK.md`.
+- AD-021 official Nextcloud source: `https://nextcloud.com/c/uploads/2022/08/nextcloud-logo-icon.svg`; source SHA256 `93b3a07c256999ecd0d0d8c9e7370f79a7be07a3264442ec05db80278ae01688`; recorded in `logs/AD-021-R06.md`.
 
 ## 5. THE CURRENT BUG
 
-There is no runtime or render-harness bug. The next artifact, AD-016 r03, is not ready to show because its closing line reads verbatim:
+There is no active rendering or artifact bug. The completed batch exposed a planning bug: AD-018 through AD-022 were originally scoped as IMO/service concepts inside a review Christopher expected to remain SP+. His verbatim AD-022 ruling was:
 
-> A machine underneath it that cannot be worn down.
+> 022 is garbage, not on task.. this needs to be SP+, not approved
 
-Leading hypothesis: replacing that absolute durability claim with a concrete, supported property of the immutable/atomic-update design will preserve the cutaway concept while staying inside the claim boundary. Caveat: no replacement copy has been approved, and the full composition still needs an independent phone-readability and identity inspection after the copy change. The absent prominent SP+ lockup at the top may also need correction; verify against the ad outline before changing it.
+Leading hypothesis: future batches must declare the product/campaign boundary before outlines are generated, and every ad must pass an ICP/job check before visual work. Caveat: this is a workflow conclusion from this batch, not permission to revise the global planning system or revive rejected ads without Christopher's instruction.
 
 ## 6. HYPOTHESES ALREADY REFUTED — DO NOT RETEST
 
-- **Automated PASS means ready to show:** refuted. Earlier ads passed checks while still containing visible spacing, overlap, clipping, fill, or balance defects. Open both full and phone renders every time.
-- **AD-015 could stay as a generic record form:** refuted by Christopher's feedback that it was flat and did not explain why SP+ was better. The approved direction used concrete encryption-policy facts and `OWN THE DEVICE. OWN THE OUTCOME.`
-- **`USER SETUP / NONE` was safe copy:** rejected during Bee's own claim review because it implied no setup effort. It was replaced before presentation with `USER CHOICE / NOT OPTIONAL` and `CAN BE SKIPPED / NO`.
-- **Approval can be inferred from continued revision work:** refuted by the standing process. Only explicit approval closes an ad.
-- **A delivered graphic authorizes marketing action:** refuted. Delivery does not authorize captions, publication, scheduling, outreach, placement, account connection, or spend.
-- **Primal can be used as a display font:** settled false for this run. Use IBM Plex Sans Bold and never load or include Primal.
+- **Automated PASS means creative readiness:** refuted repeatedly. Geometry, copy fit, assignment, ICP relevance, and visual logic still failed after checks passed.
+- **Literal compliance with nouns in a brief solves the ad:** refuted by AD-018 r04. Six top tabs and a polished dossier still became `Corporate Clipboard Lasagna` because it made the reader perform paperwork instead of showing a compelling specialty.
+- **A generic process diagram is relevant to the ICP:** refuted by AD-019 and AD-020. Timeline and balance furniture conveyed no immediate producer value.
+- **IMO practice tools can sit inside an SP+ batch:** refuted by AD-022. It was junked, not replaced.
+- **Clean uniform rows feel professional:** refuted by early AD-017. They read as AI-made until handled-paper details and physical imperfection were added.
+- **Image-canvas centering equals optical centering:** refuted. Transparent padding in marks produced visibly off-center logos; center the visible alpha bounds.
+- **Separate rectangular shadows are acceptable on 3D objects:** refuted. Build one coherent solid silhouette from a single upper-left light source.
+- **Small text that remains technically in bounds is acceptable:** refuted. Safe margins and phone readability are required.
+- **A chaotic route must be confusing:** refuted by AD-021 r05/r06. Numbered stations and explicit arrows allowed a visibly messy chain to remain traceable.
+- **Approval can be inferred from praise or continued revisions:** refuted. Only explicit approval closes an ad.
+- **Delivery authorizes publication or spend:** false. Delivery is only a local file copy.
+- **Primal may be used:** false for this run. Use IBM Plex Sans Bold and never include or load Primal.
 
 ## 7. DECISIONS
 
-- **D-01:** Review one ad at a time and show the full-size render. Nothing is approved without Christopher's explicit approval.
-- **D-02:** Render only in `SP-Alpha-Rig`. IBM Plex Sans Bold is the display face. Never load or include Primal.
-- **D-03:** Preserve every prior revision by creating a new revision directory; do not overwrite a reviewed revision.
-- **D-04:** Immediately copy every explicitly approved full render to `/home/chris/Pictures/assets/Ads`, verify byte-for-byte, and write `DELIVERY.md`.
-- **D-05:** The silver SecureProspective logo is the default ad footer identity. Keep the official SP+ mark prominent where appropriate.
-- **D-06:** AD-013 r06 is approved and final, including Christopher's supplied wording `Updates do not interupt productivity` and `Not subject to a Microsoft outage.`
-- **D-07:** AD-014 r08 is approved and final after matching the blue fill's x-position above and below the receipt.
-- **D-08:** AD-015 r06 is approved and final with `OUTCOME CONTROL / 015`, `ENCRYPTION STANDARD`, the policy proof, `OWN THE DEVICE. OWN THE OUTCOME.`, and the lower-right outcome plate.
-- **D-09:** Approved graphics are deliverables only. Do not infer permission for any external action.
+- **D-01:** Review one ad at a time. Nothing is approved without Christopher's explicit approval.
+- **D-02:** Render only in `SP-Alpha-Rig`; IBM Plex Sans Bold is the display face; never load Primal.
+- **D-03:** Preserve prior revisions and rejected work. Never overwrite reviewed artifacts.
+- **D-04:** Immediately copy every approved full render to `/home/chris/Pictures/assets/Ads`, verify byte identity, and write `DELIVERY.md`.
+- **D-05:** The silver SecureProspective logo must remain readable, normally on a dark footer. Official SP+ marks must be prominent where appropriate.
+- **D-06:** Future ads should meet the AD-016/017 Overdrive quality level: ambitious, dimensional, human, logically immediate, and fully finished without copying those layouts.
+- **D-07:** Approval basics include optical mark centering, coherent light/shadow direction, safe text widths, phone readability, clean edges, and no clipping.
+- **D-08:** AD-013 r06, AD-014 r08, AD-015 r06, AD-016 r06, AD-017 r06, and AD-021 r06 are approved final graphics.
+- **D-09:** AD-018, AD-019, AD-020, and AD-022 are rejected negative controls. Do not revive them without explicit instruction.
+- **D-10:** AD-022 receives no replacement in this batch. Christopher's final ruling: `junk it, studied as garbage, off task, Ai slop`.
+- **D-11:** Approved graphics do not authorize captions, publication, scheduling, outreach, placement, account connection, or spend.
 
 ## 8. LEDGER STATE
 
-- Run root `/home/chris/fleet/runs/bee-marketing-plan-20260911` is not a git repository. Its `HANDOFF.md`, `DECISIONS.md`, logs, revision folders, and delivery receipts are durable filesystem state but cannot be committed there.
-- Bee config repo `/home/chris/.pi` is branch `main`, local-only with no remote. It contains unrelated/foreign modified and untracked files. Commit only the two compact-resume copies; do not stage the foreign files.
-- SP+ project repo `/home/chris/work/secureprospective-advisor-os` is branch `session/sp-plus-defense-in-depth`, tracking `origin/session/sp-plus-defense-in-depth`. It has pre-existing foreign changes in `projects/sp-plus/installer/interactive-defaults.ks`, `projects/sp-plus/installer/payload-ref.txt`, and `projects/sp-plus/rig/logs/`. Commit and push only this resume file; do not stage those changes.
+- Run root `/home/chris/fleet/runs/bee-marketing-plan-20260911` is not a git repository. Its handoff, decision ledger, logs, revisions, and receipts are durable filesystem state but cannot be committed there.
+- Bee config repo `/home/chris/.pi` is branch `main`, local-only. It contains pre-existing unrelated modified and untracked files. Commit only the two updated resume copies.
+- SP+ project repo `/home/chris/work/secureprospective-advisor-os` is branch `session/sp-plus-defense-in-depth`, tracking `origin/session/sp-plus-defense-in-depth`. It contains pre-existing foreign installer changes and untracked rig logs. Commit and push only the resume document.
 
 ## 9. NEXT ACTIONS, IN ORDER
 
-1. Read this resume first after compaction and verify that `SP-Alpha-Rig` is still running and no render job is active.
-2. Read the AD-016 outline/brief and r03 render script, then replace only the unsupported absolute `cannot be worn down` claim with supported copy in a new `ad-016/revisions/r04/` directory.
-3. Decide from the outline whether AD-016 needs the official SP+ lockup at the top; add it only if appropriate, without copying an earlier ad's composition.
-4. Render AD-016 r04 only in `SP-Alpha-Rig`.
-5. Open and inspect both the 1080x1350 full render and 540x675 phone proof for geometry, spacing, identity, text bounds, clean edges, and readability; run the automated checks.
-6. Show only the full-size AD-016 render to Christopher and wait for explicit approval or revision instructions.
-7. If approved, update `DECISIONS.md`, create `DELIVERY.md`, copy the exact full render to `/home/chris/Pictures/assets/Ads`, verify bytes, and update `HANDOFF.md`.
-8. Continue AD-017 through AD-022 one at a time; never infer approval.
+1. Read this resume first after compaction.
+2. Verify `SP-Alpha-Rig` remains running and no render job is active.
+3. Wait for Christopher's next assignment; the AD-013 through AD-022 pass is complete.
+4. If a new ad batch is requested, establish the exact product/campaign boundary and ICP job before outlining or rendering.
+5. Use the approved AD-016/017/021 work as quality evidence, not as layout templates.
+6. Consult the rejected logs before accepting generic dossiers, timelines, balance diagrams, or feature-card walls.
+7. Never revive AD-018, AD-019, AD-020, or AD-022 without explicit instruction.
 
 ## 10. RELAY / ENVIRONMENT NOTES
 
 - Rig status: `virsh --connect qemu:///session domstate SP-Alpha-Rig`.
 - Rig wrapper: `/home/chris/work/secureprospective-advisor-os/projects/sp-plus/rig/rig`.
-- VM command pattern: `rig run '<command>'`; transfer with `rig push <host-path> <vm-path>` and `rig pull <vm-path> <host-path>`.
-- No commands currently require Christopher to run them, so `/home/chris/Downloads/paste.md` was not created or changed.
-- Do not start GUI applications on Bee. Image inspection is through the available file-reading tool.
-- No fleet-wide coordination or ClaudeBox escalation is currently required.
+- Transfer pattern: `rig push <host-path> <vm-path>` and `rig pull <vm-path> <host-path>`; execute with `rig run '<command>'`.
+- No commands currently require Christopher to run them; `/home/chris/Downloads/paste.md` was not changed.
+- Do not start GUI applications on Bee. Inspect images through the file-reading tool.
+- No fleet-wide coordination or ClaudeBox escalation is pending.
 
 ## 11. HONEST STATUS
 
-**OBSERVED:** AD-013 r06, AD-014 r08, and AD-015 r06 are explicitly approved, delivered, and byte-verified. AD-016 r03 exists, its automated checks pass, and visual inspection confirms the cutaway composition renders cleanly. No render process or dispatch is running. `SP-Alpha-Rig` is running and idle.
+**OBSERVED:** Six graphics are explicitly approved, locally delivered, and byte-verified. Four graphics are explicitly rejected and preserved without delivery. AD-022 was junked with no replacement. No render process, build, dispatch, or subagent is running. `SP-Alpha-Rig` is running and idle.
 
-**INFERRED / UNPROVEN:** AD-016's cutaway direction may be viable, but it is not ready to show because the absolute durability sentence is not claim-safe. No replacement copy, r04 render, or human approval exists. Ads AD-016 through AD-022 remain unapproved.
+**INFERRED / UNPROVEN:** The six delivered graphics have not been published or tested for marketing performance. Their approval proves Christopher accepted the graphics, not that they will perform. No next campaign or ad assignment has been selected.
 
-ETA: the next concrete unit is one AD-016 r04 copy correction, VM render, and full/phone inspection before presentation; no time promise is recorded because approval may require further revisions.
+ETA: none. This review pass is complete; the next action depends on Christopher's next assignment.
