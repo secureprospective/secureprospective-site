@@ -12,10 +12,10 @@ Host: Bee/Beelink `com`, `192.168.1.191`. Render/test VM: `SP-Alpha-Rig`; use `/
 
 - Bee owns this completed review pass. No ClaudeBox escalation is pending.
 - No subagent, dispatch, build, or render job is running. There are no live `bee-<fid>` artifacts or transcripts to recover.
-- `SP-Alpha-Rig` is running and idle. All ad renders were produced there through the rig wrapper.
+- `SP-Alpha-Rig` is currently shut off. All ad renders were produced there through the rig wrapper; no VM job is orphaned.
 - Run evidence, scripts, renders, checks, logs, decisions, rejection studies, and handoff: `/home/chris/fleet/runs/bee-marketing-plan-20260911`.
 - Approved graphics: `/home/chris/Pictures/assets/Ads`.
-- Reaping removed 11,136,717 bytes of replayable host staging and completed ad staging inside `SP-Alpha-Rig`. Evidence and the live VM were preserved.
+- Reaping removed 11,136,717 bytes of replayable host staging and completed ad staging inside `SP-Alpha-Rig`. Render evidence was preserved; the VM was later observed shut off.
 - `/home/chris` filing gate passed. Visible-entry count was 22 against the informational target of 23; all enforced checks passed.
 
 ## 3. GATES / STATUS
@@ -107,7 +107,7 @@ Leading hypothesis: future batches must declare the product/campaign boundary be
 ## 9. NEXT ACTIONS, IN ORDER
 
 1. Read this resume first after compaction.
-2. Verify `SP-Alpha-Rig` remains running and no render job is active.
+2. Verify `SP-Alpha-Rig` remains shut off; start it only when a new authorized render task requires it.
 3. Wait for Christopher's next assignment; the AD-013 through AD-022 pass is complete.
 4. If a new ad batch is requested, establish the exact product/campaign boundary and ICP job before outlining or rendering.
 5. Use the approved AD-016/017/021 work as quality evidence, not as layout templates.
@@ -125,7 +125,7 @@ Leading hypothesis: future batches must declare the product/campaign boundary be
 
 ## 11. HONEST STATUS
 
-**OBSERVED:** Six graphics are explicitly approved, locally delivered, and byte-verified. Four graphics are explicitly rejected and preserved without delivery. AD-022 was junked with no replacement. No render process, build, dispatch, or subagent is running. `SP-Alpha-Rig` is running and idle.
+**OBSERVED:** Six graphics are explicitly approved, locally delivered, and byte-verified. Four graphics are explicitly rejected and preserved without delivery. AD-022 was junked with no replacement. No render process, build, dispatch, or subagent is running. `SP-Alpha-Rig` is shut off.
 
 **INFERRED / UNPROVEN:** The six delivered graphics have not been published or tested for marketing performance. Their approval proves Christopher accepted the graphics, not that they will perform. No next campaign or ad assignment has been selected.
 
