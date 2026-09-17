@@ -182,6 +182,37 @@ describe("architecture report gate path variants", () => {
   });
 });
 
+describe("preview kill-switch", () => {
+  // Preview deployments share production's D1 and R2, so a non-production
+  // branch must not serve the back office at all.
+  const preview = () => ({ ...env, CF_PAGES_BRANCH: "session/anything" });
+  const paths = ["/api/auth/me", "/api/download/iso?v=0.11", "/members", "/members/", "/members/download/"];
+  it.each(paths)("%s is refused on a preview branch", async (path) => {
+    const res = await (archGate as (c: unknown) => Promise<Response>)({
+      request: req(path), env: preview(), next: async () => new Response("served"),
+    });
+    expect(res.status).toBe(503);
+  });
+
+  it("serves the public site on a preview, and everything on production", async () => {
+    const next = async () => new Response("served");
+    const pub = await (archGate as (c: unknown) => Promise<Response>)({ request: req("/contact/"), env: preview(), next });
+    expect(await pub.text()).toBe("served");
+    const prod = await (archGate as (c: unknown) => Promise<Response>)({
+      request: req("/api/auth/me"), env: { ...env, CF_PAGES_BRANCH: "main" }, next,
+    });
+    expect(await prod.text()).toBe("served");
+  });
+
+  it("honours a deliberate override on one preview", async () => {
+    const res = await (archGate as (c: unknown) => Promise<Response>)({
+      request: req("/members/"), env: { ...preview(), PREVIEW_ALLOW_BACKOFFICE: "1" },
+      next: async () => new Response("served"),
+    });
+    expect(await res.text()).toBe("served");
+  });
+});
+
 describe("origin lock", () => {
   const withOrigin = (o: string) => new Request(SITE + "/api/auth/me", { headers: { Origin: o } });
   it("admits the site and its own previews only", () => {

@@ -14,6 +14,26 @@ import { getActiveSession } from "./_lib/session";
 
 const GATED_SLUG = "sp-plus-security-architecture";
 
+// Preview kill-switch, 2026-09-17. Preview deployments bind the SAME D1
+// databases and R2 buckets as production, and the project deploys every branch
+// automatically, so a pushed branch used to become a public site wired to real
+// member accounts, sessions, leads and releases. On any deployment that is not
+// production, the back office and its APIs are refused outright. Gated on
+// CF_PAGES_BRANCH, which Cloudflare injects itself: there is nothing to set and
+// nothing to forget to unset. Set PREVIEW_ALLOW_BACKOFFICE=1 on a specific
+// preview to test the members area there deliberately.
+function backOfficeDisabled(env: PreviewEnv, path: string): boolean {
+  const branch = env.CF_PAGES_BRANCH;
+  if (typeof branch !== "string" || branch === "" || branch === "main") return false;
+  if (env.PREVIEW_ALLOW_BACKOFFICE === "1") return false;
+  return path.startsWith("/api/") || path === "/members" || path.startsWith("/members/");
+}
+
+interface PreviewEnv extends AuthEnv {
+  CF_PAGES_BRANCH?: string;
+  PREVIEW_ALLOW_BACKOFFICE?: string;
+}
+
 function normalisedPath(url: string): string {
   let path = new URL(url).pathname;
   // Decode until stable, so double encoding cannot hide the slug either.
@@ -30,8 +50,17 @@ function normalisedPath(url: string): string {
   return path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").toLowerCase();
 }
 
-export const onRequest: PagesFunction<AuthEnv> = async ({ request, env, next }) => {
-  if (!normalisedPath(request.url).includes(GATED_SLUG)) return next();
+export const onRequest: PagesFunction<PreviewEnv> = async ({ request, env, next }) => {
+  const path = normalisedPath(request.url);
+
+  if (backOfficeDisabled(env, path)) {
+    return new Response(
+      JSON.stringify({ error: "The back office is disabled on preview deployments." }),
+      { status: 503, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (!path.includes(GATED_SLUG)) return next();
 
   const session = await getActiveSession(env.BACKOFFICE_DB, request);
   if (!session) {
