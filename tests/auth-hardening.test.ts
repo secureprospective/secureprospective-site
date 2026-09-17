@@ -11,7 +11,7 @@ import { onRequestGet as membersGet } from "../functions/api/auth/admin/members"
 import { onRequestPost as changePasswordPost } from "../functions/api/auth/change-password";
 import { onRequestPost as memberEditPost } from "../functions/api/auth/admin/member-edit";
 import { onRequestGet as meGet } from "../functions/api/auth/me";
-import { onRequest as archGate } from "../functions/members/sp-plus-security-architecture/_middleware";
+import { onRequest as archGate } from "../functions/_middleware";
 
 /*
  * Hardening from the 2026-09-17 audit (docs/security/AUDIT-2026-09-17.md).
@@ -153,6 +153,32 @@ describe("session revocation", () => {
     expect(res.status).toBe(200);
     expect((await call(meGet, req("/api/auth/me", memberCookie))).status).toBe(401);
     expect((await call(meGet, req("/api/auth/me", adminCookie))).status).toBe(200);
+  });
+});
+
+describe("architecture report gate path variants", () => {
+  // Each of these served the report past a folder-scoped middleware on the
+  // 2026-09-17 preview, because the asset server normalises paths.
+  const variants = [
+    "/members//sp-plus-security-architecture/",
+    "/members/%73p-plus-security-architecture/",
+    "/members%2Fsp-plus-security-architecture/",
+    "/%6dembers/sp-plus-security-architecture/",
+    "//members/sp-plus-security-architecture/",
+    "/members/%2573p-plus-security-architecture/",
+    "/MEMBERS/SP-PLUS-SECURITY-ARCHITECTURE/",
+    "/members/sp-plus-security-architecture/index.html",
+  ];
+  it.each(variants)("%s redirects an anonymous visitor", async (path) => {
+    const res = await call(archGate, new Request("https://secureprospective.com" + path), {
+      next: async () => new Response("doc"),
+    });
+    expect(res.status).toBe(302);
+  });
+  it("leaves every other page alone without touching the database", async () => {
+    env.BACKOFFICE_DB = undefined;
+    const res = await call(archGate, req("/members/inside-sp-plus/"), { next: async () => new Response("page") });
+    expect(await res.text()).toBe("page");
   });
 });
 
