@@ -216,6 +216,17 @@ import Footer from '../../../components/Footer.astro';
       if (copyEmailStatus) copyEmailStatus.hidden = true;
     }
 
+    // Every server value placed into innerHTML goes through esc(). Emails are
+    // only loosely validated server-side, so an address can carry markup.
+    function esc(value: unknown): string {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function fmt(dateStr: string | null): string {
       if (!dateStr) return 'Not set';
       // D1 rows show up in two shapes: SQLite's own `datetime('now')` default
@@ -255,8 +266,8 @@ import Footer from '../../../components/Footer.astro';
               ? 'Expired'
               : 'Pending';
           tr.innerHTML = `
-            <td>${inv.email}</td>
-            <td>${inv.created_by}</td>
+            <td>${esc(inv.email)}</td>
+            <td>${esc(inv.created_by)}</td>
             <td>${fmt(inv.created_at)}</td>
             <td>${fmt(inv.expires_at)}</td>
             <td>${status}</td>
@@ -287,7 +298,7 @@ import Footer from '../../../components/Footer.astro';
           invitesBody.appendChild(tr);
         });
       } catch (err) {
-        invitesBody.innerHTML = `<tr><td colspan="6">${(err as Error).message}</td></tr>`;
+        invitesBody.innerHTML = `<tr><td colspan="6">${esc((err as Error).message)}</td></tr>`;
       }
     }
 
@@ -299,7 +310,7 @@ import Footer from '../../../components/Footer.astro';
         members.forEach((m) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${m.email}</td>
+            <td>${esc(m.email)}</td>
             <td></td>
             <td>${fmt(m.created_at)}</td>
             <td></td>
@@ -336,10 +347,10 @@ import Footer from '../../../components/Footer.astro';
           pwBtn.className = 'btn-link';
           pwBtn.textContent = 'Set password';
           pwBtn.addEventListener('click', async () => {
-            const newPassword = prompt(`New password for ${m.email} (min 8 characters):`);
+            const newPassword = prompt(`New password for ${m.email} (min 12 characters):`);
             if (!newPassword) return;
-            if (newPassword.length < 8) {
-              alert('Password must be at least 8 characters.');
+            if (newPassword.length < 12) {
+              alert('Password must be at least 12 characters.');
               return;
             }
             try {
@@ -377,7 +388,7 @@ import Footer from '../../../components/Footer.astro';
           membersBody.appendChild(tr);
         });
       } catch (err) {
-        membersBody.innerHTML = `<tr><td colspan="4">${(err as Error).message}</td></tr>`;
+        membersBody.innerHTML = `<tr><td colspan="4">${esc((err as Error).message)}</td></tr>`;
       }
     }
 
@@ -399,8 +410,8 @@ import Footer from '../../../components/Footer.astro';
         if (inviteResult) {
           inviteResult.hidden = false;
           inviteResult.innerHTML = body.emailSent
-            ? `Invite sent to ${body.email}.`
-            : `Invite created. Email delivery isn't wired up yet. Copy this link to ${body.email}: <code>${body.acceptUrl}</code>`;
+            ? `Invite sent to ${esc(body.email)}.`
+            : `Invite created. Email delivery isn't wired up yet. Copy this link to ${esc(body.email)}: <code>${esc(body.acceptUrl)}</code>`;
         }
         if (!body.emailSent) showWelcomeEmail(body.acceptUrl, body.expiresAt);
         inviteForm.reset();

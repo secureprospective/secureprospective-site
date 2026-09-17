@@ -47,6 +47,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       .prepare("UPDATE users SET email = ?1, role = ?2 WHERE id = ?3")
       .bind(nextEmail, nextRole, id)
       .run();
+    // An identity or privilege change signs the member out everywhere. The
+    // editing admin's own session survives (they cannot demote themselves).
+    if ((nextEmail !== current.email || nextRole !== current.role) && current.id !== admin.id) {
+      await env.BACKOFFICE_DB.prepare("DELETE FROM sessions WHERE user_id = ?1").bind(id).run();
+    }
   } catch {
     return json({ error: "Could not update member. Email may already be in use." }, 409);
   }

@@ -4,7 +4,7 @@ import '../styles/fonts.css';
 import '../styles/transitions.css';
 import '../styles/site.css';
 import '../styles/immersive.css';
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions';
 
 const {
   title = 'SecureProspective',
@@ -65,7 +65,7 @@ const organization = {
     <meta name="twitter:image" content={ogImageUrl} />
 
     <script type="application/ld+json" is:inline set:html={JSON.stringify(organization)} />
-    <ViewTransitions />
+    <ClientRouter />
     <!--
       Primal carries the wordmark and every page title. With font-display: swap
       and no preload, the first paint drew all of it in the fallback and then

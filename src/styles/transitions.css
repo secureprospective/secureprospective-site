@@ -1,6 +1,6 @@
 /* ==========================================================================
    Page transitions as "Card-Lift" (prototype)
-   Wired via Astro View Transitions (<ViewTransitions /> in Layout.astro).
+   Wired via Astro View Transitions (<ClientRouter /> in Layout.astro).
 
    Model: the whole page is a stack of cards. On navigation the current
    <main> (the "card", named `page-card` on every page) is lifted off the

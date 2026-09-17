@@ -1,5 +1,5 @@
 import { json, originAllowed, type AuthEnv } from "../../_lib/http";
-import { sessionHashFromRequest, getSession } from "../../_lib/session";
+import { getActiveSession } from "../../_lib/session";
 import { publishedReleases } from "../../_lib/releases";
 
 interface Env extends AuthEnv {}
@@ -15,7 +15,7 @@ interface Env extends AuthEnv {}
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (!originAllowed(request)) return json({ error: "Forbidden origin." }, 403);
 
-  const session = await getSession(env.BACKOFFICE_DB, sessionHashFromRequest(request));
+  const session = await getActiveSession(env.BACKOFFICE_DB, request);
   if (!session) return json({ error: "Not authenticated." }, 401);
 
   return json({

@@ -19,11 +19,11 @@ import Footer from '../../components/Footer.astro';
         </label>
         <label class="field">
           <span>Password</span>
-          <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+          <input type="password" name="password" autocomplete="new-password" minlength="12" required />
         </label>
         <label class="field">
           <span>Confirm password</span>
-          <input type="password" name="passwordConfirm" autocomplete="new-password" minlength="8" required />
+          <input type="password" name="passwordConfirm" autocomplete="new-password" minlength="12" required />
         </label>
 
         <div
@@ -140,8 +140,8 @@ import Footer from '../../components/Footer.astro';
       const passwordConfirm = String(data.get('passwordConfirm') ?? '');
       const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
 
-      if (password.length < 8) {
-        showError('Password must be at least 8 characters.');
+      if (password.length < 12) {
+        showError('Password must be at least 12 characters.');
         return;
       }
       if (password !== passwordConfirm) {

@@ -13,13 +13,6 @@ export interface AuthEnv {
   // Turnstile secret key, verified server-side against every login and
   // invite-accept submission. Cloudflare Pages secret, never committed.
   TURNSTILE_SECRET_KEY: string;
-  // One-time bootstrap secret: gates POST /api/auth/admin/bootstrap, the
-  // only way to create the very first admin account (secureprospective@gmail.com)
-  // in an invite-only system with no existing admin to send an invite. Every
-  // admin action after that (invite/revoke/remove/edit/reset-password) goes
-  // through the normal session + role='admin' check, not this key. Cloudflare
-  // Pages secret, never committed.
-  ADMIN_BOOTSTRAP_KEY: string;
 }
 
 export function json(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
@@ -41,7 +34,9 @@ export function originAllowed(request: Request): boolean {
   if (!origin) return true;
   try {
     const h = new URL(origin).hostname;
-    return ALLOWED_HOSTS.has(h) || h.endsWith(".pages.dev");
+    // This project's own preview hosts only. A bare ".pages.dev" suffix would
+    // admit every Cloudflare Pages site on the internet.
+    return ALLOWED_HOSTS.has(h) || h.endsWith(".secureprospective-site.pages.dev");
   } catch {
     return false;
   }
@@ -54,4 +49,4 @@ export function isJsonRequest(request: Request): boolean {
 }
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const MIN_PASSWORD_LENGTH = 8;
+export const MIN_PASSWORD_LENGTH = 12;

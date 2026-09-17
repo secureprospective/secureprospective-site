@@ -84,6 +84,18 @@ export async function getSession(
   return { user };
 }
 
+// For every route except me, change-password and logout. A session opened
+// with an admin-chosen one-time password may do nothing until the member sets
+// their own; enforcing that only in page JavaScript left the APIs open to it.
+export async function getActiveSession(
+  db: D1Database,
+  request: Request,
+): Promise<{ user: SessionUser } | null> {
+  const session = await getSession(db, sessionHashFromRequest(request));
+  if (!session || session.user.must_change_password) return null;
+  return session;
+}
+
 export async function createSession(db: D1Database, userId: string): Promise<string> {
   const { raw, hash } = newSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();

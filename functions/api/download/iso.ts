@@ -1,5 +1,5 @@
 import { json, originAllowed, type AuthEnv } from "../../_lib/http";
-import { sessionHashFromRequest, getSession } from "../../_lib/session";
+import { getActiveSession } from "../../_lib/session";
 import { findRelease } from "../../_lib/releases";
 
 interface Env extends AuthEnv {
@@ -28,7 +28,7 @@ interface Env extends AuthEnv {
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (!originAllowed(request)) return json({ error: "Forbidden origin." }, 403);
 
-  const session = await getSession(env.BACKOFFICE_DB, sessionHashFromRequest(request));
+  const session = await getActiveSession(env.BACKOFFICE_DB, request);
   if (!session) return json({ error: "Not authenticated." }, 401);
 
   const release = findRelease(new URL(request.url).searchParams.get("v"));
@@ -55,9 +55,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   headers.set("Content-Type", "application/x-iso9660-image");
   headers.set("Content-Disposition", `attachment; filename="${release.filename}"`);
   headers.set("Accept-Ranges", "bytes");
-  // The ISO for a given release id never changes -- a new build is a new
-  // id -- so it is safe to let the edge and the browser keep it.
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  // Member-only content: the browser may keep it, no shared cache may. A
+  // "public" directive here would let an edge or proxy cache hand the ISO to
+  // someone who never logged in.
+  headers.set("Cache-Control", "private, max-age=31536000, immutable");
   // Printed on the page too, but a scripted download should not have to
   // scrape HTML to learn what to verify against.
   headers.set("X-SPPlus-Sha256", release.sha256);

@@ -3,7 +3,7 @@
 // has a valid session (defense in depth: a hijacked session shouldn't be
 // enough on its own to lock the real owner out). Clears
 // must_change_password and rotates the session (old token deleted, new one
-// issued) so a stolen one-time-password session doesn't survive the change.
+// issued) and ends every other session, so no stolen session survives the change.
 
 import { json, originAllowed, isJsonRequest, MIN_PASSWORD_LENGTH, type AuthEnv } from "../../_lib/http";
 import { hashPassword, verifyPassword } from "../../_lib/password";
@@ -51,7 +51,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     env.BACKOFFICE_DB
       .prepare("UPDATE users SET password_hash = ?1, must_change_password = 0 WHERE id = ?2")
       .bind(newHash, session.user.id),
-    env.BACKOFFICE_DB.prepare("DELETE FROM sessions WHERE token_hash = ?1").bind(tokenHash),
+    // Every session, not just this one: a stolen cookie must not outlive the
+    // password change that was meant to lock its holder out.
+    env.BACKOFFICE_DB.prepare("DELETE FROM sessions WHERE user_id = ?1").bind(session.user.id),
   ]);
 
   const raw = await createSession(env.BACKOFFICE_DB, session.user.id);
