@@ -17,7 +17,13 @@
   # allowed as well: Pages injects it at the edge when Web Analytics is enabled,
   # so a policy that omitted it would break a script this site never asked for.
   # Everything else is self-hosted, which is what keeps the policy this tight.
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://challenges.cloudflare.com https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  # script-src dropped 'unsafe-inline' on 2026-09-18. Verified first: the build has
+  # no executable inline <script>, no on* handlers and no javascript: URLs - Astro
+  # hoists every script to /_astro/. The 16 inline <script type="application/ld+json">
+  # blocks are data, not script, and a headless Chromium check under script-src 'self'
+  # confirmed they stay present and parseable while a real inline script is blocked.
+  # style-src keeps 'unsafe-inline' because Astro inlines critical CSS.
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://challenges.cloudflare.com https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
 
 # Astro fingerprints these filenames, so a stale copy is impossible.
 /_astro/*
