@@ -14,6 +14,24 @@ import { getActiveSession } from "./_lib/session";
 
 const GATED_SLUG = "sp-plus-security-architecture";
 
+// Astro names a shared CSS chunk after one of the pages in it, so the homepage
+// ships /_astro/sp-plus-security-architecture.<hash>.css -- a public stylesheet
+// whose own filename contains the gated slug. A substring match cannot tell it
+// apart from the report, so the gate 302'd it to the login page and every
+// visitor without it already cached got the homepage unstyled. Fingerprinted
+// build assets are public by construction; exempt them.
+const PUBLIC_ASSET_PREFIXES = ["/_astro/", "/fonts/", "/assets/"];
+
+function isPublicAsset(path: string): boolean {
+  // Never exempt a path containing a ".." segment. This check runs on the
+  // normalised path, which collapses slashes and decodes escapes but does NOT
+  // resolve dot segments, so "/_astro/../sp-plus-security-architecture/" would
+  // otherwise walk straight out of the asset directory and skip the gate. That
+  // URL is gated today and must stay gated.
+  if (path.split("/").includes("..")) return false;
+  return PUBLIC_ASSET_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 // Preview kill-switch, 2026-09-17. Preview deployments bind the SAME D1
 // databases and R2 buckets as production, and the project deploys every branch
 // automatically, so a pushed branch used to become a public site wired to real
@@ -60,7 +78,7 @@ export const onRequest: PagesFunction<PreviewEnv> = async ({ request, env, next 
     );
   }
 
-  if (!path.includes(GATED_SLUG)) return next();
+  if (!path.includes(GATED_SLUG) || isPublicAsset(path)) return next();
 
   const session = await getActiveSession(env.BACKOFFICE_DB, request);
   if (!session) {
