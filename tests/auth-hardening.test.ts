@@ -116,6 +116,31 @@ describe("architecture report gate", () => {
     expect(await ok.text()).toBe("doc");
     expect(ok.headers.get("Cache-Control")).toBe("private, no-store");
   });
+
+  it("serves the fingerprinted stylesheet that shares the gated slug", async () => {
+    // Astro names a shared CSS chunk after a page in it, so the homepage loads
+    // /_astro/sp-plus-security-architecture.<hash>.css. Gating that file served
+    // the homepage unstyled to every visitor without it cached (2026-09-18).
+    const next = async () => new Response("body{}", { headers: { "Content-Type": "text/css" } });
+    const res = await call(archGate, req("/_astro/sp-plus-security-architecture.mW_Jeoa3.css"), { next });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("body{}");
+  });
+
+  it("still gates dot-segment paths that start with an asset prefix", async () => {
+    // The asset exemption must not become a bypass: the normalised path keeps
+    // "..", and the asset server may resolve it back onto the report.
+    const next = async () => new Response("doc");
+    for (const path of [
+      "/_astro/../sp-plus-security-architecture/",
+      "/_astro/x/../../sp-plus-security-architecture",
+      "/fonts/../sp-plus-security-architecture/",
+    ]) {
+      const res = await call(archGate, req(path), { next });
+      expect(res.status, path).toBe(302);
+      expect(res.headers.get("Location"), path).toBe("/members/login");
+    }
+  });
 });
 
 describe("session revocation", () => {
