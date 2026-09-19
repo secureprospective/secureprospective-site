@@ -1,8 +1,12 @@
 -- =====================================================================
 -- secureprospective: D1 migration 0008, website intent events
 -- =====================================================================
--- Target database: `secureprospective-events-db`, bound as EVENTS_DB on
--- BOTH Production and Preview. A new isolated database rather than a
+-- Target databases: `secureprospective-events-db` bound as EVENTS_DB on
+-- Production, and `secureprospective-events-preview-db` bound as the same
+-- name on Preview. TWO databases, deliberately. A single shared one was
+-- created first and then split, because preview traffic is testing and a
+-- test tap on the call button would otherwise be pulled into the ledger
+-- and counted in a quarterly report forever. Apply this file to both. A new isolated database rather than a
 -- table inside an existing one, per this project's standing rule of one
 -- database per app (see 0004's header). Unlike 0007, the target here is
 -- not an open question: Christopher settled it on 2026-09-19 and the
