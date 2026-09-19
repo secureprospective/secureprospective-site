@@ -37,7 +37,17 @@ Astro 4.11.0, pinned for Node 20 (CT105 + bird). Build verified on both machines
 2. **Return home:** CT105 fetches branch directly from bird (no GitHub credentials on bird). Claude reviews diff, `npm run build`, merges to main after Christopher's visual gate.
 3. **Cloudflare Pages** auto-deploys from main.
 
-Bird never runs `wrangler deploy` or `wrangler pages deploy`. CT105 owns the merge.
+Bird never runs `wrangler deploy` or `wrangler pages deploy`.
+
+**CORRECTED 2026-09-19: the Beelink owns the merge, the Cloudflare bindings and the deploy.**
+This previously named CT105. CT105 has no clone of this repo and no `gh`, so it cannot
+merge, cannot create a binding and cannot deploy. The Beelink has the clone, `gh`
+authenticated as `secureprospective`, and a Cloudflare API token for `wrangler`. The
+2026-09-19 phone-and-address rollout was deployed from the Beelink for exactly this
+reason, which is what exposed the contradiction. Christopher set this 2026-09-19.
+
+Unchanged by that correction: a merge to `main` is a deploy, so it still happens only
+after Christopher confirms the result, and no machine deploys on its own initiative.
 
 **Note on pull method:** bird can't push to GitHub (no credentials). CT105 fetches directly: `git remote add bird ssh://x@bird/home/x/qa/repos/secureprospective && git fetch bird <branch>`. Bird remote is already added on CT105.
 
@@ -365,6 +375,6 @@ AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24, see Op
 11. **CRM/booking (Component 6) — only when a real Jobber account exists.** OAuth handshake, token storage in Pages secrets, JSON:API body construction in `crm-booking/jobber.ts` (currently stubbed with documented TODO errors), wire the `create_booking`/`sync_customer` MCP tools, adversarial-test before going live (CRM writes are high-stakes). `docs/ai-ecosystem/components/06_crm_booking.md` flags 3 LOW-CONFIDENCE items (Jobber URL pattern, OAuth scope names, JSON:API vs GraphQL) — verify before wiring.
 12. **Only after all of the above are live in a preview deploy AND pass an adversarial-refusal test:** refactor the existing `functions/api/ask.ts` chatbot to be a thin wrapper around `new Agent(...)` — per §3's "Existing chatbot" row, only after the new agent is independently proven. This is the point where the AI-ecosystem work actually starts serving the live chatbot instead of running in parallel.
 
-**Hard rules carried forward from the scaffold brief (still apply):** no new paid external services without Christopher's sign-off; real secrets/bindings/deploys are CT105's job, never bird's; a merge to `main` triggers Cloudflare Pages auto-deploy, so treat every step here as touching the live site once a Function route exists (steps 1–2 don't, step 3 onward does).
+**Hard rules carried forward from the scaffold brief (still apply):** no new paid external services without Christopher's sign-off; real secrets/bindings/deploys are the Beelink's job, never bird's (**corrected 2026-09-19**, was CT105, which has neither a clone nor `gh`); a merge to `main` triggers Cloudflare Pages auto-deploy, so treat every step here as touching the live site once a Function route exists (steps 1–2 don't, step 3 onward does).
 
 **Full context if this file alone isn't enough:** `docs/ai-ecosystem/ARCHITECTURE.md` (full spec), `docs/ai-ecosystem/components/*.md` (per-component spec + what's real vs. stubbed), memory `project_ai_ecosystem_wireframe` (build history — the node:sqlite bug, all 5 LEADS resolutions, why this was squash-merged). Bird's own task-status file (`~/.config/opencode/foundation/memory/ai_ecosystem_scaffold_task.md` on bird) has the original build session's blow-by-blow if deeper archaeology is ever needed, but everything load-bearing has been folded up into this file and the memory node — you shouldn't need to SSH to bird to start this phase.
