@@ -7,6 +7,8 @@
    the form posts to /api/lead without a page reload.
    ========================================================================== */
 
+import { track, flush } from '../track.js';
+
 const ROUTES = new Set(['operating', 'sp-plus', 'prospective']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -39,9 +41,19 @@ function boot() {
   let watchdog = null;
   let observer = null;
 
-  const giveUpOnWidget = () => {
+  // Funnel state for the beacon. `lastField` is a field NAME, never a
+  // value: what someone typed into the message box is theirs.
+  const FIELDS = new Set(['name', 'email', 'route', 'message']);
+  let started = false;
+  let resolved = false;
+  let lastField = null;
+
+  const giveUpOnWidget = (cause) => {
     if (widgetFailed || hasWidget()) return;
     widgetFailed = true;
+    // The one event that matters most: a visitor who cannot submit at
+    // all. The information was already computed here and discarded.
+    track('turnstile_fail', cause === 'blocked' ? 'blocked' : 'timeout', { now: true });
     if (fallback) fallback.hidden = false;
     if (slot) slot.hidden = true;
     if (submit) submit.disabled = true;
@@ -61,9 +73,9 @@ function boot() {
   // A site key that never made it into the build is the same dead end for the
   // visitor as a blocked script, so it is reported the same way and at once.
   if (slot && !slot.dataset.sitekey) {
-    giveUpOnWidget();
+    giveUpOnWidget('blocked');
   } else {
-    watchdog = window.setTimeout(giveUpOnWidget, TURNSTILE_TIMEOUT_MS);
+    watchdog = window.setTimeout(() => giveUpOnWidget('timeout'), TURNSTILE_TIMEOUT_MS);
     // Turnstile injects its token input whenever it finishes, which may be
     // after the timeout has already fired.
     observer = new MutationObserver(() => {
@@ -95,6 +107,28 @@ function boot() {
 
   lines.forEach((line) => line.addEventListener('click', onLineClick));
 
+  const onFieldFocus = (event) => {
+    const field = event.target && event.target.name;
+    if (!FIELDS.has(field)) return;
+    lastField = field;
+    if (started) return;
+    started = true;
+    track('form_start');
+  };
+
+  // Abandonment is only observable on the way out, so it is reported
+  // when the page hides rather than on a timer. A visitor who comes
+  // back and submits still reports form_submit, and the pair is what
+  // makes the funnel readable.
+  const onHide = () => {
+    if (document.visibilityState !== 'hidden') return;
+    if (started && !resolved) track('form_abandon', lastField || 'name');
+    flush();
+  };
+
+  form.addEventListener('focusin', onFieldFocus);
+  document.addEventListener('visibilitychange', onHide);
+
   const onSubmit = async (event) => {
     event.preventDefault();
     clear();
@@ -107,23 +141,26 @@ function boot() {
     const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
 
     if (!name) {
+      track('form_submit', 'invalid');
       say('Add your name so Christopher knows who he is answering.', 'error');
       form.querySelector('#cf-name')?.focus();
       return;
     }
     if (!EMAIL_RE.test(email)) {
+      track('form_submit', 'invalid');
       say('That email address does not look right. Check it and try again.', 'error');
       form.querySelector('#cf-email')?.focus();
       return;
     }
     if (!ROUTES.has(chosenRoute)) {
+      track('form_submit', 'invalid');
       say('Choose which line you are on.', 'error');
       route?.focus();
       return;
     }
     if (!turnstileToken) {
       if (widgetFailed || !hasWidget()) {
-        giveUpOnWidget();
+        giveUpOnWidget('blocked');
         say(
           'The spam check could not load, so this form cannot send. Email info@secureprospective.com instead.',
           'error',
@@ -155,17 +192,21 @@ function boot() {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        track('form_submit', 'error');
         say(body.error || 'That did not go through. Try again, or email info@secureprospective.com.', 'error');
         window.turnstile?.reset();
         submit.disabled = false;
         return;
       }
 
+      resolved = true;
+      track('form_submit', 'ok', { now: true });
       form.reset();
       window.turnstile?.reset();
       say('Received. Christopher will answer from info@secureprospective.com.', 'ok');
       submit.disabled = false;
     } catch {
+      track('form_submit', 'error');
       say('That did not go through. Try again, or email info@secureprospective.com.', 'error');
       window.turnstile?.reset();
       submit.disabled = false;
@@ -180,6 +221,8 @@ function boot() {
     if (observer) observer.disconnect();
     observer = null;
     form.removeEventListener('submit', onSubmit);
+    form.removeEventListener('focusin', onFieldFocus);
+    document.removeEventListener('visibilitychange', onHide);
     lines.forEach((line) => line.removeEventListener('click', onLineClick));
     teardown = () => {};
   };
