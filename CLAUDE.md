@@ -34,7 +34,7 @@ Astro 4.11.0, pinned for Node 20 (CT105 + bird). Build verified on both machines
 ## Workflow — Bird Scratch-Pad → CT105 Deploy Gate
 
 1. **Bird (off-LAN, solo mode):** Christopher rough-drafts and demos locally via `npm run dev`. GLM + z.ai + Gemini triangle assists. Bird **never** deploys to Cloudflare.
-2. **Return home:** CT105 fetches branch directly from bird (no GitHub credentials on bird). Claude reviews diff, `npm run build`, merges to main after Christopher's visual gate.
+2. **Return home:** the Beelink fetches the branch directly from bird (no GitHub credentials on bird). Claude reviews the diff, runs the build, and merges to main after Christopher's visual gate. (**Corrected 2026-09-19**, was CT105. Whether the bird lane itself is still in use has not been verified; only the machine name is corrected here.)
 3. **Cloudflare Pages** auto-deploys from main.
 
 Bird never runs `wrangler deploy` or `wrangler pages deploy`.
