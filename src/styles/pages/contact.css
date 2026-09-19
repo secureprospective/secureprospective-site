@@ -193,6 +193,23 @@
   text-underline-offset: 0.18em;
 }
 
+/* The phone is a peer of the email, not a second block, so it sits close under
+   it. The 20px above separates the pair from the card head. */
+.contact-channel-card > a.contact-channel-phone {
+  margin-top: 6px;
+}
+
+.contact-channel-address {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(34, 34, 34, 0.2);
+  font-size: 0.82rem;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
 .contact-channel-card > a:hover {
   color: var(--blue-brand);
 }

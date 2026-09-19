@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/pages/contact.css';
+import { ADDRESS_LINE, CONTACT } from '../data/contact';
 
 const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
@@ -35,7 +36,11 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
               <span>Direct channel</span>
               <span class="contact-channel-mark" aria-hidden="true"></span>
             </div>
-            <a href="mailto:info@secureprospective.com">info@secureprospective.com</a>
+            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            <a class="contact-channel-phone" href={`tel:${CONTACT.phone}`}>
+              {CONTACT.phoneDisplay}
+            </a>
+            <address class="contact-channel-address">{ADDRESS_LINE}</address>
           </aside>
         </div>
       </div>

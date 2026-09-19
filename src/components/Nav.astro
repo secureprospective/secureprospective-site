@@ -1,4 +1,6 @@
 ---
+import { CONTACT } from '../data/contact';
+
 const raw = Astro.url.pathname;
 const path = raw.endsWith('/') && raw.length > 1 ? raw.slice(0, -1) : raw;
 
@@ -38,6 +40,26 @@ const isActive = (href: string) => path === href;
       ))}
       <a href="/members" class="site-link site-link--utility">Member access</a>
     </nav>
+
+    {/*
+      Outside .site-links on purpose. That list collapses into the Index
+      dropdown under 790px, and a producer reading the campaign email on a
+      phone should never have to open a menu to call. This stays in the bar at
+      every width, and it is the one link in the header that is a tap target
+      rather than a text link.
+    */}
+    <a
+      class="nav-call"
+      href={`tel:${CONTACT.phone}`}
+      aria-label={`Call SecureProspective at ${CONTACT.phoneDisplay}`}
+    >
+      <svg class="nav-call-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M4.6 1.5a1.2 1.2 0 0 1 1.7.4l1.2 2a1.2 1.2 0 0 1-.2 1.5l-.9.8a8 8 0 0 0 3.4 3.4l.8-.9a1.2 1.2 0 0 1 1.5-.2l2 1.2a1.2 1.2 0 0 1 .4 1.7l-1 1.5a1.8 1.8 0 0 1-2 .7A13.4 13.4 0 0 1 2.4 6.1a1.8 1.8 0 0 1 .7-2z"
+        />
+      </svg>
+      <span class="nav-call-number">{CONTACT.phoneDisplay}</span>
+    </a>
   </div>
 </header>
 

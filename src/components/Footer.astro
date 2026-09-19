@@ -1,4 +1,6 @@
 ---
+import { ADDRESS_LINE, CONTACT } from '../data/contact';
+
 const year = new Date().getFullYear();
 const links = [
   { href: '/services', label: 'The Operation' },
@@ -17,7 +19,14 @@ const links = [
     <div class="footer-rule"></div>
     <div class="footer-close">
       <span>© {year} SecureProspective</span>
-      <a class="footer-legal" href="mailto:info@secureprospective.com">info@secureprospective.com</a>
+      <a class="footer-legal" href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+      <a class="footer-legal" href={`tel:${CONTACT.phone}`}>{CONTACT.phoneDisplay}</a>
+      {/*
+        The same postal address the campaign email carries for CAN-SPAM. Kept
+        identical on both surfaces on purpose: a business is scored on whether
+        its name, address and phone agree everywhere they appear.
+      */}
+      <address class="footer-address">{ADDRESS_LINE}</address>
       <a class="footer-legal" href="/privacy">Privacy Policy</a>
       <p>Secure the operating foundation. Build SP+ next.</p>
     </div>
