@@ -1,0 +1,63 @@
+/* ==========================================================================
+   RESUME
+
+   The full record behind the printed one-pager. A plain reading document:
+   one column, clear section rules, dates right-aligned. It borrows the site
+   tokens and stays quieter than the Concept A pages because people read it,
+   they do not browse it.
+   ========================================================================== */
+
+.resume-page { background: var(--white); color: var(--ink); overflow-x: clip; }
+
+.resume-hero {
+  border-bottom: 2px solid var(--ink);
+  background: var(--silver-base);
+  padding: clamp(40px, 7vw, 88px) 0 clamp(32px, 5vw, 56px);
+}
+.resume-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
+.resume-eyebrow { font: 600 0.75rem/1 var(--font-body); letter-spacing: 0.14em; color: var(--blue-brand); }
+.resume-hero h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1; margin: 12px 0 8px; }
+.resume-role { font-weight: 600; color: var(--gold-identity); margin: 0 0 16px; }
+.resume-lede { max-width: 60ch; font-size: 1.1rem; line-height: 1.5; margin: 0; }
+.resume-contact { display: grid; gap: 6px; font-size: 0.95rem; border-left: 3px solid var(--yellow-accent); padding-left: 16px; }
+.resume-contact a { color: var(--blue-brand); }
+
+.resume-section { padding: 40px 0 8px; }
+.resume-section-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--ink); padding-bottom: 6px; margin-bottom: 16px;
+}
+.resume-section-head h2 { font-family: var(--font-display); font-size: clamp(1.3rem, 3vw, 1.7rem); margin: 0; }
+.resume-section-head span { font-size: 0.9rem; opacity: 0.75; }
+.resume-intro { max-width: 70ch; line-height: 1.55; margin: 0 0 18px; }
+
+.resume-build { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.resume-build li { border: 1px solid var(--ink); border-top: 3px solid var(--blue-brand); padding: 16px 18px; }
+.resume-build h3 { font-size: 1.02rem; margin: 0 0 6px; }
+.resume-build p { margin: 0; line-height: 1.5; font-size: 0.96rem; }
+
+.resume-roles { list-style: none; padding: 0; margin: 0 0 14px; }
+.resume-roles li { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 9.5em; gap: 12px; padding: 6px 0; border-bottom: 1px dashed rgba(34, 34, 34, 0.2); }
+.resume-roles time { opacity: 0.75; white-space: nowrap; text-align: right; }
+.resume-notes { max-width: 75ch; padding-left: 18px; margin: 0; line-height: 1.55; }
+.resume-notes li { margin-bottom: 8px; }
+
+.resume-kolbe { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.resume-kolbe div { border: 1px solid var(--ink); padding: 14px 16px; }
+.resume-kolbe dt { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; }
+.resume-kolbe dt b { font-family: var(--font-display); font-size: 1.6rem; line-height: 1; color: var(--blue-brand); }
+.resume-kolbe dd { margin: 0; line-height: 1.45; font-size: 0.95rem; }
+.resume-more a { color: var(--blue-brand); }
+
+.resume-page > .resume-section:last-of-type { padding-bottom: 64px; }
+
+@media (max-width: 720px) {
+  .resume-hero-grid { grid-template-columns: 1fr; }
+  .resume-roles li { grid-template-columns: 1fr 8em; }
+  .resume-roles li span { grid-column: 1 / -1; grid-row: 2; opacity: 0.8; }
+}
+
+@media print {
+  .resume-hero { background: none; padding: 0 0 12px; }
+  .resume-build li, .resume-kolbe div { break-inside: avoid; }
+}

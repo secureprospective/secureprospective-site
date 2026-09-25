@@ -1,0 +1,193 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/pages/resume.css';
+
+/*
+ * The full resume behind the printed one-pager's QR code. The one-pager is the
+ * summary; this page carries the evidence the page had no room for. Voice is
+ * third person to match The Operator. No em dashes in visitor copy (CLAUDE.md).
+ */
+
+const build = [
+  {
+    title: 'AI agent operations',
+    body: 'Runs a multi-machine AI operation that routes each task to the right local or frontier model, separates implementation from review, and requires human approval before any change merges. Failed runs are recoverable without losing their findings. Used daily for research, code, and content.',
+  },
+  {
+    title: 'SP+ secure advisor workstation',
+    body: 'Designed and released SP+ (v0.11.5), a locked-down Linux workstation for financial advisors. Signed updates, 74 build-time and 80 runtime security checks, a published package manifest, and one-step rollback so every change can be verified and reversed.',
+  },
+  {
+    title: 'Command Center',
+    body: 'The live operating dashboard for the business. Plain-text records are the source of truth, guarded writes stop simultaneous edits from silently overwriting work, and priorities and marketing analytics live in one view.',
+  },
+  {
+    title: 'Automated recurring operations',
+    body: 'Scheduled services handle document discovery and archiving, hash-verified backups with tested restores, campaign cadences with a kill switch, and health monitoring across servers, virtual machines, and cloud.',
+  },
+  {
+    title: 'Infrastructure for insurance agents',
+    body: 'A self-hosted Nextcloud portal gives agents private, company-branded file storage and sharing. A self-hosted Postiz scheduler runs social publishing. Both live on company-owned servers and publish securely through Cloudflare.',
+  },
+  {
+    title: 'Engineering standard for AI-assisted development',
+    body: 'Authored the rulebook AI coding agents must follow: an eleven-layer standard where every change passes automated security scans and multi-agent review before a human signs off.',
+  },
+  {
+    title: 'Web',
+    body: 'Built and deployed secureprospective.com with invite-only member authentication. Built a website for a nonprofit client and migrated client sites to Cloudflare.',
+  },
+];
+
+const careers = [
+  {
+    id: 'insurance',
+    name: 'Insurance operations and agent development',
+    span: '2018 to 2026',
+    roles: [
+      ['Operations Manager', 'Gold Shield Wealth', 'Jun to Aug 2026'],
+      ['Financial Services Consultant', 'State Farm', 'Apr to Jun 2026'],
+      ['Agent Development Specialist', 'Retirement Realized Financial', '2024 to 2026'],
+      ['Marketer', 'DFS Marketing', '2020 to 2024'],
+      ['Lead Quality Manager, Supervising Agent', 'American Income Life', '2018 to 2020'],
+    ],
+    notes: [
+      'Supported approximately $110M in annuity production across six years through case design, custom analytics, sales coaching, application review, and new-business support. That figure is business supported, not personal sales.',
+      'Currently supports eight active producers at roughly $18M in annual annuity volume.',
+      'Translated retirement income, life insurance, and long-term care needs into case strategies agents could explain and close. Specialty in federal benefits: FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations.',
+      'Trained new agents from preparation through application and policy issue. At American Income Life, managed underwriting requirements, exams, policy modifications, and application quality.',
+    ],
+  },
+  {
+    id: 'construction',
+    name: 'Construction and field installation',
+    span: '2003 to 2018',
+    roles: [
+      ['Lead Installer', 'Miele USA', '2011 to 2018'],
+      ['Electrician', 'Commercial, residential, and military-base projects', '2003 to 2011'],
+    ],
+    notes: [
+      'Promoted to foreman mid-project at Centech after the foreman quit. Delivered a low-voltage resident-notification system for an assisted-living facility while specs, drawings, and equipment lists changed daily.',
+      'Military housing and base work for Louisiana Electric Company across Camp Pendleton, Yuma MCAS, 29 Palms, Vance, Barksdale, Little Rock, and Edwards.',
+      'At Miele, ran site inspections for large installs, solved delivery problems in the field, trained new hires before formal training, and helped write guides for the concierge care team.',
+    ],
+  },
+  {
+    id: 'technology',
+    name: 'Technology and field engineering',
+    span: '1999 to 2004',
+    roles: [
+      ['Field Technician', 'Insight', '2003 to 2004'],
+      ['Network Field Engineer', 'Pro Net Solutions', '2002'],
+      ['HP Field Engineer', 'Trend-Setters Consulting', '2002'],
+      ['HP Pavilion Support Agent', 'MCI WorldCom', '1999 to 2001'],
+    ],
+    notes: [
+      'Completed 400+ PC migrations across three Starwood locations, including hardware reconciliation and peripheral setup.',
+      'Installed the USDA wide-area network along an 83-site route through Texas, Oklahoma, Louisiana, and Arkansas: Cisco router and switch cutovers into live circuits, AS/400 shutdown and verification, documented for the helpdesk.',
+      'On the Bank of America rollout, the Baltimore office had not received a single Tivoli push the night before the team flew home. Traced it to a registry fault, patched it, and got every machine deployed by 4 AM.',
+    ],
+  },
+];
+
+const kolbe = [
+  ['Fact Finder', '4', 'Explain', 'Gathers what matters, adds context, checks the facts.'],
+  ['Follow Thru', '6', 'Maintain', 'Sustains working systems and replicates patterns that hold.'],
+  ['Quick Start', '3', 'Stabilize', 'Removes unknowns and reduces mistakes before moving.'],
+  ['Implementor', '7', 'Build', 'Constructs lasting, tangible solutions and protective environments.'],
+];
+---
+
+<Layout title="Resume: Christopher Campbell" description="The full resume of Christopher Campbell: AI implementation and operations, insurance operations, construction, and field engineering.">
+  <Nav />
+  <main id="main" class="resume-page" transition:name="page-card">
+    <section class="resume-hero" aria-labelledby="resume-title">
+      <div class="shell resume-hero-grid">
+        <div>
+          <span class="resume-eyebrow">FILE // RESUME</span>
+          <h1 id="resume-title">Christopher Campbell</h1>
+          <p class="resume-role">AI Implementation and Operations Engineer</p>
+          <p class="resume-lede">
+            Turns operational problems into working systems, and stays accountable for what happens after deployment.
+            26 years across network field engineering, electrical construction, and insurance operations.
+          </p>
+        </div>
+        <aside class="resume-contact" aria-label="Contact">
+          <span>Montgomery, TX</span>
+          <a href="tel:+18323032277">832.303.2277</a>
+          <a href="/contact">Start a conversation</a>
+          <a href="/resume/Christopher-Campbell-Resume.pdf" download>Download the one-page PDF</a>
+        </aside>
+      </div>
+    </section>
+
+    <section class="resume-section shell" aria-labelledby="resume-now">
+      <header class="resume-section-head">
+        <h2 id="resume-now">What he builds now</h2>
+        <span>SecureProspective · Founder · 2025 to present</span>
+      </header>
+      <p class="resume-intro">
+        Builds and operates the AI workflows, infrastructure, and business applications behind an active insurance and consulting business.
+        Every system has review gates and a named human owner.
+      </p>
+      <ol class="resume-build">
+        {build.map((b) => (
+          <li><h3>{b.title}</h3><p>{b.body}</p></li>
+        ))}
+      </ol>
+    </section>
+
+    {careers.map((c) => (
+      <section class="resume-section shell" aria-labelledby={`resume-${c.id}`}>
+        <header class="resume-section-head">
+          <h2 id={`resume-${c.id}`}>{c.name}</h2>
+          <span>{c.span}</span>
+        </header>
+        <ul class="resume-roles">
+          {c.roles.map(([role, org, when]) => (
+            <li><strong>{role}</strong><span>{org}</span><time>{when}</time></li>
+          ))}
+        </ul>
+        <ul class="resume-notes">
+          {c.notes.map((n) => <li>{n}</li>)}
+        </ul>
+      </section>
+    ))}
+
+    <section class="resume-section shell" aria-labelledby="resume-kolbe">
+      <header class="resume-section-head">
+        <h2 id="resume-kolbe">How he works</h2>
+        <span>Kolbe A Index · MO 4-6-3-7</span>
+      </header>
+      <p class="resume-intro">
+        Kolbe measures how a person naturally takes action, not intelligence or personality.
+        High Implementor with low Quick Start: builds durable systems and removes risk before moving.
+      </p>
+      <dl class="resume-kolbe">
+        {kolbe.map(([mode, score, label, gloss]) => (
+          <div><dt>{mode}<b>{score}</b></dt><dd><strong>{label}.</strong> {gloss}</dd></div>
+        ))}
+      </dl>
+      <p class="resume-more">The full operating story, and the method the three careers built, is on <a href="/the-operator">The Operator</a>.</p>
+    </section>
+
+    <section class="resume-section shell" aria-labelledby="resume-env">
+      <header class="resume-section-head"><h2 id="resume-env">Environment</h2></header>
+      <p class="resume-intro">
+        Proxmox servers and Linux virtual machines on premises, tunneled securely to Cloudflare Pages, Workers, R2, and D1.
+        Docker, systemd services and timers, Nextcloud, Postiz. Git is the audit trail. Local and cloud AI models coordinated behind a human approval gate.
+      </p>
+    </section>
+
+    <section class="resume-section shell" aria-labelledby="resume-edu">
+      <header class="resume-section-head"><h2 id="resume-edu">License and studies</h2></header>
+      <ul class="resume-notes">
+        <li>Texas Life, Health, and Annuity license</li>
+        <li>Network technology coursework, High Tech Institute, Phoenix, 1999 to 2000</li>
+      </ul>
+    </section>
+  </main>
+  <Footer />
+</Layout>
