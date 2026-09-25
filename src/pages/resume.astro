@@ -1,0 +1,338 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/pages/resume.css';
+
+/*
+ * The full resume behind the printed one-pager's QR code. The one-pager is the
+ * summary; this page carries the evidence the page had no room for. Voice is
+ * third person to match The Operator. No em dashes in visitor copy (CLAUDE.md).
+ */
+
+const build = [
+  {
+    title: 'AI agent operations',
+    body: 'Runs a multi-machine AI operation that routes each task to the right local or frontier model, separates implementation from review, and requires human approval before any change merges. Preserves intermediate findings so interrupted runs can resume. Used daily for research, code, and content.',
+  },
+  {
+    title: 'SP+ secure advisor workstation',
+    body: 'Designed and released SP+ (v0.11.5), a locked-down Linux workstation for financial advisors. Signed updates, 74 build-time and 80 runtime security checks, a published package manifest, and one-step rollback so every change can be verified and reversed.',
+  },
+  {
+    title: 'Command Center',
+    body: 'The live operating dashboard for the business. Plain-text records are the source of truth, guarded writes stop simultaneous edits from silently overwriting work, and priorities and marketing analytics live in one view.',
+  },
+  {
+    title: 'Automated recurring operations',
+    body: 'Scheduled services handle document discovery and archiving, hash-verified backups with tested restores, campaign cadences with a kill switch, and health monitoring across servers, virtual machines, and cloud.',
+  },
+  {
+    title: 'Infrastructure for insurance agents',
+    body: 'A self-hosted Nextcloud portal gives agents private, company-branded file storage and sharing. A self-hosted Postiz scheduler runs social publishing. Both live on company-owned servers and publish securely through Cloudflare.',
+  },
+  {
+    title: 'Engineering standard for AI-assisted development',
+    body: 'Authored the rulebook AI coding agents must follow: an eleven-layer standard where every change passes automated security scans and multi-agent review before a human signs off.',
+  },
+  {
+    title: 'Web',
+    body: 'Built and deployed secureprospective.com with invite-only member authentication. Built a website for a nonprofit client and migrated client sites to Cloudflare.',
+  },
+];
+
+const careers = [
+  {
+    id: 'insurance',
+    name: 'Insurance operations and agent development',
+    span: '2018 to 2026',
+    roles: [
+      ['Operations Manager', 'Gold Shield Wealth', 'Jun to Aug 2026'],
+      ['Financial Services Consultant', 'State Farm', 'Apr to Jun 2026'],
+      ['Agent Development Specialist', 'Retirement Realized Financial', '2024 to 2026'],
+      ['Marketer', 'DFS Marketing', '2020 to 2024'],
+      ['Lead Quality Manager, Supervising Agent', 'American Income Life', '2018 to 2020'],
+    ],
+    notes: [
+      'Supported approximately $110M in annuity production across DFS Marketing and Retirement Realized Financial through case design, analytics, sales coaching, and application support.',
+      'Supported eight active producers at roughly $18M in annual annuity volume.',
+      'Translated retirement income, life insurance, and long-term care needs into case strategies agents could explain and close. Specialty in federal benefits: FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations.',
+      'Trained new agents from preparation through application and policy issue. At American Income Life, managed underwriting requirements, exams, policy modifications, and application quality.',
+    ],
+  },
+  {
+    id: 'construction',
+    name: 'Construction and field installation',
+    span: '2003 to 2018',
+    roles: [
+      ['Lead Installer', 'Miele USA', '2011 to 2018'],
+      ['Electrician', 'Commercial, residential, and military-base projects', '2003 to 2011'],
+    ],
+    notes: [
+      'Promoted to foreman mid-project at Centech after the foreman quit. Delivered a low-voltage resident-notification system for an assisted-living facility while specs, drawings, and equipment lists changed daily.',
+      'Military housing and base work for Louisiana Electric Company across Camp Pendleton, Yuma MCAS, 29 Palms, Vance, Barksdale, Little Rock, and Edwards.',
+      'At Miele, ran site inspections for large installs, solved delivery problems in the field, trained new hires before formal training, and helped write guides for the concierge care team.',
+    ],
+  },
+  {
+    id: 'technology',
+    name: 'Technology and field engineering',
+    span: '1999 to 2004',
+    roles: [
+      ['Field Technician', 'Insight', '2003 to 2004'],
+      ['Network Field Engineer', 'Pro Net Solutions', '2002'],
+      ['HP Field Engineer', 'Trend-Setters Consulting', '2002'],
+      ['HP Pavilion Support Agent', 'MCI WorldCom', '1999 to 2001'],
+    ],
+    notes: [
+      'Completed 400+ PC migrations across three Starwood locations, including hardware reconciliation and peripheral setup.',
+      'Installed the USDA wide-area network along an 83-site route through Texas, Oklahoma, Louisiana, and Arkansas: Cisco router and switch cutovers into live circuits, AS/400 shutdown and verification, documented for the helpdesk.',
+      'On the Bank of America rollout, the Baltimore office had not received a single Tivoli push the night before the team flew home. Traced it to a registry fault, patched it, and got every machine deployed by 4 AM.',
+    ],
+  },
+];
+
+const strengths = [
+  {
+    title: 'Puts AI to work, not on display',
+    body: 'Starts with the process your people already run, decides where a model genuinely helps and where a person has to make the call, and ships it with review, logging, and a way back.',
+    proof: 'A multi-model agent operation in daily use; SP+ released with 150+ automated checks.',
+  },
+  {
+    title: 'Finds the real problem first',
+    body: 'Electrical work taught him a reading is true or it is not. He finds the actual fault before anyone spends money fixing the wrong one.',
+    proof: 'The registry fault behind a stalled Bank of America rollout; a job site where the specs changed every day.',
+  },
+  {
+    title: 'Takes the busywork off the table',
+    body: 'Recurring work becomes scheduled, watched, recoverable services, with an off switch the owner holds, not the vendor.',
+    proof: 'Archiving, hash-verified backups with tested restores, campaign cadences with a kill switch, health monitoring.',
+  },
+  {
+    title: 'Owns the stack underneath',
+    body: 'Comfortable from the rack to the edge. When something breaks at 2 AM, he is not waiting on someone else to explain the infrastructure.',
+    proof: 'Proxmox and Linux fleet tunneled to Cloudflare Pages, Workers, R2, and D1; a USDA WAN install across 83 sites.',
+  },
+  {
+    title: 'Builds the way back in',
+    body: 'Every change gets checked, signed, and reversible. Security is part of how the system is built, not a coat of paint at the end.',
+    proof: 'SP+ signing, firewall, and rollback controls; a written standard AI coders have to pass.',
+  },
+  {
+    title: 'Talks to the floor and the server room',
+    body: 'Has sold, trained, installed, and supported. He explains the system in the language of the people who have to use it.',
+    proof: 'Case design and agent development supporting ~$110M in production; trained new agents and new installers.',
+  },
+];
+
+const hiring = [
+  ['You bought AI tools and not much changed.', 'He starts with the work, not the tool. The question is what your people do every week and which part of it a model should carry.'],
+  ['You need someone both sides of the building trust.', 'He has been the new agent, the field tech, and the foreman. He can sit with operations in the morning and the infrastructure in the afternoon.'],
+  ['It has to still work next quarter.', 'Review gates, tested restores, and a named human owner come standard. The people who use it are part of the build, so it fits how they actually work.'],
+];
+
+const stories = [
+  {
+    tag: 'Bank of America · Baltimore · 2002',
+    title: 'A blocked rollout and a flight in the morning.',
+    body: 'The Baltimore office had not received a single Tivoli push, and the flight home left the next day. He went through the registry, found the fault, patched it, and finished the affected rollout by 4 AM. The team made the flight.',
+    lesson: 'Diagnose the actual failure. Then finish the job.',
+  },
+  {
+    tag: 'Centech · Assisted living · 2011',
+    title: 'The foreman quit. The drawings kept changing.',
+    body: 'Hired as a regular hand on a job where specs, drawings, and equipment lists changed daily. When the foreman walked, he was the one who could translate the design into work a crew could do, and he led the low-voltage resident-notification system to completion.',
+    lesson: 'Translate the plan. Organize the people. Deliver.',
+  },
+  {
+    tag: 'SecureProspective · SP+ · 2026',
+    title: 'Build the system. Build the way back.',
+    body: 'Advisors needed a workstation they could trust with client data. He designed and released SP+ with signed updates, 150+ automated security checks, and one-step rollback, because the day an update goes wrong is the day that matters.',
+    lesson: 'Own what happens after the release.',
+  },
+];
+
+const fits = [
+  ['AI Implementation Engineer', 'Carries a process from diagnosis to a working, governed AI workflow.'],
+  ['AI Operations / Agent Orchestration Lead', 'Already runs model routing, review lanes, schedules, and human gates.'],
+  ['Solutions or Implementation Architect', 'Bridges field infrastructure, cloud deployment, and business need.'],
+  ['Automation Engineer', 'Builds scheduled, monitored, recoverable operational automation.'],
+  ['AI Enablement Lead', 'Pairs implementation with the controls and training adoption needs.'],
+];
+
+const stats = [
+  ['26', 'years across technology, construction, and insurance'],
+  ['150+', 'automated security checks in the SP+ release'],
+  ['83', 'sites on the USDA wide-area network install'],
+  ['400+', 'enterprise PC migrations for Starwood'],
+];
+
+const env = [
+  ['On premises', 'Proxmox hosts, Linux virtual machines, Docker, systemd services and timers'],
+  ['Edge', 'Cloudflare Pages, Workers, R2, and D1 behind secure tunnels'],
+  ['AI layer', 'Local and frontier models, routed by task, behind review gates'],
+  ['Control', 'Git as the audit trail, human approval before anything merges'],
+];
+
+const capabilities = ['Root-cause diagnosis', 'AI workflow implementation', 'Multi-agent orchestration', 'Linux infrastructure', 'Process automation', 'Security and recovery controls', 'Agent training and development'];
+
+const kolbe = [
+  ['Fact Finder', '4', 'Explain', 'Gathers what matters, adds context, checks the facts.'],
+  ['Follow Thru', '6', 'Maintain', 'Sustains working systems and replicates patterns that hold.'],
+  ['Quick Start', '3', 'Stabilize', 'Removes unknowns and reduces mistakes before moving.'],
+  ['Implementor', '7', 'Build', 'Constructs lasting, tangible solutions and protective environments.'],
+];
+---
+
+<Layout title="Resume: Christopher Campbell" description="The full resume of Christopher Campbell: AI implementation and operations, insurance operations, construction, and field engineering.">
+  <Nav />
+  <main id="main" class="rs" transition:name="page-card">
+    <section class="rs-hero" aria-labelledby="rs-title">
+      <div class="shell rs-hero-grid">
+        <div class="rs-hero-left">
+          <span class="rs-eyebrow">FOR THE TEAM THAT HAS TO MAKE AI ACTUALLY WORK</span>
+          <h1 id="rs-title">Christopher<br />Campbell<span class="rs-dot">.</span></h1>
+          <p class="rs-lede">From “this isn’t working”<br />to a system people can run.</p>
+        </div>
+        <div class="rs-hero-right">
+          <p class="rs-role">AI Implementation<br />and Operations Engineer</p>
+          <p class="rs-sub">He meters the whole circuit before he touches a wire. Twenty-six years of doing that in network closets, on job sites, and on sales floors is why the AI systems he builds today still hold up after the demo is over.</p>
+          <p class="rs-sub">He connects the business problem, the technical build, and the people who have to live with the result.</p>
+          <a class="rs-btn rs-btn--hero" href="tel:+18323032277">Talk with Christopher <span aria-hidden="true">→</span></a>
+          <p class="rs-contact-line">Montgomery, Texas <span aria-hidden="true">/</span> <a href="tel:+18323032277">832.303.2277</a> <span aria-hidden="true">/</span> <a href="/resume/Christopher-Campbell-Resume.pdf" download>One-page PDF</a></p>
+        </div>
+      </div>
+      <nav class="shell rs-jumps" aria-label="Jump to the evidence">
+        <a class="rs-jump rs-jump--build" href="#rs-now"><span>Build</span><b>An AI operation in daily use</b></a>
+        <a class="rs-jump rs-jump--protect" href="#rs-stories"><span>Protect</span><b>A released secure workstation</b></a>
+        <a class="rs-jump rs-jump--deliver" href="#rs-career"><span>Deliver</span><b>Field-tested under pressure</b></a>
+      </nav>
+    </section>
+
+    <section class="rs-wired" aria-labelledby="rs-kolbe">
+      <div class="shell rs-wired-grid">
+        <div class="rs-wired-copy">
+          <span class="rs-eyebrow rs-eyebrow--ink">KOLBE A INDEX · MO 4-6-3-7</span>
+          <h2 id="rs-kolbe">Wired to build, and to keep it running.</h2>
+          <p>Kolbe measures how a person naturally takes action, not intelligence or personality. His profile reads like his résumé: a builder first, who clears out the unknowns before he moves, then keeps the system running once it works.</p>
+          <p class="rs-wired-foot">For a team, that means fewer surprises after launch. <a href="/the-operator">The Operator</a> tells the rest.</p>
+        </div>
+        <dl class="rs-kolbe">
+          {kolbe.map(([mode, score, label, gloss], i) => (
+            <div class={`rs-k rs-k--${i}`}>
+              <dt><span>{mode}</span><b>{score}</b></dt>
+              <dd class="rs-bar" aria-hidden="true">{Array.from({ length: 10 }, (_, n) => <i class={n < Number(score) ? 'on' : ''}></i>)}</dd>
+              <dd><strong>{label}.</strong> {gloss}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <div class="shell rs-body">
+      <div class="rs-main">
+        <section class="rs-panel rs-panel--hire" aria-labelledby="rs-hire">
+          <header class="rs-panel-head"><h2 id="rs-hire">If you are hiring for this</h2><span>What a team actually gets</span></header>
+          <ul class="rs-hire">
+            {hiring.map(([q, a]) => <li><strong>{q}</strong><p>{a}</p></li>)}
+          </ul>
+        </section>
+
+        <section aria-labelledby="rs-brings">
+          <h2 class="rs-title" id="rs-brings">What he brings</h2>
+          <ul class="rs-strengths">
+            {strengths.map((s) => (
+              <li><h3>{s.title}</h3><p>{s.body}</p><p class="rs-proof"><b>Proof</b>{s.proof}</p></li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="rs-stories">
+          <h2 class="rs-title" id="rs-stories">Three moments that show how he works</h2>
+          <ol class="rs-stories">
+            {stories.map((s) => (
+              <li><span class="rs-story-tag">{s.tag}</span><h3>{s.title}</h3><p>{s.body}</p><p class="rs-story-lesson">{s.lesson}</p></li>
+            ))}
+          </ol>
+          <blockquote class="rs-quote">
+            <p>Voltage is present or it is not. Code is right or it is wrong. There is no persuasive language that repairs a false reading.</p>
+            <cite>From <a href="/the-operator">The Operator</a></cite>
+          </blockquote>
+        </section>
+
+        <section class="rs-panel rs-panel--fit" aria-labelledby="rs-fit">
+          <header class="rs-panel-head"><h2 id="rs-fit">Roles he fits</h2><span>Where the evidence points</span></header>
+          <ul class="rs-fit">
+            {fits.map(([role, why]) => <li><strong>{role}</strong><span>{why}</span></li>)}
+          </ul>
+        </section>
+
+        <section class="rs-panel" aria-labelledby="rs-now">
+          <header class="rs-panel-head">
+            <h2 id="rs-now">AI and Automation</h2>
+            <span>SecureProspective · Founder · 2025 to present</span>
+          </header>
+          <p class="rs-intro">This is where the work gets proven. SecureProspective runs on what he built: the AI workflows, the infrastructure, and the business tools, each with review gates and a named human owner. He built it alongside the insurance roles below, inside a business that still has to perform.</p>
+          <ol class="rs-build">
+            {build.map((b, i) => (
+              <li><span class="rs-num">{String(i + 1).padStart(2, '0')}</span><h3>{b.title}</h3><p>{b.body}</p></li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="rs-career">
+          <h2 class="rs-title" id="rs-career">Career record</h2>
+          <ol class="rs-timeline">
+            {careers.map((c) => (
+              <li class={`rs-era rs-era--${c.id}`}>
+                <div class="rs-era-tag"><b>{c.name}</b><span>{c.span}</span></div>
+                <div class="rs-era-body">
+                  <ul class="rs-roles">
+                    {c.roles.map(([role, org, when]) => (
+                      <li><div><strong>{role}</strong><span>{org}</span></div><time>{when}</time></li>
+                    ))}
+                  </ul>
+                  <ul class="rs-notes">{c.notes.map((n) => <li>{n}</li>)}</ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section class="rs-cta" aria-labelledby="rs-cta">
+          <h2 id="rs-cta">Have an operation that needs to work better?</h2>
+          <p>Start with what is actually getting in the way. The first conversation is about your operation, not his résumé.</p>
+          <div class="rs-cta-row">
+            <a class="rs-btn" href="tel:+18323032277">Call 832.303.2277</a>
+            <a class="rs-btn rs-btn--ghost" href="/contact">Send a message</a>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rs-rail" aria-label="Summary">
+        <div class="rs-card rs-card--stats">
+          <h2 class="rs-rail-title">By the numbers</h2>
+          <ul class="rs-nums">{stats.map(([n, l]) => <li><b>{n}</b><span>{l}</span></li>)}</ul>
+        </div>
+        <div class="rs-card">
+          <h2 class="rs-rail-title">Capabilities</h2>
+          <ul class="rs-chips">{capabilities.map((c) => <li>{c}</li>)}</ul>
+        </div>
+        <div class="rs-card">
+          <h2 class="rs-rail-title">Environment</h2>
+          <ul class="rs-stack">{env.map(([k, v]) => <li><b>{k}</b><span>{v}</span></li>)}</ul>
+        </div>
+        <div class="rs-card rs-card--ink">
+          <h2 class="rs-rail-title">How the work runs</h2>
+          <ol class="rs-steps"><li>Diagnose the real failure</li><li>Build the fix, checks included</li><li>Hand the owner the controls</li></ol>
+        </div>
+        <div class="rs-card">
+          <h2 class="rs-rail-title">License and studies</h2>
+          <p><b>Texas Life, Health, and Annuity</b></p>
+          <p>Network technology coursework, High Tech Institute, Phoenix, 1999 to 2000</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <Footer />
+</Layout>
