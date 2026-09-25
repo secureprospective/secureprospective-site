@@ -92,6 +92,22 @@ const careers = [
   },
 ];
 
+const stats = [
+  ['26', 'years across technology, construction, and insurance'],
+  ['150+', 'automated security checks in the SP+ release'],
+  ['83', 'sites on the USDA wide-area network install'],
+  ['400+', 'enterprise PC migrations for Starwood'],
+];
+
+const env = [
+  ['On premises', 'Proxmox hosts, Linux virtual machines, Docker, systemd services and timers'],
+  ['Edge', 'Cloudflare Pages, Workers, R2, and D1 behind secure tunnels'],
+  ['AI layer', 'Local and frontier models, routed by task, behind review gates'],
+  ['Control', 'Git as the audit trail, human approval before anything merges'],
+];
+
+const capabilities = ['Root-cause diagnosis', 'AI workflow implementation', 'Multi-agent orchestration', 'Linux infrastructure', 'Process automation', 'Security and recovery controls', 'Agent training and development'];
+
 const kolbe = [
   ['Fact Finder', '4', 'Explain', 'Gathers what matters, adds context, checks the facts.'],
   ['Follow Thru', '6', 'Maintain', 'Sustains working systems and replicates patterns that hold.'],
@@ -102,92 +118,101 @@ const kolbe = [
 
 <Layout title="Resume: Christopher Campbell" description="The full resume of Christopher Campbell: AI implementation and operations, insurance operations, construction, and field engineering.">
   <Nav />
-  <main id="main" class="resume-page" transition:name="page-card">
-    <section class="resume-hero" aria-labelledby="resume-title">
-      <div class="shell resume-hero-grid">
-        <div>
-          <span class="resume-eyebrow">FILE // RESUME</span>
-          <h1 id="resume-title">Christopher Campbell</h1>
-          <p class="resume-role">AI Implementation and Operations Engineer</p>
-          <p class="resume-lede">
-            Turns operational problems into working systems, and stays accountable for what happens after deployment.
-            26 years across network field engineering, electrical construction, and insurance operations.
-          </p>
+  <main id="main" class="rs" transition:name="page-card">
+    <section class="rs-hero" aria-labelledby="rs-title">
+      <div class="shell rs-hero-grid">
+        <div class="rs-hero-copy">
+          <span class="rs-eyebrow">FILE // FULL RECORD</span>
+          <h1 id="rs-title">Christopher Campbell</h1>
+          <p class="rs-role">AI Implementation and Operations Engineer</p>
+          <p class="rs-lede">Turns operational problems into working systems, and stays accountable for what happens after deployment.</p>
         </div>
-        <aside class="resume-contact" aria-label="Contact">
+        <aside class="rs-contact" aria-label="Contact">
+          <span class="rs-contact-label">Direct line</span>
+          <a class="rs-phone" href="tel:+18323032277">832.303.2277</a>
           <span>Montgomery, TX</span>
-          <a href="tel:+18323032277">832.303.2277</a>
-          <a href="/contact">Start a conversation</a>
-          <a href="/resume/Christopher-Campbell-Resume.pdf" download>Download the one-page PDF</a>
+          <a class="rs-btn" href="/resume/Christopher-Campbell-Resume.pdf" download>Download the one-page PDF</a>
+          <a class="rs-link" href="/contact">Start a conversation</a>
         </aside>
       </div>
-    </section>
-
-    <section class="resume-section shell" aria-labelledby="resume-now">
-      <header class="resume-section-head">
-        <h2 id="resume-now">What he builds now</h2>
-        <span>SecureProspective · Founder · 2025 to present</span>
-      </header>
-      <p class="resume-intro">
-        Builds and operates the AI workflows, infrastructure, and business applications behind an active insurance and consulting business.
-        Every system has review gates and a named human owner.
-      </p>
-      <ol class="resume-build">
-        {build.map((b) => (
-          <li><h3>{b.title}</h3><p>{b.body}</p></li>
-        ))}
-      </ol>
-    </section>
-
-    {careers.map((c) => (
-      <section class="resume-section shell" aria-labelledby={`resume-${c.id}`}>
-        <header class="resume-section-head">
-          <h2 id={`resume-${c.id}`}>{c.name}</h2>
-          <span>{c.span}</span>
-        </header>
-        <ul class="resume-roles">
-          {c.roles.map(([role, org, when]) => (
-            <li><strong>{role}</strong><span>{org}</span><time>{when}</time></li>
-          ))}
-        </ul>
-        <ul class="resume-notes">
-          {c.notes.map((n) => <li>{n}</li>)}
-        </ul>
-      </section>
-    ))}
-
-    <section class="resume-section shell" aria-labelledby="resume-kolbe">
-      <header class="resume-section-head">
-        <h2 id="resume-kolbe">How he works</h2>
-        <span>Kolbe A Index · MO 4-6-3-7</span>
-      </header>
-      <p class="resume-intro">
-        Kolbe measures how a person naturally takes action, not intelligence or personality.
-        High Implementor with low Quick Start: builds durable systems and removes risk before moving.
-      </p>
-      <dl class="resume-kolbe">
-        {kolbe.map(([mode, score, label, gloss]) => (
-          <div><dt>{mode}<b>{score}</b></dt><dd><strong>{label}.</strong> {gloss}</dd></div>
-        ))}
-      </dl>
-      <p class="resume-more">The full operating story, and the method the three careers built, is on <a href="/the-operator">The Operator</a>.</p>
-    </section>
-
-    <section class="resume-section shell" aria-labelledby="resume-env">
-      <header class="resume-section-head"><h2 id="resume-env">Environment</h2></header>
-      <p class="resume-intro">
-        Proxmox servers and Linux virtual machines on premises, tunneled securely to Cloudflare Pages, Workers, R2, and D1.
-        Docker, systemd services and timers, Nextcloud, Postiz. Git is the audit trail. Local and cloud AI models coordinated behind a human approval gate.
-      </p>
-    </section>
-
-    <section class="resume-section shell" aria-labelledby="resume-edu">
-      <header class="resume-section-head"><h2 id="resume-edu">License and studies</h2></header>
-      <ul class="resume-notes">
-        <li>Texas Life, Health, and Annuity license</li>
-        <li>Network technology coursework, High Tech Institute, Phoenix, 1999 to 2000</li>
+      <ul class="shell rs-stats" aria-label="By the numbers">
+        {stats.map(([n, l]) => <li><b>{n}</b><span>{l}</span></li>)}
       </ul>
     </section>
+
+    <div class="shell rs-body">
+      <div class="rs-main">
+        <section class="rs-panel" aria-labelledby="rs-now">
+          <header class="rs-panel-head">
+            <h2 id="rs-now">AI and Automation</h2>
+            <span>SecureProspective · Founder · 2025 to present</span>
+          </header>
+          <p class="rs-intro">Builds and operates the AI workflows, infrastructure, and business applications behind an active insurance and consulting business. Every system has review gates and a named human owner.</p>
+          <ol class="rs-build">
+            {build.map((b, i) => (
+              <li><span class="rs-num">{String(i + 1).padStart(2, '0')}</span><h3>{b.title}</h3><p>{b.body}</p></li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="rs-career">
+          <h2 class="rs-title" id="rs-career">Career record</h2>
+          <ol class="rs-timeline">
+            {careers.map((c) => (
+              <li class={`rs-era rs-era--${c.id}`}>
+                <div class="rs-era-tag"><b>{c.name}</b><span>{c.span}</span></div>
+                <div class="rs-era-body">
+                  <ul class="rs-roles">
+                    {c.roles.map(([role, org, when]) => (
+                      <li><div><strong>{role}</strong><span>{org}</span></div><time>{when}</time></li>
+                    ))}
+                  </ul>
+                  <ul class="rs-notes">{c.notes.map((n) => <li>{n}</li>)}</ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section class="rs-panel rs-panel--kolbe" aria-labelledby="rs-kolbe">
+          <header class="rs-panel-head">
+            <h2 id="rs-kolbe">How he works</h2>
+            <span>Kolbe A Index · MO 4-6-3-7</span>
+          </header>
+          <p class="rs-intro">Kolbe measures how a person naturally takes action, not intelligence or personality. High Implementor with low Quick Start: builds durable systems and removes risk before moving.</p>
+          <dl class="rs-kolbe">
+            {kolbe.map(([mode, score, label, gloss]) => (
+              <div>
+                <dt><span>{mode}</span><b>{score}</b></dt>
+                <dd class="rs-bar" aria-hidden="true"><i style={`width:${Number(score) * 10}%`}></i></dd>
+                <dd><strong>{label}.</strong> {gloss}</dd>
+              </div>
+            ))}
+          </dl>
+          <p class="rs-more">The method the three careers built is on <a href="/the-operator">The Operator</a>.</p>
+        </section>
+      </div>
+
+      <aside class="rs-rail" aria-label="Summary">
+        <div class="rs-card">
+          <h2 class="rs-rail-title">Capabilities</h2>
+          <ul class="rs-chips">{capabilities.map((c) => <li>{c}</li>)}</ul>
+        </div>
+        <div class="rs-card">
+          <h2 class="rs-rail-title">Environment</h2>
+          <ul class="rs-stack">{env.map(([k, v]) => <li><b>{k}</b><span>{v}</span></li>)}</ul>
+        </div>
+        <div class="rs-card rs-card--ink">
+          <h2 class="rs-rail-title">How the work runs</h2>
+          <ol class="rs-steps"><li>Diagnose the real failure</li><li>Build the fix, checks included</li><li>Hand the owner the controls</li></ol>
+        </div>
+        <div class="rs-card">
+          <h2 class="rs-rail-title">License and studies</h2>
+          <p><b>Texas Life, Health, and Annuity</b></p>
+          <p>Network technology coursework, High Tech Institute, Phoenix, 1999 to 2000</p>
+        </div>
+      </aside>
+    </div>
   </main>
   <Footer />
 </Layout>
