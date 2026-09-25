@@ -13,7 +13,7 @@ import '../styles/pages/resume.css';
 const build = [
   {
     title: 'AI agent operations',
-    body: 'Runs a multi-machine AI operation that routes each task to the right local or frontier model, separates implementation from review, and requires human approval before any change merges. Failed runs are recoverable without losing their findings. Used daily for research, code, and content.',
+    body: 'Runs a multi-machine AI operation that routes each task to the right local or frontier model, separates implementation from review, and requires human approval before any change merges. Preserves intermediate findings so interrupted runs can resume. Used daily for research, code, and content.',
   },
   {
     title: 'SP+ secure advisor workstation',
@@ -54,7 +54,7 @@ const careers = [
       ['Lead Quality Manager, Supervising Agent', 'American Income Life', '2018 to 2020'],
     ],
     notes: [
-      'Supported approximately $110M in annuity production across six years through case design, custom analytics, sales coaching, application review, and new-business support. That figure is business supported, not personal sales.',
+      'Supported approximately $110M in annuity production across DFS Marketing and Retirement Realized Financial through case design, analytics, sales coaching, and application support.',
       'Supported eight active producers at roughly $18M in annual annuity volume.',
       'Translated retirement income, life insurance, and long-term care needs into case strategies agents could explain and close. Specialty in federal benefits: FERS, CSRS, TSP, FEHB, and LEO, ATC, and researcher variations.',
       'Trained new agents from preparation through application and policy issue. At American Income Life, managed underwriting requirements, exams, policy modifications, and application quality.',
@@ -90,6 +90,47 @@ const careers = [
       'On the Bank of America rollout, the Baltimore office had not received a single Tivoli push the night before the team flew home. Traced it to a registry fault, patched it, and got every machine deployed by 4 AM.',
     ],
   },
+];
+
+const strengths = [
+  {
+    title: 'Puts AI into production, not into slides',
+    body: 'Takes a real business process, decides where a model helps and where a person must decide, and ships it with review gates, logging, and a way back.',
+    proof: 'Multi-model agent operation in daily use; SP+ released with 150+ automated checks.',
+  },
+  {
+    title: 'Diagnoses before building',
+    body: 'Finds the actual fault before proposing a fix. A trait built on live circuits, where a wrong reading has consequences.',
+    proof: 'Traced the registry fault that blocked a Bank of America Tivoli rollout; foreman on a job where specs changed daily.',
+  },
+  {
+    title: 'Automates operations end to end',
+    body: 'Turns recurring work into scheduled, monitored services with tested recovery and an off switch the owner controls.',
+    proof: 'Archiving, hash-verified backups with tested restores, campaign cadences with a kill switch, health monitoring.',
+  },
+  {
+    title: 'Runs the infrastructure himself',
+    body: 'Comfortable from the rack to the edge: hypervisors, Linux, containers, networking, tunnels, and cloud services.',
+    proof: 'Proxmox and Linux fleet tunneled to Cloudflare Pages, Workers, R2, and D1; USDA WAN install across 83 sites.',
+  },
+  {
+    title: 'Builds security in, not on',
+    body: 'Signed updates, least exposure, verification gates that fail loudly, and a written standard AI coders must pass.',
+    proof: 'SP+ signing, firewall, and rollback controls; eleven-layer engineering standard with multi-agent review.',
+  },
+  {
+    title: 'Translates between the business and the build',
+    body: 'Speaks sales floor, job site, and server room. Trains the people who have to use what gets built.',
+    proof: 'Case design and agent development supporting ~$110M in production; trained new agents and new installers.',
+  },
+];
+
+const fits = [
+  ['AI Implementation Engineer', 'Carries a process from diagnosis to a working, governed AI workflow.'],
+  ['AI Operations / Agent Orchestration Lead', 'Already runs model routing, review lanes, schedules, and human gates.'],
+  ['Solutions or Implementation Architect', 'Bridges field infrastructure, cloud deployment, and business need.'],
+  ['Automation Engineer', 'Builds scheduled, monitored, recoverable operational automation.'],
+  ['AI Enablement Lead', 'Pairs implementation with the controls and training adoption needs.'],
 ];
 
 const stats = [
@@ -142,6 +183,22 @@ const kolbe = [
 
     <div class="shell rs-body">
       <div class="rs-main">
+        <section aria-labelledby="rs-brings">
+          <h2 class="rs-title" id="rs-brings">What he brings</h2>
+          <ul class="rs-strengths">
+            {strengths.map((s) => (
+              <li><h3>{s.title}</h3><p>{s.body}</p><p class="rs-proof"><b>Proof</b>{s.proof}</p></li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="rs-panel rs-panel--fit" aria-labelledby="rs-fit">
+          <header class="rs-panel-head"><h2 id="rs-fit">Roles he fits</h2><span>Where the evidence points</span></header>
+          <ul class="rs-fit">
+            {fits.map(([role, why]) => <li><strong>{role}</strong><span>{why}</span></li>)}
+          </ul>
+        </section>
+
         <section class="rs-panel" aria-labelledby="rs-now">
           <header class="rs-panel-head">
             <h2 id="rs-now">AI and Automation</h2>
