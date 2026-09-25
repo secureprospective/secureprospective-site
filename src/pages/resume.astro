@@ -189,24 +189,44 @@ const kolbe = [
   <main id="main" class="rs" transition:name="page-card">
     <section class="rs-hero" aria-labelledby="rs-title">
       <div class="shell rs-hero-grid">
-        <div class="rs-hero-copy">
+        <div class="rs-hero-left">
           <span class="rs-eyebrow">FOR THE TEAM THAT HAS TO MAKE AI ACTUALLY WORK</span>
-          <h1 id="rs-title">Christopher Campbell</h1>
-          <p class="rs-role">AI Implementation and Operations Engineer</p>
-          <p class="rs-lede">From “this isn’t working” to a system people can run.</p>
-          <p class="rs-sub">He meters the whole circuit before he touches a wire. Twenty-six years of doing that in network closets, on job sites, and on sales floors is why the AI systems he builds today still hold up after the demo is over.</p>
+          <h1 id="rs-title">Christopher<br />Campbell<span class="rs-dot">.</span></h1>
+          <p class="rs-lede">From “this isn’t working”<br />to a system people can run.</p>
         </div>
-        <aside class="rs-contact" aria-label="Contact">
-          <span class="rs-contact-label">Direct line</span>
-          <a class="rs-phone" href="tel:+18323032277">832.303.2277</a>
-          <span>Montgomery, TX</span>
-          <a class="rs-btn" href="/resume/Christopher-Campbell-Resume.pdf" download>Download the one-page PDF</a>
-          <a class="rs-link" href="/contact">Start a conversation</a>
-        </aside>
+        <div class="rs-hero-right">
+          <p class="rs-role">AI Implementation<br />and Operations Engineer</p>
+          <p class="rs-sub">He meters the whole circuit before he touches a wire. Twenty-six years of doing that in network closets, on job sites, and on sales floors is why the AI systems he builds today still hold up after the demo is over.</p>
+          <p class="rs-sub">He connects the business problem, the technical build, and the people who have to live with the result.</p>
+          <a class="rs-btn rs-btn--hero" href="tel:+18323032277">Talk with Christopher <span aria-hidden="true">→</span></a>
+          <p class="rs-contact-line">Montgomery, Texas <span aria-hidden="true">/</span> <a href="tel:+18323032277">832.303.2277</a> <span aria-hidden="true">/</span> <a href="/resume/Christopher-Campbell-Resume.pdf" download>One-page PDF</a></p>
+        </div>
       </div>
-      <ul class="shell rs-stats" aria-label="By the numbers">
-        {stats.map(([n, l]) => <li><b>{n}</b><span>{l}</span></li>)}
-      </ul>
+      <nav class="shell rs-jumps" aria-label="Jump to the evidence">
+        <a class="rs-jump rs-jump--build" href="#rs-now"><span>Build</span><b>An AI operation in daily use</b></a>
+        <a class="rs-jump rs-jump--protect" href="#rs-stories"><span>Protect</span><b>A released secure workstation</b></a>
+        <a class="rs-jump rs-jump--deliver" href="#rs-career"><span>Deliver</span><b>Field-tested under pressure</b></a>
+      </nav>
+    </section>
+
+    <section class="rs-wired" aria-labelledby="rs-kolbe">
+      <div class="shell rs-wired-grid">
+        <div class="rs-wired-copy">
+          <span class="rs-eyebrow rs-eyebrow--ink">KOLBE A INDEX · MO 4-6-3-7</span>
+          <h2 id="rs-kolbe">Wired to build, and to keep it running.</h2>
+          <p>Kolbe measures how a person naturally takes action, not intelligence or personality. His profile reads like his résumé: a builder first, who clears out the unknowns before he moves, then keeps the system running once it works.</p>
+          <p class="rs-wired-foot">For a team, that means fewer surprises after launch. <a href="/the-operator">The Operator</a> tells the rest.</p>
+        </div>
+        <dl class="rs-kolbe">
+          {kolbe.map(([mode, score, label, gloss], i) => (
+            <div class={`rs-k rs-k--${i}`}>
+              <dt><span>{mode}</span><b>{score}</b></dt>
+              <dd class="rs-bar" aria-hidden="true">{Array.from({ length: 10 }, (_, n) => <i class={n < Number(score) ? 'on' : ''}></i>)}</dd>
+              <dd><strong>{label}.</strong> {gloss}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </section>
 
     <div class="shell rs-body">
@@ -279,24 +299,6 @@ const kolbe = [
           </ol>
         </section>
 
-        <section class="rs-panel rs-panel--kolbe" aria-labelledby="rs-kolbe">
-          <header class="rs-panel-head">
-            <h2 id="rs-kolbe">How he works</h2>
-            <span>Kolbe A Index · MO 4-6-3-7</span>
-          </header>
-          <p class="rs-intro">Kolbe measures how a person naturally takes action, not intelligence or personality. His profile reads like his résumé: a builder first, who clears out the unknowns before he moves, and then keeps the system running once it works.</p>
-          <dl class="rs-kolbe">
-            {kolbe.map(([mode, score, label, gloss]) => (
-              <div>
-                <dt><span>{mode}</span><b>{score}</b></dt>
-                <dd class="rs-bar" aria-hidden="true"><i style={`width:${Number(score) * 10}%`}></i></dd>
-                <dd><strong>{label}.</strong> {gloss}</dd>
-              </div>
-            ))}
-          </dl>
-          <p class="rs-more">The method the three careers built is on <a href="/the-operator">The Operator</a>.</p>
-        </section>
-
         <section class="rs-cta" aria-labelledby="rs-cta">
           <h2 id="rs-cta">Have an operation that needs to work better?</h2>
           <p>Start with what is actually getting in the way. The first conversation is about your operation, not his résumé.</p>
@@ -308,6 +310,10 @@ const kolbe = [
       </div>
 
       <aside class="rs-rail" aria-label="Summary">
+        <div class="rs-card rs-card--stats">
+          <h2 class="rs-rail-title">By the numbers</h2>
+          <ul class="rs-nums">{stats.map(([n, l]) => <li><b>{n}</b><span>{l}</span></li>)}</ul>
+        </div>
         <div class="rs-card">
           <h2 class="rs-rail-title">Capabilities</h2>
           <ul class="rs-chips">{capabilities.map((c) => <li>{c}</li>)}</ul>
