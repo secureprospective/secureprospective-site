@@ -94,34 +94,61 @@ const careers = [
 
 const strengths = [
   {
-    title: 'Puts AI into production, not into slides',
-    body: 'Takes a real business process, decides where a model helps and where a person must decide, and ships it with review gates, logging, and a way back.',
-    proof: 'Multi-model agent operation in daily use; SP+ released with 150+ automated checks.',
+    title: 'Puts AI to work, not on display',
+    body: 'Starts with the process your people already run, decides where a model genuinely helps and where a person has to make the call, and ships it with review, logging, and a way back.',
+    proof: 'A multi-model agent operation in daily use; SP+ released with 150+ automated checks.',
   },
   {
-    title: 'Diagnoses before building',
-    body: 'Finds the actual fault before proposing a fix. A trait built on live circuits, where a wrong reading has consequences.',
-    proof: 'Traced the registry fault that blocked a Bank of America Tivoli rollout; foreman on a job where specs changed daily.',
+    title: 'Finds the real problem first',
+    body: 'Electrical work taught him a reading is true or it is not. He finds the actual fault before anyone spends money fixing the wrong one.',
+    proof: 'The registry fault behind a stalled Bank of America rollout; a job site where the specs changed every day.',
   },
   {
-    title: 'Automates operations end to end',
-    body: 'Turns recurring work into scheduled, monitored services with tested recovery and an off switch the owner controls.',
+    title: 'Takes the busywork off the table',
+    body: 'Recurring work becomes scheduled, watched, recoverable services, with an off switch the owner holds, not the vendor.',
     proof: 'Archiving, hash-verified backups with tested restores, campaign cadences with a kill switch, health monitoring.',
   },
   {
-    title: 'Runs the infrastructure himself',
-    body: 'Comfortable from the rack to the edge: hypervisors, Linux, containers, networking, tunnels, and cloud services.',
-    proof: 'Proxmox and Linux fleet tunneled to Cloudflare Pages, Workers, R2, and D1; USDA WAN install across 83 sites.',
+    title: 'Owns the stack underneath',
+    body: 'Comfortable from the rack to the edge. When something breaks at 2 AM, he is not waiting on someone else to explain the infrastructure.',
+    proof: 'Proxmox and Linux fleet tunneled to Cloudflare Pages, Workers, R2, and D1; a USDA WAN install across 83 sites.',
   },
   {
-    title: 'Builds security in, not on',
-    body: 'Signed updates, least exposure, verification gates that fail loudly, and a written standard AI coders must pass.',
-    proof: 'SP+ signing, firewall, and rollback controls; eleven-layer engineering standard with multi-agent review.',
+    title: 'Builds the way back in',
+    body: 'Every change gets checked, signed, and reversible. Security is part of how the system is built, not a coat of paint at the end.',
+    proof: 'SP+ signing, firewall, and rollback controls; a written standard AI coders have to pass.',
   },
   {
-    title: 'Translates between the business and the build',
-    body: 'Speaks sales floor, job site, and server room. Trains the people who have to use what gets built.',
+    title: 'Talks to the floor and the server room',
+    body: 'Has sold, trained, installed, and supported. He explains the system in the language of the people who have to use it.',
     proof: 'Case design and agent development supporting ~$110M in production; trained new agents and new installers.',
+  },
+];
+
+const hiring = [
+  ['You bought AI tools and not much changed.', 'He starts with the work, not the tool. The question is what your people do every week and which part of it a model should carry.'],
+  ['You need someone both sides of the building trust.', 'He has been the new agent, the field tech, and the foreman. He can sit with operations in the morning and the infrastructure in the afternoon.'],
+  ['It has to still work next quarter.', 'Review gates, tested restores, and a named human owner come standard. The people who use it are part of the build, so it fits how they actually work.'],
+];
+
+const stories = [
+  {
+    tag: 'Bank of America · Baltimore · 2002',
+    title: 'A blocked rollout and a flight in the morning.',
+    body: 'The Baltimore office had not received a single Tivoli push, and the flight home left the next day. He went through the registry, found the fault, patched it, and finished the affected rollout by 4 AM. The team made the flight.',
+    lesson: 'Diagnose the actual failure. Then finish the job.',
+  },
+  {
+    tag: 'Centech · Assisted living · 2011',
+    title: 'The foreman quit. The drawings kept changing.',
+    body: 'Hired as a regular hand on a job where specs, drawings, and equipment lists changed daily. When the foreman walked, he was the one who could translate the design into work a crew could do, and he led the low-voltage resident-notification system to completion.',
+    lesson: 'Translate the plan. Organize the people. Deliver.',
+  },
+  {
+    tag: 'SecureProspective · SP+ · 2026',
+    title: 'Build the system. Build the way back.',
+    body: 'Advisors needed a workstation they could trust with client data. He designed and released SP+ with signed updates, 150+ automated security checks, and one-step rollback, because the day an update goes wrong is the day that matters.',
+    lesson: 'Own what happens after the release.',
   },
 ];
 
@@ -163,10 +190,11 @@ const kolbe = [
     <section class="rs-hero" aria-labelledby="rs-title">
       <div class="shell rs-hero-grid">
         <div class="rs-hero-copy">
-          <span class="rs-eyebrow">FILE // FULL RECORD</span>
+          <span class="rs-eyebrow">FOR THE TEAM THAT HAS TO MAKE AI ACTUALLY WORK</span>
           <h1 id="rs-title">Christopher Campbell</h1>
           <p class="rs-role">AI Implementation and Operations Engineer</p>
-          <p class="rs-lede">Turns operational problems into working systems, and stays accountable for what happens after deployment.</p>
+          <p class="rs-lede">From “this isn’t working” to a system people can run.</p>
+          <p class="rs-sub">He meters the whole circuit before he touches a wire. Twenty-six years of doing that in network closets, on job sites, and on sales floors is why the AI systems he builds today still hold up after the demo is over.</p>
         </div>
         <aside class="rs-contact" aria-label="Contact">
           <span class="rs-contact-label">Direct line</span>
@@ -183,6 +211,13 @@ const kolbe = [
 
     <div class="shell rs-body">
       <div class="rs-main">
+        <section class="rs-panel rs-panel--hire" aria-labelledby="rs-hire">
+          <header class="rs-panel-head"><h2 id="rs-hire">If you are hiring for this</h2><span>What a team actually gets</span></header>
+          <ul class="rs-hire">
+            {hiring.map(([q, a]) => <li><strong>{q}</strong><p>{a}</p></li>)}
+          </ul>
+        </section>
+
         <section aria-labelledby="rs-brings">
           <h2 class="rs-title" id="rs-brings">What he brings</h2>
           <ul class="rs-strengths">
@@ -190,6 +225,19 @@ const kolbe = [
               <li><h3>{s.title}</h3><p>{s.body}</p><p class="rs-proof"><b>Proof</b>{s.proof}</p></li>
             ))}
           </ul>
+        </section>
+
+        <section aria-labelledby="rs-stories">
+          <h2 class="rs-title" id="rs-stories">Three moments that show how he works</h2>
+          <ol class="rs-stories">
+            {stories.map((s) => (
+              <li><span class="rs-story-tag">{s.tag}</span><h3>{s.title}</h3><p>{s.body}</p><p class="rs-story-lesson">{s.lesson}</p></li>
+            ))}
+          </ol>
+          <blockquote class="rs-quote">
+            <p>Voltage is present or it is not. Code is right or it is wrong. There is no persuasive language that repairs a false reading.</p>
+            <cite>From <a href="/the-operator">The Operator</a></cite>
+          </blockquote>
         </section>
 
         <section class="rs-panel rs-panel--fit" aria-labelledby="rs-fit">
@@ -204,7 +252,7 @@ const kolbe = [
             <h2 id="rs-now">AI and Automation</h2>
             <span>SecureProspective · Founder · 2025 to present</span>
           </header>
-          <p class="rs-intro">Builds and operates the AI workflows, infrastructure, and business applications behind an active insurance and consulting business. Every system has review gates and a named human owner. Built alongside the insurance roles below, inside a business that has to perform.</p>
+          <p class="rs-intro">This is where the work gets proven. SecureProspective runs on what he built: the AI workflows, the infrastructure, and the business tools, each with review gates and a named human owner. He built it alongside the insurance roles below, inside a business that still has to perform.</p>
           <ol class="rs-build">
             {build.map((b, i) => (
               <li><span class="rs-num">{String(i + 1).padStart(2, '0')}</span><h3>{b.title}</h3><p>{b.body}</p></li>
@@ -236,7 +284,7 @@ const kolbe = [
             <h2 id="rs-kolbe">How he works</h2>
             <span>Kolbe A Index · MO 4-6-3-7</span>
           </header>
-          <p class="rs-intro">Kolbe measures how a person naturally takes action, not intelligence or personality. High Implementor with low Quick Start: builds durable systems and removes risk before moving.</p>
+          <p class="rs-intro">Kolbe measures how a person naturally takes action, not intelligence or personality. His profile reads like his résumé: a builder first, who clears out the unknowns before he moves, and then keeps the system running once it works.</p>
           <dl class="rs-kolbe">
             {kolbe.map(([mode, score, label, gloss]) => (
               <div>
@@ -247,6 +295,15 @@ const kolbe = [
             ))}
           </dl>
           <p class="rs-more">The method the three careers built is on <a href="/the-operator">The Operator</a>.</p>
+        </section>
+
+        <section class="rs-cta" aria-labelledby="rs-cta">
+          <h2 id="rs-cta">Have an operation that needs to work better?</h2>
+          <p>Start with what is actually getting in the way. The first conversation is about your operation, not his résumé.</p>
+          <div class="rs-cta-row">
+            <a class="rs-btn" href="tel:+18323032277">Call 832.303.2277</a>
+            <a class="rs-btn rs-btn--ghost" href="/contact">Send a message</a>
+          </div>
         </section>
       </div>
 
