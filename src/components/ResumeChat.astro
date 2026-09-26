@@ -13,6 +13,7 @@ const starters = [
 ];
 ---
 <div class="rs-ask">
+  <div class="rs-ask-backdrop" id="rs-ask-backdrop" hidden></div>
   <button type="button" class="rs-ask-fab" id="rs-ask-open" aria-expanded="false" aria-controls="rs-ask-panel">
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 4h16v12H8l-4 4V4z"/></svg>
     <span>Ask</span>
@@ -45,14 +46,36 @@ const starters = [
   const starters = document.getElementById('rs-chat-starters') as HTMLDivElement;
   const send = form.querySelector('button') as HTMLButtonElement;
 
+  const backdrop = document.getElementById('rs-ask-backdrop') as HTMLDivElement;
+  // Touch devices: never auto-focus the input on open, or the keyboard covers
+  // the card before the visitor has seen it. Desktop keeps the focus.
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+
+  // Keep the card above the on-screen keyboard: the visual viewport shrinks
+  // when the keyboard opens, the layout viewport does not.
+  function fit() {
+    const vv = window.visualViewport;
+    if (!vv || panel.hidden) return;
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    panel.style.setProperty('--kb', `${kb}px`);
+    panel.style.setProperty('--vvh', `${vv.height}px`);
+  }
+  window.visualViewport?.addEventListener('resize', fit);
+  window.visualViewport?.addEventListener('scroll', fit);
+
   function setOpen(open: boolean) {
     panel.hidden = !open;
+    backdrop.hidden = !open;
     fab.hidden = open;
     fab.setAttribute('aria-expanded', String(open));
-    if (open) input.focus({ preventScroll: true });
-    else fab.focus();
+    document.documentElement.classList.toggle('rs-ask-lock', open);
+    if (open) {
+      fit();
+      if (!touch) input.focus({ preventScroll: true });
+    } else fab.focus();
   }
   fab.addEventListener('click', () => setOpen(true));
+  backdrop.addEventListener('click', () => setOpen(false));
   closeBtn.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
 
