@@ -223,3 +223,20 @@
   .rs-rail { position: static; }
   .rs-era, .rs-build li, .rs-kolbe div { break-inside: avoid; }
 }
+
+/* Resume assistant ------------------------------------------------------ */
+.rs-chat-log { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; max-height: 26rem; overflow-y: auto; }
+.rs-chat-log:empty { display: none; }
+.rs-chat-log li { padding: 12px 14px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.rs-chat-q { background: var(--rs-navy); color: var(--white); justify-self: end; max-width: 85%; }
+.rs-chat-a { background: var(--white); border-left: 3px solid var(--gold-identity); max-width: 95%; }
+.rs-chat-a.is-pending { color: var(--rs-mute); font-style: italic; }
+.rs-chat-starters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.rs-chat-chip { font: 500 0.875rem/1.3 var(--font-body); padding: 8px 12px; background: var(--white); color: var(--blue-brand); border: 1px solid var(--rs-line); border-radius: var(--radius-button); cursor: pointer; text-align: left; }
+.rs-chat-chip:hover, .rs-chat-chip:focus-visible { border-color: var(--blue-brand); }
+.rs-chat-form { display: flex; gap: 8px; }
+.rs-chat-form input { flex: 1; min-width: 0; font: 400 1rem/1.4 var(--font-body); padding: 10px 12px; border: 1px solid var(--rs-line); border-radius: var(--radius-button); background: var(--white); color: var(--ink); }
+.rs-chat-form input:focus-visible { outline: 2px solid var(--blue-brand); outline-offset: 1px; }
+.rs-chat-form button[disabled] { opacity: 0.6; cursor: wait; }
+.rs-chat-note { margin: 10px 0 0; font-size: 0.8125rem; color: var(--rs-mute); }
+.rs-chat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

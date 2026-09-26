@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import ResumeChat from '../components/ResumeChat.astro';
 import '../styles/pages/resume.css';
 
 /*
@@ -237,6 +238,8 @@ const kolbe = [
             {hiring.map(([q, a]) => <li><strong>{q}</strong><p>{a}</p></li>)}
           </ul>
         </section>
+
+        <ResumeChat />
 
         <section aria-labelledby="rs-brings">
           <h2 class="rs-title" id="rs-brings">What he brings</h2>

@@ -1,0 +1,77 @@
+---
+/*
+ * "Ask about Christopher": the resume assistant. Answers come from
+ * /api/chat, which only uses his profile record (see functions/api/chat.ts).
+ * Plain script, no framework: one form, one list. Answers are inserted as
+ * text, never HTML. No em dashes in visitor copy.
+ */
+const starters = [
+  'What has he built with AI?',
+  'How does he keep client data safe?',
+  'What kind of role is he looking for?',
+];
+---
+<section class="rs-panel rs-chat" aria-labelledby="rs-chat-title">
+  <header class="rs-panel-head"><h2 id="rs-chat-title">Ask about Christopher</h2><span>Answers come only from his record</span></header>
+  <ol class="rs-chat-log" id="rs-chat-log" aria-live="polite"></ol>
+  <div class="rs-chat-starters" id="rs-chat-starters">
+    {starters.map((s) => <button type="button" class="rs-chat-chip">{s}</button>)}
+  </div>
+  <form class="rs-chat-form" id="rs-chat-form">
+    <label class="sr-only" for="rs-chat-q">Your question</label>
+    <input id="rs-chat-q" name="q" type="text" maxlength="400" autocomplete="off" placeholder="Ask a question about his work" required />
+    <button type="submit" class="rs-btn">Ask</button>
+  </form>
+  <p class="rs-chat-note">An AI assistant can be wrong. For anything that matters, call <a href="tel:+18323032277">832.303.2277</a>.</p>
+</section>
+
+<script>
+  const form = document.getElementById('rs-chat-form') as HTMLFormElement;
+  const input = document.getElementById('rs-chat-q') as HTMLInputElement;
+  const log = document.getElementById('rs-chat-log') as HTMLOListElement;
+  const starters = document.getElementById('rs-chat-starters') as HTMLDivElement;
+  const button = form.querySelector('button') as HTMLButtonElement;
+
+  function add(kind: 'q' | 'a', text: string): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = `rs-chat-${kind}`;
+    li.textContent = text;
+    log.appendChild(li);
+    li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return li;
+  }
+
+  async function ask(question: string) {
+    starters.hidden = true;
+    add('q', question);
+    const pending = add('a', 'Checking his record...');
+    pending.classList.add('is-pending');
+    button.disabled = true;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json().catch(() => ({}));
+      pending.textContent = data.answer || 'Something went wrong. Christopher is glad to answer directly at 832.303.2277.';
+    } catch {
+      pending.textContent = 'Could not reach the assistant. Christopher is glad to answer directly at 832.303.2277.';
+    } finally {
+      pending.classList.remove('is-pending');
+      button.disabled = false;
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q.length < 3 || button.disabled) return;
+    input.value = '';
+    ask(q);
+  });
+  starters.addEventListener('click', (e) => {
+    const chip = (e.target as HTMLElement).closest('button');
+    if (chip && !button.disabled) ask(chip.textContent ?? '');
+  });
+</script>
