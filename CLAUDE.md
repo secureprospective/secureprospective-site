@@ -378,3 +378,13 @@ AI-ecosystem scaffold merged to `main` (`4424f40`) and pushed 2026-07-24, see Op
 **Hard rules carried forward from the scaffold brief (still apply):** no new paid external services without Christopher's sign-off; real secrets/bindings/deploys are the Beelink's job, never bird's (**corrected 2026-09-19**, was CT105, which has neither a clone nor `gh`); a merge to `main` triggers Cloudflare Pages auto-deploy, so treat every step here as touching the live site once a Function route exists (steps 1–2 don't, step 3 onward does).
 
 **Full context if this file alone isn't enough:** `docs/ai-ecosystem/ARCHITECTURE.md` (full spec), `docs/ai-ecosystem/components/*.md` (per-component spec + what's real vs. stubbed), memory `project_ai_ecosystem_wireframe` (build history — the node:sqlite bug, all 5 LEADS resolutions, why this was squash-merged). Bird's own task-status file (`~/.config/opencode/foundation/memory/ai_ecosystem_scaffold_task.md` on bird) has the original build session's blow-by-blow if deeper archaeology is ever needed, but everything load-bearing has been folded up into this file and the memory node — you shouldn't need to SSH to bird to start this phase.
+
+---
+
+## Resume assistant (live 2026-09-26, PR #4)
+
+- `functions/api/chat.ts` searches AI Search `ccwork-resume` and answers with `@cf/openai/gpt-oss-120b`. It needs `max_tokens` 1600 and `reasoning_effort: "low"`, or answers come back cut off or empty. The chat card is `src/components/ResumeChat.astro`.
+- Bindings: `AI` and `CHAT_KV` (KV namespace `resume-chat-quota`). Caps: 12 questions per visitor, 50 per site per day. `/api/chat` is exempt from the preview kill-switch in `functions/_middleware.ts`.
+- Rules live in `CCwork/profile-cast/_bot-rules.md`. The prompt keeps the hard rules above the style instructions; style alone made the model invent details.
+- Previews are OFF by default (`preview_deployment_setting: none`). To test a branch, turn previews on for that branch only, then switch them off again. Wrangler has no Pages auth here, so use the Cloudflare MCP connector.
+- Open: T280 (refine the voice and decide on the $5 Workers plan before marketing).
