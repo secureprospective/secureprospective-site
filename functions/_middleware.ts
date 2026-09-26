@@ -44,6 +44,9 @@ function backOfficeDisabled(env: PreviewEnv, path: string): boolean {
   const branch = env.CF_PAGES_BRANCH;
   if (typeof branch !== "string" || branch === "" || branch === "main") return false;
   if (env.PREVIEW_ALLOW_BACKOFFICE === "1") return false;
+  // The resume assistant touches no member data (AI binding + a quota KV), so
+  // it runs on previews and can be tested there before it ships.
+  if (path === "/api/chat") return false;
   return path.startsWith("/api/") || path === "/members" || path.startsWith("/members/");
 }
 

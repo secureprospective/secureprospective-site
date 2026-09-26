@@ -1,0 +1,125 @@
+---
+/*
+ * "Ask about Christopher": the resume assistant, as a floating Ask button in
+ * the lower right that opens a chat panel (a bottom sheet on phones).
+ * Answers come from /api/chat, which only uses his profile record (see
+ * functions/api/chat.ts). Plain script, no framework. Answers are inserted as
+ * text, never HTML. No em dashes in visitor copy.
+ */
+const starters = [
+  'What has he built with AI?',
+  'How does he keep client data safe?',
+  'What kind of role is he looking for?',
+];
+---
+<div class="rs-ask">
+  <div class="rs-ask-backdrop" id="rs-ask-backdrop" hidden></div>
+  <button type="button" class="rs-ask-fab" id="rs-ask-open" aria-expanded="false" aria-controls="rs-ask-panel">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 4h16v12H8l-4 4V4z"/></svg>
+    <span>Ask</span>
+  </button>
+  <section class="rs-ask-panel" id="rs-ask-panel" role="dialog" aria-labelledby="rs-ask-title" hidden>
+    <header class="rs-ask-head">
+      <div><h2 id="rs-ask-title">Ask about Christopher</h2><span>Answers come only from his record</span></div>
+      <button type="button" class="rs-ask-close" id="rs-ask-close" aria-label="Close">×</button>
+    </header>
+    <ol class="rs-chat-log" id="rs-chat-log" aria-live="polite"></ol>
+    <div class="rs-chat-starters" id="rs-chat-starters">
+      {starters.map((s) => <button type="button" class="rs-chat-chip">{s}</button>)}
+    </div>
+    <form class="rs-chat-form" id="rs-chat-form">
+      <label class="sr-only" for="rs-chat-q">Your question</label>
+      <input id="rs-chat-q" name="q" type="text" maxlength="400" autocomplete="off" placeholder="Ask about his work" required />
+      <button type="submit">Ask</button>
+    </form>
+    <p class="rs-chat-note">An AI assistant can be wrong. For anything that matters, call <a href="tel:+18323032277">832.303.2277</a>.</p>
+  </section>
+</div>
+
+<script>
+  const fab = document.getElementById('rs-ask-open') as HTMLButtonElement;
+  const panel = document.getElementById('rs-ask-panel') as HTMLElement;
+  const closeBtn = document.getElementById('rs-ask-close') as HTMLButtonElement;
+  const form = document.getElementById('rs-chat-form') as HTMLFormElement;
+  const input = document.getElementById('rs-chat-q') as HTMLInputElement;
+  const log = document.getElementById('rs-chat-log') as HTMLOListElement;
+  const starters = document.getElementById('rs-chat-starters') as HTMLDivElement;
+  const send = form.querySelector('button') as HTMLButtonElement;
+
+  const backdrop = document.getElementById('rs-ask-backdrop') as HTMLDivElement;
+  // Touch devices: never auto-focus the input on open, or the keyboard covers
+  // the card before the visitor has seen it. Desktop keeps the focus.
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+
+  // Keep the card above the on-screen keyboard: the visual viewport shrinks
+  // when the keyboard opens, the layout viewport does not.
+  function fit() {
+    const vv = window.visualViewport;
+    if (!vv || panel.hidden) return;
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    panel.style.setProperty('--kb', `${kb}px`);
+    panel.style.setProperty('--vvh', `${vv.height}px`);
+  }
+  window.visualViewport?.addEventListener('resize', fit);
+  window.visualViewport?.addEventListener('scroll', fit);
+
+  function setOpen(open: boolean) {
+    panel.hidden = !open;
+    backdrop.hidden = !open;
+    fab.hidden = open;
+    fab.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('rs-ask-lock', open);
+    if (open) {
+      fit();
+      if (!touch) input.focus({ preventScroll: true });
+    } else fab.focus();
+  }
+  fab.addEventListener('click', () => setOpen(true));
+  backdrop.addEventListener('click', () => setOpen(false));
+  closeBtn.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
+
+  function add(kind: 'q' | 'a', text: string): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = `rs-chat-${kind}`;
+    li.textContent = text;
+    log.appendChild(li);
+    log.scrollTop = log.scrollHeight;
+    return li;
+  }
+
+  async function ask(question: string) {
+    starters.hidden = true;
+    add('q', question);
+    const pending = add('a', 'Checking his record...');
+    pending.classList.add('is-pending');
+    send.disabled = true;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json().catch(() => ({}));
+      pending.textContent = data.answer || 'Something went wrong. Christopher is glad to answer directly at 832.303.2277.';
+    } catch {
+      pending.textContent = 'Could not reach the assistant. Christopher is glad to answer directly at 832.303.2277.';
+    } finally {
+      pending.classList.remove('is-pending');
+      send.disabled = false;
+      log.scrollTop = log.scrollHeight;
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q.length < 3 || send.disabled) return;
+    input.value = '';
+    ask(q);
+  });
+  starters.addEventListener('click', (e) => {
+    const chip = (e.target as HTMLElement).closest('button');
+    if (chip && !send.disabled) ask(chip.textContent ?? '');
+  });
+</script>
